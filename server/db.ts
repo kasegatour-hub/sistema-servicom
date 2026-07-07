@@ -184,24 +184,38 @@ export async function updateShipmentStatus(id: number, newStatus: "En agencia" |
     return undefined;
   }
 
-  const shipment = await getShipmentById(id);
-  if (!shipment) return undefined;
+  try {
+    const shipment = await getShipmentById(id);
+    if (!shipment) return undefined;
 
-  const events = JSON.parse(shipment.events);
-  events.push({
-    stage: newStatus,
-    date: new Date().toISOString(),
-    description,
-  });
+    let events = [];
+    try {
+      events = JSON.parse(shipment.events);
+    } catch (e) {
+      console.warn("[Database] Error parsing events JSON, starting fresh", e);
+      events = [];
+    }
 
-  const result = await db
-    .update(shipments)
-    .set({
-      status: newStatus,
-      events: JSON.stringify(events),
-      updatedAt: new Date(),
-    })
-    .where(eq(shipments.id, id));
+    events.push({
+      stage: newStatus,
+      date: new Date().toISOString(),
+      description,
+    });
 
-  return result;
+    const eventsJson = JSON.stringify(events);
+
+    const result = await db
+      .update(shipments)
+      .set({
+        status: newStatus,
+        events: eventsJson,
+        updatedAt: new Date(),
+      })
+      .where(eq(shipments.id, id));
+
+    return result;
+  } catch (error) {
+    console.error("[Database] Error updating shipment status:", error);
+    throw error;
+  }
 }

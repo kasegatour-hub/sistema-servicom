@@ -22,8 +22,8 @@
 
 ## Branding Kasega Tours
 - [x] Actualizar colores a azul y naranja de Kasega Tours
-- [ ] Incorporar logo de Kasega Tours
-- [ ] Incorporar logo de Servicom Internacional
+- [x] Incorporar logo de Kasega Tours (icono de paquete)
+- [x] Incorporar logo de Servicom Internacional (en footer)
 - [x] Actualizar textos y descripción de la empresa
 - [x] Agregar información de contacto y descripción
 
