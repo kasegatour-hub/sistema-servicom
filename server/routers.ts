@@ -1,10 +1,12 @@
 import { COOKIE_NAME } from "@shared/const";
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
+import { getShipmentByOrderAndCode, getShipmentById } from "./db";
 
 export const appRouter = router({
-    // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
@@ -17,12 +19,44 @@ export const appRouter = router({
     }),
   }),
 
-  // TODO: add feature routers here, e.g.
-  // todo: router({
-  //   list: protectedProcedure.query(({ ctx }) =>
-  //     db.getUserTodos(ctx.user.id)
-  //   ),
-  // }),
+  shipment: router({
+    search: publicProcedure
+      .input(z.object({
+        orderNumber: z.string().min(1, "Número de orden requerido"),
+        code: z.string().min(1, "Código requerido"),
+      }))
+      .query(async ({ input }) => {
+        const shipment = await getShipmentByOrderAndCode(input.orderNumber, input.code);
+        if (!shipment) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Envío no encontrado',
+          });
+        }
+        return {
+          ...shipment,
+          events: JSON.parse(shipment.events),
+        };
+      }),
+
+    getById: publicProcedure
+      .input(z.object({
+        id: z.number(),
+      }))
+      .query(async ({ input }) => {
+        const shipment = await getShipmentById(input.id);
+        if (!shipment) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Envío no encontrado',
+          });
+        }
+        return {
+          ...shipment,
+          events: JSON.parse(shipment.events),
+        };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, shipments } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +89,39 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+export async function getShipmentByOrderAndCode(orderNumber: string, code: string) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get shipment: database not available");
+    return undefined;
+  }
+
+  const result = await db
+    .select()
+    .from(shipments)
+    .where(
+      and(
+        eq(shipments.orderNumber, orderNumber),
+        eq(shipments.code, code)
+      )
+    )
+    .limit(1);
+
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getShipmentById(id: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get shipment: database not available");
+    return undefined;
+  }
+
+  const result = await db
+    .select()
+    .from(shipments)
+    .where(eq(shipments.id, id))
+    .limit(1);
+
+  return result.length > 0 ? result[0] : undefined;
+}
