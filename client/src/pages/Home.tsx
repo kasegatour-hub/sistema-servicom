@@ -117,12 +117,20 @@ export default function Home() {
       {/* Header */}
       <header className="bg-primary text-white shadow-md sticky top-0 z-40">
         <div className="max-w-4xl mx-auto px-4 py-4 md:py-6">
-          <div className="flex items-center gap-2 md:gap-3 mb-1 md:mb-2">
-            <Package className="w-6 md:w-8 h-6 md:h-8" />
-            <h1 className="text-2xl md:text-3xl font-bold">Shalom Tracking</h1>
+          <div className="flex justify-between items-start mb-2">
+            <div className="flex items-center gap-2 md:gap-3">
+              <Package className="w-6 md:w-8 h-6 md:h-8" />
+              <div>
+                <h1 className="text-2xl md:text-3xl font-bold">Kasega Tours</h1>
+                <p className="text-xs md:text-sm opacity-90">con el respaldo de Servicom Internacional</p>
+              </div>
+            </div>
+            <a href="/admin" className="text-white hover:bg-white/20 px-3 py-1 rounded text-sm font-medium transition">
+              Admin
+            </a>
           </div>
           <p className="text-primary-foreground opacity-90 text-sm md:text-base">
-            Rastreo de envíos en tiempo real
+            Rastreo de encomiendas en tiempo real
           </p>
         </div>
       </header>
@@ -131,7 +139,7 @@ export default function Home() {
         {/* Search Form */}
         <Card className="p-4 md:p-6 mb-6 md:mb-8 shadow-lg border-0">
           <h2 className="text-lg md:text-xl font-semibold mb-4 md:mb-6 text-gray-900">
-            Buscar tu envío
+            Rastrear tu encomienda
           </h2>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

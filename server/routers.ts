@@ -5,6 +5,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import { getShipmentByOrderAndCode, getShipmentById } from "./db";
+import { adminRouter } from "./admin.router";
 
 export const appRouter = router({
   system: systemRouter,
@@ -18,6 +19,8 @@ export const appRouter = router({
       } as const;
     }),
   }),
+
+  admin: adminRouter,
 
   shipment: router({
     search: publicProcedure

@@ -1,40 +1,44 @@
-# Shalom Tracking Clone - TODO
+# Kasega Tours - Sistema de Rastreo de Encomiendas - TODO
 
 ## Base de Datos
-- [x] Crear tabla de envíos (shipments) con campos: id, orderNumber, code, status, events, createdAt, updatedAt
-- [x] Insertar datos de prueba para 352 099 2723 / CA06721WB con historial completo
+- [x] Crear tabla de encomiendas con campos: id, orderNumber, code, status, events, createdAt, updatedAt
+- [x] Actualizar estados a 3: En agencia, En tránsito, En destino
+- [x] Agregar tabla de usuarios admin con autenticación
+- [x] Crear datos de prueba para Kasega Tours
 
-## Backend (tRPC)
-- [x] Crear procedimiento para buscar envío por número de orden y código
-- [x] Crear procedimiento para generar QR dinámico por envío (implementado en frontend)
-- [x] Crear procedimiento para obtener historial de eventos del envío
+## Autenticación
+- [x] Implementar login de admin con correo (Justina2025)
+- [x] Crear sistema de sesión para admin
+- [x] Proteger rutas de administración
 
-## Frontend - Componentes
-- [x] Crear página Home con formulario de búsqueda
-- [x] Crear componente de línea de tiempo (Timeline) con 5 etapas
-- [x] Crear componente de escáner QR con acceso a cámara
-- [x] Crear componente de visualización de QR generado
-- [x] Crear página de resultado de rastreo
+## Panel de Administración
+- [x] Crear página de admin dashboard
+- [x] Formulario para crear nuevas encomiendas
+- [x] Generación automática de QR al crear encomienda
+- [x] Tabla de encomiendas con opción de editar estado
+- [x] Actualizar estado: En agencia → En tránsito → En destino
+- [x] Ver historial de cambios de estado
+- [x] Descargar QR generado
 
-## Diseño y Estilos
-- [x] Configurar colores corporativos (rojo Shalom #E31E24, blanco)
-- [x] Implementar tipografía profesional y limpia (Google Fonts - Inter)
-- [x] Agregar logo de Shalom (icono de paquete)
-- [x] Optimizar diseño para móvil (mobile-first)
-- [x] Asegurar responsividad en desktop
+## Branding Kasega Tours
+- [x] Actualizar colores a azul y naranja de Kasega Tours
+- [ ] Incorporar logo de Kasega Tours
+- [ ] Incorporar logo de Servicom Internacional
+- [x] Actualizar textos y descripción de la empresa
+- [ ] Agregar información de contacto y descripción
 
-## Funcionalidades
-- [x] Búsqueda de envíos por número de orden y código
-- [x] Visualización de estado actual del envío
-- [x] Línea de tiempo con etapas: Registrado → En origen → En tránsito → En destino → Entregado
-- [x] Escáner QR funcional en web, Android e iOS (con jsQR)
-- [x] Generación automática de QR por envío (con qrcode library)
-- [x] Enlace directo desde QR a página de rastreo
+## Frontend - Cliente
+- [x] Búsqueda de encomiendas por número de orden y código
+- [x] Visualización de estado actual
+- [x] Enlace a panel de administración en header
+- [x] Línea de tiempo con etapas
+- [x] Escáner QR integrado
+- [x] Generación de QR
+- [ ] Actualizar a 3 estados: En agencia, En tránsito, En destino
 
 ## Testing
-- [x] Pruebas del procedimiento de búsqueda (6 tests pasando)
-- [x] Validación de campos requeridos
-- [x] Verificación de estructura de datos
-- [x] Pruebas de responsividad en móvil (verificado en viewport 375x812)
-- [ ] Pruebas de escaneo QR en navegador (manual)
-- [ ] Pruebas en dispositivos Android e iOS (manual)
+- [ ] Pruebas de autenticación de admin
+- [ ] Pruebas de creación de encomiendas
+- [ ] Pruebas de actualización de estado
+- [ ] Pruebas de generación de QR
+- [ ] Pruebas de responsividad

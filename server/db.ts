@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, shipments } from "../drizzle/schema";
+import { InsertUser, users, shipments, admins } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -124,4 +124,84 @@ export async function getShipmentById(id: number) {
     .limit(1);
 
   return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getAdminByEmail(email: string) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get admin: database not available");
+    return undefined;
+  }
+
+  const result = await db
+    .select()
+    .from(admins)
+    .where(eq(admins.email, email))
+    .limit(1);
+
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getAllShipments() {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get shipments: database not available");
+    return [];
+  }
+
+  return await db.select().from(shipments);
+}
+
+export async function createShipment(orderNumber: string, code: string, status: "En agencia" | "En tránsito" | "En destino") {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot create shipment: database not available");
+    return undefined;
+  }
+
+  const events = [
+    {
+      stage: status,
+      date: new Date().toISOString(),
+      description: `Encomienda registrada en estado: ${status}`,
+    },
+  ];
+
+  const result = await db.insert(shipments).values({
+    orderNumber,
+    code,
+    status,
+    events: JSON.stringify(events),
+  });
+
+  return result;
+}
+
+export async function updateShipmentStatus(id: number, newStatus: "En agencia" | "En tránsito" | "En destino", description: string) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot update shipment: database not available");
+    return undefined;
+  }
+
+  const shipment = await getShipmentById(id);
+  if (!shipment) return undefined;
+
+  const events = JSON.parse(shipment.events);
+  events.push({
+    stage: newStatus,
+    date: new Date().toISOString(),
+    description,
+  });
+
+  const result = await db
+    .update(shipments)
+    .set({
+      status: newStatus,
+      events: JSON.stringify(events),
+      updatedAt: new Date(),
+    })
+    .where(eq(shipments.id, id));
+
+  return result;
 }
