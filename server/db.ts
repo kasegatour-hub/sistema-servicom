@@ -203,15 +203,13 @@ export async function updateShipmentStatus(id: number, newStatus: "En agencia" |
     });
 
     const eventsJson = JSON.stringify(events);
+    const now = new Date();
 
-    const result = await db
-      .update(shipments)
-      .set({
-        status: newStatus,
-        events: eventsJson,
-        updatedAt: new Date(),
-      })
-      .where(eq(shipments.id, id));
+    // Use raw SQL to avoid Drizzle JSON handling issues
+    const result = await (db as any).execute(
+      `UPDATE \`shipments\` SET \`status\` = ?, \`events\` = ?, \`updatedAt\` = ? WHERE \`id\` = ?`,
+      [newStatus, eventsJson, now, id]
+    );
 
     return result;
   } catch (error) {

@@ -27,7 +27,7 @@ const createShipmentSchema = z.object({
 const updateStatusSchema = z.object({
   shipmentId: z.number(),
   newStatus: z.enum(["En agencia", "En tránsito", "En destino"]),
-  description: z.string().min(1, "Descripción requerida"),
+  description: z.string().optional(),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
@@ -176,7 +176,7 @@ export default function AdminDashboard() {
           </form>
 
           <p className="text-xs text-gray-500 text-center mt-4">
-            Demo: justina@kasegatours.com / Justina2025
+            Demo: kasegatour@gmail.com / $Justina2025
           </p>
         </Card>
       </div>
@@ -377,15 +377,12 @@ export default function AdminDashboard() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Descripción (Opcional)</label>
                   <Input
                     placeholder="Ej: Encomienda en camino a destino"
                     {...updateForm.register("description")}
                     className="border-2 focus:border-primary"
                   />
-                  {updateForm.formState.errors.description && (
-                    <p className="text-red-600 text-sm mt-1">{updateForm.formState.errors.description.message}</p>
-                  )}
                 </div>
 
                 <div className="flex gap-2">

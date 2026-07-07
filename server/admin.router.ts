@@ -10,6 +10,14 @@ export const adminRouter = router({
       password: z.string(),
     }))
     .mutation(async ({ input }) => {
+      // Verificar que sea el email correcto
+      if (input.email !== 'kasegatour@gmail.com') {
+        throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: 'Credenciales inválidas',
+        });
+      }
+      
       const admin = await getAdminByEmail(input.email);
       if (!admin) {
         throw new TRPCError({
@@ -19,7 +27,7 @@ export const adminRouter = router({
       }
 
       // Simple password check (in production, use bcrypt)
-      if (input.password !== 'Justina2025') {
+      if (input.password !== '$Justina2025') {
         throw new TRPCError({
           code: 'UNAUTHORIZED',
           message: 'Credenciales inválidas',
@@ -65,10 +73,10 @@ export const adminRouter = router({
     .input(z.object({
       shipmentId: z.number(),
       newStatus: z.enum(["En agencia", "En tránsito", "En destino"]),
-      description: z.string(),
+      description: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
-      const result = await updateShipmentStatus(input.shipmentId, input.newStatus, input.description);
+      const result = await updateShipmentStatus(input.shipmentId, input.newStatus, input.description || '');
       if (!result) {
         throw new TRPCError({
           code: 'NOT_FOUND',
