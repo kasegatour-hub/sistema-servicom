@@ -203,14 +203,18 @@ export async function updateShipmentStatus(id: number, newStatus: "En agencia" |
     });
 
     const eventsJson = JSON.stringify(events);
-    const now = new Date();
 
-    // Use raw SQL to avoid Drizzle JSON handling issues
-    const result = await (db as any).execute(
-      `UPDATE \`shipments\` SET \`status\` = ?, \`events\` = ?, \`updatedAt\` = ? WHERE \`id\` = ?`,
-      [newStatus, eventsJson, now, id]
-    );
+    // Update using Drizzle ORM
+    const result = await db
+      .update(shipments)
+      .set({
+        status: newStatus,
+        events: eventsJson as any,
+        updatedAt: new Date(),
+      })
+      .where(eq(shipments.id, id));
 
+    console.log("[Database] Shipment updated successfully:", { id, newStatus, eventsLength: events.length });
     return result;
   } catch (error) {
     console.error("[Database] Error updating shipment status:", error);
