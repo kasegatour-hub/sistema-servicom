@@ -321,6 +321,35 @@ export default function Home() {
         onClose={() => setScannerOpen(false)}
         onScan={handleQRScan}
       />
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-white mt-12 py-8">
+        <div className="max-w-4xl mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+            <div>
+              <h3 className="text-lg font-bold mb-2">Kasega Tours</h3>
+              <p className="text-gray-400 text-sm mb-4">
+                Tu aliado en servicios documentarios y financieros. Con el respaldo de Servicom Internacional, te ofrecemos soluciones confiables, agiles y pensadas para ti.
+              </p>
+              <p className="text-gray-400 text-sm">
+                Simplifica tus tramites con la confianza que mereces!
+              </p>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold mb-4">Informacion de Contacto</h3>
+              <div className="space-y-2 text-sm text-gray-400">
+                <p><strong>Email:</strong> justina@kasegatours.com</p>
+                <p><strong>Servicio:</strong> Rastreo de Encomiendas</p>
+                <p><strong>Disponibilidad:</strong> 24/7</p>
+              </div>
+            </div>
+          </div>
+          <div className="border-t border-gray-700 pt-6 text-center text-sm text-gray-400">
+            <p>Con el respaldo de <strong>Servicom Internacional</strong></p>
+            <p className="mt-2">© 2026 Kasega Tours. Todos los derechos reservados.</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

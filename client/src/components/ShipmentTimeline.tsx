@@ -11,7 +11,7 @@ interface ShipmentTimelineProps {
   currentStatus: string;
 }
 
-const STAGES_ORDER = ["Registrado", "En origen", "En tránsito", "En destino", "Entregado"];
+const STAGES_ORDER = ["En agencia", "En tránsito", "En destino"];
 
 export function ShipmentTimeline({ events, currentStatus }: ShipmentTimelineProps) {
   const currentStageIndex = STAGES_ORDER.indexOf(currentStatus);

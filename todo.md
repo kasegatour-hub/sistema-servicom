@@ -25,20 +25,20 @@
 - [ ] Incorporar logo de Kasega Tours
 - [ ] Incorporar logo de Servicom Internacional
 - [x] Actualizar textos y descripción de la empresa
-- [ ] Agregar información de contacto y descripción
+- [x] Agregar información de contacto y descripción
 
 ## Frontend - Cliente
 - [x] Búsqueda de encomiendas por número de orden y código
 - [x] Visualización de estado actual
 - [x] Enlace a panel de administración en header
-- [x] Línea de tiempo con etapas
+- [x] Línea de tiempo con etapas (3 estados: En agencia, En tránsito, En destino)
 - [x] Escáner QR integrado
 - [x] Generación de QR
-- [ ] Actualizar a 3 estados: En agencia, En tránsito, En destino
+- [x] Actualizar a 3 estados: En agencia, En tránsito, En destino
 
 ## Testing
-- [ ] Pruebas de autenticación de admin
-- [ ] Pruebas de creación de encomiendas
-- [ ] Pruebas de actualización de estado
-- [ ] Pruebas de generación de QR
-- [ ] Pruebas de responsividad
+- [x] Pruebas de autenticación de admin (credenciales: justina@kasegatours.com / Justina2025)
+- [x] Pruebas de creación de encomiendas
+- [x] Pruebas de actualización de estado
+- [x] Pruebas de generación de QR
+- [x] Pruebas end-to-end responsividad
