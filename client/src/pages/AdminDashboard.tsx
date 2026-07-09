@@ -54,8 +54,22 @@ export default function AdminDashboard() {
 
   // Forms
   const loginForm = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
-  const createForm = useForm<CreateShipmentForm>({ resolver: zodResolver(createShipmentSchema) });
-  const updateForm = useForm<UpdateStatusForm>({ resolver: zodResolver(updateStatusSchema) });
+  const createForm = useForm<any>({
+    resolver: zodResolver(createShipmentSchema),
+    defaultValues: {
+      orderNumber: '',
+      code: '',
+      status: 'En agencia',
+    },
+  });
+  const updateForm = useForm<UpdateStatusForm>({
+    resolver: zodResolver(updateStatusSchema),
+    defaultValues: {
+      shipmentId: 0,
+      newStatus: 'En agencia',
+      description: '',
+    },
+  });
 
   const handleLogin = async (data: LoginForm) => {
     try {
@@ -68,7 +82,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleCreateShipment = async (data: CreateShipmentForm) => {
+  const handleCreateShipment = async (data: any) => {
     try {
       const result = await createMutation.mutateAsync(data);
       toast.success("Encomienda creada exitosamente");
@@ -230,8 +244,8 @@ export default function AdminDashboard() {
                     {...createForm.register("orderNumber")}
                     className="border-2 focus:border-primary"
                   />
-                  {createForm.formState.errors.orderNumber && (
-                    <p className="text-red-600 text-sm mt-1">{createForm.formState.errors.orderNumber.message}</p>
+                  {createForm.formState.errors.orderNumber?.message && (
+                    <p className="text-red-600 text-sm mt-1">{(createForm.formState.errors.orderNumber as any)?.message}</p>
                   )}
                 </div>
 
@@ -242,8 +256,8 @@ export default function AdminDashboard() {
                     {...createForm.register("code")}
                     className="border-2 focus:border-primary"
                   />
-                  {createForm.formState.errors.code && (
-                    <p className="text-red-600 text-sm mt-1">{createForm.formState.errors.code.message}</p>
+                  {createForm.formState.errors.code?.message && (
+                    <p className="text-red-600 text-sm mt-1">{(createForm.formState.errors.code as any)?.message}</p>
                   )}
                 </div>
 
