@@ -135,6 +135,10 @@ export default function AdminDashboard() {
     setAdmin(null);
     loginForm.reset();
     toast.success("Sesión cerrada");
+    // Redirigir a la página principal
+    setTimeout(() => {
+      window.location.href = '/';
+    }, 500);
   };
 
   if (!isLoggedIn) {
@@ -190,7 +194,7 @@ export default function AdminDashboard() {
           </form>
 
           <p className="text-xs text-gray-500 text-center mt-4">
-            Demo: kasegatour@gmail.com / $Justina2025
+            Demo: yeslygian2030@gmail.com / Y3sl1G1an2035
           </p>
         </Card>
       </div>

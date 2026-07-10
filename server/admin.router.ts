@@ -11,7 +11,7 @@ export const adminRouter = router({
     }))
     .mutation(async ({ input }) => {
       // Verificar que sea el email correcto
-      if (input.email !== 'kasegatour@gmail.com') {
+      if (input.email !== 'yeslygian2030@gmail.com') {
         throw new TRPCError({
           code: 'UNAUTHORIZED',
           message: 'Credenciales inválidas',
@@ -27,7 +27,7 @@ export const adminRouter = router({
       }
 
       // Simple password check (in production, use bcrypt)
-      if (input.password !== '$Justina2025') {
+      if (input.password !== 'Y3sl1G1an2035') {
         throw new TRPCError({
           code: 'UNAUTHORIZED',
           message: 'Credenciales inválidas',

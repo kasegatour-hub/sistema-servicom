@@ -40,6 +40,17 @@ export default function Home() {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [searchParams, setSearchParams] = useState<SearchFormData | null>(null);
 
+  // Load search params from URL on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const order = params.get('order');
+    const code = params.get('code');
+    if (order && code) {
+      setSearchParams({ orderNumber: order, code });
+      reset({ orderNumber: order, code });
+    }
+  }, []);
+
   const {
     register,
     handleSubmit,
@@ -93,6 +104,9 @@ export default function Home() {
 
   const onSubmit = (data: SearchFormData) => {
     setSearchParams(data);
+    // Update URL with search params
+    const newUrl = `/?order=${encodeURIComponent(data.orderNumber)}&code=${encodeURIComponent(data.code)}`;
+    window.history.pushState({}, '', newUrl);
   };
 
   const handleQRScan = (scannedData: string) => {
@@ -119,15 +133,11 @@ export default function Home() {
         <div className="max-w-4xl mx-auto px-4 py-4 md:py-6">
           <div className="flex justify-between items-start mb-2">
             <div className="flex items-center gap-2 md:gap-3">
-              <Package className="w-6 md:w-8 h-6 md:h-8" />
-              <div>
-                <h1 className="text-2xl md:text-3xl font-bold">Kasega Tours</h1>
-                <p className="text-xs md:text-sm opacity-90">con el respaldo de Servicom Internacional</p>
-              </div>
+              <img src="/manus-storage/kasega-logo_f5c33185.webp" alt="Kasega Tours" className="h-12 md:h-16 object-contain" />
             </div>
-            <a href="/admin" className="text-white hover:bg-white/20 px-3 py-1 rounded text-sm font-medium transition">
+            <button onClick={() => window.location.href = '/admin'} className="text-white hover:bg-white/20 px-3 py-1 rounded text-sm font-medium transition">
               Admin
-            </a>
+            </button>
           </div>
           <p className="text-primary-foreground opacity-90 text-sm md:text-base">
             Rastreo de encomiendas en tiempo real
@@ -338,7 +348,7 @@ export default function Home() {
             <div>
               <h3 className="text-lg font-bold mb-4">Informacion de Contacto</h3>
               <div className="space-y-2 text-sm text-gray-400">
-                <p><strong>Email:</strong> justina@kasegatours.com</p>
+                <p><strong>Email:</strong> info@kasegatours.com</p>
                 <p><strong>Servicio:</strong> Rastreo de Encomiendas</p>
                 <p><strong>Disponibilidad:</strong> 24/7</p>
               </div>
