@@ -165,7 +165,7 @@ export default function Home() {
                   Número de Orden
                 </label>
                 <Input
-                  placeholder="Ej: 352 099 2723"
+                  placeholder="Ej: 3520992723"
                   {...register("orderNumber")}
                   className="border-2 focus:border-primary text-sm"
                 />
