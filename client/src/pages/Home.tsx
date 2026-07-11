@@ -46,8 +46,11 @@ export default function Home() {
     const order = params.get('order');
     const code = params.get('code');
     if (order && code) {
-      setSearchParams({ orderNumber: order, code });
-      reset({ orderNumber: order, code });
+      // Normalizar: remover espacios y convertir a mayúsculas
+      const normalizedOrder = order.trim().replace(/\s+/g, '').toUpperCase();
+      const normalizedCode = code.trim().replace(/\s+/g, '').toUpperCase();
+      setSearchParams({ orderNumber: normalizedOrder, code: normalizedCode });
+      reset({ orderNumber: normalizedOrder, code: normalizedCode });
     }
   }, []);
 
@@ -103,9 +106,12 @@ export default function Home() {
   }, [searchQueryError]);
 
   const onSubmit = (data: SearchFormData) => {
-    setSearchParams(data);
+    // Normalizar: remover espacios y convertir a mayúsculas
+    const normalizedOrder = data.orderNumber.trim().replace(/\s+/g, '').toUpperCase();
+    const normalizedCode = data.code.trim().replace(/\s+/g, '').toUpperCase();
+    setSearchParams({ orderNumber: normalizedOrder, code: normalizedCode });
     // Update URL with search params
-    const newUrl = `/?order=${encodeURIComponent(data.orderNumber)}&code=${encodeURIComponent(data.code)}`;
+    const newUrl = `/?order=${encodeURIComponent(normalizedOrder)}&code=${encodeURIComponent(normalizedCode)}`;
     window.history.pushState({}, '', newUrl);
   };
 

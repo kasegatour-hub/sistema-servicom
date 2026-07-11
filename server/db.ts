@@ -3,6 +3,11 @@ import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, shipments, admins } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
+// Normalizar números de orden y códigos: remover espacios y convertir a mayúsculas
+function normalizeOrderCode(value: string): string {
+  return value.trim().replace(/\s+/g, '').toUpperCase();
+}
+
 let _db: ReturnType<typeof drizzle> | null = null;
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
@@ -96,13 +101,17 @@ export async function getShipmentByOrderAndCode(orderNumber: string, code: strin
     return undefined;
   }
 
+  // Normalizar los parámetros de búsqueda
+  const normalizedOrder = normalizeOrderCode(orderNumber);
+  const normalizedCode = normalizeOrderCode(code);
+
   const result = await db
     .select()
     .from(shipments)
     .where(
       and(
-        eq(shipments.orderNumber, orderNumber),
-        eq(shipments.code, code)
+        eq(shipments.orderNumber, normalizedOrder),
+        eq(shipments.code, normalizedCode)
       )
     )
     .limit(1);
@@ -159,6 +168,10 @@ export async function createShipment(orderNumber: string, code: string, status: 
     return undefined;
   }
 
+  // Normalizar los parámetros
+  const normalizedOrder = normalizeOrderCode(orderNumber);
+  const normalizedCode = normalizeOrderCode(code);
+
   const events = [
     {
       stage: status,
@@ -168,8 +181,8 @@ export async function createShipment(orderNumber: string, code: string, status: 
   ];
 
   const result = await db.insert(shipments).values({
-    orderNumber,
-    code,
+    orderNumber: normalizedOrder,
+    code: normalizedCode,
     status,
     events: JSON.stringify(events),
   });

@@ -352,6 +352,7 @@ export default function AdminDashboard() {
                         <Button
                           onClick={() => {
                             setSelectedShipmentId(shipment.id);
+                            updateForm.reset({ shipmentId: shipment.id, newStatus: shipment.status, description: "" });
                             setShowUpdateForm(true);
                           }}
                           size="sm"
@@ -378,11 +379,11 @@ export default function AdminDashboard() {
               <h3 className="text-lg font-semibold mb-4">Actualizar Estado de Encomienda</h3>
 
               <form onSubmit={updateForm.handleSubmit(handleUpdateStatus)} className="space-y-4">
-                <input type="hidden" {...updateForm.register("shipmentId", { valueAsNumber: true })} value={selectedShipmentId} />
+                <input type="hidden" {...updateForm.register("shipmentId", { valueAsNumber: true })} />
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Nuevo Estado</label>
-                  <Select onValueChange={(value) => updateForm.setValue("newStatus", value as any)}>
+                  <Select value={updateForm.watch("newStatus") || ""} onValueChange={(value) => updateForm.setValue("newStatus", value as any)}>
                     <SelectTrigger className="border-2 focus:border-primary">
                       <SelectValue placeholder="Selecciona un estado" />
                     </SelectTrigger>
