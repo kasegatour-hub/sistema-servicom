@@ -31,6 +31,9 @@ export const localAccounts = mysqlTable("local_accounts", {
   email: varchar("email", { length: 320 }).notNull().unique(),
   phone: varchar("phone", { length: 32 }).unique(),
   passwordHash: varchar("passwordHash", { length: 255 }).notNull(),
+  name: varchar("name", { length: 255 }),
+  lastName: varchar("lastName", { length: 255 }),
+  dni: varchar("dni", { length: 20 }),
   emailVerifiedAt: timestamp("emailVerifiedAt"),
   phoneVerifiedAt: timestamp("phoneVerifiedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -68,6 +71,7 @@ export type InsertAdmin = typeof admins.$inferInsert;
 
 export const shipments = mysqlTable("shipments", {
   id: int("id").autoincrement().primaryKey(),
+  accountId: int("accountId"), // Propietario del envío (opcional para mantener compatibilidad con envíos públicos o de admin)
   orderNumber: varchar("orderNumber", { length: 64 }).notNull().unique(),
   code: varchar("code", { length: 64 }).notNull(),
   status: mysqlEnum("status", ["En agencia", "En tránsito", "En destino", "Entregado"]).notNull(),

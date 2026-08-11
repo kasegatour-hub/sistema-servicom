@@ -9,6 +9,9 @@ import {
   getLocalAccountByEmail,
   getLocalAccountById,
   incrementVerificationAttempts,
+  updateLocalAccountProfile,
+  getShipmentsByAccountId,
+  createShipment,
   updateLocalAccountPassword,
 } from "./db";
 import {
@@ -87,13 +90,90 @@ export const accountRouter = router({
     if (!session) return null;
     const account = await getLocalAccountById(session.accountId);
     if (!account) return null;
-    return { id: account.id, email: account.email, phone: account.phone, createdAt: account.createdAt };
+    return {
+      id: account.id,
+      email: account.email,
+      phone: account.phone,
+      name: account.name,
+      lastName: account.lastName,
+      dni: account.dni,
+      createdAt: account.createdAt,
+    };
   }),
 
   logout: publicProcedure.mutation(({ ctx }) => {
     clearAccountSession(ctx.req, ctx.res);
     return { success: true };
   }),
+
+  updateProfile: publicProcedure
+    .input(z.object({
+      name: z.string().min(1, "Nombre requerido"),
+      lastName: z.string().min(1, "Apellido requerido"),
+      dni: z.string().min(8, "DNI requerido"),
+      phone: z.string().min(8, "Teléfono requerido"),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const session = getAccountSession(ctx.req);
+      if (!session) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Inicia sesión para actualizar tu perfil." });
+      }
+      const account = await updateLocalAccountProfile(session.accountId, input.name, input.lastName, input.dni, input.phone);
+      if (!account) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Cuenta no encontrada." });
+      }
+      return { success: true, account };
+    }),
+
+  myShipments: publicProcedure.query(async ({ ctx }) => {
+    const session = getAccountSession(ctx.req);
+    if (!session) return [];
+    const shipmentsList = await getShipmentsByAccountId(session.accountId);
+    return shipmentsList.map(s => ({
+      ...s,
+      events: JSON.parse(s.events),
+    }));
+  }),
+
+  createMyShipment: publicProcedure
+    .input(z.object({
+      orderNumber: z.string().min(1, "Número de orden requerido"),
+      code: z.string().min(1, "Código requerido"),
+      senderName: z.string().optional(),
+      senderLastName: z.string().optional(),
+      senderDni: z.string().optional(),
+      senderPhone: z.string().optional(),
+      recipientName: z.string().optional(),
+      recipientLastName: z.string().optional(),
+      recipientDni: z.string().optional(),
+      recipientPhone: z.string().optional(),
+      notes: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const session = getAccountSession(ctx.req);
+      if (!session) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Inicia sesión para registrar un envío." });
+      }
+      const result = await createShipment(
+        input.orderNumber,
+        input.code,
+        "En agencia",
+        input.senderName,
+        input.senderLastName,
+        input.senderDni,
+        input.senderPhone,
+        input.recipientName,
+        input.recipientLastName,
+        input.recipientDni,
+        input.recipientPhone,
+        input.notes,
+        session.accountId
+      );
+      if (!result) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No se pudo registrar el envío." });
+      }
+      return { success: true, message: "Envío registrado correctamente." };
+    }),
 
   requestPasswordReset: publicProcedure
     .input(z.object({ email: emailSchema, channel: z.enum(["email", "sms"]) }))

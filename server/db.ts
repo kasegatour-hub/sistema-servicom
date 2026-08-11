@@ -165,11 +165,24 @@ export async function getLocalAccountById(id: number) {
   return result[0];
 }
 
-export async function createLocalAccount(email: string, phone: string | null, passwordHash: string) {
+export async function createLocalAccount(email: string, phone: string | null, passwordHash: string, name?: string, lastName?: string, dni?: string) {
   const db = await getDb();
   if (!db) return undefined;
-  await db.insert(localAccounts).values({ email, phone, passwordHash });
+  await db.insert(localAccounts).values({ email, phone, passwordHash, name, lastName, dni });
   return getLocalAccountByEmail(email);
+}
+
+export async function updateLocalAccountProfile(id: number, name: string, lastName: string, dni: string, phone: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  await db.update(localAccounts).set({ name, lastName, dni, phone, updatedAt: new Date() }).where(eq(localAccounts.id, id));
+  return getLocalAccountById(id);
+}
+
+export async function getShipmentsByAccountId(accountId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(shipments).where(eq(shipments.accountId, accountId)).orderBy(desc(shipments.createdAt));
 }
 
 export async function updateLocalAccountPassword(id: number, passwordHash: string, channel: "email" | "sms") {
@@ -252,7 +265,8 @@ export async function createShipment(
   recipientLastName?: string,
   recipientDni?: string,
   recipientPhone?: string,
-  notes?: string
+  notes?: string,
+  accountId?: number | null
 ) {
   const db = await getDb();
   if (!db) {
@@ -273,6 +287,7 @@ export async function createShipment(
   ];
 
   const result = await db.insert(shipments).values({
+    accountId: accountId || null,
     orderNumber: normalizedOrder,
     code: normalizedCode,
     status,

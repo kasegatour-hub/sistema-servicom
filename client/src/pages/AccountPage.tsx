@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { ArrowLeft, KeyRound, Lock, Mail, Phone, UserPlus } from "lucide-react";
+import { ArrowLeft, KeyRound, Lock, LogOut, Mail, Package, Phone, Plus, Search, User, UserPlus, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { buildTrackingUrl, TRACKING_QR_OPTIONS, normalizeTrackingValue } from "@/lib/tracking";
+import QRCode from "qrcode";
 
 const brandLogo = "/manus-storage/servicom_logo_final_e7ce35aa.png";
 
@@ -21,18 +24,96 @@ export default function AccountPage() {
   const [code, setCode] = useState("");
   const [channel, setChannel] = useState<"email" | "sms">("email");
 
+  // Perfil editable
+  const [profileName, setProfileName] = useState("");
+  const [profileLastName, setProfileLastName] = useState("");
+  const [profileDni, setProfileDni] = useState("");
+  const [profilePhone, setProfilePhone] = useState("");
+
+  // Registro de encomienda por usuario
+  const [showNewShipment, setShowNewShipment] = useState(false);
+  const [orderNumber, setOrderNumber] = useState("");
+  const [shipmentCode, setShipmentCode] = useState("");
+  const [senderName, setSenderName] = useState("");
+  const [senderLastName, setSenderLastName] = useState("");
+  const [senderDni, setSenderDni] = useState("");
+  const [senderPhone, setSenderPhone] = useState("");
+  const [recipientName, setRecipientName] = useState("");
+  const [recipientLastName, setRecipientLastName] = useState("");
+  const [recipientDni, setRecipientDni] = useState("");
+  const [recipientPhone, setRecipientPhone] = useState("");
+  const [notes, setNotes] = useState("");
+
+  const utils = trpc.useUtils();
+  const { data: me, isLoading: meLoading } = trpc.account.me.useQuery();
+
+  // Sincronizar datos de perfil cuando lleguen
+  useState(() => {
+    // Inicializador perezoso
+    return 0;
+  });
+
+  // Efecto para sincronizar perfil cuando me cambie
+  if (me && !profileName && me.name) {
+    setProfileName(me.name);
+  }
+  if (me && !profileLastName && me.lastName) {
+    setProfileLastName(me.lastName);
+  }
+  if (me && !profileDni && me.dni) {
+    setProfileDni(me.dni);
+  }
+  if (me && !profilePhone && me.phone) {
+    setProfilePhone(me.phone);
+  }
+
+  const { data: myShipments, refetch: refetchShipments } = trpc.account.myShipments.useQuery(undefined, {
+    enabled: !!me,
+  });
+
   const registerMutation = trpc.account.register.useMutation({
     onSuccess: () => {
-      toast.success("Cuenta creada correctamente. Ya puedes iniciar sesión.");
-      setMode("login");
-      setPassword("");
+      toast.success("Cuenta creada correctamente. Sesión iniciada.");
+      utils.account.me.invalidate();
     },
     onError: error => toast.error(error.message),
   });
+
   const loginMutation = trpc.account.login.useMutation({
-    onSuccess: () => toast.success("Sesión de usuario iniciada correctamente."),
+    onSuccess: () => {
+      toast.success("Sesión iniciada correctamente.");
+      utils.account.me.invalidate();
+    },
     onError: error => toast.error(error.message),
   });
+
+  const logoutMutation = trpc.account.logout.useMutation({
+    onSuccess: () => {
+      toast.success("Sesión cerrada.");
+      utils.account.me.invalidate();
+    },
+  });
+
+  const updateProfileMutation = trpc.account.updateProfile.useMutation({
+    onSuccess: () => {
+      toast.success("Datos de perfil actualizados correctamente.");
+      utils.account.me.invalidate();
+    },
+    onError: error => toast.error(error.message),
+  });
+
+  const createShipmentMutation = trpc.account.createMyShipment.useMutation({
+    onSuccess: () => {
+      toast.success("Encomienda registrada exitosamente.");
+      setShowNewShipment(false);
+      setOrderNumber("");
+      setShipmentCode("");
+      setNotes("");
+      refetchShipments();
+    },
+    onError: error => toast.error(error.message),
+  });
+
   const requestMutation = trpc.account.requestPasswordReset.useMutation({
     onSuccess: result => {
       toast.success(result.message);
@@ -40,6 +121,7 @@ export default function AccountPage() {
     },
     onError: error => toast.error(error.message),
   });
+
   const resetMutation = trpc.account.resetPassword.useMutation({
     onSuccess: result => {
       toast.success(result.message);
@@ -50,7 +132,176 @@ export default function AccountPage() {
     onError: error => toast.error(error.message),
   });
 
-  const isPending = registerMutation.isPending || loginMutation.isPending || requestMutation.isPending || resetMutation.isPending;
+  if (meLoading) {
+    return <div className="flex min-h-screen items-center justify-center bg-[#eef6fb] text-[#0B2B5E]">Cargando cuenta...</div>;
+  }
+
+  // Si ya inició sesión, mostrar su panel personal, datos de perfil y envíos
+  if (me) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-[#eef6fb] to-white pb-12">
+        <header className="bg-[#0B2B5E] text-white shadow-md">
+          <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
+            <div className="flex items-center gap-3">
+              <img src={brandLogo} alt="Servicom Internacional" className="h-12 w-auto rounded bg-white p-1" />
+              <div>
+                <h1 className="text-xl font-bold">Mi Cuenta — Servicom Internacional</h1>
+                <p className="text-xs text-blue-200">{me.email}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link href="/" className="rounded bg-white/10 px-3 py-1.5 text-sm font-medium transition hover:bg-white/20">
+                Ir a Rastreo Público
+              </Link>
+              <Button onClick={() => logoutMutation.mutate()} variant="outline" className="border-white/30 bg-transparent text-white hover:bg-white/20">
+                <LogOut className="mr-2 h-4 w-4" /> Salir
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        <main className="mx-auto max-w-5xl px-4 py-8 space-y-8">
+          {/* Datos Personales */}
+          <Card className="p-6 shadow-md border-0">
+            <h2 className="text-lg font-bold text-[#0B2B5E] mb-4 flex items-center gap-2">
+              <User className="h-5 w-5 text-[#F28C00]" /> Datos Personales del Usuario
+            </h2>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              updateProfileMutation.mutate({ name: profileName, lastName: profileLastName, dni: profileDni, phone: profilePhone });
+            }} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Nombres</Label>
+                <Input value={profileName} onChange={e => setProfileName(e.target.value)} placeholder="Ej: Juan" required className="mt-1" />
+              </div>
+              <div>
+                <Label>Apellidos</Label>
+                <Input value={profileLastName} onChange={e => setProfileLastName(e.target.value)} placeholder="Ej: Pérez Gómez" required className="mt-1" />
+              </div>
+              <div>
+                <Label>DNI</Label>
+                <Input value={profileDni} onChange={e => setProfileDni(e.target.value)} placeholder="Ej: 71234567" required className="mt-1" />
+              </div>
+              <div>
+                <Label>Teléfono Celular / WhatsApp</Label>
+                <Input value={profilePhone} onChange={e => setProfilePhone(e.target.value)} placeholder="Ej: +51 970188447" required className="mt-1" />
+              </div>
+              <div className="md:col-span-2 flex justify-end">
+                <Button type="submit" disabled={updateProfileMutation.isPending} className="bg-[#0B2B5E] text-white hover:bg-[#123d78]">
+                  {updateProfileMutation.isPending ? "Guardando..." : "Guardar Mis Datos"}
+                </Button>
+              </div>
+            </form>
+          </Card>
+
+          {/* Mis Envíos y Registro */}
+          <Card className="p-6 shadow-md border-0">
+            <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
+              <div>
+                <h2 className="text-lg font-bold text-[#0B2B5E] flex items-center gap-2">
+                  <Package className="h-5 w-5 text-[#F28C00]" /> Mis Envíos Registrados
+                </h2>
+                <p className="text-xs text-slate-500">Registra nuevas encomiendas o consulta el estado actual de tus envíos.</p>
+              </div>
+              <Button onClick={() => setShowNewShipment(!showNewShipment)} className="bg-[#F28C00] text-white hover:bg-[#d67900]">
+                <Plus className="mr-2 h-4 w-4" /> Registrar Nueva Encomienda
+              </Button>
+            </div>
+
+            {showNewShipment && (
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                createShipmentMutation.mutate({
+                  orderNumber,
+                  code: shipmentCode,
+                  senderName: profileName || senderName,
+                  senderLastName: profileLastName || senderLastName,
+                  senderDni: profileDni || senderDni,
+                  senderPhone: profilePhone || senderPhone,
+                  recipientName,
+                  recipientLastName,
+                  recipientDni,
+                  recipientPhone,
+                  notes,
+                });
+              }} className="bg-blue-50/50 p-4 rounded-xl mb-6 space-y-4 border border-blue-100">
+                <h3 className="font-bold text-[#0B2B5E]">Detalles de la Encomienda</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Número de Orden</Label>
+                    <Input value={orderNumber} onChange={e => setOrderNumber(e.target.value)} placeholder="Ej: 3520992723" required className="mt-1 bg-white" />
+                  </div>
+                  <div>
+                    <Label>Código de Envío</Label>
+                    <Input value={shipmentCode} onChange={e => setShipmentCode(e.target.value)} placeholder="Ej: CA06721WB" required className="mt-1 bg-white" />
+                  </div>
+                  <div>
+                    <Label>Destinatario - Nombres</Label>
+                    <Input value={recipientName} onChange={e => setRecipientName(e.target.value)} placeholder="Ej: María" required className="mt-1 bg-white" />
+                  </div>
+                  <div>
+                    <Label>Destinatario - Apellidos</Label>
+                    <Input value={recipientLastName} onChange={e => setRecipientLastName(e.target.value)} placeholder="Ej: López" required className="mt-1 bg-white" />
+                  </div>
+                  <div>
+                    <Label>Destinatario - DNI</Label>
+                    <Input value={recipientDni} onChange={e => setRecipientDni(e.target.value)} placeholder="Ej: 41234567" required className="mt-1 bg-white" />
+                  </div>
+                  <div>
+                    <Label>Destinatario - Teléfono</Label>
+                    <Input value={recipientPhone} onChange={e => setRecipientPhone(e.target.value)} placeholder="Ej: +51 987654321" required className="mt-1 bg-white" />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label>Notas / Contenido</Label>
+                    <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Descripción del contenido o instrucciones de entrega" className="mt-1 bg-white" />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setShowNewShipment(false)}>Cancelar</Button>
+                  <Button type="submit" disabled={createShipmentMutation.isPending} className="bg-[#0B2B5E] text-white">
+                    {createShipmentMutation.isPending ? "Registrando..." : "Guardar Encomienda"}
+                  </Button>
+                </div>
+              </form>
+            )}
+
+            {!myShipments || myShipments.length === 0 ? (
+              <div className="text-center py-12 text-slate-500">
+                <Package className="h-12 w-12 mx-auto text-slate-300 mb-2" />
+                <p>No tienes envíos registrados aún.</p>
+                <p className="text-xs text-slate-400 mt-1">Usa el botón superior para registrar tu primera encomienda.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {myShipments.map((shipment) => (
+                  <div key={shipment.id} className="border border-slate-200 rounded-xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white shadow-sm">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-[#0B2B5E]">Orden: {shipment.orderNumber}</span>
+                        <span className="rounded bg-blue-100 px-2 py-0.5 text-xs font-semibold text-[#0B2B5E]">Código: {shipment.code}</span>
+                        <span className={`rounded px-2 py-0.5 text-xs font-semibold ${shipment.status === 'Entregado' ? 'bg-blue-600 text-white' : 'bg-orange-100 text-[#F28C00]'}`}>
+                          {shipment.status}
+                        </span>
+                      </div>
+                      <p className="text-sm text-slate-600 mt-1">
+                        <strong>Destinatario:</strong> {shipment.recipientName || "No especificado"} {shipment.recipientLastName || ""} ({shipment.recipientPhone || "Sin teléfono"})
+                      </p>
+                      <p className="text-xs text-slate-400 mt-0.5">Registrado el {new Date(shipment.createdAt).toLocaleDateString()}</p>
+                    </div>
+                    <Link href={`/?order=${encodeURIComponent(shipment.orderNumber)}&code=${encodeURIComponent(shipment.code)}`}>
+                      <Button size="sm" className="bg-[#0B2B5E] text-white hover:bg-[#123d78]">
+                        <Search className="mr-2 h-3.5 w-3.5" /> Rastrear Envío
+                      </Button>
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </main>
+      </div>
+    );
+  }
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -140,8 +391,8 @@ export default function AccountPage() {
               </>
             )}
 
-            <Button type="submit" disabled={isPending} className="w-full bg-[#0B2B5E] text-white hover:bg-[#123d78]">
-              {isPending ? "Procesando..." : mode === "register" ? "Crear cuenta" : mode === "request" ? "Enviar código" : mode === "reset" ? "Cambiar contraseña" : "Iniciar sesión"}
+            <Button type="submit" disabled={registerMutation.isPending || loginMutation.isPending || requestMutation.isPending || resetMutation.isPending} className="w-full bg-[#0B2B5E] text-white hover:bg-[#123d78]">
+              {mode === "register" ? "Crear cuenta" : mode === "request" ? "Enviar código" : mode === "reset" ? "Cambiar contraseña" : "Iniciar sesión"}
             </Button>
 
             <div className="flex flex-wrap justify-center gap-x-3 gap-y-2 text-sm">
