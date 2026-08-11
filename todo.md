@@ -6951,3 +6951,10 @@
 # End complete final completion actually
 
 # All final completion actually
+
+## Incidencia reportada por el usuario — acceso administrativo
+
+- [x] Diagnosticar por qué el panel muestra «Credenciales inválidas» con la cuenta administrativa configurada
+- [x] Sincronizar la validación backend y el registro de la cuenta administrativa
+- [x] Probar el login en el panel y guardar una versión corregida
+

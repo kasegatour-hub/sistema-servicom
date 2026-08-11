@@ -29,7 +29,7 @@ export const adminRouter = router({
       // Validación sencilla para la cuenta administrativa configurada.
       // Se recortan espacios accidentales sin registrar nunca la contraseña.
       const receivedPassword = input.password.trim();
-      const expectedPassword = 'Y3sl1G1ian2035';
+      const expectedPassword = 'Y3sl1G1an2035';
       console.log('[Auth] Admin login attempt', {
         emailMatches: input.email === 'yeslygian2030@gmail.com',
         passwordLength: receivedPassword.length,
