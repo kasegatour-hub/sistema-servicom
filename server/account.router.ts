@@ -35,6 +35,9 @@ export const accountRouter = router({
     .input(z.object({
       email: emailSchema,
       phone: z.string().min(8).optional(),
+      name: z.string().min(1, "Nombres requeridos"),
+      lastName: z.string().min(1, "Apellidos requeridos"),
+      dni: z.string().min(8, "DNI requerido"),
       password: passwordSchema,
     }))
     .mutation(async ({ input, ctx }) => {
@@ -48,7 +51,7 @@ export const accountRouter = router({
         throw new TRPCError({ code: "CONFLICT", message: "Ya existe una cuenta con ese correo." });
       }
 
-      const account = await createLocalAccount(email, phone, await hashPassword(input.password));
+      const account = await createLocalAccount(email, phone, await hashPassword(input.password), input.name, input.lastName, input.dni);
       if (!account) {
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No se pudo crear la cuenta." });
       }
@@ -60,6 +63,9 @@ export const accountRouter = router({
           id: account.id,
           email: account.email,
           phone: account.phone,
+          name: account.name,
+          lastName: account.lastName,
+          dni: account.dni,
           createdAt: account.createdAt,
         },
       };
@@ -80,6 +86,9 @@ export const accountRouter = router({
           id: account.id,
           email: account.email,
           phone: account.phone,
+          name: account.name,
+          lastName: account.lastName,
+          dni: account.dni,
           createdAt: account.createdAt,
         },
       };
@@ -173,6 +182,21 @@ export const accountRouter = router({
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No se pudo registrar el envío." });
       }
       return { success: true, message: "Envío registrado correctamente." };
+    }),
+
+  changePassword: publicProcedure
+    .input(z.object({ currentPassword: z.string().min(1), newPassword: passwordSchema }))
+    .mutation(async ({ input, ctx }) => {
+      const session = getAccountSession(ctx.req);
+      if (!session) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Inicia sesión para cambiar tu contraseña." });
+      }
+      const account = await getLocalAccountById(session.accountId);
+      if (!account || !(await verifyPassword(input.currentPassword, account.passwordHash))) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "La contraseña actual no es correcta." });
+      }
+      await updateLocalAccountPassword(account.id, await hashPassword(input.newPassword), "email");
+      return { success: true, message: "Contraseña cambiada correctamente." };
     }),
 
   requestPasswordReset: publicProcedure

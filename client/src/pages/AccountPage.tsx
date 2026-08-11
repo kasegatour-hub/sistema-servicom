@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { ArrowLeft, KeyRound, Lock, LogOut, Mail, Package, Phone, Plus, Search, User, UserPlus, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,11 @@ export default function AccountPage() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [accountNewPassword, setAccountNewPassword] = useState("");
+  const [registerName, setRegisterName] = useState("");
+  const [registerLastName, setRegisterLastName] = useState("");
+  const [registerDni, setRegisterDni] = useState("");
   const [code, setCode] = useState("");
   const [channel, setChannel] = useState<"email" | "sms">("email");
 
@@ -47,34 +52,24 @@ export default function AccountPage() {
   const utils = trpc.useUtils();
   const { data: me, isLoading: meLoading } = trpc.account.me.useQuery();
 
-  // Sincronizar datos de perfil cuando lleguen
-  useState(() => {
-    // Inicializador perezoso
-    return 0;
-  });
-
-  // Efecto para sincronizar perfil cuando me cambie
-  if (me && !profileName && me.name) {
-    setProfileName(me.name);
-  }
-  if (me && !profileLastName && me.lastName) {
-    setProfileLastName(me.lastName);
-  }
-  if (me && !profileDni && me.dni) {
-    setProfileDni(me.dni);
-  }
-  if (me && !profilePhone && me.phone) {
-    setProfilePhone(me.phone);
-  }
+  // Sincronizar datos de perfil cuando la sesión local ya esté disponible.
+  useEffect(() => {
+    if (!me) return;
+    setProfileName(me.name || "");
+    setProfileLastName(me.lastName || "");
+    setProfileDni(me.dni || "");
+    setProfilePhone(me.phone || "");
+  }, [me]);
 
   const { data: myShipments, refetch: refetchShipments } = trpc.account.myShipments.useQuery(undefined, {
     enabled: !!me,
   });
 
   const registerMutation = trpc.account.register.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Cuenta creada correctamente. Sesión iniciada.");
-      utils.account.me.invalidate();
+      // La mutación ya estableció la cookie: forzar la consulta para mostrar el panel.
+      await utils.account.me.invalidate();
     },
     onError: error => toast.error(error.message),
   });
@@ -98,6 +93,15 @@ export default function AccountPage() {
     onSuccess: () => {
       toast.success("Datos de perfil actualizados correctamente.");
       utils.account.me.invalidate();
+    },
+    onError: error => toast.error(error.message),
+  });
+
+  const changePasswordMutation = trpc.account.changePassword.useMutation({
+    onSuccess: result => {
+      toast.success(result.message);
+      setCurrentPassword("");
+      setAccountNewPassword("");
     },
     onError: error => toast.error(error.message),
   });
@@ -192,6 +196,30 @@ export default function AccountPage() {
                 </Button>
               </div>
             </form>
+          </Card>
+
+          {/* Cambio de contraseña */}
+          <Card className="p-6 shadow-md border-0">
+            <h2 className="text-lg font-bold text-[#0B2B5E] mb-4 flex items-center gap-2">
+              <KeyRound className="h-5 w-5 text-[#F28C00]" /> Seguridad de la cuenta
+            </h2>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              changePasswordMutation.mutate({ currentPassword, newPassword: accountNewPassword });
+            }} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+              <div>
+                <Label>Contraseña actual</Label>
+                <Input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} required className="mt-1" />
+              </div>
+              <div>
+                <Label>Nueva contraseña</Label>
+                <Input type="password" minLength={8} value={accountNewPassword} onChange={e => setAccountNewPassword(e.target.value)} required className="mt-1" />
+              </div>
+              <Button type="submit" disabled={changePasswordMutation.isPending} className="bg-[#0B2B5E] text-white hover:bg-[#123d78]">
+                {changePasswordMutation.isPending ? "Actualizando..." : "Cambiar contraseña"}
+              </Button>
+            </form>
+            <p className="mt-3 text-xs text-slate-500">También puedes recuperar la contraseña desde la pantalla de inicio de sesión mediante código por correo o SMS.</p>
           </Card>
 
           {/* Mis Envíos y Registro */}
@@ -306,7 +334,7 @@ export default function AccountPage() {
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
     if (mode === "register") {
-      registerMutation.mutate({ email, phone: phone || undefined, password });
+      registerMutation.mutate({ email, phone: phone || undefined, password, name: registerName, lastName: registerLastName, dni: registerDni });
     } else if (mode === "login") {
       loginMutation.mutate({ email, password });
     } else if (mode === "request") {
@@ -347,13 +375,27 @@ export default function AccountPage() {
             </div>
 
             {mode === "register" && (
-              <div>
-                <Label htmlFor="account-phone">Celular con código de país (opcional)</Label>
-                <div className="relative mt-2">
-                  <Phone className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                  <Input id="account-phone" type="tel" placeholder="+51 970 188 447" value={phone} onChange={event => setPhone(event.target.value)} className="pl-9" />
+              <>
+                <div>
+                  <Label htmlFor="register-name">Nombres</Label>
+                  <Input id="register-name" value={registerName} onChange={event => setRegisterName(event.target.value)} className="mt-2" required />
                 </div>
-              </div>
+                <div>
+                  <Label htmlFor="register-last-name">Apellidos</Label>
+                  <Input id="register-last-name" value={registerLastName} onChange={event => setRegisterLastName(event.target.value)} className="mt-2" required />
+                </div>
+                <div>
+                  <Label htmlFor="register-dni">DNI</Label>
+                  <Input id="register-dni" value={registerDni} onChange={event => setRegisterDni(event.target.value)} className="mt-2" minLength={8} required />
+                </div>
+                <div>
+                  <Label htmlFor="account-phone">Celular con código de país (opcional)</Label>
+                  <div className="relative mt-2">
+                    <Phone className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                    <Input id="account-phone" type="tel" placeholder="+51 970 188 447" value={phone} onChange={event => setPhone(event.target.value)} className="pl-9" />
+                  </div>
+                </div>
+              </>
             )}
 
             {(mode === "login" || mode === "register") && (

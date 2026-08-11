@@ -42,7 +42,10 @@ export function getSessionCookieOptions(
   return {
     httpOnly: true,
     path: "/",
+    // El proyecto se sirve detrás de un proxy HTTPS; SameSite=None exige Secure.
+    // Mantener Secure evita que Chromium descarte la cookie cuando el backend
+    // recibe internamente la solicitud como localhost/http.
     sameSite: "none",
-    secure: isSecureRequest(req),
+    secure: true,
   };
 }

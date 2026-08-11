@@ -7,6 +7,17 @@ const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30;
 
 type SessionPayload = { accountId: number; exp: number };
 
+function readCookieHeader(header: string | undefined, name: string): string | undefined {
+  if (!header) return undefined;
+  for (const part of header.split(";")) {
+    const separator = part.indexOf("=");
+    if (separator < 0) continue;
+    const key = part.slice(0, separator).trim();
+    if (key === name) return decodeURIComponent(part.slice(separator + 1).trim());
+  }
+  return undefined;
+}
+
 function secret(): string {
   return process.env.JWT_SECRET || "servicom-local-development-secret";
 }
@@ -22,7 +33,8 @@ export function createAccountSession(accountId: number): string {
 }
 
 export function getAccountSession(req: Request): SessionPayload | null {
-  const raw = req.cookies?.[COOKIE_NAME];
+  // El proyecto no monta cookie-parser; leer también el encabezado estándar.
+  const raw = req.cookies?.[COOKIE_NAME] ?? readCookieHeader(req.headers.cookie, COOKIE_NAME);
   if (!raw || typeof raw !== "string") return null;
   const [encoded, signature] = raw.split(".");
   if (!encoded || !signature) return null;

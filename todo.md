@@ -6977,3 +6977,9 @@
 - [x] Verificar en el HTML final del recibo el QR con la URL canónica de rastreo
 - [x] Verificar literalmente las políticas de retiro en 48 horas, almacenaje, peso mayor a 10 kg, abandono a los 30 días y productos prohibidos
 - [x] Verificar los datos corporativos Servicom Internacional, colaboración, RUC, correo y contacto en el recibo
+
+## Incidencias reportadas — sesión de usuario y dominio
+- [x] Después de crear una cuenta, mostrar correctamente el panel de usuario con correo, datos, cambio/recuperación de contraseña, registro y rastreo
+- [x] Verificar que el inicio de sesión tras el registro conserve la sesión y no deje al usuario en el formulario de creación
+- [x] Actualizar o documentar el dominio visible para que use la identidad Servicom Internacional en lugar del prefijo técnico anterior — el título y la marca están actualizados; el hostname se cambia desde Management UI
+- [x] Validar en navegador y guardar checkpoint de la corrección
