@@ -26,7 +26,7 @@ describe("shipment.search", () => {
     });
 
     expect(result).toBeDefined();
-    expect(result.orderNumber).toBe("352 099 2723");
+    expect(result.orderNumber).toBe("3520992723");
     expect(result.code).toBe("CA06721WB");
     expect(result.status).toBe("Entregado");
     expect(result.events).toBeDefined();
@@ -44,7 +44,7 @@ describe("shipment.search", () => {
     });
 
     const firstEvent = result.events[0];
-    expect(firstEvent.stage).toBe("Registrado");
+    expect(firstEvent.stage).toBe("En agencia");
     expect(firstEvent.date).toBeDefined();
     expect(firstEvent.description).toBeDefined();
   });
@@ -80,7 +80,7 @@ describe("shipment.search", () => {
     }
   });
 
-  it("should have all 5 stages in the timeline", async () => {
+  it("should have the supported stages in the timeline", async () => {
     const ctx = createPublicContext();
     const caller = appRouter.createCaller(ctx);
 
@@ -90,8 +90,7 @@ describe("shipment.search", () => {
     });
 
     const stages = result.events.map((e: any) => e.stage);
-    expect(stages).toContain("Registrado");
-    expect(stages).toContain("En origen");
+    expect(stages).toContain("En agencia");
     expect(stages).toContain("En tránsito");
     expect(stages).toContain("En destino");
     expect(stages).toContain("Entregado");

@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, longtext } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -42,8 +42,24 @@ export const shipments = mysqlTable("shipments", {
   id: int("id").autoincrement().primaryKey(),
   orderNumber: varchar("orderNumber", { length: 64 }).notNull().unique(),
   code: varchar("code", { length: 64 }).notNull(),
-  status: mysqlEnum("status", ["En agencia", "En tránsito", "En destino"]).notNull(),
-  events: text("events").notNull(), // JSON string with array of events
+  status: mysqlEnum("status", ["En agencia", "En tránsito", "En destino", "Entregado"]).notNull(),
+  events: longtext("events").notNull(), // JSON string with array of events
+  
+  // Remitente (Sender)
+  senderName: varchar("senderName", { length: 255 }),
+  senderLastName: varchar("senderLastName", { length: 255 }),
+  senderDni: varchar("senderDni", { length: 20 }),
+  senderPhone: varchar("senderPhone", { length: 20 }),
+  
+  // Destinatario (Recipient)
+  recipientName: varchar("recipientName", { length: 255 }),
+  recipientLastName: varchar("recipientLastName", { length: 255 }),
+  recipientDni: varchar("recipientDni", { length: 20 }),
+  recipientPhone: varchar("recipientPhone", { length: 20 }),
+  
+  // Notes
+  notes: text("notes"),
+  
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

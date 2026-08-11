@@ -11,7 +11,7 @@ interface ShipmentTimelineProps {
   currentStatus: string;
 }
 
-const STAGES_ORDER = ["En agencia", "En tránsito", "En destino"];
+const STAGES_ORDER = ["En agencia", "En tránsito", "En destino", "Entregado"];
 
 export function ShipmentTimeline({ events, currentStatus }: ShipmentTimelineProps) {
   const currentStageIndex = STAGES_ORDER.indexOf(currentStatus);
@@ -22,7 +22,8 @@ export function ShipmentTimeline({ events, currentStatus }: ShipmentTimelineProp
         {STAGES_ORDER.map((stage, index) => {
           const isCompleted = index <= currentStageIndex;
           const isCurrent = index === currentStageIndex;
-          const event = events.find(e => e.stage === stage);
+          const stageEvents = events.filter(e => e.stage === stage);
+          const event = stageEvents[stageEvents.length - 1];
 
           return (
             <div key={stage} className="flex gap-4">
@@ -31,7 +32,9 @@ export function ShipmentTimeline({ events, currentStatus }: ShipmentTimelineProp
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
                     isCompleted
-                      ? "bg-primary text-white"
+                      ? stage === "Entregado"
+                        ? "bg-blue-600 text-white"
+                        : "bg-primary text-white"
                       : "bg-gray-200 text-gray-400"
                   }`}
                 >

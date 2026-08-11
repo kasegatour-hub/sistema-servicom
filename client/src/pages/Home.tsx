@@ -29,6 +29,15 @@ interface ShipmentData {
     date: string;
     description: string;
   }>;
+  senderName?: string | null;
+  senderLastName?: string | null;
+  senderDni?: string | null;
+  senderPhone?: string | null;
+  recipientName?: string | null;
+  recipientLastName?: string | null;
+  recipientDni?: string | null;
+  recipientPhone?: string | null;
+  notes?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -123,12 +132,16 @@ export default function Home() {
       const code = url.searchParams.get("code");
 
       if (order && code) {
-        reset({ orderNumber: order, code });
-        setSearchParams({ orderNumber: order, code });
+        const normalizedOrder = order.trim().replace(/\s+/g, "").toUpperCase();
+        const normalizedCode = code.trim().replace(/\s+/g, "").toUpperCase();
+        reset({ orderNumber: normalizedOrder, code: normalizedCode });
+        setSearchParams({ orderNumber: normalizedOrder, code: normalizedCode });
+        window.history.pushState({}, "", `/?order=${encodeURIComponent(normalizedOrder)}&code=${encodeURIComponent(normalizedCode)}`);
         setScannerOpen(false);
       }
     } catch (err) {
       console.error("Error parsing QR data:", err);
+      setSearchError("El QR no contiene un enlace de rastreo válido.");
     }
   };
 
@@ -259,6 +272,37 @@ export default function Home() {
                 </div>
               </div>
             </Card>
+
+            {/* Sender and recipient */}
+            {(shipmentData.senderName || shipmentData.recipientName) && (
+              <Card className="p-4 md:p-6 shadow-lg border-0">
+                <h3 className="text-lg md:text-xl font-semibold mb-4 text-gray-900">Información de las personas</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {shipmentData.senderName && (
+                    <div className="rounded-lg bg-blue-50 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-blue-700 mb-2">Remitente</p>
+                      <p className="font-semibold text-gray-900">{shipmentData.senderName} {shipmentData.senderLastName || ""}</p>
+                      {shipmentData.senderDni && <p className="text-sm text-gray-600 mt-1">DNI: {shipmentData.senderDni}</p>}
+                      {shipmentData.senderPhone && <p className="text-sm text-gray-600">Celular: {shipmentData.senderPhone}</p>}
+                    </div>
+                  )}
+                  {shipmentData.recipientName && (
+                    <div className="rounded-lg bg-orange-50 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-orange-700 mb-2">Destinatario</p>
+                      <p className="font-semibold text-gray-900">{shipmentData.recipientName} {shipmentData.recipientLastName || ""}</p>
+                      {shipmentData.recipientDni && <p className="text-sm text-gray-600 mt-1">DNI: {shipmentData.recipientDni}</p>}
+                      {shipmentData.recipientPhone && <p className="text-sm text-gray-600">Celular: {shipmentData.recipientPhone}</p>}
+                    </div>
+                  )}
+                </div>
+                {shipmentData.notes && (
+                  <div className="mt-4 rounded-lg bg-gray-50 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">Notas</p>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{shipmentData.notes}</p>
+                  </div>
+                )}
+              </Card>
+            )}
 
             {/* Timeline */}
             <Card className="p-4 md:p-6 shadow-lg border-0">

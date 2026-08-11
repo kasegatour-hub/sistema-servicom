@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { publicProcedure, router } from "./_core/trpc";
-import { getAdminByEmail, getAllShipments, createShipment, updateShipmentStatus } from "./db";
+import { getAdminByEmail, getAllShipments, createShipment, updateShipmentStatus, deleteShipment } from "./db";
 
 export const adminRouter = router({
   login: publicProcedure
@@ -26,8 +26,16 @@ export const adminRouter = router({
         });
       }
 
-      // Simple password check (in production, use bcrypt)
-      if (input.password !== 'Y3sl1G1an2035') {
+      // Validación sencilla para la cuenta administrativa configurada.
+      // Se recortan espacios accidentales sin registrar nunca la contraseña.
+      const receivedPassword = input.password.trim();
+      const expectedPassword = 'Y3sl1G1ian2035';
+      console.log('[Auth] Admin login attempt', {
+        emailMatches: input.email === 'yeslygian2030@gmail.com',
+        passwordLength: receivedPassword.length,
+        passwordMatches: receivedPassword === expectedPassword,
+      });
+      if (receivedPassword !== expectedPassword) {
         throw new TRPCError({
           code: 'UNAUTHORIZED',
           message: 'Credenciales inválidas',
@@ -55,10 +63,32 @@ export const adminRouter = router({
     .input(z.object({
       orderNumber: z.string().min(1),
       code: z.string().min(1),
-      status: z.enum(["En agencia", "En tránsito", "En destino"]),
+      status: z.enum(["En agencia", "En tránsito", "En destino", "Entregado"]),
+      senderName: z.string().optional(),
+      senderLastName: z.string().optional(),
+      senderDni: z.string().optional(),
+      senderPhone: z.string().optional(),
+      recipientName: z.string().optional(),
+      recipientLastName: z.string().optional(),
+      recipientDni: z.string().optional(),
+      recipientPhone: z.string().optional(),
+      notes: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
-      const result = await createShipment(input.orderNumber, input.code, input.status);
+      const result = await createShipment(
+        input.orderNumber,
+        input.code,
+        input.status,
+        input.senderName,
+        input.senderLastName,
+        input.senderDni,
+        input.senderPhone,
+        input.recipientName,
+        input.recipientLastName,
+        input.recipientDni,
+        input.recipientPhone,
+        input.notes
+      );
       if (!result) {
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
@@ -72,11 +102,33 @@ export const adminRouter = router({
   updateStatus: publicProcedure
     .input(z.object({
       shipmentId: z.number(),
-      newStatus: z.enum(["En agencia", "En tránsito", "En destino"]),
+      newStatus: z.enum(["En agencia", "En tránsito", "En destino", "Entregado"]),
       description: z.string().optional(),
+      senderName: z.string().optional(),
+      senderLastName: z.string().optional(),
+      senderDni: z.string().optional(),
+      senderPhone: z.string().optional(),
+      recipientName: z.string().optional(),
+      recipientLastName: z.string().optional(),
+      recipientDni: z.string().optional(),
+      recipientPhone: z.string().optional(),
+      notes: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
-      const result = await updateShipmentStatus(input.shipmentId, input.newStatus, input.description || '');
+      const result = await updateShipmentStatus(
+        input.shipmentId,
+        input.newStatus,
+        input.description || '',
+        input.senderName,
+        input.senderLastName,
+        input.senderDni,
+        input.senderPhone,
+        input.recipientName,
+        input.recipientLastName,
+        input.recipientDni,
+        input.recipientPhone,
+        input.notes
+      );
       if (!result) {
         throw new TRPCError({
           code: 'NOT_FOUND',
@@ -84,5 +136,18 @@ export const adminRouter = router({
         });
       }
       return { success: true };
+    }),
+
+  deleteShipment: publicProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      const result = await deleteShipment(input.id);
+      if (!result) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Encomienda eliminada exitosamente',
+        });
+      }
+      return { success: true, message: 'Encomienda eliminada exitosamente' };
     }),
 });

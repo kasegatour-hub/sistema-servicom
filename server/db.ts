@@ -161,7 +161,20 @@ export async function getAllShipments() {
   return await db.select().from(shipments);
 }
 
-export async function createShipment(orderNumber: string, code: string, status: "En agencia" | "En tránsito" | "En destino") {
+export async function createShipment(
+  orderNumber: string,
+  code: string,
+  status: "En agencia" | "En tránsito" | "En destino" | "Entregado",
+  senderName?: string,
+  senderLastName?: string,
+  senderDni?: string,
+  senderPhone?: string,
+  recipientName?: string,
+  recipientLastName?: string,
+  recipientDni?: string,
+  recipientPhone?: string,
+  notes?: string
+) {
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot create shipment: database not available");
@@ -185,12 +198,34 @@ export async function createShipment(orderNumber: string, code: string, status: 
     code: normalizedCode,
     status,
     events: JSON.stringify(events),
+    senderName,
+    senderLastName,
+    senderDni,
+    senderPhone,
+    recipientName,
+    recipientLastName,
+    recipientDni,
+    recipientPhone,
+    notes,
   });
 
   return result;
 }
 
-export async function updateShipmentStatus(id: number, newStatus: "En agencia" | "En tránsito" | "En destino", description: string) {
+export async function updateShipmentStatus(
+  id: number,
+  newStatus: "En agencia" | "En tránsito" | "En destino" | "Entregado",
+  description: string,
+  senderName?: string,
+  senderLastName?: string,
+  senderDni?: string,
+  senderPhone?: string,
+  recipientName?: string,
+  recipientLastName?: string,
+  recipientDni?: string,
+  recipientPhone?: string,
+  notes?: string
+) {
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot update shipment: database not available");
@@ -223,6 +258,15 @@ export async function updateShipmentStatus(id: number, newStatus: "En agencia" |
       .set({
         status: newStatus,
         events: eventsJson as any,
+        senderName,
+        senderLastName,
+        senderDni,
+        senderPhone,
+        recipientName,
+        recipientLastName,
+        recipientDni,
+        recipientPhone,
+        notes,
         updatedAt: new Date(),
       })
       .where(eq(shipments.id, id));
@@ -232,5 +276,21 @@ export async function updateShipmentStatus(id: number, newStatus: "En agencia" |
   } catch (error) {
     console.error("[Database] Error updating shipment status:", error);
     throw error;
+  }
+}
+
+export async function deleteShipment(id: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot delete shipment: database not available");
+    return false;
+  }
+
+  try {
+    const result = await db.delete(shipments).where(eq(shipments.id, id));
+    return true;
+  } catch (error) {
+    console.error("[Database] Error deleting shipment:", error);
+    return false;
   }
 }
