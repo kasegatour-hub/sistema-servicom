@@ -1,6 +1,6 @@
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, shipments, admins } from "../drizzle/schema";
+import { InsertUser, users, shipments, admins, localAccounts, verificationCodes } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 // Normalizar números de orden y códigos: remover espacios y convertir a mayúsculas
@@ -149,6 +149,85 @@ export async function getAdminByEmail(email: string) {
     .limit(1);
 
   return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getLocalAccountByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(localAccounts).where(eq(localAccounts.email, email)).limit(1);
+  return result[0];
+}
+
+export async function getLocalAccountById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(localAccounts).where(eq(localAccounts.id, id)).limit(1);
+  return result[0];
+}
+
+export async function createLocalAccount(email: string, phone: string | null, passwordHash: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  await db.insert(localAccounts).values({ email, phone, passwordHash });
+  return getLocalAccountByEmail(email);
+}
+
+export async function updateLocalAccountPassword(id: number, passwordHash: string, channel: "email" | "sms") {
+  const db = await getDb();
+  if (!db) return undefined;
+  const updateSet = channel === "email"
+    ? { passwordHash, emailVerifiedAt: new Date(), updatedAt: new Date() }
+    : { passwordHash, phoneVerifiedAt: new Date(), updatedAt: new Date() };
+  return db.update(localAccounts).set(updateSet).where(eq(localAccounts.id, id));
+}
+
+export async function createVerificationCode(
+  accountId: number,
+  channel: "email" | "sms",
+  destination: string,
+  codeHash: string,
+  expiresAt: Date,
+) {
+  const db = await getDb();
+  if (!db) return undefined;
+  await db.insert(verificationCodes).values({ accountId, channel, destination, codeHash, expiresAt });
+  const result = await db
+    .select()
+    .from(verificationCodes)
+    .where(and(eq(verificationCodes.accountId, accountId), eq(verificationCodes.channel, channel)))
+    .orderBy(desc(verificationCodes.createdAt))
+    .limit(1);
+  return result[0];
+}
+
+export async function getActiveVerificationCode(accountId: number, channel: "email" | "sms") {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db
+    .select()
+    .from(verificationCodes)
+    .where(and(
+      eq(verificationCodes.accountId, accountId),
+      eq(verificationCodes.channel, channel),
+      isNull(verificationCodes.consumedAt),
+    ))
+    .orderBy(desc(verificationCodes.createdAt))
+    .limit(1);
+  return result[0];
+}
+
+export async function consumeVerificationCode(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  return db.update(verificationCodes).set({ consumedAt: new Date() }).where(eq(verificationCodes.id, id));
+}
+
+export async function incrementVerificationAttempts(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const code = await db.select().from(verificationCodes).where(eq(verificationCodes.id, id)).limit(1);
+  if (!code[0]) return undefined;
+  return db.update(verificationCodes).set({ attempts: code[0].attempts + 1 }).where(eq(verificationCodes.id, id));
 }
 
 export async function getAllShipments() {

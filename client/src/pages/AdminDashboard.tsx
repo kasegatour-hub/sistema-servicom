@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { Lock, LogOut, Plus, RefreshCw, Download, Printer } from "lucide-react";
 import QRCode from "qrcode";
+import { buildTrackingUrl, TRACKING_QR_OPTIONS } from "@/lib/tracking";
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido"),
@@ -129,17 +130,19 @@ export default function AdminDashboard() {
       toast.success("Encomienda creada exitosamente");
       
       // Mostrar modal y generar QR
-      if (result.trackingUrl) {
-        setQrCode(result.trackingUrl);
-        setShowQRModal(true);
-        
-        // Generar QR después de que el modal esté renderizado
-        setTimeout(() => {
-          if (qrCanvasRef.current) {
-            QRCode.toCanvas(qrCanvasRef.current, result.trackingUrl, { width: 300 });
-          }
-        }, 100);
-      }
+      const trackingUrl = buildTrackingUrl(data.orderNumber, data.code);
+      setQrCode(trackingUrl);
+      setShowQRModal(true);
+
+      // Generar el mismo payload y color que usa la vista pública y el recibo.
+      setTimeout(() => {
+        if (qrCanvasRef.current) {
+          QRCode.toCanvas(qrCanvasRef.current, trackingUrl, {
+            ...TRACKING_QR_OPTIONS,
+            width: 300,
+          });
+        }
+      }, 100);
       
       createForm.reset();
       setShowCreateForm(false);
@@ -187,8 +190,11 @@ export default function AdminDashboard() {
     setPrintShipment(shipment);
     setTimeout(() => {
       if (printQrRef.current) {
-        const trackingUrl = `/?order=${encodeURIComponent(shipment.orderNumber)}&code=${encodeURIComponent(shipment.code)}`;
-        QRCode.toCanvas(printQrRef.current, trackingUrl, { width: 200 });
+        const trackingUrl = buildTrackingUrl(shipment.orderNumber, shipment.code);
+        QRCode.toCanvas(printQrRef.current, trackingUrl, {
+          ...TRACKING_QR_OPTIONS,
+          width: 200,
+        });
       }
     }, 100);
   };
@@ -196,16 +202,16 @@ export default function AdminDashboard() {
   const printReceipt = () => {
     const printWindow = window.open('', '', 'width=800,height=600');
     if (printWindow && printShipment) {
-      const trackingUrl = `/?order=${encodeURIComponent(printShipment.orderNumber)}&code=${encodeURIComponent(printShipment.code)}`;
+      const trackingUrl = buildTrackingUrl(printShipment.orderNumber, printShipment.code);
       const html = `
         <!DOCTYPE html>
         <html>
         <head>
           <title>Recibo de Encomienda</title>
           <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #0052CC; padding-bottom: 10px; }
-            .company { font-size: 24px; font-weight: bold; color: #0052CC; }
+            body { font-family: Arial, sans-serif; margin: 20px; color: #0B2B5E; }
+            .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #F28C00; padding-bottom: 10px; }
+            .company { font-size: 24px; font-weight: bold; color: #0B2B5E; }
             .subtitle { font-size: 12px; color: #666; margin-top: 5px; }
             .ruc { font-size: 11px; color: #999; }
             .section { margin: 15px 0; }
@@ -221,9 +227,9 @@ export default function AdminDashboard() {
         </head>
         <body>
           <div class="header">
-            <div class="company">KASEGA TOURS</div>
-            <div class="subtitle">En colaboración con Servicom Internacional</div>
-            <div class="ruc">RUC: 20615004708</div>
+            <div class="company">SERVICOM INTERNACIONAL</div>
+            <div class="subtitle">En colaboración con Kasega Tour EIRL</div>
+            <div class="ruc">RUC: 20615004708 · peruservicom@gmail.com · +51 970 188 447</div>
           </div>
 
           <div class="section">
@@ -321,7 +327,10 @@ export default function AdminDashboard() {
       setTimeout(() => {
         const canvas = printWindow.document.getElementById('printQR') as HTMLCanvasElement;
         if (canvas) {
-          QRCode.toCanvas(canvas, trackingUrl, { width: 200 });
+          QRCode.toCanvas(canvas, trackingUrl, {
+            ...TRACKING_QR_OPTIONS,
+            width: 200,
+          });
         }
         printWindow.print();
       }, 500);
@@ -351,7 +360,7 @@ export default function AdminDashboard() {
         <Card className="w-full max-w-md p-6 shadow-lg border-0">
           <div className="flex items-center justify-center mb-6">
             <Lock className="w-8 h-8 text-primary mr-3" />
-            <h1 className="text-2xl font-bold text-primary">Admin Kasega Tours</h1>
+            <h1 className="text-2xl font-bold text-primary">Admin Servicom Internacional</h1>
           </div>
 
           <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-4">
@@ -408,7 +417,7 @@ export default function AdminDashboard() {
         <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold">Panel de Administración</h1>
-            <p className="text-sm opacity-90">Kasega Tours - Gestión de Encomiendas</p>
+            <p className="text-sm opacity-90">Servicom Internacional - Gestión de Encomiendas</p>
           </div>
           <div className="flex items-center gap-4">
             <span className="text-sm">{admin?.name}</span>
@@ -853,8 +862,8 @@ export default function AdminDashboard() {
               
               <div className="bg-white p-4 rounded-lg mb-4 max-h-96 overflow-y-auto text-sm">
                 <div className="text-center border-b pb-3 mb-3">
-                  <div className="font-bold text-lg text-primary">KASEGA TOURS</div>
-                  <div className="text-xs text-gray-600">En colaboración con Servicom Internacional</div>
+                  <div className="font-bold text-lg text-primary">SERVICOM INTERNACIONAL</div>
+                  <div className="text-xs text-gray-600">En colaboración con Kasega Tour EIRL · RUC 20615004708</div>
                   <div className="text-xs text-gray-600">RUC: 20615004708</div>
                 </div>
 

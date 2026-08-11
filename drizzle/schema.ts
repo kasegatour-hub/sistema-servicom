@@ -25,6 +25,34 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
+/** Cuentas locales creadas por usuarios, separadas del acceso OAuth existente. */
+export const localAccounts = mysqlTable("local_accounts", {
+  id: int("id").autoincrement().primaryKey(),
+  email: varchar("email", { length: 320 }).notNull().unique(),
+  phone: varchar("phone", { length: 32 }).unique(),
+  passwordHash: varchar("passwordHash", { length: 255 }).notNull(),
+  emailVerifiedAt: timestamp("emailVerifiedAt"),
+  phoneVerifiedAt: timestamp("phoneVerifiedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type LocalAccount = typeof localAccounts.$inferSelect;
+export type InsertLocalAccount = typeof localAccounts.$inferInsert;
+
+export const verificationCodes = mysqlTable("verification_codes", {
+  id: int("id").autoincrement().primaryKey(),
+  accountId: int("accountId").notNull(),
+  channel: mysqlEnum("channel", ["email", "sms"]).notNull(),
+  destination: varchar("destination", { length: 320 }).notNull(),
+  codeHash: varchar("codeHash", { length: 255 }).notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  consumedAt: timestamp("consumedAt"),
+  attempts: int("attempts").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type VerificationCode = typeof verificationCodes.$inferSelect;
+export type InsertVerificationCode = typeof verificationCodes.$inferInsert;
+
 export const admins = mysqlTable("admins", {
   id: int("id").autoincrement().primaryKey(),
   email: varchar("email", { length: 320 }).notNull().unique(),

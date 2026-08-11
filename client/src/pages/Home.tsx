@@ -11,6 +11,7 @@ import { trpc } from "@/lib/trpc";
 import { ShipmentTimeline } from "@/components/ShipmentTimeline";
 import { QRScanner } from "@/components/QRScanner";
 import QRCode from "qrcode";
+import { buildTrackingPath, buildTrackingUrl, TRACKING_QR_OPTIONS, normalizeTrackingValue } from "@/lib/tracking";
 
 const searchSchema = z.object({
   orderNumber: z.string().min(1, "Número de orden requerido"),
@@ -56,8 +57,8 @@ export default function Home() {
     const code = params.get('code');
     if (order && code) {
       // Normalizar: remover espacios y convertir a mayúsculas
-      const normalizedOrder = order.trim().replace(/\s+/g, '').toUpperCase();
-      const normalizedCode = code.trim().replace(/\s+/g, '').toUpperCase();
+      const normalizedOrder = normalizeTrackingValue(order);
+      const normalizedCode = normalizeTrackingValue(code);
       setSearchParams({ orderNumber: normalizedOrder, code: normalizedCode });
       reset({ orderNumber: normalizedOrder, code: normalizedCode });
     }
@@ -86,16 +87,10 @@ export default function Home() {
       // Generate QR code for this shipment
       (async () => {
         try {
-          const trackingUrl = `${window.location.origin}/?order=${encodeURIComponent(
-            searchResult.orderNumber
-          )}&code=${encodeURIComponent(searchResult.code)}`;
+          const trackingUrl = buildTrackingUrl(searchResult.orderNumber, searchResult.code);
           const qrUrl = await QRCode.toDataURL(trackingUrl, {
+            ...TRACKING_QR_OPTIONS,
             width: 300,
-            margin: 2,
-            color: {
-              dark: "#E31E24",
-              light: "#FFFFFF",
-            },
           });
           setQrCodeUrl(qrUrl);
         } catch (err) {
@@ -116,11 +111,11 @@ export default function Home() {
 
   const onSubmit = (data: SearchFormData) => {
     // Normalizar: remover espacios y convertir a mayúsculas
-    const normalizedOrder = data.orderNumber.trim().replace(/\s+/g, '').toUpperCase();
-    const normalizedCode = data.code.trim().replace(/\s+/g, '').toUpperCase();
+    const normalizedOrder = normalizeTrackingValue(data.orderNumber);
+    const normalizedCode = normalizeTrackingValue(data.code);
     setSearchParams({ orderNumber: normalizedOrder, code: normalizedCode });
     // Update URL with search params
-    const newUrl = `/?order=${encodeURIComponent(normalizedOrder)}&code=${encodeURIComponent(normalizedCode)}`;
+    const newUrl = buildTrackingPath(normalizedOrder, normalizedCode);
     window.history.pushState({}, '', newUrl);
   };
 
@@ -132,11 +127,11 @@ export default function Home() {
       const code = url.searchParams.get("code");
 
       if (order && code) {
-        const normalizedOrder = order.trim().replace(/\s+/g, "").toUpperCase();
-        const normalizedCode = code.trim().replace(/\s+/g, "").toUpperCase();
+        const normalizedOrder = normalizeTrackingValue(order);
+        const normalizedCode = normalizeTrackingValue(code);
         reset({ orderNumber: normalizedOrder, code: normalizedCode });
         setSearchParams({ orderNumber: normalizedOrder, code: normalizedCode });
-        window.history.pushState({}, "", `/?order=${encodeURIComponent(normalizedOrder)}&code=${encodeURIComponent(normalizedCode)}`);
+        window.history.pushState({}, "", buildTrackingPath(normalizedOrder, normalizedCode));
         setScannerOpen(false);
       }
     } catch (err) {
@@ -152,15 +147,23 @@ export default function Home() {
         <div className="max-w-4xl mx-auto px-4 py-4 md:py-6">
           <div className="flex justify-between items-start mb-2">
             <div className="flex items-center gap-2 md:gap-3">
-              <img src="/manus-storage/kasega-logo_f5c33185.webp" alt="Kasega Tours" className="h-12 md:h-16 object-contain" />
+              <img src="/manus-storage/servicom_logo_final_e7ce35aa.png" alt="Servicom Internacional" className="h-16 md:h-20 w-auto object-contain bg-white rounded-md p-1" />
             </div>
-            <button onClick={() => window.location.href = '/admin'} className="text-white hover:bg-white/20 px-3 py-1 rounded text-sm font-medium transition">
-              Admin
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={() => window.location.href = '/cuenta'} className="text-white hover:bg-white/20 px-3 py-1 rounded text-sm font-medium transition">
+                Mi cuenta
+              </button>
+              <button onClick={() => window.location.href = '/admin'} className="text-white hover:bg-white/20 px-3 py-1 rounded text-sm font-medium transition">
+                Admin
+              </button>
+            </div>
           </div>
-          <p className="text-primary-foreground opacity-90 text-sm md:text-base">
+            <p className="text-primary-foreground opacity-90 text-sm md:text-base">
             Rastreo de encomiendas en tiempo real
-          </p>
+            </p>
+            <p className="text-primary-foreground/80 text-xs md:text-sm mt-1">
+              Servicom Internacional en colaboración con Kasega Tour EIRL · RUC 20615004708
+            </p>
         </div>
       </header>
 
@@ -383,30 +386,31 @@ export default function Home() {
       />
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white mt-12 py-8">
+      <footer className="bg-[#0B2B5E] text-white mt-12 py-8">
         <div className="max-w-4xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
             <div>
-              <h3 className="text-lg font-bold mb-2">Kasega Tours</h3>
+              <h3 className="text-lg font-bold mb-2">Servicom Internacional</h3>
               <p className="text-gray-400 text-sm mb-4">
-                Tu aliado en servicios documentarios y financieros. Con el respaldo de Servicom Internacional, te ofrecemos soluciones confiables, agiles y pensadas para ti.
+                Servicom Internacional en colaboración con Kasega Tour EIRL (RUC 20615004708), tu aliado para servicios documentarios, financieros y de encomiendas.
               </p>
               <p className="text-gray-400 text-sm">
-                Simplifica tus tramites con la confianza que mereces!
+                Soluciones confiables, ágiles y pensadas para ti.
               </p>
             </div>
             <div>
-              <h3 className="text-lg font-bold mb-4">Informacion de Contacto</h3>
+              <h3 className="text-lg font-bold mb-4">Información de Contacto</h3>
               <div className="space-y-2 text-sm text-gray-400">
-                <p><strong>Email:</strong> info@kasegatours.com</p>
-                <p><strong>Servicio:</strong> Rastreo de Encomiendas</p>
-                <p><strong>Disponibilidad:</strong> 24/7</p>
+                <p><strong>Email:</strong> peruservicom@gmail.com</p>
+                <p><strong>Celular / WhatsApp:</strong> +51 970 188 447 / +51 908 722 617</p>
+                <p><strong>Teléfono fijo:</strong> 01 390 7269</p>
+                <p><strong>Servicio:</strong> Rastreo de encomiendas</p>
               </div>
             </div>
           </div>
           <div className="border-t border-gray-700 pt-6 text-center text-sm text-gray-400">
-            <p>Con el respaldo de <strong>Servicom Internacional</strong></p>
-            <p className="mt-2">© 2026 Kasega Tours. Todos los derechos reservados.</p>
+            <p><strong>Servicom Internacional</strong> en colaboración con Kasega Tour EIRL</p>
+            <p className="mt-2">© 2026 Servicom Internacional. Todos los derechos reservados.</p>
           </div>
         </div>
       </footer>

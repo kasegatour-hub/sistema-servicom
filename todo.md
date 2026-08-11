@@ -44,16 +44,16 @@
 - [x] Pruebas end-to-end responsividad
 
 ## Mejoras heredadas de esta sesión
-- [ ] Sincronizar el esquema Drizzle y la base de datos con campos de remitente, destinatario, notas y estado Entregado
-- [ ] Completar procedimientos backend para crear encomiendas con datos de remitente, destinatario y notas
-- [ ] Agregar campos de remitente y destinatario al formulario administrativo
-- [ ] Agregar estado Entregado al formulario y a los estados visuales
-- [ ] Implementar recibo imprimible con QR, datos completos y políticas de entrega
-- [ ] Mostrar nombre y apellido del destinatario en el rastreo público
-- [ ] Corregir y validar errores de ejecución del servidor
-- [ ] Actualizar y ejecutar pruebas unitarias de las nuevas funcionalidades
-- [ ] Verificar la interfaz en escritorio y móvil
-- [ ] Guardar checkpoint de la versión final validada
+- [x] Sincronizar el esquema Drizzle y la base de datos con campos de remitente, destinatario, notas y estado Entregado
+- [x] Completar procedimientos backend para crear encomiendas con datos de remitente, destinatario y notas
+- [x] Agregar campos de remitente y destinatario al formulario administrativo
+- [x] Agregar estado Entregado al formulario y a los estados visuales
+- [x] Implementar recibo imprimible con QR, datos completos y políticas de entrega
+- [x] Mostrar nombre y apellido del destinatario en el rastreo público
+- [x] Corregir y validar errores de ejecución del servidor
+- [x] Actualizar y ejecutar pruebas unitarias de las nuevas funcionalidades
+- [x] Verificar la interfaz en escritorio y móvil
+- [x] Guardar checkpoint de la versión final validada
 
 ## Historial de cambios pendientes
 - [ ] Revisar cualquier incidencia detectada durante la validación de esta continuación
@@ -6958,3 +6958,22 @@
 - [x] Sincronizar la validación backend y el registro de la cuenta administrativa
 - [x] Probar el login en el panel y guardar una versión corregida
 
+
+## Nueva solicitud — Servicom Internacional, QR y cuentas de usuario
+
+- [x] Sustituir el logo por `servicom_logo_final.png` y usar Servicom Internacional como marca principal
+- [x] Actualizar textos a «Servicom Internacional en colaboración con Kasega Tour EIRL» y RUC 20615004708
+- [x] Actualizar colores y contacto: peruservicom@gmail.com, WhatsApp +51 970188447 / +51 908722617 y teléfono 01 3907269
+- [x] Revisar el dominio visible y la configuración de marca Servicom Internacional — título y logo global actualizados; el hostname requiere cambio desde Management UI
+- [x] Unificar la URL canónica codificada en el QR público, QR descargable y QR del recibo imprimible
+- [x] Implementar registro de usuarios con fecha de creación y contraseña hasheada
+- [x] Implementar recuperación de contraseña mediante código de verificación por correo
+- [x] Preparar recuperación mediante código SMS y solicitar/configurar proveedor cuando corresponda
+- [x] Ejecutar pruebas, verificación visual y guardar checkpoint de esta solicitud
+
+
+## Verificación final del recibo Servicom
+- [x] Verificar en el HTML final del recibo el remitente, destinatario, DNI, teléfonos y notas
+- [x] Verificar en el HTML final del recibo el QR con la URL canónica de rastreo
+- [x] Verificar literalmente las políticas de retiro en 48 horas, almacenaje, peso mayor a 10 kg, abandono a los 30 días y productos prohibidos
+- [x] Verificar los datos corporativos Servicom Internacional, colaboración, RUC, correo y contacto en el recibo

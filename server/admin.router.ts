@@ -1,5 +1,11 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+
+function buildTrackingPath(orderNumber: string, code: string): string {
+  const order = orderNumber.trim().replace(/\s+/g, "").toUpperCase();
+  const normalizedCode = code.trim().replace(/\s+/g, "").toUpperCase();
+  return `/?order=${encodeURIComponent(order)}&code=${encodeURIComponent(normalizedCode)}`;
+}
 import { publicProcedure, router } from "./_core/trpc";
 import { getAdminByEmail, getAllShipments, createShipment, updateShipmentStatus, deleteShipment } from "./db";
 
@@ -95,7 +101,7 @@ export const adminRouter = router({
           message: 'Error al crear encomienda',
         });
       }
-      const trackingUrl = `/?order=${encodeURIComponent(input.orderNumber)}&code=${encodeURIComponent(input.code)}`;
+      const trackingUrl = buildTrackingPath(input.orderNumber, input.code);
       return { success: true, message: 'Encomienda creada exitosamente', trackingUrl };
     }),
 

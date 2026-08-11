@@ -6,6 +6,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import { getShipmentByOrderAndCode, getShipmentById } from "./db";
 import { adminRouter } from "./admin.router";
+import { accountRouter } from "./account.router";
 
 export const appRouter = router({
   system: systemRouter,
@@ -21,6 +22,7 @@ export const appRouter = router({
   }),
 
   admin: adminRouter,
+  account: accountRouter,
 
   shipment: router({
     search: publicProcedure
