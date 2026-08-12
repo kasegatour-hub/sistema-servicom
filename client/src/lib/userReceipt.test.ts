@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildReceiptUrl, getPaymentStatusPresentation, resolveReceiptAssetUrl } from "./userReceipt";
+import { buildReceiptTicketHtml, buildReceiptPrintStyles, buildReceiptUrl, getPaymentStatusPresentation, resolveReceiptAssetUrl } from "./userReceipt";
 
 describe("receipt window helpers", () => {
   it("resolves the logo against the published site origin", () => {
@@ -12,6 +12,21 @@ describe("receipt window helpers", () => {
     expect(buildReceiptUrl("https://servicominternacional.manus.space", "7664444504", "DOC-2026-H2NQU")).toBe(
       "https://servicominternacional.manus.space/recibo?order=7664444504&code=DOC-2026-H2NQU",
     );
+  });
+
+  it("includes the complete delivery ticket and anti-split rule in the final receipt output", () => {
+    const ticket = buildReceiptTicketHtml({
+      order: "3289150504",
+      code: "07900824",
+      recipient: "MIGUEL DIAZ OJITOS",
+      recipientPhone: "+39 333 123 456",
+    });
+    const styles = buildReceiptPrintStyles();
+
+    expect(ticket).toContain('class="ticket"');
+    expect(ticket).toContain("CONTROL DE ENTREGA — TORINO, ITALIA");
+    expect(ticket).toContain("CELULAR DESTINATARIA:");
+    expect(styles).toContain(".ticket{break-inside:avoid;page-break-inside:avoid");
   });
 
   it("uses green for paid and red for pending payment", () => {

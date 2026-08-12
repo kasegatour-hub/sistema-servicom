@@ -18,6 +18,10 @@ import { PhoneInput } from "@/components/PhoneInput";
 import { digitsOnly, isDigitsOnly, isTextOnly, textOnly } from "@/lib/inputValidation";
 import { getPaymentStatusUi } from "@/lib/paymentStatus";
 import { paginateItems } from "@/lib/pagination";
+import { getReceiptTicketPrintCss } from "@/lib/printLayout";
+import { buildAdminDeliveryTicketHtml, buildAdminReceiptPrintStyles } from "@/lib/adminReceipt";
+import { closeUpdateModal } from "@/lib/updateModal";
+import { UpdateShipmentModal } from "@/components/UpdateShipmentModal";
 
 const textRegisterOptions = (form: any, field: string, label: string) => ({
   setValueAs: textOnly,
@@ -238,13 +242,18 @@ export default function AdminDashboard() {
     }
   };
 
+  const closeUpdateForm = () => {
+    updateForm.reset();
+    const closedState = closeUpdateModal();
+    setShowUpdateForm(closedState.showUpdateForm);
+    setSelectedShipmentId(closedState.selectedShipmentId);
+  };
+
   const handleUpdateStatus = async (data: UpdateStatusForm) => {
     try {
       await updateMutation.mutateAsync(data);
       toast.success("Estado actualizado correctamente");
-      updateForm.reset();
-      setShowUpdateForm(false);
-      setSelectedShipmentId(null);
+      closeUpdateForm();
       refetchShipments();
     } catch (error: any) {
       toast.error(error.message || "Error al actualizar estado");
@@ -295,7 +304,9 @@ export default function AdminDashboard() {
         <head>
           <title>INFORMACIÓN DE ENVÍO DE DOCUMENTO - Servicom Internacional</title>
           <style>
-            @media print { .page-break { page-break-before: always; } }
+            @media print {
+              ${buildAdminReceiptPrintStyles()}
+            }
             body { font-family: 'Helvetica', Arial, sans-serif; margin: 0; padding: 40px; color: #0B2B5E; line-height: 1.4; }
             .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; border-bottom: 2px solid #F28C00; padding-bottom: 10px; }
             .company-info { flex: 1; }
@@ -396,23 +407,12 @@ export default function AdminDashboard() {
           </div>
 
           <!-- TICKET RECORTABLE PARA TORINO -->
-          <div class="cut-ticket">
-            <div class="cut-icon">✂</div>
-            <div class="ticket-header">CONTROL DE ENTREGA - TORINO, ITALIA</div>
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div style="flex: 1;">
-                <div class="row"><div class="label" style="width:130px">ORDEN:</div><div class="value"><strong>${printShipment.orderNumber}</strong></div></div>
-                <div class="row"><div class="label" style="width:130px">CÓDIGO:</div><div class="value"><strong>${printShipment.code}</strong></div></div>
-                <div class="row"><div class="label" style="width:130px">DESTINO:</div><div class="value">TORINO, ITALIA</div></div>
-                <div class="row"><div class="label" style="width:130px">RECEPTOR:</div><div class="value">${printShipment.recipientName} ${printShipment.recipientLastName}</div></div>
-                <div class="row"><div class="label" style="width:130px">CEL. DESTINATARIA:</div><div class="value">${printShipment.recipientPhone || 'No especificado'}</div></div>
-              </div>
-              <div style="text-align: right; min-width: 140px;">
-                <div style="font-size: 15px; font-weight: bold; border: 2px solid #0B2B5E; padding: 8px; background: #fff; text-align: center;">${printShipment.code}</div>
-                <div style="font-size: 9px; margin-top: 5px; font-weight: bold;">ADJUNTAR A FOLDER MANILA</div>
-              </div>
-            </div>
-          </div>
+          ${buildAdminDeliveryTicketHtml({
+            order: String(printShipment.orderNumber),
+            code: String(printShipment.code),
+            recipient: `${printShipment.recipientName || ''} ${printShipment.recipientLastName || ''}`.trim(),
+            recipientPhone: printShipment.recipientPhone || 'No especificado',
+          })}
 
           <!-- PÁGINA 2: DECLARACIÓN JURADA -->
           <div class="page-break"></div>
@@ -1021,12 +1021,14 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Update Status Modal */}
-        {showUpdateForm && selectedShipmentId && (
-          <Card className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <Card className="w-full max-w-md p-6 shadow-lg border-0">
-              <h3 className="text-lg font-semibold mb-4">Actualizar Estado de Encomienda</h3>
-
-              <form onSubmit={updateForm.handleSubmit(handleUpdateStatus)} className="space-y-4">
+        <UpdateShipmentModal
+          open={showUpdateForm && Boolean(selectedShipmentId)}
+          onClose={closeUpdateForm}
+          onSubmit={updateForm.handleSubmit(handleUpdateStatus)}
+          isSubmitting={updateMutation.isPending}
+          paymentStatus={updateForm.watch("paymentStatus")}
+          registerPaymentStatus={(name) => updateForm.register(name)}
+        >
                 <input type="hidden" {...updateForm.register("shipmentId", { valueAsNumber: true })} />
 
                 <div>
@@ -1088,16 +1090,6 @@ export default function AdminDashboard() {
 
                 <div className="border-t pt-4 grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Estado de Pago</label>
-                    <select
-                      {...updateForm.register("paymentStatus")}
-                      className="w-full p-2 bg-white border-2 border-slate-200 rounded-md text-sm font-medium focus:border-primary"
-                    >
-                      <option value="Falta cancelar">No cancelado</option>
-                      <option value="Pagado">Pagado</option>
-                    </select>
-                  </div>
-                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Ruta</label>
                     <select
                       {...updateForm.register("route")}
@@ -1130,37 +1122,7 @@ export default function AdminDashboard() {
                   />
                 </div>
 
-                <div className="flex gap-2">
-                  <Button
-                    type="submit"
-                    disabled={updateMutation.isPending}
-                    className="flex-1 bg-primary hover:bg-primary/90 text-white"
-                  >
-                    {updateMutation.isPending ? (
-                      <>
-                        <Spinner className="w-4 h-4 mr-2" />
-                        Actualizando...
-                      </>
-                    ) : (
-                      "Actualizar"
-                    )}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setShowUpdateForm(false);
-                      setSelectedShipmentId(null);
-                    }}
-                    className="flex-1"
-                  >
-                    Cancelar
-                  </Button>
-                </div>
-              </form>
-            </Card>
-          </Card>
-        )}
+        </UpdateShipmentModal>
 
         {/* QR Modal */}
         {showQRModal && (

@@ -81,3 +81,23 @@
 - [x] Rediseñar la tabla para priorizar destinatario, estado, fecha de creación y acciones
 - [x] Añadir paginación y desplazamiento horizontal responsive en la tabla administrativa
 - [x] Añadir pruebas para paginación, permisos y presentación del estado de pago
+
+## Corrección de modal y ticket imprimible
+- [x] Añadir una X visible y cierre seguro al modal de actualización administrativa
+- [x] Mostrar claramente las opciones de pago 'Pagado' y 'No cancelado' en el modal de actualización
+- [x] Evitar que el control de entrega se divida entre páginas al imprimir el recibo
+- [x] Añadir pruebas para cierre del modal, estados de pago y paginación del ticket imprimible
+
+## Cobertura integrada pendiente
+- [x] Añadir una prueba de UI/componente para verificar el cierre del modal de actualización con X y Cancelar
+- [x] Añadir una prueba que verifique las opciones visibles Pagado y No cancelado en el modal
+- [x] Añadir una prueba integrada que valide la regla anti-corte dentro del HTML/CSS real del recibo y ticket
+
+## Cobertura real del modal y recibo
+- [x] Extraer el modal de actualización a un componente testeable y verificar el cierre real con X y Cancelar
+- [x] Verificar en un componente renderizado que el selector real muestra Pagado y No cancelado
+- [x] Exponer y probar el HTML/CSS final generado por el recibo de cliente y administración, incluyendo la regla anti-corte
+
+## Cobertura administrativa del recibo
+- [x] Extraer a un módulo testeable el CSS y HTML del ticket del recibo administrativo
+- [x] Añadir una prueba integrada que confirme `.cut-ticket` y la regla anti-corte en el recibo administrativo

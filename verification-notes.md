@@ -9,3 +9,7 @@ Se volvieron a verificar `/cuenta` y `/admin` después de los últimos cambios. 
 ## Verificación visual del rediseño administrativo
 
 Se verificaron las rutas `/admin` y `/cuenta` en viewport de escritorio después de añadir el flujo de Registradores, el estado visual No cancelado/Pagado y la paginación. Ambas pantallas cargan correctamente y mantienen la identidad visual de Servicom Internacional. La tabla autenticada no se captura sin iniciar sesión, pero su renderizado queda cubierto por TypeScript, pruebas de paginación y pruebas del contrato de roles/pago.
+
+## Verificación de modal y recibo
+
+Las rutas `/admin` y `/cuenta` cargan sin errores visibles en viewport de escritorio después de añadir el modal con cierre X, desplazamiento interno y selector de pago visible. La suite y TypeScript también permanecen correctos. La comprobación del ticket se cubre mediante reglas CSS `break-inside/page-break-inside: avoid` compartidas para los recibos de cliente y administración.
