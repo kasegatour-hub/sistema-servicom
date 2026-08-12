@@ -550,11 +550,15 @@ export default function AdminDashboard() {
                   <Input
                     type="number"
                     min="1"
-                    defaultValue="1"
+                    max={createForm.watch("docType") === 'simple' ? 8 : 10}
                     {...createForm.register("sheetCount", { valueAsNumber: true })}
                     className="border-2 focus:border-primary"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Cálculo automático según reglas del negocio</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {createForm.watch("docType") === 'simple' 
+                      ? 'Simples: máx. 8 hojas (+2€ por hoja adicional desde la 5ª)' 
+                      : 'Apostillados: máx. 10 hojas (+10€ adicionales desde la 6ª)'}
+                  </p>
                 </div>
 
                 <div>

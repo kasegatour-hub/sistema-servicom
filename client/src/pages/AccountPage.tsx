@@ -368,15 +368,15 @@ export default function AccountPage() {
                   </div>
                   <div>
                     <Label>Cantidad de Hojas / Documentos</Label>
-                    <Input type="number" min="1" max="50" value={String(sheetCount)} onChange={e => {
+                    <Input type="number" min="1" max={docType === 'simple' ? 8 : 10} value={String(sheetCount)} onChange={e => {
                       const val = e.target.value.replace(/^0+/, '');
                       const num = val === '' ? 1 : parseInt(val, 10);
                       setSheetCount(isNaN(num) ? 1 : Math.max(1, num));
                     }} required className="mt-1 bg-white" />
                     <p className="text-[10px] text-gray-500 mt-1">
                       {docType === 'simple' 
-                        ? (sheetCount <= 4 ? 'Tarifa: 45 € (Hasta 4 hojas simples)' : `Tarifa: 45 € + ${ (sheetCount - 4) * 2 } € (${sheetCount} hojas) = ${ 45 + (sheetCount - 4) * 2 } €`)
-                        : (sheetCount <= 5 ? 'Tarifa: 50 € (Hasta 5 hojas apostilladas)' : 'Tarifa: 60 € (Más de 5 hojas apostilladas)')}
+                        ? (sheetCount <= 4 ? 'Tarifa: 45 € (Máx. 8 hojas)' : sheetCount <= 8 ? 'Tarifa calculada (Máx. 8)' : '⚠️ Límite de 8 hojas excedido. Debe crear otra encomienda.')
+                        : (sheetCount <= 5 ? 'Tarifa: 50 € (Máx. 10 hojas)' : sheetCount <= 10 ? 'Tarifa: 60 € (Máx. 10 hojas)' : '⚠️ Límite de 10 hojas excedido. Debe crear otra encomienda.')}
                     </p>
                   </div>
                   <div>

@@ -173,6 +173,14 @@ export const accountRouter = router({
       
       const docType = input.docType || 'apostillado';
       const sheetCount = input.sheetCount || 1;
+
+      if (docType === 'simple' && sheetCount > 8) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Límite excedido para documentos simples (máximo 8 hojas). Debe crear otra encomienda." });
+      }
+      if (docType === 'apostillado' && sheetCount > 10) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Límite excedido para documentos apostillados (máximo 10 hojas). Debe crear otra encomienda." });
+      }
+
       let totalEur = 50;
       let tariffDesc = '';
       if (docType === 'simple') {

@@ -35,3 +35,7 @@
 ## Estado Inicial y Colores de Pago
 - [x] Forzar estado 'En agencia' para registros de cliente
 - [x] Mostrar condición de pago en verde (Pagado en Lima) y rojo (Pagará en Torino) en cliente, admin y recibos
+
+## Límites de Hojas y Validación
+- [x] Aplicar límite máximo de 8 hojas para documentos simples y 10 para apostillados
+- [x] Mostrar mensaje 'Debe crear otra encomienda' al exceder el límite
