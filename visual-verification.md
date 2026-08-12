@@ -7,3 +7,9 @@ La verificación visual no pudo abrir el modal de actualización ni la tabla de 
 ## Verificación de ajustes de cuenta y recuperación
 
 La ruta `/cuenta` se renderiza correctamente en escritorio y móvil con la marca Servicom Internacional, el formulario de inicio de sesión y el enlace de recuperación. La interfaz de recuperación ahora se ha simplificado para correo electrónico; la comprobación visual de la pantalla de registro se complementa con la prueba de componente de `PhoneInput`, que confirma el selector de país, el buscador y el valor vacío cuando no se introduce celular.
+
+## Sección Ubícanos
+
+La sección pública se visualizó correctamente en escritorio y móvil. Las tarjetas de Lima y Torino se apilan en pantallas estrechas, conservan contraste corporativo navy/naranja y muestran dirección, referencia, horario, contacto y botones accesibles para abrir Google Maps. El enlace proporcionado por el usuario para Lima se conserva exactamente; el enlace de Torino usa una búsqueda directa de Google Maps para Corso Peschiera 162A, Zona Piazza Sabotino.
+
+La revisión final confirma que la tarjeta de Torino identifica correctamente “WhatsApp general: +51 970 188 447”, sin presentarlo como teléfono local, y conserva su botón de Google Maps.

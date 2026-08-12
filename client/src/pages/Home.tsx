@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Package, QrCode, AlertCircle } from "lucide-react";
+import { Package, QrCode, AlertCircle, MapPin, Clock3, Phone, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -19,6 +19,26 @@ const searchSchema = z.object({
 });
 
 type SearchFormData = z.infer<typeof searchSchema>;
+
+export const LOCATION_DETAILS = {
+  lima: {
+    label: "Jr. de la Unión 518",
+    address: "Jr. de la Unión Nro. 518 Int. S101, Cercado de Lima, Lima-Lima-Lima",
+    reference: "Referencia: Jr. de la Unión 518",
+    hours: "Lunes a sábado, de 10:00 a. m. a 8:30 p. m.",
+    phone: "01 390 7269",
+    mapsUrl: "https://share.google/F5wrStU2oICvKgIWx",
+  },
+  torino: {
+    label: "Corso Peschiera",
+    address: "Corso Peschiera, 162A, Zona Piazza Sabotino, Torino, Italia",
+    reference: "Referencia: Corso Peschiera",
+    hours: "Lunes a sábado, de 9:00 a. m. a 8:30 p. m.",
+    contact: "WhatsApp general: +51 970 188 447",
+    contactHref: "https://wa.me/51970188447",
+    mapsUrl: "https://www.google.com/maps/search/?api=1&query=Corso+Peschiera+162A%2C+Zona+Piazza+Sabotino%2C+Torino%2C+Italia",
+  },
+} as const;
 
 interface ShipmentData {
   id: number;
@@ -41,6 +61,64 @@ interface ShipmentData {
   notes?: string | null;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export function LocationsSection() {
+  return (
+    <section aria-labelledby="locations-title" className="mt-4 md:mt-8">
+      <div className="mb-5 text-center md:text-left">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#F28C00]">Atención presencial</p>
+        <h2 id="locations-title" className="mt-1 text-2xl font-bold text-[#0B2B5E]">Ubícanos</h2>
+        <p className="mt-2 text-sm text-slate-600">Visítanos en nuestras sedes de Lima y Torino.</p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <Card className="overflow-hidden border-0 bg-white shadow-lg ring-1 ring-slate-200">
+          <div className="h-2 bg-[#F28C00]" />
+          <div className="p-5 md:p-6">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-[#F28C00]">Sede Lima</p>
+                <h3 className="mt-1 text-xl font-bold text-[#0B2B5E]">{LOCATION_DETAILS.lima.label}</h3>
+              </div>
+              <div className="rounded-full bg-orange-50 p-2 text-[#F28C00]" aria-hidden="true"><MapPin className="h-5 w-5" /></div>
+            </div>
+            <div className="space-y-3 text-sm text-slate-700">
+              <p className="flex gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#F28C00]" aria-hidden="true" /><span>{LOCATION_DETAILS.lima.address}</span></p>
+              <p className="flex gap-2"><span className="mt-0.5 h-4 w-4 shrink-0 text-center text-xs font-bold text-[#F28C00]" aria-hidden="true">R</span><span>{LOCATION_DETAILS.lima.reference}</span></p>
+              <p className="flex gap-2"><Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-[#F28C00]" aria-hidden="true" /><span>{LOCATION_DETAILS.lima.hours}</span></p>
+              <p className="flex gap-2"><Phone className="mt-0.5 h-4 w-4 shrink-0 text-[#F28C00]" aria-hidden="true" /><a className="font-semibold text-[#0B2B5E] hover:underline" href="tel:+51013907269">{LOCATION_DETAILS.lima.phone}</a></p>
+            </div>
+            <a href={LOCATION_DETAILS.lima.mapsUrl} target="_blank" rel="noopener noreferrer" className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#0B2B5E] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#123b78] focus:outline-none focus:ring-2 focus:ring-[#F28C00] focus:ring-offset-2">
+              Abrir Lima en Google Maps <ExternalLink className="h-4 w-4" aria-hidden="true" />
+            </a>
+          </div>
+        </Card>
+
+        <Card className="overflow-hidden border-0 bg-white shadow-lg ring-1 ring-slate-200">
+          <div className="h-2 bg-[#0B2B5E]" />
+          <div className="p-5 md:p-6">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-[#0B2B5E]">Sede Torino</p>
+                <h3 className="mt-1 text-xl font-bold text-[#0B2B5E]">{LOCATION_DETAILS.torino.label}</h3>
+              </div>
+              <div className="rounded-full bg-blue-50 p-2 text-[#0B2B5E]" aria-hidden="true"><MapPin className="h-5 w-5" /></div>
+            </div>
+            <div className="space-y-3 text-sm text-slate-700">
+              <p className="flex gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#0B2B5E]" aria-hidden="true" /><span>{LOCATION_DETAILS.torino.address}</span></p>
+              <p className="flex gap-2"><span className="mt-0.5 h-4 w-4 shrink-0 text-center text-xs font-bold text-[#0B2B5E]" aria-hidden="true">R</span><span>{LOCATION_DETAILS.torino.reference}</span></p>
+              <p className="flex gap-2"><Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-[#0B2B5E]" aria-hidden="true" /><span>{LOCATION_DETAILS.torino.hours}</span></p>
+              <p className="flex gap-2"><Phone className="mt-0.5 h-4 w-4 shrink-0 text-[#0B2B5E]" aria-hidden="true" /><a className="font-semibold text-[#0B2B5E] hover:underline" href={LOCATION_DETAILS.torino.contactHref} target="_blank" rel="noopener noreferrer">{LOCATION_DETAILS.torino.contact}</a></p>
+            </div>
+            <a href={LOCATION_DETAILS.torino.mapsUrl} target="_blank" rel="noopener noreferrer" className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#0B2B5E] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#123b78] focus:outline-none focus:ring-2 focus:ring-[#F28C00] focus:ring-offset-2">
+              Abrir Torino en Google Maps <ExternalLink className="h-4 w-4" aria-hidden="true" />
+            </a>
+          </div>
+        </Card>
+      </div>
+    </section>
+  );
 }
 
 export default function Home() {
@@ -382,6 +460,8 @@ export default function Home() {
             </p>
           </div>
         )}
+
+        <LocationsSection />
       </main>
 
       {/* QR Scanner Modal */}

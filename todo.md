@@ -123,3 +123,18 @@
 - [x] Aplicar tarifa base de 13,5 € por kilogramo para envíos de encomiendas
 - [x] Permitir la introducción manual de precios y tarifas sin restricciones tanto en documentos como en encomiendas
 - [x] Eliminar la sección independiente de 'Condición de Pago' de las interfaces y recibos, conservando únicamente el 'Estado de Pago'
+
+## Sección Ubícanos (Lima y Torino)
+- [x] Añadir sección pública 'Ubícanos' en la página principal con las sedes de Lima (Jr. de la Unión 518) y Torino (Corso Peschiera 162A)
+- [x] Incorporar enlaces de Google Maps, referencias, teléfonos y horarios de atención (Lunes a Sábado de 10am a 8:30pm para Lima, 9am a 8:30pm para Torino)
+
+## Cierre de datos de contacto por sede
+- [x] Añadir y mostrar el teléfono de la sede Torino en la sección pública Ubícanos
+- [x] Ampliar las pruebas para verificar mapa, referencia, horario y teléfono de ambas sedes
+
+## Precisión de contacto y prueba visual de Ubícanos
+- [x] Etiquetar explícitamente el contacto de Torino como WhatsApp general, ya que no se proporcionó un teléfono local de Torino
+- [x] Añadir una prueba de componente que renderice Home y verifique las dos tarjetas de Ubícanos, sus direcciones, horarios, contactos y enlaces de mapas
+
+## Prueba de página pública completa
+- [x] Añadir una prueba de componente/integración que renderice Home completo y verifique que Ubícanos aparece con ambas sedes y sus datos visibles
