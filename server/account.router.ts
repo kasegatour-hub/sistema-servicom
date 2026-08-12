@@ -195,7 +195,7 @@ export const accountRouter = router({
       const result = await createShipment(
         orderNumber,
         code,
-        "En agencia",
+        "Por entregar en agencia",
         input.senderName,
         input.senderLastName,
         input.senderDni,

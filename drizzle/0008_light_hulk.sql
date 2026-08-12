@@ -1,0 +1,1 @@
+ALTER TABLE `shipments` MODIFY COLUMN `status` enum('Por entregar en agencia','En agencia','En tránsito','En destino','Entregado') NOT NULL;

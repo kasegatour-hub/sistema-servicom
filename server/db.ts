@@ -256,7 +256,7 @@ export async function getAllShipments() {
 export async function createShipment(
   orderNumber: string,
   code: string,
-  status: "En agencia" | "En tránsito" | "En destino" | "Entregado",
+  status: "Por entregar en agencia" | "En agencia" | "En tránsito" | "En destino" | "Entregado",
   senderName?: string,
   senderLastName?: string,
   senderDni?: string,
@@ -318,7 +318,7 @@ export async function createShipment(
 
 export async function updateShipmentStatus(
   id: number,
-  newStatus: "En agencia" | "En tránsito" | "En destino" | "Entregado",
+  newStatus: "Por entregar en agencia" | "En agencia" | "En tránsito" | "En destino" | "Entregado",
   description: string,
   senderName?: string,
   senderLastName?: string,

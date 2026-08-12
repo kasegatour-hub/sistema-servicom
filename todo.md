@@ -45,3 +45,6 @@
 - [ ] Permitir al cliente elegir únicamente 'Pagará en Torino' o 'En agencia'
 - [ ] Permitir a Master y Usuario editar el estado de pago (Pagado / Falta cancelar)
 - [ ] Añadir selector de ruta predeterminada (Lima - Torino / Torino - Lima) y direcciones con búsqueda de Google Maps o manual
+
+## Estado Inicial "Por entregar en agencia"
+- [x] Actualizar base de datos, backend y frontend para usar 'Por entregar en agencia' en lugar de 'En agencia' como estado inicial de cliente

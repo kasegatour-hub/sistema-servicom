@@ -568,6 +568,7 @@ export default function AdminDashboard() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="Por entregar en agencia">Por entregar en agencia</SelectItem>
                       <SelectItem value="En agencia">En agencia</SelectItem>
                       <SelectItem value="En tránsito">En tránsito</SelectItem>
                       <SelectItem value="En destino">En destino</SelectItem>
@@ -765,6 +766,7 @@ export default function AdminDashboard() {
                       <TableCell>
                         <div className="flex flex-col gap-1.5 items-start">
                           <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                            shipment.status === 'Por entregar en agencia' ? 'bg-sky-100 text-sky-800' :
                             shipment.status === 'En agencia' ? 'bg-blue-100 text-blue-800' :
                             shipment.status === 'En tránsito' ? 'bg-yellow-100 text-yellow-800' :
                             shipment.status === 'En destino' ? 'bg-orange-100 text-orange-800' :
@@ -851,6 +853,7 @@ export default function AdminDashboard() {
                       <SelectValue placeholder="Selecciona un estado" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="Por entregar en agencia">Por entregar en agencia</SelectItem>
                       <SelectItem value="En agencia">En agencia</SelectItem>
                       <SelectItem value="En tránsito">En tránsito</SelectItem>
                       <SelectItem value="En destino">En destino</SelectItem>

@@ -436,7 +436,7 @@ export default function AccountPage() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-bold text-[#0B2B5E]">Orden: {shipment.orderNumber}</span>
                         <span className="rounded bg-blue-100 px-2 py-0.5 text-xs font-semibold text-[#0B2B5E]">Código: {shipment.code}</span>
-                        <span className={`rounded px-2 py-0.5 text-xs font-semibold ${shipment.status === 'Entregado' ? 'bg-blue-600 text-white' : 'bg-orange-100 text-[#F28C00]'}`}>
+                        <span className={`rounded px-2 py-0.5 text-xs font-semibold ${shipment.status === 'Entregado' ? 'bg-blue-600 text-white' : shipment.status === 'Por entregar en agencia' ? 'bg-sky-100 text-sky-800' : 'bg-orange-100 text-[#F28C00]'}`}>
                           {shipment.status}
                         </span>
                         <span className={`rounded px-2 py-0.5 text-xs font-semibold ${String(shipment.paymentCondition || '').includes('Lima') ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
