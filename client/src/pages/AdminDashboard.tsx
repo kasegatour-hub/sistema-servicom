@@ -249,7 +249,7 @@ export default function AdminDashboard() {
           <div class="header">
             <div class="company-info">
               <h1 class="company">SERVICOM INTERNACIONAL</h1>
-              <div class="subtitle">en colaboración con kasega tour internacional</div>
+              <div class="subtitle">SERVICOM INTERNACIONAL</div>
               <div class="ruc-contact">
                 RUC: 20615004708 | Cel: +51 970188 447<br>
                 Jr de la Unión 518 INT SOT101, Lima
@@ -334,7 +334,7 @@ export default function AdminDashboard() {
 
             <p>Mediante mi firma y huella dactilar estampada en el presente documento, asumo la <strong>responsabilidad penal, civil y administrativa absoluta e indelegable</strong> ante la Policía Nacional del Perú (DIRANDRO), SUNAT/Aduanas, Ministerio Público y cualquier autoridad judicial nacional o extranjera en caso de detectarse alteraciones, camuflajes o sustancias ilícitas en mi envío.</p>
 
-            <p>En consecuencia, eximo expresa, legal y totalmente de cualquier implicancia, investigación, responsabilidad operativa o financiera a la empresa <strong>Servicom Internacional</strong> y a su socio estratégico Kasega Tour E.I.R.L. (RUC: 20615004708). Asimismo, autorizo de manera irrevocable la apertura, revisión física detallada y escaneo del presente envío por parte de la agencia o las autoridades competentes sin necesidad de mi presencia ni notificación previa.</p>
+            <p>En consecuencia, eximo expresa, legal y totalmente de cualquier implicancia, investigación, responsabilidad operativa o financiera a la empresa <strong>Servicom Internacional</strong> (RUC: 20615004708). Asimismo, autorizo de manera irrevocable la apertura, revisión física detallada y escaneo del presente envío por parte de la agencia o las autoridades competentes sin necesidad de mi presencia ni notificación previa.</p>
 
             <p>Suscrito en la ciudad de Lima, el ${today}.</p>
           </div>
@@ -893,7 +893,7 @@ export default function AdminDashboard() {
               <div className="bg-white p-4 rounded-lg mb-4 max-h-96 overflow-y-auto text-sm">
                 <div className="text-center border-b pb-3 mb-3">
                   <div className="font-bold text-lg text-primary">SERVICOM INTERNACIONAL</div>
-                  <div className="text-xs text-gray-600">En colaboración con Kasega Tour EIRL · RUC 20615004708</div>
+                  <div className="text-xs text-gray-600">RUC 20615004708</div>
                   <div className="text-xs text-gray-600">RUC: 20615004708</div>
                 </div>
 

@@ -162,7 +162,7 @@ export default function Home() {
             Rastreo de envíos de documentos en tiempo real
             </p>
             <p className="text-primary-foreground/80 text-xs md:text-sm mt-1">
-              Servicom Internacional en colaboración con Kasega Tour EIRL · RUC 20615004708
+              Servicom Internacional · RUC 20615004708
             </p>
         </div>
       </header>
@@ -393,7 +393,7 @@ export default function Home() {
             <div>
               <h3 className="text-lg font-bold mb-2">Servicom Internacional</h3>
               <p className="text-gray-400 text-sm mb-4">
-                Servicom Internacional en colaboración con Kasega Tour EIRL (RUC 20615004708), tu aliado estratégico para el envío seguro de documentos a nivel internacional.
+                Servicom Internacional (RUC 20615004708), tu aliado estratégico para el envío seguro de documentos a nivel internacional.
               </p>
               <p className="text-gray-400 text-sm">
                 Tu mejor opción en el mundo.
@@ -410,7 +410,7 @@ export default function Home() {
             </div>
           </div>
           <div className="border-t border-gray-700 pt-6 text-center text-sm text-gray-400">
-            <p><strong>Servicom Internacional</strong> en colaboración con Kasega Tour EIRL</p>
+            <p><strong>Servicom Internacional</strong></p>
             <p className="mt-2">© 2026 Servicom Internacional. Todos los derechos reservados.</p>
           </div>
         </div>

@@ -7004,3 +7004,10 @@
 - [x] Confirmar que el recibo del usuario se abre desde el registro y desde el listado personal
 - [x] Confirmar que todos los campos de contraseña de usuario tienen control de visibilidad
 - [x] Documentar por separado que el hostname de plataforma requiere cambio desde Management UI y no desde el código
+
+## Nueva solicitud — marca única Servicom y dominio
+- [x] Eliminar todas las menciones visibles de Kasega Tour del panel administrativo y textos públicos
+- [x] Actualizar títulos, etiquetas y mensajes para usar únicamente Servicom Internacional
+- [x] Revisar y documentar el cambio del hostname desde Settings → Domains — el código no controla el hostname de plataforma; se mantiene pendiente el cambio desde la configuración de dominios
+- [x] Ejecutar pruebas y verificación visual
+- [x] Guardar checkpoint de la corrección

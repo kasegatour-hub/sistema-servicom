@@ -386,7 +386,7 @@ export default function AccountPage() {
               {mode === "register" ? <UserPlus className="h-7 w-7 text-[#F28C00]" /> : mode === "request" || mode === "reset" ? <KeyRound className="h-7 w-7 text-[#F28C00]" /> : <Lock className="h-7 w-7 text-[#F28C00]" />}
               <div>
                 <h1 className="text-2xl font-bold">{title}</h1>
-                <p className="mt-1 text-sm text-blue-100">Servicom Internacional en colaboración con Kasega Tour EIRL</p>
+                <p className="mt-1 text-sm text-blue-100">Servicom Internacional</p>
               </div>
             </div>
           </div>
