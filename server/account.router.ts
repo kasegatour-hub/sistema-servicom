@@ -8,6 +8,7 @@ import {
   getActiveVerificationCode,
   getLocalAccountByEmail,
   getLocalAccountById,
+  getShipmentByOrderAndCode,
   incrementVerificationAttempts,
   updateLocalAccountProfile,
   getShipmentsByAccountId,
@@ -191,7 +192,14 @@ export const accountRouter = router({
       if (!result) {
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No se pudo registrar el envío." });
       }
-      return { success: true, message: "Envío registrado correctamente con orden y código automáticos.", orderNumber, code };
+      const shipment = await getShipmentByOrderAndCode(orderNumber, code);
+      return {
+        success: true,
+        message: "Envío registrado correctamente con orden y código automáticos.",
+        orderNumber,
+        code,
+        shipment: shipment ? { ...shipment, events: JSON.parse(shipment.events) } : null,
+      };
     }),
 
   changePassword: publicProcedure

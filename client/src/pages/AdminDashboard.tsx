@@ -409,7 +409,7 @@ export default function AdminDashboard() {
               <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
               <Input
                 type="email"
-                placeholder="yeslygian2030@gmail.com"
+                placeholder="Ingresa tu correo administrativo"
                 {...loginForm.register("email")}
                 className="border-2 focus:border-primary"
               />

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
-import { ArrowLeft, KeyRound, Lock, LogOut, Mail, Package, Phone, Plus, Search, User, UserPlus, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Download, Eye, EyeOff, KeyRound, Lock, LogOut, Mail, Package, Phone, Plus, Printer, Search, User, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { buildTrackingUrl, TRACKING_QR_OPTIONS, normalizeTrackingValue } from "@/lib/tracking";
-import QRCode from "qrcode";
+import { printUserShipmentReceipt } from "@/lib/userReceipt";
 
 const brandLogo = "/manus-storage/servicom_logo_final_e7ce35aa.png";
 
@@ -28,6 +28,11 @@ export default function AccountPage() {
   const [registerDni, setRegisterDni] = useState("");
   const [code, setCode] = useState("");
   const [channel, setChannel] = useState<"email" | "sms">("email");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showAccountNewPassword, setShowAccountNewPassword] = useState(false);
+  const [receiptShipment, setReceiptShipment] = useState<any>(null);
 
   // Perfil editable
   const [profileName, setProfileName] = useState("");
@@ -106,11 +111,12 @@ export default function AccountPage() {
   });
 
   const createShipmentMutation = trpc.account.createMyShipment.useMutation({
-    onSuccess: () => {
-      toast.success("Encomienda registrada exitosamente.");
+    onSuccess: result => {
+      toast.success("Envío registrado. Tu recibo está disponible.");
       setShowNewShipment(false);
       setDocumentCount(1);
       setNotes("");
+      setReceiptShipment(result.shipment);
       refetchShipments();
     },
     onError: error => toast.error(error.message),
@@ -163,6 +169,22 @@ export default function AccountPage() {
         </header>
 
         <main className="mx-auto max-w-5xl px-4 py-8 space-y-8">
+          {receiptShipment && (
+            <Card className="border-2 border-[#F28C00] bg-orange-50 p-5 shadow-md">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="flex items-center gap-2 text-lg font-bold text-[#0B2B5E]"><CheckCircle2 className="h-5 w-5 text-green-600" /> Recibo generado correctamente</h2>
+                  <p className="mt-1 text-sm text-slate-700">Orden <strong>{receiptShipment.orderNumber}</strong> · Código <strong>{receiptShipment.code}</strong></p>
+                  <p className="mt-1 text-xs text-slate-600">El recibo incluye QR de rastreo, tarifa, declaración jurada y ticket recortable.</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={() => printUserShipmentReceipt(receiptShipment)} className="bg-[#0B2B5E] text-white hover:bg-[#123d78]"><Printer className="mr-2 h-4 w-4" /> Abrir e imprimir recibo</Button>
+                  <Button type="button" variant="outline" onClick={() => setReceiptShipment(null)}>Cerrar</Button>
+                </div>
+              </div>
+            </Card>
+          )}
+
           {/* Datos Personales */}
           <Card className="p-6 shadow-md border-0">
             <h2 className="text-lg font-bold text-[#0B2B5E] mb-4 flex items-center gap-2">
@@ -207,11 +229,17 @@ export default function AccountPage() {
             }} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
               <div>
                 <Label>Contraseña actual</Label>
-                <Input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} required className="mt-1" />
+                <div className="relative mt-1">
+                  <Input type={showCurrentPassword ? "text" : "password"} value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} required className="pr-10" />
+                  <button type="button" aria-label={showCurrentPassword ? "Ocultar contraseña actual" : "Mostrar contraseña actual"} onClick={() => setShowCurrentPassword(value => !value)} className="absolute right-2 top-2 text-slate-500 hover:text-[#0B2B5E]"><>{showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</></button>
+                </div>
               </div>
               <div>
                 <Label>Nueva contraseña</Label>
-                <Input type="password" minLength={8} value={accountNewPassword} onChange={e => setAccountNewPassword(e.target.value)} required className="mt-1" />
+                <div className="relative mt-1">
+                  <Input type={showAccountNewPassword ? "text" : "password"} minLength={8} value={accountNewPassword} onChange={e => setAccountNewPassword(e.target.value)} required className="pr-10" />
+                  <button type="button" aria-label={showAccountNewPassword ? "Ocultar nueva contraseña" : "Mostrar nueva contraseña"} onClick={() => setShowAccountNewPassword(value => !value)} className="absolute right-2 top-2 text-slate-500 hover:text-[#0B2B5E]"><>{showAccountNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</></button>
+                </div>
               </div>
               <Button type="submit" disabled={changePasswordMutation.isPending} className="bg-[#0B2B5E] text-white hover:bg-[#123d78]">
                 {changePasswordMutation.isPending ? "Actualizando..." : "Cambiar contraseña"}
@@ -227,7 +255,7 @@ export default function AccountPage() {
                 <h2 className="text-lg font-bold text-[#0B2B5E] flex items-center gap-2">
                   <Package className="h-5 w-5 text-[#F28C00]" /> Mis Envíos Registrados
                 </h2>
-                <p className="text-xs text-slate-500">Registra nuevas encomiendas o consulta el estado actual de tus envíos.</p>
+                <p className="text-xs text-slate-500">Registra envíos de documentos o consulta el estado actual de tus registros.</p>
               </div>
               <Button onClick={() => setShowNewShipment(!showNewShipment)} className="bg-[#F28C00] text-white hover:bg-[#d67900]">
                 <Plus className="mr-2 h-4 w-4" /> Registrar Nueva Encomienda
@@ -250,7 +278,7 @@ export default function AccountPage() {
                   notes,
                 });
               }} className="bg-blue-50/50 p-4 rounded-xl mb-6 space-y-4 border border-blue-100">
-                <h3 className="font-bold text-[#0B2B5E]">Detalles de la Encomienda</h3>
+                        <h3 className="font-bold text-[#0B2B5E]">Detalles del envío de documentos</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label>Cantidad de Documentos</Label>
@@ -283,8 +311,8 @@ export default function AccountPage() {
                 </div>
                 <div className="flex justify-end gap-2">
                   <Button type="button" variant="outline" onClick={() => setShowNewShipment(false)}>Cancelar</Button>
-                  <Button type="submit" disabled={createShipmentMutation.isPending} className="bg-[#0B2B5E] text-white">
-                    {createShipmentMutation.isPending ? "Registrando..." : "Guardar Encomienda"}
+                      <Button type="submit" disabled={createShipmentMutation.isPending} className="bg-[#0B2B5E] text-white">
+                    {createShipmentMutation.isPending ? "Registrando..." : "Guardar envío"}
                   </Button>
                 </div>
               </form>
@@ -313,11 +341,12 @@ export default function AccountPage() {
                       </p>
                       <p className="text-xs text-slate-400 mt-0.5">Registrado el {new Date(shipment.createdAt).toLocaleDateString()}</p>
                     </div>
-                    <Link href={`/?order=${encodeURIComponent(shipment.orderNumber)}&code=${encodeURIComponent(shipment.code)}`}>
-                      <Button size="sm" className="bg-[#0B2B5E] text-white hover:bg-[#123d78]">
-                        <Search className="mr-2 h-3.5 w-3.5" /> Rastrear Envío
-                      </Button>
-                    </Link>
+                    <div className="flex flex-wrap gap-2">
+                      <Link href={`/?order=${encodeURIComponent(shipment.orderNumber)}&code=${encodeURIComponent(shipment.code)}`}>
+                        <Button size="sm" className="bg-[#0B2B5E] text-white hover:bg-[#123d78]"><Search className="mr-2 h-3.5 w-3.5" /> Rastrear envío</Button>
+                      </Link>
+                      <Button size="sm" variant="outline" onClick={() => setReceiptShipment(shipment)} className="border-[#F28C00] text-[#0B2B5E] hover:bg-orange-50"><Download className="mr-2 h-3.5 w-3.5" /> Ver recibo</Button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -398,7 +427,10 @@ export default function AccountPage() {
             {(mode === "login" || mode === "register") && (
               <div>
                 <Label htmlFor="account-password">Contraseña</Label>
-                <Input id="account-password" type="password" minLength={mode === "register" ? 8 : 1} value={password} onChange={event => setPassword(event.target.value)} className="mt-2" required />
+                <div className="relative mt-2">
+                  <Input id="account-password" type={showPassword ? "text" : "password"} minLength={mode === "register" ? 8 : 1} value={password} onChange={event => setPassword(event.target.value)} className="pr-10" required />
+                  <button type="button" aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"} onClick={() => setShowPassword(value => !value)} className="absolute right-2 top-2 text-slate-500 hover:text-[#0B2B5E]"><>{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</></button>
+                </div>
                 {mode === "register" && <p className="mt-1 text-xs text-slate-500">Usa al menos 8 caracteres.</p>}
               </div>
             )}
@@ -425,7 +457,10 @@ export default function AccountPage() {
                 </div>
                 <div>
                   <Label htmlFor="new-password">Nueva contraseña</Label>
-                  <Input id="new-password" type="password" minLength={8} value={newPassword} onChange={event => setNewPassword(event.target.value)} className="mt-2" required />
+                  <div className="relative mt-2">
+                    <Input id="new-password" type={showNewPassword ? "text" : "password"} minLength={8} value={newPassword} onChange={event => setNewPassword(event.target.value)} className="pr-10" required />
+                    <button type="button" aria-label={showNewPassword ? "Ocultar nueva contraseña" : "Mostrar nueva contraseña"} onClick={() => setShowNewPassword(value => !value)} className="absolute right-2 top-2 text-slate-500 hover:text-[#0B2B5E]"><>{showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</></button>
+                  </div>
                 </div>
               </>
             )}
