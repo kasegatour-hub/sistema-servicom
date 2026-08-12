@@ -13,4 +13,11 @@ describe("client identity input validation", () => {
     expect(digitsOnly("71234567A")).toBe("71234567");
     expect(isDigitsOnly("71234567")).toBe(true);
   });
+
+  it("accepts normalized text and DNI with surrounding spaces", () => {
+    expect(isTextOnly("  María   José  ")).toBe(true);
+    expect(isDigitsOnly(" 71234567 ")).toBe(true);
+    expect(isTextOnly("   ")).toBe(true);
+    expect(isDigitsOnly("   ")).toBe(true);
+  });
 });

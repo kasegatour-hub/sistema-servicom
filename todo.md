@@ -101,3 +101,14 @@
 ## Cobertura administrativa del recibo
 - [x] Extraer a un módulo testeable el CSS y HTML del ticket del recibo administrativo
 - [x] Añadir una prueba integrada que confirme `.cut-ticket` y la regla anti-corte en el recibo administrativo
+
+## Corrección de roles estrictos y falsos errores de validación
+- [x] Auditar y asegurar la separación de 3 roles: Cliente, Operador Registrador y Master Admin
+- [x] Asegurar que solo el Master Admin pueda crear, desactivar y eliminar cuentas de operadores
+- [x] Corregir la cuenta yeslyvr1997@gmail.com para que sea Registrador y no admin principal
+- [x] Corregir los falsos positivos de errores inline en los campos de nombre y apellido al abrir el modal de actualización
+- [x] Añadir pruebas de autorización por rol y de validación de formulario del modal
+
+## Verificación directa del modal de actualización
+- [x] Añadir prueba de componente/integración que abra el modal con nombres y apellidos válidos precargados sin errores rojos
+- [x] Añadir prueba del modal que simule entrada inválida y confirme que los errores desaparecen después de sanitizar/corregir

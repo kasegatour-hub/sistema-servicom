@@ -64,6 +64,13 @@
       "when": 1786561678163,
       "tag": "0008_light_hulk",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1786567961401,
+      "tag": "0009_living_husk",
+      "breakpoints": true
     }
   ]
 }

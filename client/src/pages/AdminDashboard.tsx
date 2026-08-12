@@ -23,23 +23,27 @@ import { buildAdminDeliveryTicketHtml, buildAdminReceiptPrintStyles } from "@/li
 import { closeUpdateModal } from "@/lib/updateModal";
 import { UpdateShipmentModal } from "@/components/UpdateShipmentModal";
 
-const textRegisterOptions = (form: any, field: string, label: string) => ({
+export const textRegisterOptions = (form: any, field: string, label: string) => ({
   setValueAs: textOnly,
   onChange: (event: any) => {
-    const rawValue = event.target.value;
-    if (rawValue && !isTextOnly(rawValue)) form.setError(field, { type: "pattern", message: `${label} solo puede contener letras y espacios.` });
-    else form.clearErrors(field);
-    event.target.value = textOnly(rawValue);
+    const rawValue = String(event.target.value ?? "");
+    const isValidRawValue = !rawValue.trim() || isTextOnly(rawValue);
+    const sanitizedValue = textOnly(rawValue).replace(/\s+/g, " ");
+    event.target.value = sanitizedValue;
+    if (!isValidRawValue) form.setError(field, { type: "pattern", message: `${label} solo puede contener letras y espacios.` });
+    else setTimeout(() => form.clearErrors(field), 0);
   },
 });
 
-const digitsRegisterOptions = (form: any, field: string) => ({
+export const digitsRegisterOptions = (form: any, field: string) => ({
   setValueAs: digitsOnly,
   onChange: (event: any) => {
-    const rawValue = event.target.value;
-    if (rawValue && !isDigitsOnly(rawValue)) form.setError(field, { type: "pattern", message: "El DNI solo puede contener números." });
-    else form.clearErrors(field);
-    event.target.value = digitsOnly(rawValue);
+    const rawValue = String(event.target.value ?? "");
+    const isValidRawValue = !rawValue.trim() || isDigitsOnly(rawValue);
+    const sanitizedValue = digitsOnly(rawValue);
+    event.target.value = sanitizedValue;
+    if (!isValidRawValue) form.setError(field, { type: "pattern", message: "El DNI solo puede contener números." });
+    else setTimeout(() => form.clearErrors(field), 0);
   },
 });
 
@@ -56,11 +60,11 @@ const createAdminSchema = z.object({
 
 const optionalTextField = z.union([
   z.literal(""),
-  z.string().regex(/^[A-Za-z\u00C0-\u024F]+(?: +[A-Za-z\u00C0-\u024F]+)*$/, "Solo letras y espacios."),
+  z.string().trim().regex(/^[A-Za-z\u00C0-\u024F]+(?: +[A-Za-z\u00C0-\u024F]+)*$/, "Solo letras y espacios."),
 ]).optional();
 const optionalDniField = z.union([
   z.literal(""),
-  z.string().regex(/^\d+$/, "El DNI solo puede contener números."),
+  z.string().trim().regex(/^\d+$/, "El DNI solo puede contener números."),
 ]).optional();
 
 const createShipmentSchema = z.object({
@@ -136,6 +140,8 @@ export default function AdminDashboard() {
   const updateMutation = trpc.admin.updateStatus.useMutation();
   const deleteMutation = trpc.admin.deleteShipment.useMutation();
   const createAdminMutation = trpc.admin.createAdmin.useMutation();
+  const deleteAdminMutation = trpc.admin.deleteAdmin.useMutation();
+  const deactivateAdminMutation = trpc.admin.deactivateAdmin.useMutation();
 
   // Forms
   const loginForm = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
@@ -195,13 +201,37 @@ export default function AdminDashboard() {
 
   const handleCreateAdmin = async (data: CreateAdminForm) => {
     try {
-      await createAdminMutation.mutateAsync({ ...data, role: "admin" });
+      await createAdminMutation.mutateAsync({ ...data, role: "registrador" });
       toast.success("Usuario Registrador creado correctamente");
       createAdminForm.reset();
       setShowUserForm(false);
       refetchAdminUsers();
     } catch (error: any) {
       toast.error(error.message || "No se pudo crear el usuario Registrador");
+    }
+  };
+
+  const handleDeleteAdmin = async (user: { id: number; role: string; name: string }) => {
+    if (user.role === "superadmin") return;
+    if (!confirm(`¿Eliminar definitivamente a ${user.name}? Esta acción no se puede deshacer.`)) return;
+    try {
+      await deleteAdminMutation.mutateAsync({ id: user.id });
+      toast.success("Registrador eliminado correctamente");
+      refetchAdminUsers();
+    } catch (error: any) {
+      toast.error(error.message || "No se pudo eliminar el Registrador");
+    }
+  };
+
+  const handleDeactivateAdmin = async (user: { id: number; role: string; name: string }) => {
+    if (user.role === "superadmin") return;
+    if (!confirm(`¿Desactivar la cuenta de ${user.name}? Ya no podrá iniciar sesión.`)) return;
+    try {
+      await deactivateAdminMutation.mutateAsync({ id: user.id });
+      toast.success("Registrador desactivado correctamente");
+      refetchAdminUsers();
+    } catch (error: any) {
+      toast.error(error.message || "No se pudo desactivar el Registrador");
     }
   };
 
@@ -858,7 +888,7 @@ export default function AdminDashboard() {
             <div className="mt-5 overflow-x-auto rounded-lg border bg-white">
               <table className="min-w-[620px] w-full text-sm">
                 <thead className="bg-slate-50 text-left text-slate-600">
-                  <tr><th className="px-4 py-3">Nombre</th><th className="px-4 py-3">Correo</th><th className="px-4 py-3">Rol</th><th className="px-4 py-3">Creado</th></tr>
+                  <tr><th className="px-4 py-3">Nombre</th><th className="px-4 py-3">Correo</th><th className="px-4 py-3">Rol</th><th className="px-4 py-3">Estado</th><th className="px-4 py-3">Creado</th><th className="px-4 py-3">Acciones</th></tr>
                 </thead>
                 <tbody>
                   {(adminUsers || []).map((user: any) => (
@@ -866,7 +896,42 @@ export default function AdminDashboard() {
                       <td className="px-4 py-3 font-medium">{user.name}</td>
                       <td className="px-4 py-3">{user.email}</td>
                       <td className="px-4 py-3">{user.role === "superadmin" ? "Master Admin" : "Registrador"}</td>
+                      <td className="px-4 py-3">
+                        <span className={`rounded-full px-2 py-1 text-xs font-semibold ${user.isActive === 1 ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-600"}`}>
+                          {user.isActive === 1 ? "Activo" : "Desactivado"}
+                        </span>
+                      </td>
                       <td className="px-4 py-3">{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "-"}</td>
+                      <td className="px-4 py-3">
+                        {user.role === "superadmin" ? (
+                          <span className="text-xs text-slate-500">Protegido</span>
+                        ) : (
+                          <div className="flex flex-wrap gap-2">
+                            {user.isActive === 1 && (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="border-amber-500 text-amber-700 hover:bg-amber-50"
+                                onClick={() => handleDeactivateAdmin(user)}
+                                disabled={deactivateAdminMutation.isPending}
+                              >
+                                Desactivar
+                              </Button>
+                            )}
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="border-red-600 text-red-600 hover:bg-red-50"
+                              onClick={() => handleDeleteAdmin(user)}
+                              disabled={deleteAdminMutation.isPending}
+                            >
+                              Eliminar
+                            </Button>
+                          </div>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

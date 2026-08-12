@@ -5,7 +5,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 const COOKIE_NAME = "servicom_admin_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 12;
 
-export type AdminRole = "admin" | "superadmin";
+export type AdminRole = "registrador" | "superadmin";
 type AdminSessionPayload = { adminId: number; role: AdminRole; exp: number };
 
 function readCookieHeader(header: string | undefined): string | undefined {
@@ -47,7 +47,7 @@ export function getAdminSession(req: Request): AdminSessionPayload | null {
   try {
     const payload = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8")) as AdminSessionPayload;
     if (!Number.isInteger(payload.adminId) || payload.exp < Math.floor(Date.now() / 1000)) return null;
-    if (payload.role !== "admin" && payload.role !== "superadmin") return null;
+    if (payload.role !== "registrador" && payload.role !== "superadmin") return null;
     return payload;
   } catch {
     return null;

@@ -48,7 +48,7 @@ export const adminRouter = router({
       }
 
       const admin = await getAdminByEmail(email);
-      if (!admin) {
+      if (!admin || admin.isActive !== 1) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Credenciales inválidas" });
       }
 
@@ -67,7 +67,7 @@ export const adminRouter = router({
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Credenciales inválidas" });
       }
 
-      const role = admin.role === "superadmin" ? "superadmin" : "admin";
+      const role = admin.role === "superadmin" ? "superadmin" : "registrador";
       setAdminSession(ctx.req, ctx.res, admin.id, role);
       return { id: admin.id, email: admin.email, name: admin.name, role };
     }),
@@ -228,7 +228,7 @@ export const adminRouter = router({
       email: z.string().email(),
       password: z.string().min(4),
       name: personNameSchema,
-      role: z.enum(["admin", "superadmin"]).default("admin"),
+      role: z.literal("registrador").default("registrador"),
     }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -254,10 +254,30 @@ export const adminRouter = router({
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database error" });
-      if (input.id === 1) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "No se puede eliminar al Master Admin principal" });
+      const [target] = await db.select({ id: admins.id, role: admins.role }).from(admins).where(eq(admins.id, input.id)).limit(1);
+      if (!target) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Usuario Registrador no encontrado" });
+      }
+      if (target.role === "superadmin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "No se puede eliminar al Master Admin" });
       }
       await db.delete(admins).where(eq(admins.id, input.id));
+      return { success: true };
+    }),
+
+  deactivateAdmin: masterAdminProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database error" });
+      const [target] = await db.select({ id: admins.id, role: admins.role }).from(admins).where(eq(admins.id, input.id)).limit(1);
+      if (!target) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Usuario Registrador no encontrado" });
+      }
+      if (target.role === "superadmin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "No se puede desactivar al Master Admin" });
+      }
+      await db.update(admins).set({ isActive: 0 }).where(eq(admins.id, input.id));
       return { success: true };
     }),
 

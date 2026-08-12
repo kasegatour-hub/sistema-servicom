@@ -17,7 +17,7 @@ function createPublicContext(): TrpcContext {
   };
 }
 
-function createRoleContext(role: "admin" | "superadmin"): TrpcContext {
+function createRoleContext(role: "registrador" | "superadmin"): TrpcContext {
   return {
     user: null,
     req: {
@@ -76,12 +76,21 @@ describe("admin.login", () => {
   });
 
   it("prevents a Registrador from managing admin users", async () => {
-    const caller = appRouter.createCaller(createRoleContext("admin"));
+    const caller = appRouter.createCaller(createRoleContext("registrador"));
 
     await expect(caller.admin.listAdmins()).rejects.toMatchObject({
       code: "FORBIDDEN",
       message: "Solo el Master Admin puede gestionar usuarios",
     });
+    await expect(caller.admin.createAdmin({ email: "nuevo@servicom.pe", password: "password123", name: "Nuevo Operador", role: "registrador" })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(caller.admin.deactivateAdmin({ id: 30001 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(caller.admin.deleteAdmin({ id: 30001 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("does not allow the create form to elevate an operator to Master Admin", async () => {
+    const caller = appRouter.createCaller(createRoleContext("superadmin"));
+
+    await expect(caller.admin.createAdmin({ email: "elevacion@servicom.pe", password: "password123", name: "Operador Valido", role: "superadmin" as never })).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 });
 

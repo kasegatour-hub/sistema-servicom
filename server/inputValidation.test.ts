@@ -17,6 +17,11 @@ describe("input validation", () => {
     expect(() => dniSchema.parse("7123456A")).toThrow("El DNI solo puede contener números");
   });
 
+  it("trims valid optional identity values before persistence", () => {
+    expect(optionalPersonNameSchema.parse("  María José  ")).toBe("María José");
+    expect(optionalDniSchema.parse(" 71234567 ")).toBe("71234567");
+  });
+
   it("allows blank optional identity fields but rejects invalid values", () => {
     expect(optionalPersonNameSchema.parse("")).toBe("");
     expect(optionalDniSchema.parse("")).toBe("");
