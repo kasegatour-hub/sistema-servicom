@@ -21,8 +21,6 @@ const loginSchema = z.object({
 });
 
 const createShipmentSchema = z.object({
-  orderNumber: z.string().min(1, "Número de orden requerido"),
-  code: z.string().min(1, "Código requerido"),
   status: z.enum(["En agencia", "En tránsito", "En destino", "Entregado"]),
   senderName: z.string().optional(),
   senderLastName: z.string().optional(),
@@ -33,6 +31,7 @@ const createShipmentSchema = z.object({
   recipientDni: z.string().optional(),
   recipientPhone: z.string().optional(),
   notes: z.string().optional(),
+  documentCount: z.number().min(1).default(1),
 });
 
 const updateStatusSchema = z.object({
@@ -81,8 +80,6 @@ export default function AdminDashboard() {
   const createForm = useForm<any>({
     resolver: zodResolver(createShipmentSchema),
     defaultValues: {
-      orderNumber: '',
-      code: '',
       status: 'En agencia',
       senderName: '',
       senderLastName: '',
@@ -93,6 +90,7 @@ export default function AdminDashboard() {
       recipientDni: '',
       recipientPhone: '',
       notes: '',
+      documentCount: 1,
     },
   });
   const updateForm = useForm<UpdateStatusForm>({
@@ -200,122 +198,163 @@ export default function AdminDashboard() {
   };
 
   const printReceipt = () => {
-    const printWindow = window.open('', '', 'width=800,height=600');
+    const printWindow = window.open('', '', 'width=800,height=900');
     if (printWindow && printShipment) {
       const trackingUrl = buildTrackingUrl(printShipment.orderNumber, printShipment.code);
+      const today = new Date().toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' });
       const html = `
         <!DOCTYPE html>
         <html>
         <head>
-          <title>Recibo de Encomienda</title>
+          <title>INFORMACIÓN DE ENVÍO DE DOCUMENTO - Servicom Internacional</title>
           <style>
-            body { font-family: Arial, sans-serif; margin: 20px; color: #0B2B5E; }
-            .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #F28C00; padding-bottom: 10px; }
-            .company { font-size: 24px; font-weight: bold; color: #0B2B5E; }
-            .subtitle { font-size: 12px; color: #666; margin-top: 5px; }
-            .ruc { font-size: 11px; color: #999; }
+            @media print { .page-break { page-break-before: always; } }
+            body { font-family: 'Helvetica', Arial, sans-serif; margin: 0; padding: 40px; color: #0B2B5E; line-height: 1.4; }
+            .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; border-bottom: 2px solid #F28C00; padding-bottom: 10px; }
+            .company-info { flex: 1; }
+            .company { font-size: 26px; font-weight: bold; color: #0B2B5E; margin: 0; }
+            .subtitle { font-size: 14px; color: #F28C00; font-weight: bold; margin-top: 2px; }
+            .ruc-contact { font-size: 11px; color: #666; margin-top: 5px; }
+            .digital-seal { border: 2px solid #0B2B5E; border-radius: 8px; padding: 10px; text-align: center; min-width: 200px; }
+            .seal-title { font-weight: bold; font-size: 12px; color: #0B2B5E; border-bottom: 1px solid #0B2B5E; margin-bottom: 5px; padding-bottom: 3px; }
+            .seal-details { font-size: 10px; text-align: left; }
+            
+            .main-title { text-align: center; font-size: 20px; font-weight: bold; margin: 20px 0; background: #f4f4f4; padding: 8px; border-radius: 4px; }
+            
             .section { margin: 15px 0; }
-            .section-title { font-weight: bold; background-color: #f0f0f0; padding: 5px; margin-bottom: 10px; }
-            .row { display: flex; margin: 5px 0; }
-            .label { width: 150px; font-weight: bold; }
-            .value { flex: 1; }
-            .qr-section { text-align: center; margin: 20px 0; }
-            .qr-section canvas { max-width: 200px; }
-            .policies { font-size: 10px; margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px; line-height: 1.4; }
-            .policy-title { font-weight: bold; margin-bottom: 5px; }
+            .section-title { font-weight: bold; font-size: 14px; border-left: 4px solid #F28C00; padding-left: 8px; margin-bottom: 10px; text-transform: uppercase; }
+            .row { display: flex; margin: 4px 0; font-size: 13px; }
+            .label { width: 160px; font-weight: bold; color: #444; }
+            .value { flex: 1; border-bottom: 1px dotted #ccc; }
+            
+            .qr-container { display: flex; justify-content: space-around; align-items: center; margin: 30px 0; padding: 15px; background: #f9f9f9; border-radius: 10px; }
+            .qr-box { text-align: center; }
+            .qr-box canvas { width: 140px !important; height: 140px !important; }
+            .qr-hint { font-size: 10px; margin-top: 5px; color: #666; }
+            
+            .cut-ticket { margin-top: 40px; border: 2px dashed #0B2B5E; padding: 15px; border-radius: 4px; position: relative; }
+            .cut-icon { position: absolute; top: -12px; left: 20px; background: white; padding: 0 5px; font-size: 18px; }
+            .ticket-header { font-weight: bold; font-size: 14px; margin-bottom: 10px; text-align: center; }
+            
+            .dj-title { text-align: center; margin-bottom: 30px; }
+            .dj-content { font-size: 13px; text-align: justify; line-height: 1.6; }
+            .dj-signature-area { display: flex; justify-content: space-between; margin-top: 60px; }
+            .signature-box { width: 45%; text-align: center; border-top: 1px dashed #000; padding-top: 10px; }
+            .fingerprint-box { width: 100px; height: 120px; border: 1px solid #000; margin: 0 auto 10px; }
+            .dj-footer { text-align: center; font-size: 9px; color: #999; margin-top: 40px; }
           </style>
         </head>
         <body>
+          <!-- PÁGINA 1: RECIBO E INFORMACIÓN -->
           <div class="header">
-            <div class="company">SERVICOM INTERNACIONAL</div>
-            <div class="subtitle">En colaboración con Kasega Tour EIRL</div>
-            <div class="ruc">RUC: 20615004708 · peruservicom@gmail.com · +51 970 188 447</div>
+            <div class="company-info">
+              <h1 class="company">SERVICOM INTERNACIONAL</h1>
+              <div class="subtitle">en colaboración con kasega tour internacional</div>
+              <div class="ruc-contact">
+                RUC: 20615004708 | Cel: +51 970188 447<br>
+                Jr de la Unión 518 INT SOT101, Lima
+              </div>
+            </div>
+            <div class="digital-seal">
+              <div class="seal-title">FIRMADO DIGITALMENTE</div>
+              <div class="seal-details">
+                <strong>Titular:</strong> Servicom Internacional<br>
+                <strong>RUC:</strong> 20615004708<br>
+                <strong>Autenticidad:</strong> PIN 6341-1879
+              </div>
+            </div>
+          </div>
+
+          <div class="main-title">INFORMACIÓN DE ENVÍO DE DOCUMENTO</div>
+
+          <div class="section">
+            <div class="row"><div class="label">Orden:</div><div class="value">${printShipment.orderNumber}</div><div class="label" style="margin-left:20px">Cód. Envío:</div><div class="value">${printShipment.code}</div></div>
+            <div class="row"><div class="label">Fecha:</div><div class="value">${new Date(printShipment.createdAt).toLocaleString()}</div></div>
           </div>
 
           <div class="section">
-            <div class="section-title">INFORMACIÓN DE ENCOMIENDA</div>
-            <div class="row">
-              <div class="label">Número de Orden:</div>
-              <div class="value">${printShipment.orderNumber}</div>
-            </div>
-            <div class="row">
-              <div class="label">Código:</div>
-              <div class="value">${printShipment.code}</div>
-            </div>
-            <div class="row">
-              <div class="label">Estado:</div>
-              <div class="value">${printShipment.status}</div>
-            </div>
-            <div class="row">
-              <div class="label">Fecha de Registro:</div>
-              <div class="value">${new Date(printShipment.createdAt).toLocaleDateString()}</div>
-            </div>
+            <div class="section-title">Datos del Remitente</div>
+            <div class="row"><div class="label">Remitente:</div><div class="value">${printShipment.senderName || ''} ${printShipment.senderLastName || ''}</div></div>
+            <div class="row"><div class="label">Celular:</div><div class="value">${printShipment.senderPhone || ''}</div><div class="label" style="margin-left:20px">DNI/RUC:</div><div class="value">${printShipment.senderDni || ''}</div></div>
           </div>
 
-          ${printShipment.senderName ? `
           <div class="section">
-            <div class="section-title">REMITENTE</div>
-            <div class="row">
-              <div class="label">Nombre:</div>
-              <div class="value">${printShipment.senderName} ${printShipment.senderLastName || ''}</div>
-            </div>
-            ${printShipment.senderDni ? `
-            <div class="row">
-              <div class="label">DNI:</div>
-              <div class="value">${printShipment.senderDni}</div>
-            </div>
-            ` : ''}
-            ${printShipment.senderPhone ? `
-            <div class="row">
-              <div class="label">Teléfono:</div>
-              <div class="value">${printShipment.senderPhone}</div>
-            </div>
-            ` : ''}
+            <div class="section-title">Datos del Destinatario</div>
+            <div class="row"><div class="label">Destinatario:</div><div class="value">${printShipment.recipientName || ''} ${printShipment.recipientLastName || ''}</div></div>
+            <div class="row"><div class="label">Celular:</div><div class="value">${printShipment.recipientPhone || ''}</div><div class="label" style="margin-left:20px">DNI/C.I.:</div><div class="value">${printShipment.recipientDni || ''}</div></div>
           </div>
-          ` : ''}
 
-          ${printShipment.recipientName ? `
           <div class="section">
-            <div class="section-title">DESTINATARIO</div>
-            <div class="row">
-              <div class="label">Nombre:</div>
-              <div class="value">${printShipment.recipientName} ${printShipment.recipientLastName || ''}</div>
-            </div>
-            ${printShipment.recipientDni ? `
-            <div class="row">
-              <div class="label">DNI:</div>
-              <div class="value">${printShipment.recipientDni}</div>
-            </div>
-            ` : ''}
-            ${printShipment.recipientPhone ? `
-            <div class="row">
-              <div class="label">Teléfono:</div>
-              <div class="value">${printShipment.recipientPhone}</div>
-            </div>
-            ` : ''}
-          </div>
-          ` : ''}
-
-          ${printShipment.notes ? `
-          <div class="section">
-            <div class="section-title">NOTAS</div>
-            <div class="row">
-              <div class="value">${printShipment.notes}</div>
-            </div>
-          </div>
-          ` : ''}
-
-          <div class="qr-section">
-            <canvas id="printQR"></canvas>
-            <p style="font-size: 11px; margin-top: 10px;">Escanea el QR para rastrear tu encomienda</p>
+            <div class="section-title">Descripción (Contenido)</div>
+            <div class="value" style="min-height: 40px; border: 1px solid #eee; padding: 5px;">${printShipment.notes || 'Documentación Lícita'}</div>
           </div>
 
-          <div class="policies">
-            <div class="policy-title">POLÍTICAS DE ENTREGA Y ALMACENAJE</div>
-            <p><strong>Plazo de retiro:</strong> Hasta 48 horas posterior a su llegada (se le informará). Superado esta fecha se realizará el cobro de almacenaje por día por paquete.</p>
-            <p><strong>Peso adicional:</strong> En caso supere los 10kg, se aplicará tarifa correspondiente.</p>
-            <p><strong>Abandono del envío:</strong> Después de los 30 días será desechado, destruido o eliminado, sin reclamos posteriores.</p>
-            <p><strong>Envíos prohibidos:</strong> Todo envío de productos ilegales o prohibidos será puesto a disposición de las autoridades competentes, con los datos del servicio.</p>
+          <div class="qr-container">
+            <div class="qr-box">
+              <canvas id="printQR"></canvas>
+              <div class="qr-hint">Rastreo en Tiempo Real</div>
+            </div>
+            <div style="font-size: 11px; max-width: 300px;">
+              <strong>POLÍTICAS:</strong><br>
+              • Retiro: hasta 48h posterior a llegada.<br>
+              • Almacenaje diario superado el plazo.<br>
+              • Abandono: después de 30 días.<br>
+              • Prohibido envío de ilícitos.
+            </div>
+          </div>
+
+          <!-- TICKET RECORTABLE PARA TORINO -->
+          <div class="cut-ticket">
+            <div class="cut-icon">✂</div>
+            <div class="ticket-header">CONTROL DE ENTREGA - TORINO</div>
+            <div style="display: flex; justify-content: space-between;">
+              <div style="flex: 1;">
+                <div class="row"><div class="label" style="width:80px">ORDEN:</div><div class="value"><strong>${printShipment.orderNumber}</strong></div></div>
+                <div class="row"><div class="label" style="width:80px">DESTINO:</div><div class="value">TORINO, ITALIA</div></div>
+                <div class="row"><div class="label" style="width:80px">RECEPTOR:</div><div class="value">${printShipment.recipientName} ${printShipment.recipientLastName}</div></div>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-size: 24px; font-weight: bold; border: 2px solid #0B2B5E; padding: 5px;">${printShipment.code.split('-').pop()}</div>
+                <div style="font-size: 9px; margin-top: 5px;">ADJUNTAR A FOLDER MANILA</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PÁGINA 2: DECLARACIÓN JURADA -->
+          <div class="page-break"></div>
+          <div class="dj-title">
+            <h2 style="margin:0">DECLARACIÓN JURADA DE CONTENIDO</h2>
+            <h3 style="margin:0">Y EXENCIÓN DE RESPONSABILIDAD LEGAL</h3>
+          </div>
+
+          <div class="dj-content">
+            <p>Yo, <strong>${printShipment.senderName || '____________________'} ${printShipment.senderLastName || ''}</strong>, identificado(a) con documento de identidad N° <strong>${printShipment.senderDni || '__________'}</strong>, en pleno uso de mis facultades, declaro bajo juramento que el envío amparado bajo la Orden N° <strong>${printShipment.orderNumber}</strong> (Token de seguridad: ${Math.random().toString(36).substring(2, 10).toUpperCase()}) contiene <strong>ÚNICA Y ESTRICTAMENTE DOCUMENTACIÓN LÍCITA</strong>.</p>
+
+            <p>Garantizo formalmente que los documentos entregados a la agencia no ocultan, no camuflan, ni se encuentran impregnados de sustancias estupefacientes, alcaloides, dinero en efectivo no declarado, ni ningún material prohibido por la legislación penal de la República del Perú (incluyendo de forma explícita la Ley N° 28002 - Ley que penaliza el Tráfico Ilícito de Drogas) y los convenios aduaneros internacionales vigentes.</p>
+
+            <p>Mediante mi firma y huella dactilar estampada en el presente documento, asumo la <strong>responsabilidad penal, civil y administrativa absoluta e indelegable</strong> ante la Policía Nacional del Perú (DIRANDRO), SUNAT/Aduanas, Ministerio Público y cualquier autoridad judicial nacional o extranjera en caso de detectarse alteraciones, camuflajes o sustancias ilícitas en mi envío.</p>
+
+            <p>En consecuencia, eximo expresa, legal y totalmente de cualquier implicancia, investigación, responsabilidad operativa o financiera a la empresa <strong>Servicom Internacional</strong> y a su socio estratégico Kasega Tour E.I.R.L. (RUC: 20615004708). Asimismo, autorizo de manera irrevocable la apertura, revisión física detallada y escaneo del presente envío por parte de la agencia o las autoridades competentes sin necesidad de mi presencia ni notificación previa.</p>
+
+            <p>Suscrito en la ciudad de Lima, el ${today}.</p>
+          </div>
+
+          <div class="dj-signature-area">
+            <div class="signature-box">
+              <div style="height: 100px;"></div>
+              <strong>Firma del Remitente</strong><br>
+              DNI/Pasaporte N° ${printShipment.senderDni || '__________'}<br>
+              <span style="font-size: 8px;">(Firmar sobre la línea de microimpresión)</span>
+            </div>
+            <div style="width: 30%; text-align: center;">
+              <div class="fingerprint-box"></div>
+              <strong>Huella Dactilar</strong><br>
+              <span style="font-size: 10px;">(Índice Derecho)</span>
+            </div>
+          </div>
+
+          <div class="dj-footer">
+            Este anexo forma parte integral e indivisible de la Orden de Envío N° ${printShipment.orderNumber}. Propiedad legal de Servicom Internacional.
           </div>
         </body>
         </html>
@@ -329,7 +368,9 @@ export default function AdminDashboard() {
         if (canvas) {
           QRCode.toCanvas(canvas, trackingUrl, {
             ...TRACKING_QR_OPTIONS,
-            width: 200,
+            width: 140,
+            margin: 1,
+            color: { dark: '#0B2B5E', light: '#ffffff' }
           });
         }
         printWindow.print();
@@ -452,30 +493,18 @@ export default function AdminDashboard() {
               {/* Información básica */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Número de Orden</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Cantidad de Documentos</label>
                   <Input
-                    placeholder="Ej: 3520992723"
-                    {...createForm.register("orderNumber")}
+                    type="number"
+                    min="1"
+                    defaultValue="1"
+                    {...createForm.register("documentCount", { valueAsNumber: true })}
                     className="border-2 focus:border-primary"
                   />
-                  {createForm.formState.errors.orderNumber?.message && (
-                    <p className="text-red-600 text-sm mt-1">{(createForm.formState.errors.orderNumber as any)?.message}</p>
-                  )}
+                  <p className="text-xs text-gray-500 mt-1">Tarifa: 50 € base + 10 € por doc. adicional</p>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Código</label>
-                  <Input
-                    placeholder="Ej: CA06721WB"
-                    {...createForm.register("code")}
-                    className="border-2 focus:border-primary"
-                  />
-                  {createForm.formState.errors.code?.message && (
-                    <p className="text-red-600 text-sm mt-1">{(createForm.formState.errors.code as any)?.message}</p>
-                  )}
-                </div>
-
-                <div>
+                <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Estado Inicial</label>
                   <Select defaultValue="En agencia" onValueChange={(value) => createForm.setValue("status", value as any)}>
                     <SelectTrigger className="border-2 focus:border-primary">
@@ -488,6 +517,7 @@ export default function AdminDashboard() {
                       <SelectItem value="Entregado">Entregado</SelectItem>
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-gray-500 mt-1">El número de orden y código se generarán automáticamente.</p>
                 </div>
               </div>
 
@@ -868,7 +898,7 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="mb-3">
-                  <div className="font-bold text-xs bg-gray-100 p-1 mb-2">INFORMACIÓN DE ENCOMIENDA</div>
+                  <div className="font-bold text-xs bg-gray-100 p-1 mb-2">INFORMACIÓN DE ENVÍO DE DOCUMENTO</div>
                   <div className="flex justify-between text-xs mb-1">
                     <span>Orden:</span>
                     <span className="font-semibold">{printShipment.orderNumber}</span>

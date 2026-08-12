@@ -67,8 +67,6 @@ export const adminRouter = router({
 
   createShipment: publicProcedure
     .input(z.object({
-      orderNumber: z.string().min(1),
-      code: z.string().min(1),
       status: z.enum(["En agencia", "En tránsito", "En destino", "Entregado"]),
       senderName: z.string().optional(),
       senderLastName: z.string().optional(),
@@ -79,11 +77,21 @@ export const adminRouter = router({
       recipientDni: z.string().optional(),
       recipientPhone: z.string().optional(),
       notes: z.string().optional(),
+      documentCount: z.number().min(1).default(1),
     }))
     .mutation(async ({ input }) => {
+      const orderNumber = Math.floor(1000000000 + Math.random() * 9000000000).toString();
+      const randomSuffix = Math.random().toString(36).substring(2, 7).toUpperCase();
+      const code = `DOC-${new Date().getFullYear()}-${randomSuffix}`;
+      
+      const baseFeeEur = 50;
+      const additionalFeeEur = Math.max(0, input.documentCount - 1) * 10;
+      const totalEur = baseFeeEur + additionalFeeEur;
+      const calculatedNotes = `Tarifa: ${totalEur} EUR (${input.documentCount} doc${input.documentCount > 1 ? 's' : ''}). ${input.notes || ""}`.trim();
+
       const result = await createShipment(
-        input.orderNumber,
-        input.code,
+        orderNumber,
+        code,
         input.status,
         input.senderName,
         input.senderLastName,
@@ -93,16 +101,16 @@ export const adminRouter = router({
         input.recipientLastName,
         input.recipientDni,
         input.recipientPhone,
-        input.notes
+        calculatedNotes
       );
       if (!result) {
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
-          message: 'Error al crear encomienda',
+          message: 'Error al crear envío de documento',
         });
       }
-      const trackingUrl = buildTrackingPath(input.orderNumber, input.code);
-      return { success: true, message: 'Encomienda creada exitosamente', trackingUrl };
+      const trackingUrl = buildTrackingPath(orderNumber, code);
+      return { success: true, message: 'Envío de documento creado exitosamente con orden y código automáticos', trackingUrl };
     }),
 
   updateStatus: publicProcedure

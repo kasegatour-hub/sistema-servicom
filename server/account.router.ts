@@ -146,8 +146,6 @@ export const accountRouter = router({
 
   createMyShipment: publicProcedure
     .input(z.object({
-      orderNumber: z.string().min(1, "Número de orden requerido"),
-      code: z.string().min(1, "Código requerido"),
       senderName: z.string().optional(),
       senderLastName: z.string().optional(),
       senderDni: z.string().optional(),
@@ -157,15 +155,27 @@ export const accountRouter = router({
       recipientDni: z.string().optional(),
       recipientPhone: z.string().optional(),
       notes: z.string().optional(),
+      documentCount: z.number().min(1).default(1),
     }))
     .mutation(async ({ input, ctx }) => {
       const session = getAccountSession(ctx.req);
       if (!session) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Inicia sesión para registrar un envío." });
       }
+      // Generación automática estricta: Orden de 10 dígitos y código de envío alfanumérico único
+      const orderNumber = Math.floor(1000000000 + Math.random() * 9000000000).toString();
+      const randomSuffix = Math.random().toString(36).substring(2, 7).toUpperCase();
+      const code = `DOC-${new Date().getFullYear()}-${randomSuffix}`;
+      
+      // Cálculo automático de tarifas documentales: 50 € base + 10 € por cada documento adicional
+      const baseFeeEur = 50;
+      const additionalFeeEur = Math.max(0, input.documentCount - 1) * 10;
+      const totalEur = baseFeeEur + additionalFeeEur;
+      const calculatedNotes = `Tarifa: ${totalEur} EUR (${input.documentCount} doc${input.documentCount > 1 ? 's' : ''}). ${input.notes || ""}`.trim();
+
       const result = await createShipment(
-        input.orderNumber,
-        input.code,
+        orderNumber,
+        code,
         "En agencia",
         input.senderName,
         input.senderLastName,
@@ -175,13 +185,13 @@ export const accountRouter = router({
         input.recipientLastName,
         input.recipientDni,
         input.recipientPhone,
-        input.notes,
+        calculatedNotes,
         session.accountId
       );
       if (!result) {
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No se pudo registrar el envío." });
       }
-      return { success: true, message: "Envío registrado correctamente." };
+      return { success: true, message: "Envío registrado correctamente con orden y código automáticos.", orderNumber, code };
     }),
 
   changePassword: publicProcedure

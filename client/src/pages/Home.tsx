@@ -158,8 +158,8 @@ export default function Home() {
               </button>
             </div>
           </div>
-            <p className="text-primary-foreground opacity-90 text-sm md:text-base">
-            Rastreo de encomiendas en tiempo real
+            <p className="text-primary-foreground opacity-90 text-sm md:text-base font-bold">
+            Rastreo de envíos de documentos en tiempo real
             </p>
             <p className="text-primary-foreground/80 text-xs md:text-sm mt-1">
               Servicom Internacional en colaboración con Kasega Tour EIRL · RUC 20615004708
@@ -171,7 +171,7 @@ export default function Home() {
         {/* Search Form */}
         <Card className="p-4 md:p-6 mb-6 md:mb-8 shadow-lg border-0">
           <h2 className="text-lg md:text-xl font-semibold mb-4 md:mb-6 text-gray-900">
-            Rastrear tu encomienda
+            Rastrear tu envío de documento
           </h2>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -180,6 +180,7 @@ export default function Home() {
                 <label className="block text-xs md:text-sm font-medium text-gray-700 mb-2">
                   Número de Orden
                 </label>
+                <p className="text-[10px] text-gray-500 mb-1 italic">El número de orden tiene 10 dígitos</p>
                 <Input
                   placeholder="Ej: 3520992723"
                   {...register("orderNumber")}
@@ -392,10 +393,10 @@ export default function Home() {
             <div>
               <h3 className="text-lg font-bold mb-2">Servicom Internacional</h3>
               <p className="text-gray-400 text-sm mb-4">
-                Servicom Internacional en colaboración con Kasega Tour EIRL (RUC 20615004708), tu aliado para servicios documentarios, financieros y de encomiendas.
+                Servicom Internacional en colaboración con Kasega Tour EIRL (RUC 20615004708), tu aliado estratégico para el envío seguro de documentos a nivel internacional.
               </p>
               <p className="text-gray-400 text-sm">
-                Soluciones confiables, ágiles y pensadas para ti.
+                Tu mejor opción en el mundo.
               </p>
             </div>
             <div>
@@ -404,7 +405,7 @@ export default function Home() {
                 <p><strong>Email:</strong> peruservicom@gmail.com</p>
                 <p><strong>Celular / WhatsApp:</strong> +51 970 188 447 / +51 908 722 617</p>
                 <p><strong>Teléfono fijo:</strong> 01 390 7269</p>
-                <p><strong>Servicio:</strong> Rastreo de encomiendas</p>
+                <p><strong>Servicio:</strong> Envío de documentos internacionales</p>
               </div>
             </div>
           </div>

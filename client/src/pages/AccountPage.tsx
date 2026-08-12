@@ -37,8 +37,7 @@ export default function AccountPage() {
 
   // Registro de encomienda por usuario
   const [showNewShipment, setShowNewShipment] = useState(false);
-  const [orderNumber, setOrderNumber] = useState("");
-  const [shipmentCode, setShipmentCode] = useState("");
+  const [documentCount, setDocumentCount] = useState(1);
   const [senderName, setSenderName] = useState("");
   const [senderLastName, setSenderLastName] = useState("");
   const [senderDni, setSenderDni] = useState("");
@@ -110,8 +109,7 @@ export default function AccountPage() {
     onSuccess: () => {
       toast.success("Encomienda registrada exitosamente.");
       setShowNewShipment(false);
-      setOrderNumber("");
-      setShipmentCode("");
+      setDocumentCount(1);
       setNotes("");
       refetchShipments();
     },
@@ -240,8 +238,7 @@ export default function AccountPage() {
               <form onSubmit={(e) => {
                 e.preventDefault();
                 createShipmentMutation.mutate({
-                  orderNumber,
-                  code: shipmentCode,
+                  documentCount,
                   senderName: profileName || senderName,
                   senderLastName: profileLastName || senderLastName,
                   senderDni: profileDni || senderDni,
@@ -256,12 +253,12 @@ export default function AccountPage() {
                 <h3 className="font-bold text-[#0B2B5E]">Detalles de la Encomienda</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label>Número de Orden</Label>
-                    <Input value={orderNumber} onChange={e => setOrderNumber(e.target.value)} placeholder="Ej: 3520992723" required className="mt-1 bg-white" />
+                    <Label>Cantidad de Documentos</Label>
+                    <Input type="number" min="1" value={documentCount} onChange={e => setDocumentCount(parseInt(e.target.value) || 1)} required className="mt-1 bg-white" />
+                    <p className="text-[10px] text-gray-500 mt-1">Tarifa: 50 € base + 10 € por cada doc. adicional</p>
                   </div>
-                  <div>
-                    <Label>Código de Envío</Label>
-                    <Input value={shipmentCode} onChange={e => setShipmentCode(e.target.value)} placeholder="Ej: CA06721WB" required className="mt-1 bg-white" />
+                  <div className="flex flex-col justify-center">
+                    <p className="text-xs text-gray-600 italic">El número de orden y código se generarán automáticamente al guardar.</p>
                   </div>
                   <div>
                     <Label>Destinatario - Nombres</Label>

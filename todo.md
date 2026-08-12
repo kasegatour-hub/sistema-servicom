@@ -6983,3 +6983,10 @@
 - [x] Verificar que el inicio de sesión tras el registro conserve la sesión y no deje al usuario en el formulario de creación
 - [x] Actualizar o documentar el dominio visible para que use la identidad Servicom Internacional en lugar del prefijo técnico anterior — el título y la marca están actualizados; el hostname se cambia desde Management UI
 - [x] Validar en navegador y guardar checkpoint de la corrección
+
+## Nuevas solicitudes — Envío de documentos, Declaración jurada, Ticket recortable y Tarifas
+- [x] Actualizar el título a «INFORMACIÓN DE ENVÍO DE DOCUMENTO» (en lugar de encomienda)
+- [x] Incluir la Declaración Jurada de Contenido y Exención de Responsabilidad Legal como segunda página del comprobante impreso
+- [x] Incorporar el ticket recortable inferior para adjuntar recortando el folder manila para entrega en Torino
+- [x] Generar automáticamente el número de orden y código de envío tanto para usuarios como para administradores (sin permitir edición manual)
+- [x] Calcular automáticamente las tarifas: 50 € por documentos apostillados/traducidos/legalizados y 10 € por cada documento adicional de la misma naturaleza
