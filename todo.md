@@ -17,3 +17,8 @@
 - [x] Embebido del logo como Data URL con URL absoluta de respaldo
 - [x] Esperar la carga de imágenes antes de imprimir
 - [x] Añadir pruebas unitarias para URL de recibo y resolución del logo
+
+## Dominio Personalizado
+- [x] Confirmar dominio: servicominternacional.pe
+- [ ] Vincular el dominio desde Settings → Domains en la interfaz de gestión
+- [ ] Configurar los registros DNS (CNAME/A) en el registrador de dominios
