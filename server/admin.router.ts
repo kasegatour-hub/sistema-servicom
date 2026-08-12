@@ -98,34 +98,47 @@ export const adminRouter = router({
       recipientDni: optionalDniSchema,
       recipientPhone: z.string().optional(),
       notes: z.string().optional(),
-      documentCount: z.number().min(1).default(1),
+      shipmentType: z.enum(["documento", "encomienda"]).default("documento"),
       docType: z.enum(["simple", "apostillado"]).default("apostillado"),
       sheetCount: z.number().min(1).default(1),
-      paymentCondition: z.string().optional(),
+      weightKg: z.number().min(0.1).default(1),
+      manualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
+      paymentStatus: z.enum(["Pagado", "Falta cancelar"]).default("Falta cancelar"),
+      route: z.string().default("Lima - Torino"),
+      originAddress: z.string().optional(),
+      destinationAddress: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
       const orderNumber = Math.floor(1000000000 + Math.random() * 9000000000).toString();
       const randomSuffix = Math.random().toString(36).substring(2, 7).toUpperCase();
-      const code = `DOC-${new Date().getFullYear()}-${randomSuffix}`;
+      const prefix = input.shipmentType === "encomienda" ? "ENC" : "DOC";
+      const code = `${prefix}-${new Date().getFullYear()}-${randomSuffix}`;
       
+      const shipmentType = input.shipmentType || "documento";
       const docType = input.docType || 'apostillado';
       const sheetCount = input.sheetCount || 1;
-
-      if (docType === 'simple' && sheetCount > 8) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Límite excedido para documentos simples (máximo 8 hojas). Debe crear otra encomienda." });
-      }
-      if (docType === 'apostillado' && sheetCount > 10) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Límite excedido para documentos apostillados (máximo 10 hojas). Debe crear otra encomienda." });
-      }
+      const weightKg = Number(input.weightKg || 1);
+      const manualPrice = input.manualPriceEur !== undefined && input.manualPriceEur !== null && String(input.manualPriceEur).trim() !== "" ? Number(input.manualPriceEur) : null;
 
       let totalEur = 50;
       let tariffDesc = '';
-      if (docType === 'simple') {
-        totalEur = sheetCount <= 4 ? 45 : 45 + (sheetCount - 4) * 2;
-        tariffDesc = `Documento Simple (${sheetCount} hoja${sheetCount > 1 ? 's' : ''}): ${totalEur} EUR`;
+
+      if (manualPrice !== null && !isNaN(manualPrice)) {
+        totalEur = manualPrice;
+        tariffDesc = shipmentType === "encomienda" 
+          ? `Encomienda (${weightKg} kg, Tarifa Manual): ${totalEur.toFixed(2)} EUR`
+          : `Documento (${docType}, ${sheetCount} hojas, Tarifa Manual): ${totalEur.toFixed(2)} EUR`;
+      } else if (shipmentType === "encomienda") {
+        totalEur = weightKg * 13.5;
+        tariffDesc = `Encomienda por peso (${weightKg} kg @ 13.5 EUR/kg): ${totalEur.toFixed(2)} EUR`;
       } else {
-        totalEur = sheetCount <= 5 ? 50 : 50 + 10;
-        tariffDesc = `Documento Apostillado (${sheetCount} hoja${sheetCount > 1 ? 's' : ''}): ${totalEur} EUR`;
+        if (docType === 'simple') {
+          totalEur = sheetCount <= 4 ? 45 : 45 + (sheetCount - 4) * 2;
+          tariffDesc = `Documento Simple (${sheetCount} hoja${sheetCount > 1 ? 's' : ''}): ${totalEur} EUR`;
+        } else {
+          totalEur = sheetCount <= 5 ? 50 : 50 + 10;
+          tariffDesc = `Documento Apostillado (${sheetCount} hoja${sheetCount > 1 ? 's' : ''}): ${totalEur} EUR`;
+        }
       }
       const calculatedNotes = `Tarifa: ${tariffDesc}. ${input.notes || ""}`.trim();
 
@@ -143,7 +156,13 @@ export const adminRouter = router({
         input.recipientPhone,
         calculatedNotes,
         null,
-        input.paymentCondition
+        shipmentType,
+        weightKg,
+        manualPrice,
+        input.paymentStatus,
+        input.route,
+        input.originAddress,
+        input.destinationAddress
       );
       if (!result) {
         throw new TRPCError({
@@ -169,7 +188,9 @@ export const adminRouter = router({
       recipientDni: optionalDniSchema,
       recipientPhone: z.string().optional(),
       notes: z.string().optional(),
-      paymentCondition: z.string().optional(),
+      shipmentType: z.enum(["documento", "encomienda"]).optional(),
+      weightKg: z.number().optional(),
+      manualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
       paymentStatus: z.enum(["Pagado", "Falta cancelar"]).optional(),
       route: z.string().optional(),
       originAddress: z.string().optional(),
@@ -189,7 +210,9 @@ export const adminRouter = router({
         input.recipientDni,
         input.recipientPhone,
         input.notes,
-        input.paymentCondition,
+        input.shipmentType,
+        input.weightKg,
+        input.manualPriceEur,
         input.paymentStatus,
         input.route,
         input.originAddress,

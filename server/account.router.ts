@@ -33,7 +33,6 @@ const emailSchema = z.string().email("Correo electrónico inválido.");
 export const passwordResetChannelSchema = z.literal("email");
 
 export const CLIENT_PAYMENT_DEFAULTS = {
-  condition: "Pagará en ITALIA (Torino)",
   status: "Falta cancelar",
 } as const;
 
@@ -73,8 +72,13 @@ export function buildClientShipmentPersistenceArgs(
     input.recipientPhone,
     calculatedNotes,
     accountId,
-    CLIENT_PAYMENT_DEFAULTS.condition,
+    "documento",
+    1,
+    null,
     CLIENT_PAYMENT_DEFAULTS.status,
+    "Lima - Torino",
+    "",
+    "",
   ] as const;
 }
 

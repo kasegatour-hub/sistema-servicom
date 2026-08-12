@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, longtext } from "drizzle-orm/mysql-core";
+import { mysqlTable, mysqlEnum, int, varchar, text, timestamp, longtext, decimal } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -90,8 +90,10 @@ export const shipments = mysqlTable("shipments", {
   recipientDni: varchar("recipientDni", { length: 20 }),
   recipientPhone: varchar("recipientPhone", { length: 20 }),
   
-  // Payment condition, route and Notes
-  paymentCondition: varchar("paymentCondition", { length: 100 }).default("Pagará en Italia (Torino)"),
+  // Tipo de envío, peso, tarifa y notas
+  shipmentType: mysqlEnum("shipmentType", ["documento", "encomienda"]).default("documento").notNull(),
+  weightKg: decimal("weightKg", { precision: 10, scale: 2 }).default("1.00"),
+  manualPriceEur: decimal("manualPriceEur", { precision: 10, scale: 2 }),
   paymentStatus: mysqlEnum("paymentStatus", ["Pagado", "Falta cancelar"]).default("Falta cancelar").notNull(),
   route: varchar("route", { length: 100 }).default("Lima - Torino").notNull(),
   originAddress: text("originAddress"),

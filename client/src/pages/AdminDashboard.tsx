@@ -325,12 +325,10 @@ export default function AdminDashboard() {
       const trackingUrl = buildTrackingUrl(printShipment.orderNumber, printShipment.code);
       const brandLogo = new URL('/manus-storage/servicom_logo_final_e7ce35aa.png', window.location.origin).href;
       const today = new Date().toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' });
-      const paymentUi = getPaymentStatusUi(printShipment.paymentStatus, printShipment.paymentCondition);
+      const paymentUi = getPaymentStatusUi(printShipment.paymentStatus);
       const paymentIsPaid = paymentUi.isPaid;
-      const paidOptionColor = paymentIsPaid && paymentUi.paidInLima ? '#059669' : '#000000';
-      const paidOptionBackground = paymentIsPaid && paymentUi.paidInLima ? '#ecfdf5' : 'transparent';
-      const pendingOptionColor = paymentIsPaid ? '#000000' : '#e11d48';
-      const pendingOptionBackground = paymentIsPaid ? 'transparent' : '#fff1f2';
+      const paymentColor = paymentIsPaid ? '#059669' : '#e11d48';
+      const paymentBackground = paymentIsPaid ? '#ecfdf5' : '#fff1f2';
       const html = `
         <!DOCTYPE html>
         <html>
@@ -418,9 +416,9 @@ export default function AdminDashboard() {
           </div>
 
           <div class="section">
-            <div class="section-title">Condición de Pago y Descripción</div>
+            <div class="section-title">Estado de Pago y Descripción</div>
             <div style="font-size: 12px; border: 1px solid #eee; padding: 8px; background: #fafafa;">
-              <strong>Estado de Pago:</strong> <span style="font-weight:bold"><span style="color:${paidOptionColor};background:${paidOptionBackground};padding:2px 8px;border-radius:4px">[${paymentIsPaid ? 'X' : ' '}] Pagado</span>&nbsp;&nbsp;&nbsp;<span style="color:${pendingOptionColor};background:${pendingOptionBackground};padding:2px 8px;border-radius:4px">[${!paymentIsPaid ? 'X' : ' '}] No cancelado</span></span><br><br>
+              <strong>Estado de Pago:</strong> <span style="color:${paymentColor};background:${paymentBackground};padding:2px 8px;border-radius:4px;font-weight:bold">[${paymentIsPaid ? 'X' : ' '}] Pagado &nbsp;&nbsp;&nbsp; [${!paymentIsPaid ? 'X' : ' '}] No cancelado</span><br><br>
               ${printShipment.notes || 'Documentación Lícita'}
             </div>
           </div>
@@ -799,16 +797,61 @@ export default function AdminDashboard() {
                       placeholder="908722617"
                     />
                   </div>
-                  <div className="md:col-span-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Condición de Pago</label>
-                    <select
-                      {...createForm.register("paymentCondition")}
-                      defaultValue="Pagado en Lima (Jr. de la Unión 518)"
-                      className="w-full p-2.5 bg-white border-2 border-slate-200 rounded-md text-sm font-medium focus:border-primary"
-                    >
-                      <option value="Pagado en Lima (Jr. de la Unión 518)">Pagado en Lima (Jr. de la Unión 518)</option>
-                      <option value="Pagará en ITALIA (Torino)">Pagará en ITALIA (Torino)</option>
-                    </select>
+                  <div className="md:col-span-4 grid grid-cols-1 md:grid-cols-3 gap-4 border-t pt-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Envío</label>
+                      <select
+                        {...createForm.register("shipmentType")}
+                        className="w-full p-2.5 bg-white border-2 border-slate-200 rounded-md text-sm font-medium focus:border-primary"
+                      >
+                        <option value="documento">Documento (Tarifa por hojas)</option>
+                        <option value="encomienda">Encomienda (13.5 EUR / kg)</option>
+                      </select>
+                    </div>
+                    {createForm.watch("shipmentType") === "encomienda" ? (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Peso (kg)</label>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          min="0.1"
+                          {...createForm.register("weightKg", { valueAsNumber: true })}
+                          className="border-2 focus:border-primary"
+                        />
+                      </div>
+                    ) : (
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Documento</label>
+                          <select
+                            {...createForm.register("docType")}
+                            className="w-full p-2.5 bg-white border-2 border-slate-200 rounded-md text-sm font-medium focus:border-primary"
+                          >
+                            <option value="apostillado">Apostillado (50€ base)</option>
+                            <option value="simple">Simple (45€ base)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Número de Hojas</label>
+                          <Input
+                            type="number"
+                            min="1"
+                            {...createForm.register("sheetCount", { valueAsNumber: true })}
+                            className="border-2 focus:border-primary"
+                          />
+                        </div>
+                      </>
+                    )}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Precio Manual en EUR (Opcional)</label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="Ej. 75.00 (Oferta/Libre)"
+                        {...createForm.register("manualPriceEur")}
+                        className="border-2 focus:border-primary"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1010,8 +1053,8 @@ export default function AdminDashboard() {
                           }`}>
                             {shipment.status}
                           </span>
-                          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${getPaymentStatusUi(shipment.paymentStatus, shipment.paymentCondition).badgeClass}`}>
-                            {getPaymentStatusUi(shipment.paymentStatus, shipment.paymentCondition).label}
+                          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${getPaymentStatusUi(shipment.paymentStatus).badgeClass}`}>
+                            {getPaymentStatusUi(shipment.paymentStatus).label}
                           </span>
                         </div>
                       </TableCell>

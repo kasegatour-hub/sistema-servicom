@@ -165,7 +165,7 @@ export default function AccountPage() {
 
   // Si ya inició sesión, mostrar su panel personal, datos de perfil y envíos
   if (me) {
-    const receiptPaymentUi = receiptShipment ? getPaymentStatusUi(receiptShipment.paymentStatus, receiptShipment.paymentCondition) : null;
+    const receiptPaymentUi = receiptShipment ? getPaymentStatusUi(receiptShipment.paymentStatus) : null;
 
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#eef6fb] to-white pb-12">
@@ -454,8 +454,8 @@ export default function AccountPage() {
                         <span className={`rounded px-2 py-0.5 text-xs font-semibold ${shipment.status === 'Entregado' ? 'bg-blue-600 text-white' : shipment.status === 'Por entregar en agencia' ? 'bg-sky-100 text-sky-800' : 'bg-orange-100 text-[#F28C00]'}`}>
                           {shipment.status}
                         </span>
-                        <span className={`rounded px-2 py-0.5 text-xs font-semibold ${getPaymentStatusUi(shipment.paymentStatus, shipment.paymentCondition).badgeClass}`}>
-                          {getPaymentStatusUi(shipment.paymentStatus, shipment.paymentCondition).label}
+                        <span className={`rounded px-2 py-0.5 text-xs font-semibold ${getPaymentStatusUi(shipment.paymentStatus).badgeClass}`}>
+                          {getPaymentStatusUi(shipment.paymentStatus).label}
                         </span>
                       </div>
                       <p className="text-sm text-slate-600 mt-1">

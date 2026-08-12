@@ -117,3 +117,9 @@
 - [x] Ajustar la visualización de pago: 'Pagado' en negro sin color y 'No cancelado' en rojo; verde exclusivamente para 'Pagado en Lima'
 - [x] Restaurar el selector de país con búsqueda en el formulario de creación de cuenta del cliente
 - [x] Retirar o simplificar el flujo de SMS en recuperación de contraseña manteniendo operativo el envío por correo
+
+## Requerimientos de Encomiendas, Peso y Tarifas Manuales
+- [x] Incorporar la categoría de tipo de envío (Documentos vs Encomiendas / Paquetería) exclusivo para operadores y administradores
+- [x] Aplicar tarifa base de 13,5 € por kilogramo para envíos de encomiendas
+- [x] Permitir la introducción manual de precios y tarifas sin restricciones tanto en documentos como en encomiendas
+- [x] Eliminar la sección independiente de 'Condición de Pago' de las interfaces y recibos, conservando únicamente el 'Estado de Pago'

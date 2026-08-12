@@ -4,7 +4,6 @@ import { CLIENT_PAYMENT_DEFAULTS, clientShipmentInputSchema } from "./account.ro
 describe("client shipment payment policy", () => {
   it("forces pending payment defaults for every client-created shipment", () => {
     expect(CLIENT_PAYMENT_DEFAULTS).toEqual({
-      condition: "Pagará en ITALIA (Torino)",
       status: "Falta cancelar",
     });
   });
@@ -14,7 +13,7 @@ describe("client shipment payment policy", () => {
       recipientName: "María",
       recipientLastName: "López",
       recipientDni: "71234567",
-      paymentCondition: "Pagado en Lima (Jr. de la Unión 518)",
+      paymentCondition: "Pagado en Lima",
     })).toThrow(/Unrecognized key|paymentCondition/);
     expect(CLIENT_PAYMENT_DEFAULTS.status).toBe("Falta cancelar");
   });

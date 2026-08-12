@@ -16,16 +16,16 @@ describe("account.createMyShipment persistence policy", () => {
     expect(args[7]).toBe("María");
     expect(args[8]).toBe("López");
     expect(args[9]).toBe("71234567");
-    expect(args[13]).toBe("Pagará en ITALIA (Torino)");
-    expect(args[14]).toBe("Falta cancelar");
+    expect(args[13]).toBe("documento");
+    expect(args[16]).toBe("Falta cancelar");
   });
 
-  it("rejects payment selection from the client input", () => {
+  it("rejects payment condition from the client input", () => {
     expect(() => clientShipmentInputSchema.parse({
       recipientName: "María",
       recipientLastName: "López",
       recipientDni: "71234567",
-      paymentCondition: "Pagado en Lima (Jr. de la Unión 518)",
+      paymentCondition: "Pagado en Lima",
     })).toThrow(/Unrecognized key|paymentCondition/);
   });
 });
