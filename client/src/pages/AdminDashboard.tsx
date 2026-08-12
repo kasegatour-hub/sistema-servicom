@@ -718,7 +718,7 @@ export default function AdminDashboard() {
                 variant="outline"
                 size="sm"
               >
-                {sortOrder === 'asc' ? '↑ Ascendente' : '↓ Descendente'}
+                {sortOrder === 'asc' ? '↑ Antiguos (ascendente)' : '↓ Recientes (descendentes)'}
               </Button>
               <Button
                 onClick={async () => {

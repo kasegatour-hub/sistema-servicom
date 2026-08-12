@@ -28,3 +28,6 @@
 - [x] Selector de país e indicativo telefónico en formularios de registro
 - [x] Incluir condición de pago (Pagado en Lima / Pagará en Italia)
 - [x] Incluir código completo y celular de la destinataria en el ticket de Torino del recibo
+
+## Etiquetas de ordenamiento
+- [x] Cambiar Ascendente/Descendente por Recientes (descendentes) y Antiguos (ascendente) en el panel admin
