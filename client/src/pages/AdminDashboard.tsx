@@ -14,6 +14,7 @@ import { trpc } from "@/lib/trpc";
 import { Lock, LogOut, Plus, RefreshCw, Download, Printer } from "lucide-react";
 import QRCode from "qrcode";
 import { buildTrackingUrl, TRACKING_QR_OPTIONS } from "@/lib/tracking";
+import { PhoneInput } from "@/components/PhoneInput";
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido"),
@@ -32,6 +33,9 @@ const createShipmentSchema = z.object({
   recipientPhone: z.string().optional(),
   notes: z.string().optional(),
   documentCount: z.number().min(1).default(1),
+  docType: z.enum(["simple", "apostillado"]).optional(),
+  sheetCount: z.number().optional(),
+  paymentCondition: z.string().optional(),
 });
 
 const updateStatusSchema = z.object({
@@ -47,6 +51,7 @@ const updateStatusSchema = z.object({
   recipientDni: z.string().optional(),
   recipientPhone: z.string().optional(),
   notes: z.string().optional(),
+  paymentCondition: z.string().optional(),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
@@ -593,10 +598,10 @@ export default function AdminDashboard() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Teléfono</label>
-                    <Input
-                      placeholder="Teléfono"
-                      {...createForm.register("senderPhone")}
-                      className="border-2 focus:border-primary"
+                    <PhoneInput
+                      value={createForm.watch("senderPhone") || "+51 "}
+                      onChange={(val) => createForm.setValue("senderPhone", val)}
+                      placeholder="970188447"
                     />
                   </div>
                 </div>
@@ -632,11 +637,22 @@ export default function AdminDashboard() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Teléfono</label>
-                    <Input
-                      placeholder="Teléfono"
-                      {...createForm.register("recipientPhone")}
-                      className="border-2 focus:border-primary"
+                    <PhoneInput
+                      value={createForm.watch("recipientPhone") || "+51 "}
+                      onChange={(val) => createForm.setValue("recipientPhone", val)}
+                      placeholder="908722617"
                     />
+                  </div>
+                  <div className="md:col-span-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Condición de Pago</label>
+                    <select
+                      {...createForm.register("paymentCondition")}
+                      defaultValue="Pagado en Lima (Jr. de la Unión 518)"
+                      className="w-full p-2.5 bg-white border-2 border-slate-200 rounded-md text-sm font-medium focus:border-primary"
+                    >
+                      <option value="Pagado en Lima (Jr. de la Unión 518)">Pagado en Lima (Jr. de la Unión 518)</option>
+                      <option value="Pagará en ITALIA (Torino)">Pagará en ITALIA (Torino)</option>
+                    </select>
                   </div>
                 </div>
               </div>
@@ -700,12 +716,15 @@ export default function AdminDashboard() {
                 {sortOrder === 'asc' ? '↑ Ascendente' : '↓ Descendente'}
               </Button>
               <Button
-                onClick={() => refetchShipments()}
+                onClick={async () => {
+                  await refetchShipments();
+                  toast.success("Lista de encomiendas actualizada");
+                }}
                 variant="outline"
                 size="sm"
                 disabled={loadingShipments}
               >
-                <RefreshCw className="w-4 h-4 mr-2" />
+                <RefreshCw className={`w-4 h-4 mr-2 ${loadingShipments ? 'animate-spin' : ''}`} />
                 Actualizar
               </Button>
             </div>
@@ -853,6 +872,17 @@ export default function AdminDashboard() {
                     <Input placeholder="DNI" {...updateForm.register("recipientDni")} />
                     <Input placeholder="Teléfono" {...updateForm.register("recipientPhone")} />
                   </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Condición de Pago</label>
+                  <select
+                    {...updateForm.register("paymentCondition")}
+                    className="w-full p-2.5 bg-white border-2 border-slate-200 rounded-md text-sm font-medium focus:border-primary"
+                  >
+                    <option value="Pagado en Lima (Jr. de la Unión 518)">Pagado en Lima (Jr. de la Unión 518)</option>
+                    <option value="Pagará en ITALIA (Torino)">Pagará en ITALIA (Torino)</option>
+                  </select>
                 </div>
 
                 <div className="border-t pt-4">

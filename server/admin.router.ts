@@ -71,6 +71,7 @@ export const adminRouter = router({
       documentCount: z.number().min(1).default(1),
       docType: z.enum(["simple", "apostillado"]).default("apostillado"),
       sheetCount: z.number().min(1).default(1),
+      paymentCondition: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
       const orderNumber = Math.floor(1000000000 + Math.random() * 9000000000).toString();
@@ -102,7 +103,9 @@ export const adminRouter = router({
         input.recipientLastName,
         input.recipientDni,
         input.recipientPhone,
-        calculatedNotes
+        calculatedNotes,
+        null,
+        input.paymentCondition
       );
       if (!result) {
         throw new TRPCError({
@@ -128,6 +131,7 @@ export const adminRouter = router({
       recipientDni: z.string().optional(),
       recipientPhone: z.string().optional(),
       notes: z.string().optional(),
+      paymentCondition: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
       const result = await updateShipmentStatus(
@@ -142,7 +146,8 @@ export const adminRouter = router({
         input.recipientLastName,
         input.recipientDni,
         input.recipientPhone,
-        input.notes
+        input.notes,
+        input.paymentCondition
       );
       if (!result) {
         throw new TRPCError({

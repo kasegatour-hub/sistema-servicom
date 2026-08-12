@@ -266,7 +266,8 @@ export async function createShipment(
   recipientDni?: string,
   recipientPhone?: string,
   notes?: string,
-  accountId?: number | null
+  accountId?: number | null,
+  paymentCondition?: string
 ) {
   const db = await getDb();
   if (!db) {
@@ -301,6 +302,7 @@ export async function createShipment(
     recipientDni,
     recipientPhone,
     notes,
+    paymentCondition: paymentCondition || "Pagado en Lima (Jr. de la Unión 518)",
   });
 
   return result;
@@ -318,7 +320,8 @@ export async function updateShipmentStatus(
   recipientLastName?: string,
   recipientDni?: string,
   recipientPhone?: string,
-  notes?: string
+  notes?: string,
+  paymentCondition?: string
 ) {
   const db = await getDb();
   if (!db) {
@@ -361,6 +364,7 @@ export async function updateShipmentStatus(
         recipientDni,
         recipientPhone,
         notes,
+        paymentCondition: paymentCondition || "Pagado en Lima (Jr. de la Unión 518)",
         updatedAt: new Date(),
       })
       .where(eq(shipments.id, id));

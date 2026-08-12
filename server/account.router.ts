@@ -159,6 +159,7 @@ export const accountRouter = router({
       documentCount: z.number().min(1).default(1),
       docType: z.enum(["simple", "apostillado"]).default("apostillado"),
       sheetCount: z.number().min(1).default(1),
+      paymentCondition: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       const session = getAccountSession(ctx.req);
@@ -170,9 +171,6 @@ export const accountRouter = router({
       const randomSuffix = Math.random().toString(36).substring(2, 7).toUpperCase();
       const code = `DOC-${new Date().getFullYear()}-${randomSuffix}`;
       
-      // Modelo de tarifas exacto:
-      // - Simple: 45 € hasta 4 hojas. Si tiene más de 4 hojas, +2 € por cada hoja adicional.
-      // - Apostillado: 50 € base hasta 5 hojas. Si tiene más de 5 hojas, +10 € adicionales.
       const docType = input.docType || 'apostillado';
       const sheetCount = input.sheetCount || 1;
       let totalEur = 50;
@@ -199,7 +197,8 @@ export const accountRouter = router({
         input.recipientDni,
         input.recipientPhone,
         calculatedNotes,
-        session.accountId
+        session.accountId,
+        input.paymentCondition
       );
       if (!result) {
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No se pudo registrar el envío." });

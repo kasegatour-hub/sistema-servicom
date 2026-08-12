@@ -20,5 +20,11 @@
 
 ## Dominio Personalizado
 - [x] Confirmar dominio: servicominternacional.pe
-- [ ] Vincular el dominio desde Settings → Domains en la interfaz de gestión (dominio confirmado: servicominternacional.pe)
-- [ ] Configurar los registros DNS (CNAME/A) en el registrador de dominios
+- [x] Vincular el dominio desde Settings → Domains en la interfaz de gestión (dominio confirmado: servicominternacional.pe)
+- [x] Configurar los registros DNS (CNAME/A) en el registrador de dominios
+
+## Nuevos Requerimientos
+- [ ] Corregir el botón Actualizar en el panel de administración
+- [ ] Selector de país e indicativo telefónico en formularios de registro
+- [ ] Incluir condición de pago (Pagado en Lima / Pagará en Italia)
+- [ ] Incluir código completo y celular de la destinataria en el ticket de Torino del recibo

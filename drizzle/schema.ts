@@ -89,7 +89,8 @@ export const shipments = mysqlTable("shipments", {
   recipientDni: varchar("recipientDni", { length: 20 }),
   recipientPhone: varchar("recipientPhone", { length: 20 }),
   
-  // Notes
+  // Payment condition and Notes
+  paymentCondition: varchar("paymentCondition", { length: 100 }).default("Pagado en Lima (Jr. de la Unión 518)"),
   notes: text("notes"),
   
   createdAt: timestamp("createdAt").defaultNow().notNull(),

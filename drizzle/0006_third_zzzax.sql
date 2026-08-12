@@ -1,0 +1,1 @@
+ALTER TABLE `shipments` ADD `paymentCondition` varchar(100) DEFAULT 'Pagado en Lima (Jr. de la Unión 518)';

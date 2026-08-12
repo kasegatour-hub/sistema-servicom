@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { buildTrackingUrl, TRACKING_QR_OPTIONS, normalizeTrackingValue } from "@/lib/tracking";
 import { printUserShipmentReceipt } from "@/lib/userReceipt";
+import { PhoneInput } from "@/components/PhoneInput";
 
 const brandLogo = "/manus-storage/servicom_logo_final_e7ce35aa.png";
 
@@ -49,12 +50,13 @@ export default function AccountPage() {
   const [senderName, setSenderName] = useState("");
   const [senderLastName, setSenderLastName] = useState("");
   const [senderDni, setSenderDni] = useState("");
-  const [senderPhone, setSenderPhone] = useState("");
+  const [senderPhone, setSenderPhone] = useState("+51 ");
   const [recipientName, setRecipientName] = useState("");
   const [recipientLastName, setRecipientLastName] = useState("");
   const [recipientDni, setRecipientDni] = useState("");
-  const [recipientPhone, setRecipientPhone] = useState("");
+  const [recipientPhone, setRecipientPhone] = useState("+51 ");
   const [notes, setNotes] = useState("");
+  const [paymentCondition, setPaymentCondition] = useState("Pagado en Lima (Jr. de la Unión 518)");
 
   const utils = trpc.useUtils();
   const { data: me, isLoading: meLoading } = trpc.account.me.useQuery();
@@ -312,6 +314,7 @@ export default function AccountPage() {
                   recipientDni,
                   recipientPhone,
                   notes,
+                  paymentCondition,
                 });
               }} className="bg-blue-50/50 p-4 rounded-xl mb-6 space-y-4 border border-blue-100">
                         <h3 className="font-bold text-[#0B2B5E]">Detalles del envío de documentos</h3>
@@ -354,7 +357,20 @@ export default function AccountPage() {
                   </div>
                   <div>
                     <Label>Destinatario - Teléfono</Label>
-                    <Input value={recipientPhone} onChange={e => setRecipientPhone(e.target.value)} placeholder="Ej: +51 987654321" required className="mt-1 bg-white" />
+                    <div className="mt-1">
+                      <PhoneInput value={recipientPhone} onChange={setRecipientPhone} placeholder="987654321" required />
+                    </div>
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label>Condición de Pago</Label>
+                    <select
+                      value={paymentCondition}
+                      onChange={e => setPaymentCondition(e.target.value)}
+                      className="w-full mt-1 p-2 bg-white border border-slate-300 rounded-md text-sm font-medium"
+                    >
+                      <option value="Pagado en Lima (Jr. de la Unión 518)">Pagado en Lima (Jr. de la Unión 518)</option>
+                      <option value="Pagará en ITALIA (Torino)">Pagará en ITALIA (Torino)</option>
+                    </select>
                   </div>
                   <div className="md:col-span-2">
                     <Label>Notas / Contenido</Label>
