@@ -146,3 +146,8 @@
 ## Integridad de paymentStatus en rastreo público
 - [x] Confirmar que getShipmentByOrderAndCode devuelve paymentStatus real desde la tabla shipments
 - [x] Añadir una prueba de integración o consulta del helper que compruebe paymentStatus sin depender únicamente de un mock del router
+
+## Actualización de contactos y referencias de sedes
+- [x] Actualizar la sede de Lima con teléfonos +51 970188 447, +51 908722617, fijo 01 3907269 y referencia 'Galería en el sótano - Frente a Saga Falabella'
+- [x] Actualizar la sede de Torino con el teléfono específico +39 389 766 3723
+- [x] Actualizar las pruebas de componentes y de datos de ubicaciones para verificar los nuevos números y la referencia exacta de Lima

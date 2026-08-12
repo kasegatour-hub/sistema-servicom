@@ -17,3 +17,7 @@ La revisión final confirma que la tarjeta de Torino identifica correctamente �
 ## Estado de pago y nomenclatura de cliente
 
 La ruta pública conserva el formulario de rastreo y la ruta `/cuenta` muestra correctamente el acceso de cliente con la marca Servicom Internacional. La tarjeta de resultado del rastreo incorpora el bloque “Estado de Pago”; las pruebas de componente simulan una búsqueda con `paymentStatus: "Pagado"` y verifican que el cliente ve “Pagado”. La cuenta autenticada usa el botón “Registrar Nuevo Documento”.
+
+## Actualización de contactos Lima y Torino
+
+La revisión de escritorio confirmó que la tarjeta de Lima muestra la referencia de la galería en el sótano frente a Saga Falabella, el fijo 01 390 7269 y ambos números de WhatsApp. La tarjeta de Torino muestra el teléfono +39 389 766 3723. En móvil, ambas tarjetas se apilan correctamente y los números permanecen legibles; los botones de mapas conservan ancho completo y son accesibles.

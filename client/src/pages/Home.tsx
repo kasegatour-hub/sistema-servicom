@@ -25,9 +25,13 @@ export const LOCATION_DETAILS = {
   lima: {
     label: "Jr. de la Unión 518",
     address: "Jr. de la Unión Nro. 518 Int. S101, Cercado de Lima, Lima-Lima-Lima",
-    reference: "Referencia: Jr. de la Unión 518",
+    reference: "Referencia: es una galería y está en el sótano - Frente a Saga Falabella",
     hours: "Lunes a sábado, de 10:00 a. m. a 8:30 p. m.",
     phone: "01 390 7269",
+    phoneHref: "tel:+51013907269",
+    whatsapp: "+51 970 188 447 / +51 908 722 617",
+    whatsappHref: "https://wa.me/51970188447",
+    whatsappSecondHref: "https://wa.me/51908722617",
     mapsUrl: "https://share.google/F5wrStU2oICvKgIWx",
   },
   torino: {
@@ -35,8 +39,8 @@ export const LOCATION_DETAILS = {
     address: "Corso Peschiera, 162A, Zona Piazza Sabotino, Torino, Italia",
     reference: "Referencia: Corso Peschiera",
     hours: "Lunes a sábado, de 9:00 a. m. a 8:30 p. m.",
-    contact: "WhatsApp general: +51 970 188 447",
-    contactHref: "https://wa.me/51970188447",
+    contact: "+39 389 766 3723",
+    contactHref: "tel:+393897663723",
     mapsUrl: "https://www.google.com/maps/search/?api=1&query=Corso+Peschiera+162A%2C+Zona+Piazza+Sabotino%2C+Torino%2C+Italia",
   },
 } as const;
@@ -89,7 +93,7 @@ export function LocationsSection() {
               <p className="flex gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#F28C00]" aria-hidden="true" /><span>{LOCATION_DETAILS.lima.address}</span></p>
               <p className="flex gap-2"><span className="mt-0.5 h-4 w-4 shrink-0 text-center text-xs font-bold text-[#F28C00]" aria-hidden="true">R</span><span>{LOCATION_DETAILS.lima.reference}</span></p>
               <p className="flex gap-2"><Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-[#F28C00]" aria-hidden="true" /><span>{LOCATION_DETAILS.lima.hours}</span></p>
-              <p className="flex gap-2"><Phone className="mt-0.5 h-4 w-4 shrink-0 text-[#F28C00]" aria-hidden="true" /><a className="font-semibold text-[#0B2B5E] hover:underline" href="tel:+51013907269">{LOCATION_DETAILS.lima.phone}</a></p>
+              <p className="flex gap-2"><Phone className="mt-0.5 h-4 w-4 shrink-0 text-[#F28C00]" aria-hidden="true" /><span className="space-y-1"><a className="block font-semibold text-[#0B2B5E] hover:underline" href={LOCATION_DETAILS.lima.phoneHref} aria-label={`Teléfono fijo ${LOCATION_DETAILS.lima.phone}`}>Teléfono fijo: {LOCATION_DETAILS.lima.phone}</a><span className="block"><span className="font-medium">Celular / WhatsApp: </span><a className="font-semibold text-[#0B2B5E] hover:underline" href={LOCATION_DETAILS.lima.whatsappHref} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp +51 970 188 447">+51 970 188 447</a><span> / </span><a className="font-semibold text-[#0B2B5E] hover:underline" href={LOCATION_DETAILS.lima.whatsappSecondHref} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp +51 908 722 617">+51 908 722 617</a></span></span></p>
             </div>
             <a href={LOCATION_DETAILS.lima.mapsUrl} target="_blank" rel="noopener noreferrer" className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#0B2B5E] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#123b78] focus:outline-none focus:ring-2 focus:ring-[#F28C00] focus:ring-offset-2">
               Abrir Lima en Google Maps <ExternalLink className="h-4 w-4" aria-hidden="true" />
@@ -111,7 +115,7 @@ export function LocationsSection() {
               <p className="flex gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#0B2B5E]" aria-hidden="true" /><span>{LOCATION_DETAILS.torino.address}</span></p>
               <p className="flex gap-2"><span className="mt-0.5 h-4 w-4 shrink-0 text-center text-xs font-bold text-[#0B2B5E]" aria-hidden="true">R</span><span>{LOCATION_DETAILS.torino.reference}</span></p>
               <p className="flex gap-2"><Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-[#0B2B5E]" aria-hidden="true" /><span>{LOCATION_DETAILS.torino.hours}</span></p>
-              <p className="flex gap-2"><Phone className="mt-0.5 h-4 w-4 shrink-0 text-[#0B2B5E]" aria-hidden="true" /><a className="font-semibold text-[#0B2B5E] hover:underline" href={LOCATION_DETAILS.torino.contactHref} target="_blank" rel="noopener noreferrer">{LOCATION_DETAILS.torino.contact}</a></p>
+              <p className="flex gap-2"><Phone className="mt-0.5 h-4 w-4 shrink-0 text-[#0B2B5E]" aria-hidden="true" /><a className="font-semibold text-[#0B2B5E] hover:underline" href={LOCATION_DETAILS.torino.contactHref} aria-label={`Teléfono Torino ${LOCATION_DETAILS.torino.contact}`}>{LOCATION_DETAILS.torino.contact}</a></p>
             </div>
             <a href={LOCATION_DETAILS.torino.mapsUrl} target="_blank" rel="noopener noreferrer" className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#0B2B5E] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#123b78] focus:outline-none focus:ring-2 focus:ring-[#F28C00] focus:ring-offset-2">
               Abrir Torino en Google Maps <ExternalLink className="h-4 w-4" aria-hidden="true" />
