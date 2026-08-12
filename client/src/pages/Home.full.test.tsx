@@ -3,14 +3,29 @@ import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 
+const trackedShipment = {
+  id: 1,
+  orderNumber: "3520992723",
+  code: "CA06721WB",
+  status: "Entregado",
+  paymentStatus: "Pagado",
+  events: [],
+  createdAt: new Date("2026-08-12T12:00:00Z"),
+  updatedAt: new Date("2026-08-12T12:00:00Z"),
+};
+
 vi.mock("@/lib/trpc", () => ({
   trpc: {
     shipment: {
       search: {
-        useQuery: () => ({ data: undefined, isLoading: false, error: null }),
+        useQuery: () => ({ data: trackedShipment, isLoading: false, error: null }),
       },
     },
   },
+}));
+
+vi.mock("qrcode", () => ({
+  default: { toDataURL: vi.fn().mockResolvedValue("data:image/png;base64,test") },
 }));
 
 vi.mock("@/components/QRScanner", () => ({
@@ -40,5 +55,12 @@ describe("Home public page", () => {
     expect(screen.getByRole("link", { name: "WhatsApp general: +51 970 188 447" })).toBeTruthy();
     expect(screen.getByRole("link", { name: /Abrir Lima en Google Maps/ })).toBeTruthy();
     expect(screen.getByRole("link", { name: /Abrir Torino en Google Maps/ })).toBeTruthy();
+  });
+
+  it("shows the persisted payment status after the client tracks a shipment", async () => {
+    render(<Home />);
+
+    expect(await screen.findByText("Estado de Pago")).toBeTruthy();
+    expect(screen.getByText("Pagado")).toBeTruthy();
   });
 });

@@ -12,6 +12,7 @@ import { ShipmentTimeline } from "@/components/ShipmentTimeline";
 import { QRScanner } from "@/components/QRScanner";
 import QRCode from "qrcode";
 import { buildTrackingPath, buildTrackingUrl, TRACKING_QR_OPTIONS, normalizeTrackingValue } from "@/lib/tracking";
+import { getPaymentStatusUi } from "@/lib/paymentStatus";
 
 const searchSchema = z.object({
   orderNumber: z.string().min(1, "Número de orden requerido"),
@@ -61,6 +62,7 @@ interface ShipmentData {
   notes?: string | null;
   createdAt: Date;
   updatedAt: Date;
+  paymentStatus?: string | null;
 }
 
 export function LocationsSection() {
@@ -335,7 +337,7 @@ export default function Home() {
           <div className="space-y-8">
             {/* Shipment Info Card */}
             <Card className="p-4 md:p-6 shadow-lg border-0 bg-gradient-to-r from-primary/5 to-transparent">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
                 <div>
                   <p className="text-xs md:text-sm text-gray-600 mb-1">Número de Orden</p>
                   <p className="text-base md:text-lg font-bold text-gray-900">
@@ -356,6 +358,12 @@ export default function Home() {
                       {shipmentData.status}
                     </p>
                   </div>
+                </div>
+                <div>
+                  <p className="text-xs md:text-sm text-gray-600 mb-1">Estado de Pago</p>
+                  <span className={`inline-flex rounded-md px-2.5 py-1 text-sm font-semibold ${getPaymentStatusUi(shipmentData.paymentStatus).badgeClass}`}>
+                    {getPaymentStatusUi(shipmentData.paymentStatus).label}
+                  </span>
                 </div>
               </div>
             </Card>

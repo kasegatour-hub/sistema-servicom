@@ -13,3 +13,7 @@ La ruta `/cuenta` se renderiza correctamente en escritorio y móvil con la marca
 La sección pública se visualizó correctamente en escritorio y móvil. Las tarjetas de Lima y Torino se apilan en pantallas estrechas, conservan contraste corporativo navy/naranja y muestran dirección, referencia, horario, contacto y botones accesibles para abrir Google Maps. El enlace proporcionado por el usuario para Lima se conserva exactamente; el enlace de Torino usa una búsqueda directa de Google Maps para Corso Peschiera 162A, Zona Piazza Sabotino.
 
 La revisión final confirma que la tarjeta de Torino identifica correctamente “WhatsApp general: +51 970 188 447”, sin presentarlo como teléfono local, y conserva su botón de Google Maps.
+
+## Estado de pago y nomenclatura de cliente
+
+La ruta pública conserva el formulario de rastreo y la ruta `/cuenta` muestra correctamente el acceso de cliente con la marca Servicom Internacional. La tarjeta de resultado del rastreo incorpora el bloque “Estado de Pago”; las pruebas de componente simulan una búsqueda con `paymentStatus: "Pagado"` y verifican que el cliente ve “Pagado”. La cuenta autenticada usa el botón “Registrar Nuevo Documento”.

@@ -138,3 +138,11 @@
 
 ## Prueba de página pública completa
 - [x] Añadir una prueba de componente/integración que renderice Home completo y verifique que Ubícanos aparece con ambas sedes y sus datos visibles
+
+## Nomenclatura de cliente y visibilidad de estado de pago
+- [x] Cambiar 'Registrar Nueva Encomienda' por 'Registrar Nuevo Documento' en la interfaz del cliente (AccountPage)
+- [x] Exponer el estado de pago actualizado (Pagado vs No cancelado) en el rastreo público de envíos para que el cliente o remitente vea el cambio hecho por el operador
+
+## Integridad de paymentStatus en rastreo público
+- [x] Confirmar que getShipmentByOrderAndCode devuelve paymentStatus real desde la tabla shipments
+- [x] Añadir una prueba de integración o consulta del helper que compruebe paymentStatus sin depender únicamente de un mock del router

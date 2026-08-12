@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { ArrowLeft, CheckCircle2, Download, Eye, EyeOff, KeyRound, Lock, LogOut, Mail, Package, Plus, Printer, Search, User, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -351,7 +351,7 @@ export default function AccountPage() {
                 <p className="text-xs text-slate-500">Registra envíos de documentos o consulta el estado actual de tus registros.</p>
               </div>
               <Button onClick={() => setShowNewShipment(!showNewShipment)} className="bg-[#F28C00] text-white hover:bg-[#d67900]">
-                <Plus className="mr-2 h-4 w-4" /> Registrar Nueva Encomienda
+                <Plus className="mr-2 h-4 w-4" /> Registrar Nuevo Documento
               </Button>
             </div>
 
@@ -441,7 +441,7 @@ export default function AccountPage() {
               <div className="text-center py-12 text-slate-500">
                 <Package className="h-12 w-12 mx-auto text-slate-300 mb-2" />
                 <p>No tienes envíos registrados aún.</p>
-                <p className="text-xs text-slate-400 mt-1">Usa el botón superior para registrar tu primera encomienda.</p>
+                <p className="text-xs text-slate-400 mt-1">Usa el botón superior para registrar tu primer documento.</p>
               </div>
             ) : (
               <div className="space-y-4">

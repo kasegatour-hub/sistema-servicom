@@ -16,6 +16,7 @@ const fixture = {
   orderNumber: "3520992723",
   code: "CA06721WB",
   status: "Entregado",
+  paymentStatus: "Pagado",
   events: JSON.stringify([
     { stage: "En agencia", date: "2026-07-01T08:00:00Z", description: "Recibido en agencia" },
     { stage: "En tránsito", date: "2026-07-03T14:15:00Z", description: "En camino" },
@@ -42,6 +43,7 @@ describe("shipment.search", () => {
     expect(result.orderNumber).toBe("3520992723");
     expect(result.code).toBe("CA06721WB");
     expect(result.status).toBe("Entregado");
+    expect(result.paymentStatus).toBe("Pagado");
     expect(result.events).toHaveLength(4);
   });
 
