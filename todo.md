@@ -20,5 +20,5 @@
 
 ## Dominio Personalizado
 - [x] Confirmar dominio: servicominternacional.pe
-- [ ] Vincular el dominio desde Settings → Domains en la interfaz de gestión
+- [ ] Vincular el dominio desde Settings → Domains en la interfaz de gestión (dominio confirmado: servicominternacional.pe)
 - [ ] Configurar los registros DNS (CNAME/A) en el registrador de dominios
