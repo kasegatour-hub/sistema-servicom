@@ -25,9 +25,14 @@ export const adminRouter = router({
         });
       }
       
-      const receivedPassword = input.password.trim();
-      const expectedPassword = '@m*M.mTt@~ADkHpvBbLm+5CD=3ao@DngYa+3Kea6U=qX%r9EJ8-1QFc#,hD3r4Dsis9:9^i-zZJ}pT#aQAcnm^+XMAhV9u3VdrZ3.'.trim();
-      if (receivedPassword !== expectedPassword) {
+      const receivedPassword = input.password.replace(/\r?\n/g, "").trim();
+      const expectedPassword = '@m*M.mTt@~ADkHpvBbLm+5CD=3ao@DngYa+3Kea6U=qX%r9EJ8-1QFc#,hD3r4Dsis9:9^i-zZJ}pT#aQAcnm^+XMAhV9u3VdrZ3.';
+      console.log("[Admin Login Debug]", {
+        lengthReceived: receivedPassword.length,
+        lengthExpected: expectedPassword.length,
+        matches: receivedPassword === expectedPassword,
+      });
+      if (receivedPassword !== expectedPassword && input.password !== expectedPassword) {
         throw new TRPCError({
           code: 'UNAUTHORIZED',
           message: 'Credenciales inválidas',
