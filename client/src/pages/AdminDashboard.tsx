@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -392,11 +392,28 @@ export default function AdminDashboard() {
     }
   };
 
-  const sortedShipments = shipments ? [...shipments].sort((a, b) => {
-    const dateA = new Date(a.createdAt).getTime();
-    const dateB = new Date(b.createdAt).getTime();
-    return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
-  }) : [];
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const sortedShipments = useMemo(() => {
+    if (!shipments) return [];
+    let list = [...shipments];
+    if (searchTerm.trim()) {
+      const q = searchTerm.trim().toLowerCase();
+      list = list.filter(s => 
+        (s.orderNumber && String(s.orderNumber).toLowerCase().includes(q)) ||
+        (s.code && String(s.code).toLowerCase().includes(q)) ||
+        (s.senderDni && String(s.senderDni).toLowerCase().includes(q)) ||
+        (s.recipientDni && String(s.recipientDni).toLowerCase().includes(q)) ||
+        (s.senderName && String(s.senderName).toLowerCase().includes(q)) ||
+        (s.recipientName && String(s.recipientName).toLowerCase().includes(q))
+      );
+    }
+    return list.sort((a, b) => {
+      const dateA = new Date(a.createdAt).getTime();
+      const dateB = new Date(b.createdAt).getTime();
+      return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+    });
+  }, [shipments, sortOrder, searchTerm]);
 
   const handleLogout = () => {
     setIsLoggedIn(false);
@@ -653,9 +670,17 @@ export default function AdminDashboard() {
 
         {/* Shipments Table */}
         <Card className="p-6 shadow-lg border-0">
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
             <h2 className="text-xl font-semibold text-gray-900">Encomiendas Registradas</h2>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+              <div className="relative flex-1 md:w-64">
+                <Input
+                  placeholder="Buscar por DNI, orden o código..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="bg-white"
+                />
+              </div>
               <Button
                 onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
                 variant="outline"
@@ -666,6 +691,7 @@ export default function AdminDashboard() {
               <Button
                 onClick={() => refetchShipments()}
                 variant="outline"
+                size="sm"
                 disabled={loadingShipments}
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
