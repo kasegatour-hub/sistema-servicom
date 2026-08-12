@@ -8,6 +8,9 @@ function buildTrackingPath(orderNumber: string, code: string): string {
 }
 import { publicProcedure, router } from "./_core/trpc";
 import { getAdminByEmail, getAllShipments, createShipment, updateShipmentStatus, deleteShipment } from "./db";
+import { admins } from "../drizzle/schema";
+import { getDb } from "./db";
+import { eq } from "drizzle-orm";
 
 export const adminRouter = router({
   login: publicProcedure
@@ -140,6 +143,10 @@ export const adminRouter = router({
       recipientPhone: z.string().optional(),
       notes: z.string().optional(),
       paymentCondition: z.string().optional(),
+      paymentStatus: z.enum(["Pagado", "Falta cancelar"]).optional(),
+      route: z.string().optional(),
+      originAddress: z.string().optional(),
+      destinationAddress: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
       const result = await updateShipmentStatus(
@@ -155,7 +162,11 @@ export const adminRouter = router({
         input.recipientDni,
         input.recipientPhone,
         input.notes,
-        input.paymentCondition
+        input.paymentCondition,
+        input.paymentStatus,
+        input.route,
+        input.originAddress,
+        input.destinationAddress
       );
       if (!result) {
         throw new TRPCError({

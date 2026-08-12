@@ -89,8 +89,12 @@ export const shipments = mysqlTable("shipments", {
   recipientDni: varchar("recipientDni", { length: 20 }),
   recipientPhone: varchar("recipientPhone", { length: 20 }),
   
-  // Payment condition and Notes
-  paymentCondition: varchar("paymentCondition", { length: 100 }).default("Pagado en Lima (Jr. de la Unión 518)"),
+  // Payment condition, route and Notes
+  paymentCondition: varchar("paymentCondition", { length: 100 }).default("Pagará en Italia (Torino)"),
+  paymentStatus: mysqlEnum("paymentStatus", ["Pagado", "Falta cancelar"]).default("Falta cancelar").notNull(),
+  route: varchar("route", { length: 100 }).default("Lima - Torino").notNull(),
+  originAddress: text("originAddress"),
+  destinationAddress: text("destinationAddress"),
   notes: text("notes"),
   
   createdAt: timestamp("createdAt").defaultNow().notNull(),

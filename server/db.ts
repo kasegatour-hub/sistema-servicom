@@ -267,7 +267,11 @@ export async function createShipment(
   recipientPhone?: string,
   notes?: string,
   accountId?: number | null,
-  paymentCondition?: string
+  paymentCondition?: string,
+  paymentStatus?: "Pagado" | "Falta cancelar",
+  route?: string,
+  originAddress?: string,
+  destinationAddress?: string
 ) {
   const db = await getDb();
   if (!db) {
@@ -302,7 +306,11 @@ export async function createShipment(
     recipientDni,
     recipientPhone,
     notes,
-    paymentCondition: paymentCondition || "Pagado en Lima (Jr. de la Unión 518)",
+    paymentCondition: paymentCondition || "Pagará en Italia (Torino)",
+    paymentStatus: paymentStatus || "Falta cancelar",
+    route: route || "Lima - Torino",
+    originAddress: originAddress || "",
+    destinationAddress: destinationAddress || "",
   });
 
   return result;
@@ -321,7 +329,11 @@ export async function updateShipmentStatus(
   recipientDni?: string,
   recipientPhone?: string,
   notes?: string,
-  paymentCondition?: string
+  paymentCondition?: string,
+  paymentStatus?: "Pagado" | "Falta cancelar",
+  route?: string,
+  originAddress?: string,
+  destinationAddress?: string
 ) {
   const db = await getDb();
   if (!db) {
@@ -364,7 +376,11 @@ export async function updateShipmentStatus(
         recipientDni,
         recipientPhone,
         notes,
-        paymentCondition: paymentCondition || "Pagado en Lima (Jr. de la Unión 518)",
+        paymentCondition: paymentCondition || "Pagará en Italia (Torino)",
+        paymentStatus: paymentStatus || "Falta cancelar",
+        route: route || "Lima - Torino",
+        originAddress: originAddress || "",
+        destinationAddress: destinationAddress || "",
         updatedAt: new Date(),
       })
       .where(eq(shipments.id, id));

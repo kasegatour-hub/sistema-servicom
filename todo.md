@@ -39,3 +39,9 @@
 ## Límites de Hojas y Validación
 - [x] Aplicar límite máximo de 8 hojas para documentos simples y 10 para apostillados
 - [x] Mostrar mensaje 'Debe crear otra encomienda' al exceder el límite
+
+## Nuevos Requerimientos de Roles y Direcciones
+- [ ] Distinguir Master Admin (gestión de usuarios y envíos) y Usuario Registrador (gestión de envíos sin crear usuarios)
+- [ ] Permitir al cliente elegir únicamente 'Pagará en Torino' o 'En agencia'
+- [ ] Permitir a Master y Usuario editar el estado de pago (Pagado / Falta cancelar)
+- [ ] Añadir selector de ruta predeterminada (Lima - Torino / Torino - Lima) y direcciones con búsqueda de Google Maps o manual
