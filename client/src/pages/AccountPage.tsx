@@ -433,11 +433,14 @@ export default function AccountPage() {
                 {myShipments.map((shipment) => (
                   <div key={shipment.id} className="border border-slate-200 rounded-xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white shadow-sm">
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-bold text-[#0B2B5E]">Orden: {shipment.orderNumber}</span>
                         <span className="rounded bg-blue-100 px-2 py-0.5 text-xs font-semibold text-[#0B2B5E]">Código: {shipment.code}</span>
                         <span className={`rounded px-2 py-0.5 text-xs font-semibold ${shipment.status === 'Entregado' ? 'bg-blue-600 text-white' : 'bg-orange-100 text-[#F28C00]'}`}>
                           {shipment.status}
+                        </span>
+                        <span className={`rounded px-2 py-0.5 text-xs font-semibold ${String(shipment.paymentCondition || '').includes('Lima') ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                          {String(shipment.paymentCondition || '').includes('Lima') ? 'Pagado en Lima' : 'Pagará en Torino'}
                         </span>
                       </div>
                       <p className="text-sm text-slate-600 mt-1">

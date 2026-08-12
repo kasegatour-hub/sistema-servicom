@@ -31,3 +31,7 @@
 
 ## Etiquetas de ordenamiento
 - [x] Cambiar Ascendente/Descendente por Recientes (descendentes) y Antiguos (ascendente) en el panel admin
+
+## Estado Inicial y Colores de Pago
+- [x] Forzar estado 'En agencia' para registros de cliente
+- [x] Mostrar condición de pago en verde (Pagado en Lima) y rojo (Pagará en Torino) en cliente, admin y recibos

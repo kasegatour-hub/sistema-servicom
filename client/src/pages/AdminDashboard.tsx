@@ -759,14 +759,19 @@ export default function AdminDashboard() {
                       <TableCell>{shipment.code}</TableCell>
                       <TableCell>{shipment.recipientName ? `${shipment.recipientName} ${shipment.recipientLastName || ''}` : '-'}</TableCell>
                       <TableCell>
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                          shipment.status === 'En agencia' ? 'bg-blue-100 text-blue-800' :
-                          shipment.status === 'En tránsito' ? 'bg-yellow-100 text-yellow-800' :
-                          shipment.status === 'En destino' ? 'bg-orange-100 text-orange-800' :
-                          'bg-green-100 text-green-800'
-                        }`}>
-                          {shipment.status}
-                        </span>
+                        <div className="flex flex-col gap-1.5 items-start">
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                            shipment.status === 'En agencia' ? 'bg-blue-100 text-blue-800' :
+                            shipment.status === 'En tránsito' ? 'bg-yellow-100 text-yellow-800' :
+                            shipment.status === 'En destino' ? 'bg-orange-100 text-orange-800' :
+                            'bg-green-100 text-green-800'
+                          }`}>
+                            {shipment.status}
+                          </span>
+                          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${String(shipment.paymentCondition || '').includes('Lima') ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                            {String(shipment.paymentCondition || '').includes('Lima') ? 'Pagado en Lima' : 'Pagará en Torino'}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell>{new Date(shipment.createdAt).toLocaleDateString()}</TableCell>
                       <TableCell>
