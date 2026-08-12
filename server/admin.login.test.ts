@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
+import { createAdminSession } from "./adminSession";
 import type { TrpcContext } from "./_core/context";
 
 function createPublicContext(): TrpcContext {
@@ -13,6 +14,17 @@ function createPublicContext(): TrpcContext {
       cookie: () => {},
       clearCookie: () => {},
     } as TrpcContext["res"],
+  };
+}
+
+function createRoleContext(role: "admin" | "superadmin"): TrpcContext {
+  return {
+    user: null,
+    req: {
+      protocol: "https",
+      headers: { cookie: `servicom_admin_session=${encodeURIComponent(createAdminSession(9, role))}` },
+    } as TrpcContext["req"],
+    res: { cookie: () => {}, clearCookie: () => {} } as TrpcContext["res"],
   };
 }
 
@@ -60,6 +72,15 @@ describe("admin.login", () => {
     await expect(caller.admin.getAllShipments()).rejects.toMatchObject({
       code: "UNAUTHORIZED",
       message: "Sesión administrativa requerida",
+    });
+  });
+
+  it("prevents a Registrador from managing admin users", async () => {
+    const caller = appRouter.createCaller(createRoleContext("admin"));
+
+    await expect(caller.admin.listAdmins()).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      message: "Solo el Master Admin puede gestionar usuarios",
     });
   });
 });

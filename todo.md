@@ -73,3 +73,11 @@
 ## Verificación final del flujo real de pago
 - [x] Ejecutar una prueba del procedimiento account.createMyShipment y verificar que la persistencia usa paymentStatus 'Falta cancelar'
 - [x] Añadir una utilidad compartida para la presentación de pago en AccountPage y probar sus clases rojo/verde
+
+## Rediseño administrativo solicitado
+- [x] Renombrar visualmente el estado de pago pendiente a 'No cancelado' para el cliente y conservar compatibilidad backend con 'Falta cancelar'
+- [x] Verificar que solo Master Admin y Registradores puedan cambiar el estado de pago; el cliente no debe recibir controles de pago
+- [x] Permitir que el Master Admin cree múltiples cuentas Registrador y que el operador trabaje con las acciones de envíos
+- [x] Rediseñar la tabla para priorizar destinatario, estado, fecha de creación y acciones
+- [x] Añadir paginación y desplazamiento horizontal responsive en la tabla administrativa
+- [x] Añadir pruebas para paginación, permisos y presentación del estado de pago

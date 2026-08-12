@@ -1,98 +1,72 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+const dbMocks = vi.hoisted(() => ({
+  getShipmentByOrderAndCode: vi.fn(),
+}));
+
+vi.mock("./db", async () => {
+  const actual = await vi.importActual<typeof import("./db")>("./db");
+  return { ...actual, getShipmentByOrderAndCode: dbMocks.getShipmentByOrderAndCode };
+});
+
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
+
+const fixture = {
+  orderNumber: "3520992723",
+  code: "CA06721WB",
+  status: "Entregado",
+  events: JSON.stringify([
+    { stage: "En agencia", date: "2026-07-01T08:00:00Z", description: "Recibido en agencia" },
+    { stage: "En tránsito", date: "2026-07-03T14:15:00Z", description: "En camino" },
+    { stage: "En destino", date: "2026-07-06T16:20:00Z", description: "Llegó a destino" },
+    { stage: "Entregado", date: "2026-07-07T19:30:37.054Z", description: "Entregado" },
+  ]),
+};
 
 function createPublicContext(): TrpcContext {
   return {
     user: null,
-    req: {
-      protocol: "https",
-      headers: {},
-    } as TrpcContext["req"],
-    res: {
-      clearCookie: () => {},
-    } as TrpcContext["res"],
+    req: { protocol: "https", headers: {} } as TrpcContext["req"],
+    res: { clearCookie: () => {} } as TrpcContext["res"],
   };
 }
 
 describe("shipment.search", () => {
-  it("should find a shipment by order number and code", async () => {
-    const ctx = createPublicContext();
-    const caller = appRouter.createCaller(ctx);
-
-    const result = await caller.shipment.search({
+  it("finds a shipment by normalized order number and code", async () => {
+    dbMocks.getShipmentByOrderAndCode.mockResolvedValue(fixture);
+    const result = await appRouter.createCaller(createPublicContext()).shipment.search({
       orderNumber: "352 099 2723",
-      code: "CA06721WB",
+      code: "ca06721wb",
     });
-
-    expect(result).toBeDefined();
     expect(result.orderNumber).toBe("3520992723");
     expect(result.code).toBe("CA06721WB");
     expect(result.status).toBe("Entregado");
-    expect(result.events).toBeDefined();
-    expect(Array.isArray(result.events)).toBe(true);
-    expect(result.events.length).toBeGreaterThan(0);
+    expect(result.events).toHaveLength(4);
   });
 
-  it("should parse events correctly", async () => {
-    const ctx = createPublicContext();
-    const caller = appRouter.createCaller(ctx);
-
-    const result = await caller.shipment.search({
-      orderNumber: "352 099 2723",
+  it("parses events and preserves supported stages", async () => {
+    dbMocks.getShipmentByOrderAndCode.mockResolvedValue(fixture);
+    const result = await appRouter.createCaller(createPublicContext()).shipment.search({
+      orderNumber: "3520992723",
       code: "CA06721WB",
     });
-
-    const firstEvent = result.events[0];
-    expect(firstEvent.stage).toBe("En agencia");
-    expect(firstEvent.date).toBeDefined();
-    expect(firstEvent.description).toBeDefined();
+    const stages = result.events.map((event: any) => event.stage);
+    expect(stages).toEqual(["En agencia", "En tránsito", "En destino", "Entregado"]);
   });
 
-  it("should throw NOT_FOUND for non-existent shipment", async () => {
-    const ctx = createPublicContext();
-    const caller = appRouter.createCaller(ctx);
-
-    try {
-      await caller.shipment.search({
-        orderNumber: "999 999 9999",
-        code: "INVALID",
-      });
-      expect.fail("Should have thrown an error");
-    } catch (error: any) {
-      expect(error.code).toBe("NOT_FOUND");
-      expect(error.message).toBe("Envío no encontrado");
-    }
+  it("throws NOT_FOUND for a missing shipment", async () => {
+    dbMocks.getShipmentByOrderAndCode.mockResolvedValue(undefined);
+    await expect(appRouter.createCaller(createPublicContext()).shipment.search({
+      orderNumber: "9999999999",
+      code: "INVALID",
+    })).rejects.toMatchObject({ code: "NOT_FOUND", message: "Envío no encontrado" });
   });
 
-  it("should validate required fields", async () => {
-    const ctx = createPublicContext();
-    const caller = appRouter.createCaller(ctx);
-
-    try {
-      await caller.shipment.search({
-        orderNumber: "",
-        code: "CA06721WB",
-      });
-      expect.fail("Should have thrown a validation error");
-    } catch (error: any) {
-      expect(error.code).toBe("BAD_REQUEST");
-    }
-  });
-
-  it("should have the supported stages in the timeline", async () => {
-    const ctx = createPublicContext();
-    const caller = appRouter.createCaller(ctx);
-
-    const result = await caller.shipment.search({
-      orderNumber: "352 099 2723",
+  it("validates required fields", async () => {
+    await expect(appRouter.createCaller(createPublicContext()).shipment.search({
+      orderNumber: "",
       code: "CA06721WB",
-    });
-
-    const stages = result.events.map((e: any) => e.stage);
-    expect(stages).toContain("En agencia");
-    expect(stages).toContain("En tránsito");
-    expect(stages).toContain("En destino");
-    expect(stages).toContain("Entregado");
+    })).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 });

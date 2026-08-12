@@ -4,7 +4,7 @@ import { getPaymentStatusUi } from "./paymentStatus";
 describe("AccountPage payment status UI", () => {
   it("shows pending payment in red", () => {
     expect(getPaymentStatusUi("Falta cancelar")).toEqual({
-      label: "Falta cancelar",
+      label: "No cancelado",
       badgeClass: "bg-rose-100 text-rose-800",
       isPaid: false,
     });

@@ -52,6 +52,32 @@ export const clientShipmentInputSchema = z.object({
   sheetCount: z.number().min(1).default(1),
 }).strict();
 
+export function buildClientShipmentPersistenceArgs(
+  input: z.infer<typeof clientShipmentInputSchema>,
+  orderNumber: string,
+  code: string,
+  calculatedNotes: string,
+  accountId: number,
+) {
+  return [
+    orderNumber,
+    code,
+    "Por entregar en agencia",
+    input.senderName,
+    input.senderLastName,
+    input.senderDni,
+    input.senderPhone,
+    input.recipientName,
+    input.recipientLastName,
+    input.recipientDni,
+    input.recipientPhone,
+    calculatedNotes,
+    accountId,
+    CLIENT_PAYMENT_DEFAULTS.condition,
+    CLIENT_PAYMENT_DEFAULTS.status,
+  ] as const;
+}
+
 export const accountRouter = router({
   register: publicProcedure
     .input(z.object({
@@ -200,21 +226,7 @@ export const accountRouter = router({
       const calculatedNotes = `Tarifa: ${tariffDesc}. ${input.notes || ""}`.trim();
 
       const result = await createShipment(
-        orderNumber,
-        code,
-        "Por entregar en agencia",
-        input.senderName,
-        input.senderLastName,
-        input.senderDni,
-        input.senderPhone,
-        input.recipientName,
-        input.recipientLastName,
-        input.recipientDni,
-        input.recipientPhone,
-        calculatedNotes,
-        session.accountId,
-        CLIENT_PAYMENT_DEFAULTS.condition,
-        CLIENT_PAYMENT_DEFAULTS.status
+        ...buildClientShipmentPersistenceArgs(input, orderNumber, code, calculatedNotes, session.accountId),
       );
       if (!result) {
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No se pudo registrar el envío." });

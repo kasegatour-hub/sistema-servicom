@@ -22,7 +22,7 @@ describe("receipt window helpers", () => {
       isPaid: true,
     });
     expect(getPaymentStatusPresentation("Falta cancelar")).toMatchObject({
-      label: "Falta cancelar",
+      label: "No cancelado",
       color: "#e11d48",
       background: "#fff1f2",
       isPaid: false,

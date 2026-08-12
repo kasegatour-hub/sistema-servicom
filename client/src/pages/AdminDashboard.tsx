@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -16,6 +16,8 @@ import QRCode from "qrcode";
 import { buildTrackingUrl, TRACKING_QR_OPTIONS } from "@/lib/tracking";
 import { PhoneInput } from "@/components/PhoneInput";
 import { digitsOnly, isDigitsOnly, isTextOnly, textOnly } from "@/lib/inputValidation";
+import { getPaymentStatusUi } from "@/lib/paymentStatus";
+import { paginateItems } from "@/lib/pagination";
 
 const textRegisterOptions = (form: any, field: string, label: string) => ({
   setValueAs: textOnly,
@@ -40,6 +42,12 @@ const digitsRegisterOptions = (form: any, field: string) => ({
 const loginSchema = z.object({
   email: z.string().email("Email inválido"),
   password: z.string().min(1, "Contraseña requerida"),
+});
+
+const createAdminSchema = z.object({
+  name: z.string().min(2, "Ingresa el nombre del operador.").regex(/^[A-Za-z\u00C0-\u024F]+(?: +[A-Za-z\u00C0-\u024F]+)*$/, "Solo letras y espacios."),
+  email: z.string().email("Email inválido"),
+  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres."),
 });
 
 const optionalTextField = z.union([
@@ -93,6 +101,7 @@ const updateStatusSchema = z.object({
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
+type CreateAdminForm = z.infer<typeof createAdminSchema>;
 type CreateShipmentForm = z.infer<typeof createShipmentSchema>;
 type UpdateStatusForm = z.infer<typeof updateStatusSchema>;
 
@@ -105,12 +114,16 @@ export default function AdminDashboard() {
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [showQRModal, setShowQRModal] = useState(false);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showUserForm, setShowUserForm] = useState(false);
   const [printShipment, setPrintShipment] = useState<any>(null);
+  const pageSize = 10;
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
   const printQrRef = useRef<HTMLCanvasElement>(null);
 
   // Queries
   const { data: shipments, isLoading: loadingShipments, refetch: refetchShipments } = trpc.admin.getAllShipments.useQuery(undefined, { enabled: isLoggedIn });
+  const { data: adminUsers, refetch: refetchAdminUsers } = trpc.admin.listAdmins.useQuery(undefined, { enabled: isLoggedIn && admin?.role === "superadmin" });
 
   // Mutations
   const loginMutation = trpc.admin.login.useMutation();
@@ -118,9 +131,14 @@ export default function AdminDashboard() {
   const createMutation = trpc.admin.createShipment.useMutation();
   const updateMutation = trpc.admin.updateStatus.useMutation();
   const deleteMutation = trpc.admin.deleteShipment.useMutation();
+  const createAdminMutation = trpc.admin.createAdmin.useMutation();
 
   // Forms
   const loginForm = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
+  const createAdminForm = useForm<CreateAdminForm>({
+    resolver: zodResolver(createAdminSchema),
+    defaultValues: { name: "", email: "", password: "" },
+  });
   const createForm = useForm<any>({
     resolver: zodResolver(createShipmentSchema),
     defaultValues: {
@@ -168,6 +186,18 @@ export default function AdminDashboard() {
       toast.success("Sesión iniciada correctamente");
     } catch (error: any) {
       toast.error(error.message || "Error al iniciar sesión");
+    }
+  };
+
+  const handleCreateAdmin = async (data: CreateAdminForm) => {
+    try {
+      await createAdminMutation.mutateAsync({ ...data, role: "admin" });
+      toast.success("Usuario Registrador creado correctamente");
+      createAdminForm.reset();
+      setShowUserForm(false);
+      refetchAdminUsers();
+    } catch (error: any) {
+      toast.error(error.message || "No se pudo crear el usuario Registrador");
     }
   };
 
@@ -346,7 +376,7 @@ export default function AdminDashboard() {
           <div class="section">
             <div class="section-title">Condición de Pago y Descripción</div>
             <div style="font-size: 12px; border: 1px solid #eee; padding: 8px; background: #fafafa;">
-              <strong>Estado de Pago:</strong> <span style="color:${paymentColor};background:${paymentBackground};padding:2px 8px;border-radius:4px;font-weight:bold">[${paymentIsPaid ? 'X' : ' '}] Pagado &nbsp;&nbsp;&nbsp; [${!paymentIsPaid ? 'X' : ' '}] Falta cancelar</span><br><br>
+              <strong>Estado de Pago:</strong> <span style="color:${paymentColor};background:${paymentBackground};padding:2px 8px;border-radius:4px;font-weight:bold">[${paymentIsPaid ? 'X' : ' '}] Pagado &nbsp;&nbsp;&nbsp; [${!paymentIsPaid ? 'X' : ' '}] No cancelado</span><br><br>
               ${printShipment.notes || 'Documentación Lícita'}
             </div>
           </div>
@@ -471,6 +501,18 @@ export default function AdminDashboard() {
       return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
     });
   }, [shipments, sortOrder, searchTerm]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, sortOrder]);
+
+  const pagination = paginateItems(sortedShipments, currentPage, pageSize);
+  const totalPages = pagination.totalPages;
+  const visibleShipments = pagination.items;
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
 
   const handleLogout = async () => {
     try {
@@ -776,6 +818,63 @@ export default function AdminDashboard() {
           )}
         </Card>
 
+        {admin?.role === "superadmin" && (
+          <Card className="p-6 mb-8 shadow-lg border-0">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Usuarios Registradores</h2>
+                <p className="text-sm text-slate-500">Solo el Master Admin puede crear cuentas para operadores de agencia.</p>
+              </div>
+              <Button onClick={() => setShowUserForm(previous => !previous)} variant="outline" className="border-primary text-primary">
+                {showUserForm ? "Cerrar formulario" : "Crear Registrador"}
+              </Button>
+            </div>
+
+            {showUserForm && (
+              <form onSubmit={createAdminForm.handleSubmit(handleCreateAdmin)} className="mt-5 grid grid-cols-1 gap-4 rounded-lg bg-slate-50 p-4 md:grid-cols-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Nombre del operador</label>
+                  <Input {...createAdminForm.register("name", textRegisterOptions(createAdminForm, "name", "El nombre"))} placeholder="Nombre y apellido" />
+                  {createAdminForm.formState.errors.name?.message && <p className="mt-1 text-xs text-red-600">{String(createAdminForm.formState.errors.name.message)}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Correo electrónico</label>
+                  <Input type="email" {...createAdminForm.register("email")} placeholder="operador@servicom.pe" />
+                  {createAdminForm.formState.errors.email?.message && <p className="mt-1 text-xs text-red-600">{String(createAdminForm.formState.errors.email.message)}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Contraseña inicial</label>
+                  <Input type="password" {...createAdminForm.register("password")} placeholder="Mínimo 8 caracteres" />
+                  {createAdminForm.formState.errors.password?.message && <p className="mt-1 text-xs text-red-600">{String(createAdminForm.formState.errors.password.message)}</p>}
+                </div>
+                <div className="flex items-end">
+                  <Button type="submit" disabled={createAdminMutation.isPending} className="w-full bg-primary text-white">
+                    {createAdminMutation.isPending ? "Creando..." : "Crear usuario"}
+                  </Button>
+                </div>
+              </form>
+            )}
+
+            <div className="mt-5 overflow-x-auto rounded-lg border bg-white">
+              <table className="min-w-[620px] w-full text-sm">
+                <thead className="bg-slate-50 text-left text-slate-600">
+                  <tr><th className="px-4 py-3">Nombre</th><th className="px-4 py-3">Correo</th><th className="px-4 py-3">Rol</th><th className="px-4 py-3">Creado</th></tr>
+                </thead>
+                <tbody>
+                  {(adminUsers || []).map((user: any) => (
+                    <tr key={user.id} className="border-t">
+                      <td className="px-4 py-3 font-medium">{user.name}</td>
+                      <td className="px-4 py-3">{user.email}</td>
+                      <td className="px-4 py-3">{user.role === "superadmin" ? "Master Admin" : "Registrador"}</td>
+                      <td className="px-4 py-3">{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        )}
+
         {/* Shipments Table */}
         <Card className="p-6 shadow-lg border-0">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
@@ -816,24 +915,22 @@ export default function AdminDashboard() {
               <Spinner className="w-6 h-6" />
             </div>
           ) : sortedShipments && sortedShipments.length > 0 ? (
-            <div className="overflow-x-auto">
-              <Table>
+            <div className="overflow-x-auto rounded-lg border border-slate-200">
+              <Table className="min-w-[980px] w-full">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Número de Orden</TableHead>
-                    <TableHead>Código</TableHead>
-                    <TableHead>Destinatario</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Fecha Creación</TableHead>
-                    <TableHead>Acciones</TableHead>
+                    <TableHead className="min-w-[250px]">Destinatario</TableHead>
+                    <TableHead className="min-w-[190px]">Estado</TableHead>
+                    <TableHead className="min-w-[130px]">Fecha de creación</TableHead>
+                    <TableHead className="min-w-[280px]">Acciones</TableHead>
+                    <TableHead className="hidden xl:table-cell">Número de orden</TableHead>
+                    <TableHead className="hidden xl:table-cell">Código</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sortedShipments.map((shipment: any) => (
+                  {visibleShipments.map((shipment: any) => (
                     <TableRow key={shipment.id}>
-                      <TableCell className="font-medium">{shipment.orderNumber}</TableCell>
-                      <TableCell>{shipment.code}</TableCell>
-                      <TableCell>{shipment.recipientName ? `${shipment.recipientName} ${shipment.recipientLastName || ''}` : '-'}</TableCell>
+                      <TableCell className="max-w-[280px] whitespace-normal font-semibold text-slate-900">{shipment.recipientName ? `${shipment.recipientName} ${shipment.recipientLastName || ''}` : 'Destinatario no especificado'}</TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-1.5 items-start">
                           <span className={`px-3 py-1 rounded-full text-sm font-medium ${
@@ -845,14 +942,14 @@ export default function AdminDashboard() {
                           }`}>
                             {shipment.status}
                           </span>
-                          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${shipment.paymentStatus === 'Pagado' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
-                            {shipment.paymentStatus === 'Pagado' ? 'Pagado' : 'Falta cancelar'}
+                          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${getPaymentStatusUi(shipment.paymentStatus).badgeClass}`}>
+                            {getPaymentStatusUi(shipment.paymentStatus).label}
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell>{new Date(shipment.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell className="whitespace-nowrap">{new Date(shipment.createdAt).toLocaleDateString()}</TableCell>
                       <TableCell>
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                           <Button
                             onClick={() => {
                               setSelectedShipmentId(shipment.id);
@@ -903,10 +1000,20 @@ export default function AdminDashboard() {
                           </Button>
                         </div>
                       </TableCell>
+                      <TableCell className="hidden xl:table-cell font-medium">{shipment.orderNumber}</TableCell>
+                      <TableCell className="hidden xl:table-cell">{shipment.code}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
+              <div className="flex flex-col gap-3 border-t bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-slate-600">Mostrando {sortedShipments.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, sortedShipments.length)} de {sortedShipments.length} envíos</p>
+                <div className="flex items-center gap-2">
+                  <Button type="button" variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(page => Math.max(1, page - 1))}>Anterior</Button>
+                  <span className="min-w-20 text-center text-sm font-medium text-slate-700">Página {currentPage} de {totalPages}</span>
+                  <Button type="button" variant="outline" size="sm" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(page => Math.min(totalPages, page + 1))}>Siguiente</Button>
+                </div>
+              </div>
             </div>
           ) : (
             <p className="text-center text-gray-500 py-8">No hay encomiendas registradas</p>
@@ -986,7 +1093,7 @@ export default function AdminDashboard() {
                       {...updateForm.register("paymentStatus")}
                       className="w-full p-2 bg-white border-2 border-slate-200 rounded-md text-sm font-medium focus:border-primary"
                     >
-                      <option value="Falta cancelar">Falta cancelar</option>
+                      <option value="Falta cancelar">No cancelado</option>
                       <option value="Pagado">Pagado</option>
                     </select>
                   </div>

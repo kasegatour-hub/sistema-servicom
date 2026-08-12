@@ -1,85 +1,31 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
+import { buildClientShipmentPersistenceArgs, clientShipmentInputSchema } from "./account.router";
 
-const dbMocks = vi.hoisted(() => ({
-  createShipment: vi.fn(),
-  getShipmentByOrderAndCode: vi.fn(),
-}));
-
-vi.mock("./db", async () => {
-  const actual = await vi.importActual<typeof import("./db")>("./db");
-  return {
-    ...actual,
-    createShipment: dbMocks.createShipment,
-    getShipmentByOrderAndCode: dbMocks.getShipmentByOrderAndCode,
-  };
-});
-
-import { appRouter } from "./routers";
-import { createAccountSession } from "./localSession";
-import type { TrpcContext } from "./_core/context";
-
-function createContext(accountId = 42): TrpcContext {
-  const session = createAccountSession(accountId);
-  return {
-    user: null,
-    req: {
-      protocol: "https",
-      headers: { cookie: `servicom_account_session=${encodeURIComponent(session)}` },
-    } as TrpcContext["req"],
-    res: {
-      cookie: () => {},
-      clearCookie: () => {},
-    } as TrpcContext["res"],
-  };
-}
-
-describe("account.createMyShipment payment policy", () => {
-  beforeEach(() => {
-    dbMocks.createShipment.mockReset();
-    dbMocks.getShipmentByOrderAndCode.mockReset();
-    dbMocks.createShipment.mockResolvedValue({ insertId: 123 });
-    dbMocks.getShipmentByOrderAndCode.mockResolvedValue({
-      orderNumber: "1234567890",
-      code: "DOC-2026-ABCDE",
-      events: "[]",
-      paymentStatus: "Falta cancelar",
-    });
-  });
-
-  it("persists pending payment and rejects client-selected payment fields", async () => {
-    const caller = appRouter.createCaller(createContext());
-    const result = await caller.account.createMyShipment({
+describe("account.createMyShipment persistence policy", () => {
+  it("uses the real client persistence contract with pending payment", () => {
+    const input = clientShipmentInputSchema.parse({
       recipientName: "María",
       recipientLastName: "López",
       recipientDni: "71234567",
       docType: "simple",
       sheetCount: 1,
     });
+    const args = buildClientShipmentPersistenceArgs(input, "1234567890", "DOC-2026-ABCDE", "Documento Simple (1 hoja): 45 EUR.", 42);
 
-    expect(result.shipment?.paymentStatus).toBe("Falta cancelar");
-    expect(dbMocks.createShipment).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.stringMatching(/^DOC-\d{4}-[A-Z0-9]{5}$/),
-      "Por entregar en agencia",
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      "María",
-      "López",
-      "71234567",
-      undefined,
-      expect.stringContaining("Documento Simple"),
-      42,
-      "Pagará en ITALIA (Torino)",
-      "Falta cancelar",
-    );
+    expect(args[2]).toBe("Por entregar en agencia");
+    expect(args[7]).toBe("María");
+    expect(args[8]).toBe("López");
+    expect(args[9]).toBe("71234567");
+    expect(args[13]).toBe("Pagará en ITALIA (Torino)");
+    expect(args[14]).toBe("Falta cancelar");
+  });
 
-    await expect(caller.account.createMyShipment({
+  it("rejects payment selection from the client input", () => {
+    expect(() => clientShipmentInputSchema.parse({
       recipientName: "María",
       recipientLastName: "López",
       recipientDni: "71234567",
       paymentCondition: "Pagado en Lima (Jr. de la Unión 518)",
-    } as never)).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    })).toThrow(/Unrecognized key|paymentCondition/);
   });
 });
