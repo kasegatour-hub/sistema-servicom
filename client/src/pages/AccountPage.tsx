@@ -11,6 +11,7 @@ import { trpc } from "@/lib/trpc";
 import { buildTrackingUrl, TRACKING_QR_OPTIONS, normalizeTrackingValue } from "@/lib/tracking";
 import { printUserShipmentReceipt } from "@/lib/userReceipt";
 import { PhoneInput } from "@/components/PhoneInput";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const brandLogo = "/manus-storage/servicom_logo_final_e7ce35aa.png";
 
@@ -175,19 +176,54 @@ export default function AccountPage() {
 
         <main className="mx-auto max-w-5xl px-4 py-8 space-y-8">
           {receiptShipment && (
-            <Card className="border-2 border-[#F28C00] bg-orange-50 p-5 shadow-md">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h2 className="flex items-center gap-2 text-lg font-bold text-[#0B2B5E]"><CheckCircle2 className="h-5 w-5 text-green-600" /> Recibo generado correctamente</h2>
-                  <p className="mt-1 text-sm text-slate-700">Orden <strong>{receiptShipment.orderNumber}</strong> · Código <strong>{receiptShipment.code}</strong></p>
-                  <p className="mt-1 text-xs text-slate-600">El recibo incluye QR de rastreo, tarifa, declaración jurada y ticket recortable.</p>
+            <Dialog open={!!receiptShipment} onOpenChange={(open) => { if (!open) setReceiptShipment(null); }}>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle className="text-xl font-bold text-[#0B2B5E] flex items-center gap-2">
+                    <CheckCircle2 className="h-5 w-5 text-green-600" /> Vista Previa del Recibo y Declaración Jurada
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 text-sm text-slate-700">
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                    <div className="flex justify-between items-center font-bold text-[#0B2B5E] border-b pb-2">
+                      <span>Orden: {receiptShipment.orderNumber}</span>
+                      <span className="bg-blue-100 text-[#0B2B5E] px-2 py-0.5 rounded text-xs">Código: {receiptShipment.code}</span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                      <div><strong>Remitente:</strong> {receiptShipment.senderName} {receiptShipment.senderLastName}</div>
+                      <div><strong>DNI Remitente:</strong> {receiptShipment.senderDni || '-'}</div>
+                      <div><strong>Destinatario:</strong> {receiptShipment.recipientName} {receiptShipment.recipientLastName}</div>
+                      <div><strong>DNI Destinatario:</strong> {receiptShipment.recipientDni || '-'}</div>
+                      <div><strong>Cel. Destinataria:</strong> {receiptShipment.recipientPhone || '-'}</div>
+                      <div><strong>Fecha:</strong> {new Date(receiptShipment.createdAt || Date.now()).toLocaleDateString()}</div>
+                      <div className="col-span-2"><strong>Condición de Pago:</strong> {receiptShipment.paymentCondition || "Pagado en Lima (Jr. de la Unión 518)"}</div>
+                      <div className="col-span-2"><strong>Descripción / Notas:</strong> {receiptShipment.notes || "Documentación lícita"}</div>
+                    </div>
+                  </div>
+
+                  <div className="border-2 border-dashed border-[#0B2B5E] p-4 rounded-xl bg-blue-50/50">
+                    <div className="font-bold text-[#0B2B5E] text-center mb-2">CONTROL DE ENTREGA — TORINO, ITALIA</div>
+                    <div className="text-xs space-y-1">
+                      <div><strong>Orden:</strong> {receiptShipment.orderNumber}</div>
+                      <div><strong>Código Completo:</strong> {receiptShipment.code}</div>
+                      <div><strong>Destino:</strong> Torino, Italia</div>
+                      <div><strong>Receptor:</strong> {receiptShipment.recipientName} {receiptShipment.recipientLastName}</div>
+                      <div><strong>Celular Destinataria:</strong> {receiptShipment.recipientPhone || 'No especificado'}</div>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900">
+                    <strong>Declaración Jurada y Exención de Responsabilidad Legal:</strong> El remitente declara bajo juramento que el envío contiene única y exclusivamente documentación lícita, eximiendo a Servicom Internacional de cualquier responsabilidad y firmando electrónicamente.
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button onClick={() => printUserShipmentReceipt(receiptShipment)} className="bg-[#0B2B5E] text-white hover:bg-[#123d78]"><Printer className="mr-2 h-4 w-4" /> Abrir e imprimir recibo</Button>
+                <div className="flex justify-end gap-3 pt-4 border-t">
                   <Button type="button" variant="outline" onClick={() => setReceiptShipment(null)}>Cerrar</Button>
+                  <Button onClick={() => printUserShipmentReceipt(receiptShipment)} className="bg-[#0B2B5E] text-white hover:bg-[#123d78]">
+                    <Printer className="mr-2 h-4 w-4" /> Imprimir Recibo Ahora
+                  </Button>
                 </div>
-              </div>
-            </Card>
+              </DialogContent>
+            </Dialog>
           )}
 
           {/* Datos Personales */}
