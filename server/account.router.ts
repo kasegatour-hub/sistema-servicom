@@ -157,6 +157,8 @@ export const accountRouter = router({
       recipientPhone: z.string().optional(),
       notes: z.string().optional(),
       documentCount: z.number().min(1).default(1),
+      docType: z.enum(["simple", "apostillado"]).default("apostillado"),
+      sheetCount: z.number().min(1).default(1),
     }))
     .mutation(async ({ input, ctx }) => {
       const session = getAccountSession(ctx.req);
@@ -168,11 +170,21 @@ export const accountRouter = router({
       const randomSuffix = Math.random().toString(36).substring(2, 7).toUpperCase();
       const code = `DOC-${new Date().getFullYear()}-${randomSuffix}`;
       
-      // Cálculo automático de tarifas documentales: 50 € base + 10 € por cada documento adicional
-      const baseFeeEur = 50;
-      const additionalFeeEur = Math.max(0, input.documentCount - 1) * 10;
-      const totalEur = baseFeeEur + additionalFeeEur;
-      const calculatedNotes = `Tarifa: ${totalEur} EUR (${input.documentCount} doc${input.documentCount > 1 ? 's' : ''}). ${input.notes || ""}`.trim();
+      // Modelo de tarifas exacto:
+      // - Simple: 45 € hasta 4 hojas. Si tiene más de 4 hojas, +2 € por cada hoja adicional.
+      // - Apostillado: 50 € base hasta 5 hojas. Si tiene más de 5 hojas, +10 € adicionales.
+      const docType = input.docType || 'apostillado';
+      const sheetCount = input.sheetCount || 1;
+      let totalEur = 50;
+      let tariffDesc = '';
+      if (docType === 'simple') {
+        totalEur = sheetCount <= 4 ? 45 : 45 + (sheetCount - 4) * 2;
+        tariffDesc = `Documento Simple (${sheetCount} hoja${sheetCount > 1 ? 's' : ''}): ${totalEur} EUR`;
+      } else {
+        totalEur = sheetCount <= 5 ? 50 : 50 + 10;
+        tariffDesc = `Documento Apostillado (${sheetCount} hoja${sheetCount > 1 ? 's' : ''}): ${totalEur} EUR`;
+      }
+      const calculatedNotes = `Tarifa: ${tariffDesc}. ${input.notes || ""}`.trim();
 
       const result = await createShipment(
         orderNumber,

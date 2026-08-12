@@ -524,18 +524,30 @@ export default function AdminDashboard() {
               {/* Información básica */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Cantidad de Documentos</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Documento</label>
+                  <select
+                    {...createForm.register("docType")}
+                    defaultValue="apostillado"
+                    className="w-full p-2.5 bg-white border-2 border-slate-200 rounded-md text-sm font-medium focus:border-primary"
+                  >
+                    <option value="simple">Documentos Simples (45 € hasta 4 hojas, +2 € por hoja)</option>
+                    <option value="apostillado">Documentos Apostillados (50 € base hasta 5 hojas, +10 € adicionales)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Cantidad de Hojas</label>
                   <Input
                     type="number"
                     min="1"
                     defaultValue="1"
-                    {...createForm.register("documentCount", { valueAsNumber: true })}
+                    {...createForm.register("sheetCount", { valueAsNumber: true })}
                     className="border-2 focus:border-primary"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Tarifa: 50 € base + 10 € por doc. adicional</p>
+                  <p className="text-xs text-gray-500 mt-1">Cálculo automático según reglas del negocio</p>
                 </div>
 
-                <div className="md:col-span-2">
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Estado Inicial</label>
                   <Select defaultValue="En agencia" onValueChange={(value) => createForm.setValue("status", value as any)}>
                     <SelectTrigger className="border-2 focus:border-primary">
@@ -548,7 +560,6 @@ export default function AdminDashboard() {
                       <SelectItem value="Entregado">Entregado</SelectItem>
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-gray-500 mt-1">El número de orden y código se generarán automáticamente.</p>
                 </div>
               </div>
 

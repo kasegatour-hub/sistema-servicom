@@ -44,6 +44,8 @@ export default function AccountPage() {
   // Registro de encomienda por usuario
   const [showNewShipment, setShowNewShipment] = useState(false);
   const [documentCount, setDocumentCount] = useState(1);
+  const [docType, setDocType] = useState<"simple" | "apostillado">("simple");
+  const [sheetCount, setSheetCount] = useState(1);
   const [senderName, setSenderName] = useState("");
   const [senderLastName, setSenderLastName] = useState("");
   const [senderDni, setSenderDni] = useState("");
@@ -299,6 +301,8 @@ export default function AccountPage() {
                 e.preventDefault();
                 createShipmentMutation.mutate({
                   documentCount,
+                  docType,
+                  sheetCount,
                   senderName: profileName || senderName,
                   senderLastName: profileLastName || senderLastName,
                   senderDni: profileDni || senderDni,
@@ -313,16 +317,28 @@ export default function AccountPage() {
                         <h3 className="font-bold text-[#0B2B5E]">Detalles del envío de documentos</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label>Cantidad de Documentos</Label>
-                    <Input type="number" min="1" max="4" value={String(documentCount)} onChange={e => {
+                    <Label>Tipo de Documento</Label>
+                    <select
+                      value={docType}
+                      onChange={e => setDocType(e.target.value as "simple" | "apostillado")}
+                      className="w-full mt-1 p-2 bg-white border border-slate-300 rounded-md text-sm font-medium"
+                    >
+                      <option value="simple">Documentos Simples (45 € hasta 4 hojas, +2 € por hoja adicional)</option>
+                      <option value="apostillado">Documentos Apostillados (50 € base hasta 5 hojas, +10 € adicionales)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <Label>Cantidad de Hojas / Documentos</Label>
+                    <Input type="number" min="1" max="50" value={String(sheetCount)} onChange={e => {
                       const val = e.target.value.replace(/^0+/, '');
                       const num = val === '' ? 1 : parseInt(val, 10);
-                      setDocumentCount(isNaN(num) ? 1 : Math.max(1, Math.min(4, num)));
+                      setSheetCount(isNaN(num) ? 1 : Math.max(1, num));
                     }} required className="mt-1 bg-white" />
-                    <p className="text-[10px] text-gray-500 mt-1">Simple (hasta 4 hojas): 45 €. Apostillado (hasta 4 hojas): 50 € + 10 € por adicional. Máximo 4 hojas por registro.</p>
-                  </div>
-                  <div className="flex flex-col justify-center">
-                    <p className="text-xs text-gray-600 italic">El número de orden y código se generarán automáticamente al guardar.</p>
+                    <p className="text-[10px] text-gray-500 mt-1">
+                      {docType === 'simple' 
+                        ? (sheetCount <= 4 ? 'Tarifa: 45 € (Hasta 4 hojas simples)' : `Tarifa: 45 € + ${ (sheetCount - 4) * 2 } € (${sheetCount} hojas) = ${ 45 + (sheetCount - 4) * 2 } €`)
+                        : (sheetCount <= 5 ? 'Tarifa: 50 € (Hasta 5 hojas apostilladas)' : 'Tarifa: 60 € (Más de 5 hojas apostilladas)')}
+                    </p>
                   </div>
                   <div>
                     <Label>Destinatario - Nombres</Label>
