@@ -404,8 +404,8 @@ export default function AccountPage() {
                       onChange={e => setPaymentCondition(e.target.value)}
                       className="w-full mt-1 p-2 bg-white border border-slate-300 rounded-md text-sm font-medium"
                     >
-                      <option value="Pagado en Lima (Jr. de la Unión 518)">Pagado en Lima (Jr. de la Unión 518)</option>
                       <option value="Pagará en ITALIA (Torino)">Pagará en ITALIA (Torino)</option>
+                      <option value="En agencia">En agencia</option>
                     </select>
                   </div>
                   <div className="md:col-span-2">
