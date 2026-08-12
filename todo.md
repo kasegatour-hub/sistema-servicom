@@ -42,9 +42,34 @@
 
 ## Nuevos Requerimientos de Roles y Direcciones
 - [x] Distinguir Master Admin (gestión de usuarios y envíos) y Usuario Registrador (gestión de envíos sin crear usuarios)
-- [x] Permitir al cliente elegir únicamente 'Pagará en Torino' o 'En agencia'
+- [x] Permitir al cliente elegir únicamente 'Pagará en Torino' o 'En agencia' (requisito anterior; posteriormente reemplazado por pago automático pendiente)
 - [x] Permitir a Master y Usuario editar el estado de pago (Pagado / Falta cancelar)
 - [x] Añadir selector de ruta predeterminada (Lima - Torino / Torino - Lima) y direcciones con búsqueda de Google Maps o manual
 
 ## Estado Inicial "Por entregar en agencia"
 - [x] Actualizar base de datos, backend y frontend para usar 'Por entregar en agencia' en lugar de 'En agencia' como estado inicial de cliente
+
+## Ajuste de pago automático para clientes
+- [x] Eliminar del formulario del cliente la selección de pago y crear envíos automáticamente con estado de pago 'Falta cancelar'
+- [x] Permitir que solo Master Admin/Registrador cambien el estado de pago a 'Pagado' o 'Falta cancelar'
+- [x] Mostrar al cliente el estado 'Falta cancelar' en rojo y 'Pagado' en verde en sus envíos y recibos
+- [x] Añadir pruebas para validar el pago automático del cliente y la visualización por color
+
+## Validación de datos personales
+- [x] Validar en backend que nombres y apellidos solo contengan letras y espacios, y que los DNI solo contengan números
+- [x] Aplicar filtros de entrada y mensajes claros en los formularios de cliente y administración
+- [x] Añadir pruebas para rechazar nombres con números y DNI con letras
+
+## Mensajes visibles de validación
+- [x] Añadir textos de ayuda visibles en formularios de cliente y administración para nombres, apellidos y DNI
+- [x] Mostrar errores inline específicos cuando los datos personales no cumplan el formato permitido
+
+## Cobertura adicional requerida antes del checkpoint
+- [x] Añadir prueba backend del procedimiento account.createMyShipment para verificar que siempre fuerza paymentStatus 'Falta cancelar' y no acepta selección de pago
+- [x] Añadir pruebas de presentación rojo/verde para cliente y recibo
+- [x] Hacer que los errores inline de nombres y DNI se activen ante un intento inválido, sin depender únicamente del filtrado silencioso
+- [x] Añadir errores inline específicos al formulario de registro de cuenta del cliente
+
+## Verificación final del flujo real de pago
+- [x] Ejecutar una prueba del procedimiento account.createMyShipment y verificar que la persistencia usa paymentStatus 'Falta cancelar'
+- [x] Añadir una utilidad compartida para la presentación de pago en AccountPage y probar sus clases rojo/verde

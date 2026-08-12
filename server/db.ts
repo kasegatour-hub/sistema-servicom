@@ -376,11 +376,11 @@ export async function updateShipmentStatus(
         recipientDni,
         recipientPhone,
         notes,
-        paymentCondition: paymentCondition || "Pagará en Italia (Torino)",
-        paymentStatus: paymentStatus || "Falta cancelar",
-        route: route || "Lima - Torino",
-        originAddress: originAddress || "",
-        destinationAddress: destinationAddress || "",
+        paymentCondition: paymentCondition ?? shipment.paymentCondition ?? "Pagará en Italia (Torino)",
+        paymentStatus: paymentStatus ?? shipment.paymentStatus ?? "Falta cancelar",
+        route: route ?? shipment.route ?? "Lima - Torino",
+        originAddress: originAddress ?? shipment.originAddress ?? "",
+        destinationAddress: destinationAddress ?? shipment.destinationAddress ?? "",
         updatedAt: new Date(),
       })
       .where(eq(shipments.id, id));

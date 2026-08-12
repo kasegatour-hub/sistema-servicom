@@ -10,6 +10,8 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { buildTrackingUrl, TRACKING_QR_OPTIONS, normalizeTrackingValue } from "@/lib/tracking";
 import { printUserShipmentReceipt } from "@/lib/userReceipt";
+import { digitsOnly, isDigitsOnly, isTextOnly, textOnly } from "@/lib/inputValidation";
+import { getPaymentStatusUi } from "@/lib/paymentStatus";
 import { PhoneInput } from "@/components/PhoneInput";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -57,7 +59,19 @@ export default function AccountPage() {
   const [recipientDni, setRecipientDni] = useState("");
   const [recipientPhone, setRecipientPhone] = useState("+51 ");
   const [notes, setNotes] = useState("");
-  const [paymentCondition, setPaymentCondition] = useState("Pagará en ITALIA (Torino)");
+  const [identityErrors, setIdentityErrors] = useState<Record<string, string>>({});
+
+  const updateTextValue = (field: string, rawValue: string, setter: (value: string) => void, label: string) => {
+    if (rawValue && !isTextOnly(rawValue)) setIdentityErrors(previous => ({ ...previous, [field]: `${label} solo puede contener letras y espacios.` }));
+    else setIdentityErrors(previous => ({ ...previous, [field]: "" }));
+    setter(textOnly(rawValue));
+  };
+
+  const updateDigitsValue = (field: string, rawValue: string, setter: (value: string) => void) => {
+    if (rawValue && !isDigitsOnly(rawValue)) setIdentityErrors(previous => ({ ...previous, [field]: "El DNI solo puede contener números." }));
+    else setIdentityErrors(previous => ({ ...previous, [field]: "" }));
+    setter(digitsOnly(rawValue));
+  };
 
   const utils = trpc.useUtils();
   const { data: me, isLoading: meLoading } = trpc.account.me.useQuery();
@@ -152,6 +166,8 @@ export default function AccountPage() {
 
   // Si ya inició sesión, mostrar su panel personal, datos de perfil y envíos
   if (me) {
+    const receiptPaymentUi = receiptShipment ? getPaymentStatusUi(receiptShipment.paymentStatus) : null;
+
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#eef6fb] to-white pb-12">
         <header className="bg-[#0B2B5E] text-white shadow-md">
@@ -196,7 +212,7 @@ export default function AccountPage() {
                       <div><strong>DNI Destinatario:</strong> {receiptShipment.recipientDni || '-'}</div>
                       <div><strong>Cel. Destinataria:</strong> {receiptShipment.recipientPhone || '-'}</div>
                       <div><strong>Fecha:</strong> {new Date(receiptShipment.createdAt || Date.now()).toLocaleDateString()}</div>
-                      <div className="col-span-2"><strong>Condición de Pago:</strong> {receiptShipment.paymentCondition || "Pagado en Lima (Jr. de la Unión 518)"}</div>
+                      <div className="col-span-2"><strong>Estado de Pago:</strong> <span className={`inline-flex rounded px-2 py-0.5 font-semibold ${receiptPaymentUi?.badgeClass}`}>{receiptPaymentUi?.label}</span></div>
                       <div className="col-span-2"><strong>Descripción / Notas:</strong> {receiptShipment.notes || "Documentación lícita"}</div>
                     </div>
                   </div>
@@ -266,15 +282,21 @@ export default function AccountPage() {
               }} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label>Nombres</Label>
-                  <Input value={profileName} onChange={e => setProfileName(e.target.value)} placeholder="Ej: Juan" required className="mt-1" />
+                  <Input value={profileName} onChange={e => updateTextValue("profileName", e.target.value, setProfileName, "El nombre")} placeholder="Ej: Juan" autoComplete="given-name" required className="mt-1" />
+                  <p className="mt-1 text-xs text-slate-500">Solo letras y espacios.</p>
+                  {identityErrors.profileName && <p className="text-xs text-red-600">{identityErrors.profileName}</p>}
                 </div>
                 <div>
                   <Label>Apellidos</Label>
-                  <Input value={profileLastName} onChange={e => setProfileLastName(e.target.value)} placeholder="Ej: Pérez Gómez" required className="mt-1" />
+                  <Input value={profileLastName} onChange={e => updateTextValue("profileLastName", e.target.value, setProfileLastName, "El apellido")} placeholder="Ej: Pérez Gómez" autoComplete="family-name" required className="mt-1" />
+                  <p className="mt-1 text-xs text-slate-500">Solo letras y espacios.</p>
+                  {identityErrors.profileLastName && <p className="text-xs text-red-600">{identityErrors.profileLastName}</p>}
                 </div>
                 <div>
                   <Label>DNI</Label>
-                  <Input value={profileDni} onChange={e => setProfileDni(e.target.value)} placeholder="Ej: 71234567" required className="mt-1" />
+                  <Input value={profileDni} onChange={e => updateDigitsValue("profileDni", e.target.value, setProfileDni)} placeholder="Ej: 71234567" inputMode="numeric" pattern="[0-9]*" required className="mt-1" />
+                  <p className="mt-1 text-xs text-slate-500">Solo números.</p>
+                  {identityErrors.profileDni && <p className="text-xs text-red-600">{identityErrors.profileDni}</p>}
                 </div>
                 <div>
                   <Label>Teléfono Celular / WhatsApp</Label>
@@ -350,7 +372,6 @@ export default function AccountPage() {
                   recipientDni,
                   recipientPhone,
                   notes,
-                  paymentCondition,
                 });
               }} className="bg-blue-50/50 p-4 rounded-xl mb-6 space-y-4 border border-blue-100">
                         <h3 className="font-bold text-[#0B2B5E]">Detalles del envío de documentos</h3>
@@ -381,32 +402,27 @@ export default function AccountPage() {
                   </div>
                   <div>
                     <Label>Destinatario - Nombres</Label>
-                    <Input value={recipientName} onChange={e => setRecipientName(e.target.value)} placeholder="Ej: María" required className="mt-1 bg-white" />
+                    <Input value={recipientName} onChange={e => updateTextValue("recipientName", e.target.value, setRecipientName, "El nombre")} placeholder="Ej: María" autoComplete="given-name" required className="mt-1 bg-white" />
+                    <p className="mt-1 text-xs text-slate-500">Solo letras y espacios.</p>
+                    {identityErrors.recipientName && <p className="text-xs text-red-600">{identityErrors.recipientName}</p>}
                   </div>
                   <div>
                     <Label>Destinatario - Apellidos</Label>
-                    <Input value={recipientLastName} onChange={e => setRecipientLastName(e.target.value)} placeholder="Ej: López" required className="mt-1 bg-white" />
+                    <Input value={recipientLastName} onChange={e => updateTextValue("recipientLastName", e.target.value, setRecipientLastName, "El apellido")} placeholder="Ej: López" autoComplete="family-name" required className="mt-1 bg-white" />
+                    <p className="mt-1 text-xs text-slate-500">Solo letras y espacios.</p>
+                    {identityErrors.recipientLastName && <p className="text-xs text-red-600">{identityErrors.recipientLastName}</p>}
                   </div>
                   <div>
                     <Label>Destinatario - DNI</Label>
-                    <Input value={recipientDni} onChange={e => setRecipientDni(e.target.value)} placeholder="Ej: 41234567" required className="mt-1 bg-white" />
+                    <Input value={recipientDni} onChange={e => updateDigitsValue("recipientDni", e.target.value, setRecipientDni)} placeholder="Ej: 41234567" inputMode="numeric" pattern="[0-9]*" required className="mt-1 bg-white" />
+                    <p className="mt-1 text-xs text-slate-500">Solo números.</p>
+                    {identityErrors.recipientDni && <p className="text-xs text-red-600">{identityErrors.recipientDni}</p>}
                   </div>
                   <div>
                     <Label>Destinatario - Teléfono</Label>
                     <div className="mt-1">
                       <PhoneInput value={recipientPhone} onChange={setRecipientPhone} placeholder="987654321" required />
                     </div>
-                  </div>
-                  <div className="md:col-span-2">
-                    <Label>Condición de Pago</Label>
-                    <select
-                      value={paymentCondition}
-                      onChange={e => setPaymentCondition(e.target.value)}
-                      className="w-full mt-1 p-2 bg-white border border-slate-300 rounded-md text-sm font-medium"
-                    >
-                      <option value="Pagará en ITALIA (Torino)">Pagará en ITALIA (Torino)</option>
-                      <option value="En agencia">En agencia</option>
-                    </select>
                   </div>
                   <div className="md:col-span-2">
                     <Label>Notas / Contenido</Label>
@@ -439,8 +455,8 @@ export default function AccountPage() {
                         <span className={`rounded px-2 py-0.5 text-xs font-semibold ${shipment.status === 'Entregado' ? 'bg-blue-600 text-white' : shipment.status === 'Por entregar en agencia' ? 'bg-sky-100 text-sky-800' : 'bg-orange-100 text-[#F28C00]'}`}>
                           {shipment.status}
                         </span>
-                        <span className={`rounded px-2 py-0.5 text-xs font-semibold ${String(shipment.paymentCondition || '').includes('Lima') ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
-                          {String(shipment.paymentCondition || '').includes('Lima') ? 'Pagado en Lima' : 'Pagará en Torino'}
+                        <span className={`rounded px-2 py-0.5 text-xs font-semibold ${getPaymentStatusUi(shipment.paymentStatus).badgeClass}`}>
+                          {getPaymentStatusUi(shipment.paymentStatus).label}
                         </span>
                       </div>
                       <p className="text-sm text-slate-600 mt-1">
@@ -511,15 +527,21 @@ export default function AccountPage() {
               <>
                 <div>
                   <Label htmlFor="register-name">Nombres</Label>
-                  <Input id="register-name" value={registerName} onChange={event => setRegisterName(event.target.value)} className="mt-2" required />
+                  <Input id="register-name" value={registerName} onChange={event => updateTextValue("registerName", event.target.value, setRegisterName, "El nombre")} autoComplete="given-name" className="mt-2" required />
+                  <p className="mt-1 text-xs text-slate-500">Solo letras y espacios.</p>
+                  {identityErrors.registerName && <p className="text-xs text-red-600">{identityErrors.registerName}</p>}
                 </div>
                 <div>
                   <Label htmlFor="register-last-name">Apellidos</Label>
-                  <Input id="register-last-name" value={registerLastName} onChange={event => setRegisterLastName(event.target.value)} className="mt-2" required />
+                  <Input id="register-last-name" value={registerLastName} onChange={event => updateTextValue("registerLastName", event.target.value, setRegisterLastName, "El apellido")} autoComplete="family-name" className="mt-2" required />
+                  <p className="mt-1 text-xs text-slate-500">Solo letras y espacios.</p>
+                  {identityErrors.registerLastName && <p className="text-xs text-red-600">{identityErrors.registerLastName}</p>}
                 </div>
                 <div>
                   <Label htmlFor="register-dni">DNI</Label>
-                  <Input id="register-dni" value={registerDni} onChange={event => setRegisterDni(event.target.value)} className="mt-2" minLength={8} required />
+                  <Input id="register-dni" value={registerDni} onChange={event => updateDigitsValue("registerDni", event.target.value, setRegisterDni)} inputMode="numeric" pattern="[0-9]*" className="mt-2" minLength={8} required />
+                  <p className="mt-1 text-xs text-slate-500">Solo números; mínimo 8 dígitos.</p>
+                  {identityErrors.registerDni && <p className="text-xs text-red-600">{identityErrors.registerDni}</p>}
                 </div>
                 <div>
                   <Label htmlFor="account-phone">Celular con código de país (opcional)</Label>

@@ -15,21 +15,51 @@ import { Lock, LogOut, Plus, RefreshCw, Download, Printer } from "lucide-react";
 import QRCode from "qrcode";
 import { buildTrackingUrl, TRACKING_QR_OPTIONS } from "@/lib/tracking";
 import { PhoneInput } from "@/components/PhoneInput";
+import { digitsOnly, isDigitsOnly, isTextOnly, textOnly } from "@/lib/inputValidation";
+
+const textRegisterOptions = (form: any, field: string, label: string) => ({
+  setValueAs: textOnly,
+  onChange: (event: any) => {
+    const rawValue = event.target.value;
+    if (rawValue && !isTextOnly(rawValue)) form.setError(field, { type: "pattern", message: `${label} solo puede contener letras y espacios.` });
+    else form.clearErrors(field);
+    event.target.value = textOnly(rawValue);
+  },
+});
+
+const digitsRegisterOptions = (form: any, field: string) => ({
+  setValueAs: digitsOnly,
+  onChange: (event: any) => {
+    const rawValue = event.target.value;
+    if (rawValue && !isDigitsOnly(rawValue)) form.setError(field, { type: "pattern", message: "El DNI solo puede contener números." });
+    else form.clearErrors(field);
+    event.target.value = digitsOnly(rawValue);
+  },
+});
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido"),
   password: z.string().min(1, "Contraseña requerida"),
 });
 
+const optionalTextField = z.union([
+  z.literal(""),
+  z.string().regex(/^[A-Za-z\u00C0-\u024F]+(?: +[A-Za-z\u00C0-\u024F]+)*$/, "Solo letras y espacios."),
+]).optional();
+const optionalDniField = z.union([
+  z.literal(""),
+  z.string().regex(/^\d+$/, "El DNI solo puede contener números."),
+]).optional();
+
 const createShipmentSchema = z.object({
   status: z.enum(["Por entregar en agencia", "En agencia", "En tránsito", "En destino", "Entregado"]),
-  senderName: z.string().optional(),
-  senderLastName: z.string().optional(),
-  senderDni: z.string().optional(),
+  senderName: optionalTextField,
+  senderLastName: optionalTextField,
+  senderDni: optionalDniField,
   senderPhone: z.string().optional(),
-  recipientName: z.string().optional(),
-  recipientLastName: z.string().optional(),
-  recipientDni: z.string().optional(),
+  recipientName: optionalTextField,
+  recipientLastName: optionalTextField,
+  recipientDni: optionalDniField,
   recipientPhone: z.string().optional(),
   notes: z.string().optional(),
   documentCount: z.number().min(1).default(1),
@@ -46,13 +76,13 @@ const updateStatusSchema = z.object({
   shipmentId: z.number(),
   newStatus: z.enum(["Por entregar en agencia", "En agencia", "En tránsito", "En destino", "Entregado"]),
   description: z.string().optional(),
-  senderName: z.string().optional(),
-  senderLastName: z.string().optional(),
-  senderDni: z.string().optional(),
+  senderName: optionalTextField,
+  senderLastName: optionalTextField,
+  senderDni: optionalDniField,
   senderPhone: z.string().optional(),
-  recipientName: z.string().optional(),
-  recipientLastName: z.string().optional(),
-  recipientDni: z.string().optional(),
+  recipientName: optionalTextField,
+  recipientLastName: optionalTextField,
+  recipientDni: optionalDniField,
   recipientPhone: z.string().optional(),
   notes: z.string().optional(),
   paymentCondition: z.string().optional(),
@@ -84,6 +114,7 @@ export default function AdminDashboard() {
 
   // Mutations
   const loginMutation = trpc.admin.login.useMutation();
+  const logoutMutation = trpc.admin.logout.useMutation();
   const createMutation = trpc.admin.createShipment.useMutation();
   const updateMutation = trpc.admin.updateStatus.useMutation();
   const deleteMutation = trpc.admin.deleteShipment.useMutation();
@@ -121,6 +152,11 @@ export default function AdminDashboard() {
       recipientDni: '',
       recipientPhone: '',
       notes: '',
+      paymentStatus: 'Falta cancelar',
+      route: 'Lima - Torino',
+      paymentCondition: 'Pagará en Italia (Torino)',
+      originAddress: '',
+      destinationAddress: '',
     },
   });
 
@@ -220,6 +256,9 @@ export default function AdminDashboard() {
       const trackingUrl = buildTrackingUrl(printShipment.orderNumber, printShipment.code);
       const brandLogo = new URL('/manus-storage/servicom_logo_final_e7ce35aa.png', window.location.origin).href;
       const today = new Date().toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' });
+      const paymentIsPaid = printShipment.paymentStatus === 'Pagado';
+      const paymentColor = paymentIsPaid ? '#059669' : '#e11d48';
+      const paymentBackground = paymentIsPaid ? '#ecfdf5' : '#fff1f2';
       const html = `
         <!DOCTYPE html>
         <html>
@@ -307,7 +346,7 @@ export default function AdminDashboard() {
           <div class="section">
             <div class="section-title">Condición de Pago y Descripción</div>
             <div style="font-size: 12px; border: 1px solid #eee; padding: 8px; background: #fafafa;">
-              <strong>Condición de Pago:</strong> [${(printShipment.paymentCondition || '').includes('Lima') ? 'X' : ' '}] Pagado en Lima (Jr. de la Unión 518) &nbsp;&nbsp;&nbsp; [${!(printShipment.paymentCondition || '').includes('Lima') ? 'X' : ' '}] Pagará en ITALIA (Torino)<br><br>
+              <strong>Estado de Pago:</strong> <span style="color:${paymentColor};background:${paymentBackground};padding:2px 8px;border-radius:4px;font-weight:bold">[${paymentIsPaid ? 'X' : ' '}] Pagado &nbsp;&nbsp;&nbsp; [${!paymentIsPaid ? 'X' : ' '}] Falta cancelar</span><br><br>
               ${printShipment.notes || 'Documentación Lícita'}
             </div>
           </div>
@@ -433,15 +472,16 @@ export default function AdminDashboard() {
     });
   }, [shipments, sortOrder, searchTerm]);
 
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    setAdmin(null);
-    loginForm.reset();
-    toast.success("Sesión cerrada");
-    // Redirigir a la página principal
-    setTimeout(() => {
+  const handleLogout = async () => {
+    try {
+      await logoutMutation.mutateAsync();
+    } finally {
+      setIsLoggedIn(false);
+      setAdmin(null);
+      loginForm.reset();
+      toast.success("Sesión cerrada");
       window.location.href = '/';
-    }, 500);
+    }
   };
 
   if (!isLoggedIn) {
@@ -510,7 +550,10 @@ export default function AdminDashboard() {
             <p className="text-sm opacity-90">Servicom Internacional - Gestión de Encomiendas</p>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-sm">{admin?.name}</span>
+            <div className="text-right">
+              <span className="block text-sm">{admin?.name}</span>
+              <span className="block text-xs opacity-80">{admin?.role === "superadmin" ? "Master Admin" : "Registrador"}</span>
+            </div>
             <Button
               onClick={handleLogout}
               variant="outline"
@@ -594,25 +637,35 @@ export default function AdminDashboard() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Nombre</label>
                     <Input
                       placeholder="Nombre"
-                      {...createForm.register("senderName")}
+                      inputMode="text"
+                      {...createForm.register("senderName", textRegisterOptions(createForm, "senderName", "El nombre"))}
                       className="border-2 focus:border-primary"
                     />
+                    <p className="mt-1 text-xs text-gray-500">Solo letras y espacios.</p>
+                    {createForm.formState.errors.senderName?.message && <p className="text-xs text-red-600">{String(createForm.formState.errors.senderName.message)}</p>}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Apellido</label>
                     <Input
                       placeholder="Apellido"
-                      {...createForm.register("senderLastName")}
+                      inputMode="text"
+                      {...createForm.register("senderLastName", textRegisterOptions(createForm, "senderLastName", "El apellido"))}
                       className="border-2 focus:border-primary"
                     />
+                    <p className="mt-1 text-xs text-gray-500">Solo letras y espacios.</p>
+                    {createForm.formState.errors.senderLastName?.message && <p className="text-xs text-red-600">{String(createForm.formState.errors.senderLastName.message)}</p>}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">DNI</label>
                     <Input
                       placeholder="DNI"
-                      {...createForm.register("senderDni")}
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      {...createForm.register("senderDni", digitsRegisterOptions(createForm, "senderDni"))}
                       className="border-2 focus:border-primary"
                     />
+                    <p className="mt-1 text-xs text-gray-500">Solo números.</p>
+                    {createForm.formState.errors.senderDni?.message && <p className="text-xs text-red-600">{String(createForm.formState.errors.senderDni.message)}</p>}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Teléfono</label>
@@ -633,25 +686,35 @@ export default function AdminDashboard() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Nombre</label>
                     <Input
                       placeholder="Nombre"
-                      {...createForm.register("recipientName")}
+                      inputMode="text"
+                      {...createForm.register("recipientName", textRegisterOptions(createForm, "recipientName", "El nombre"))}
                       className="border-2 focus:border-primary"
                     />
+                    <p className="mt-1 text-xs text-gray-500">Solo letras y espacios.</p>
+                    {createForm.formState.errors.recipientName?.message && <p className="text-xs text-red-600">{String(createForm.formState.errors.recipientName.message)}</p>}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Apellido</label>
                     <Input
                       placeholder="Apellido"
-                      {...createForm.register("recipientLastName")}
+                      inputMode="text"
+                      {...createForm.register("recipientLastName", textRegisterOptions(createForm, "recipientLastName", "El apellido"))}
                       className="border-2 focus:border-primary"
                     />
+                    <p className="mt-1 text-xs text-gray-500">Solo letras y espacios.</p>
+                    {createForm.formState.errors.recipientLastName?.message && <p className="text-xs text-red-600">{String(createForm.formState.errors.recipientLastName.message)}</p>}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">DNI</label>
                     <Input
                       placeholder="DNI"
-                      {...createForm.register("recipientDni")}
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      {...createForm.register("recipientDni", digitsRegisterOptions(createForm, "recipientDni"))}
                       className="border-2 focus:border-primary"
                     />
+                    <p className="mt-1 text-xs text-gray-500">Solo números.</p>
+                    {createForm.formState.errors.recipientDni?.message && <p className="text-xs text-red-600">{String(createForm.formState.errors.recipientDni.message)}</p>}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Teléfono</label>
@@ -782,8 +845,8 @@ export default function AdminDashboard() {
                           }`}>
                             {shipment.status}
                           </span>
-                          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${String(shipment.paymentCondition || '').includes('Lima') ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
-                            {String(shipment.paymentCondition || '').includes('Lima') ? 'Pagado en Lima' : 'Pagará en Torino'}
+                          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${shipment.paymentStatus === 'Pagado' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                            {shipment.paymentStatus === 'Pagado' ? 'Pagado' : 'Falta cancelar'}
                           </span>
                         </div>
                       </TableCell>
@@ -806,6 +869,11 @@ export default function AdminDashboard() {
                                 recipientDni: shipment.recipientDni || "",
                                 recipientPhone: shipment.recipientPhone || "",
                                 notes: shipment.notes || "",
+                                paymentStatus: shipment.paymentStatus || "Falta cancelar",
+                                route: shipment.route || "Lima - Torino",
+                                paymentCondition: shipment.paymentCondition || "Pagará en Italia (Torino)",
+                                originAddress: shipment.originAddress || "",
+                                destinationAddress: shipment.destinationAddress || "",
                               });
                               setShowUpdateForm(true);
                             }}
@@ -881,20 +949,32 @@ export default function AdminDashboard() {
 
                 <div className="border-t pt-4">
                   <h4 className="font-semibold text-gray-900 mb-3">Remitente</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <Input placeholder="Nombre" {...updateForm.register("senderName")} />
-                    <Input placeholder="Apellido" {...updateForm.register("senderLastName")} />
-                    <Input placeholder="DNI" {...updateForm.register("senderDni")} />
+                  <div className="grid grid-cols-1 gap-3">
+                    <Input placeholder="Nombre" inputMode="text" {...updateForm.register("senderName", textRegisterOptions(updateForm, "senderName", "El nombre"))} />
+                    <p className="text-xs text-gray-500">Solo letras y espacios.</p>
+                    {updateForm.formState.errors.senderName?.message && <p className="text-xs text-red-600">{String(updateForm.formState.errors.senderName.message)}</p>}
+                    <Input placeholder="Apellido" inputMode="text" {...updateForm.register("senderLastName", textRegisterOptions(updateForm, "senderLastName", "El apellido"))} />
+                    <p className="text-xs text-gray-500">Solo letras y espacios.</p>
+                    {updateForm.formState.errors.senderLastName?.message && <p className="text-xs text-red-600">{String(updateForm.formState.errors.senderLastName.message)}</p>}
+                    <Input placeholder="DNI" inputMode="numeric" pattern="[0-9]*" {...updateForm.register("senderDni", digitsRegisterOptions(updateForm, "senderDni"))} />
+                    <p className="text-xs text-gray-500">Solo números.</p>
+                    {updateForm.formState.errors.senderDni?.message && <p className="text-xs text-red-600">{String(updateForm.formState.errors.senderDni.message)}</p>}
                     <Input placeholder="Teléfono" {...updateForm.register("senderPhone")} />
                   </div>
                 </div>
 
                 <div className="border-t pt-4">
                   <h4 className="font-semibold text-gray-900 mb-3">Destinatario</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <Input placeholder="Nombre" {...updateForm.register("recipientName")} />
-                    <Input placeholder="Apellido" {...updateForm.register("recipientLastName")} />
-                    <Input placeholder="DNI" {...updateForm.register("recipientDni")} />
+                  <div className="grid grid-cols-1 gap-3">
+                    <Input placeholder="Nombre" inputMode="text" {...updateForm.register("recipientName", textRegisterOptions(updateForm, "recipientName", "El nombre"))} />
+                    <p className="text-xs text-gray-500">Solo letras y espacios.</p>
+                    {updateForm.formState.errors.recipientName?.message && <p className="text-xs text-red-600">{String(updateForm.formState.errors.recipientName.message)}</p>}
+                    <Input placeholder="Apellido" inputMode="text" {...updateForm.register("recipientLastName", textRegisterOptions(updateForm, "recipientLastName", "El apellido"))} />
+                    <p className="text-xs text-gray-500">Solo letras y espacios.</p>
+                    {updateForm.formState.errors.recipientLastName?.message && <p className="text-xs text-red-600">{String(updateForm.formState.errors.recipientLastName.message)}</p>}
+                    <Input placeholder="DNI" inputMode="numeric" pattern="[0-9]*" {...updateForm.register("recipientDni", digitsRegisterOptions(updateForm, "recipientDni"))} />
+                    <p className="text-xs text-gray-500">Solo números.</p>
+                    {updateForm.formState.errors.recipientDni?.message && <p className="text-xs text-red-600">{String(updateForm.formState.errors.recipientDni.message)}</p>}
                     <Input placeholder="Teléfono" {...updateForm.register("recipientPhone")} />
                   </div>
                 </div>

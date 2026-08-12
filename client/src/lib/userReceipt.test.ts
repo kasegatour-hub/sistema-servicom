@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildReceiptUrl, resolveReceiptAssetUrl } from "./userReceipt";
+import { buildReceiptUrl, getPaymentStatusPresentation, resolveReceiptAssetUrl } from "./userReceipt";
 
 describe("receipt window helpers", () => {
   it("resolves the logo against the published site origin", () => {
@@ -12,5 +12,20 @@ describe("receipt window helpers", () => {
     expect(buildReceiptUrl("https://servicominternacional.manus.space", "7664444504", "DOC-2026-H2NQU")).toBe(
       "https://servicominternacional.manus.space/recibo?order=7664444504&code=DOC-2026-H2NQU",
     );
+  });
+
+  it("uses green for paid and red for pending payment", () => {
+    expect(getPaymentStatusPresentation("Pagado")).toMatchObject({
+      label: "Pagado",
+      color: "#059669",
+      background: "#ecfdf5",
+      isPaid: true,
+    });
+    expect(getPaymentStatusPresentation("Falta cancelar")).toMatchObject({
+      label: "Falta cancelar",
+      color: "#e11d48",
+      background: "#fff1f2",
+      isPaid: false,
+    });
   });
 });

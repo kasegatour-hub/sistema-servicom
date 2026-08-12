@@ -27,18 +27,39 @@ import {
   verificationExpiry,
 } from "./localAuth";
 import { clearAccountSession, getAccountSession, setAccountSession } from "./localSession";
+import { dniSchema, optionalDniSchema, optionalPersonNameSchema, personNameSchema } from "./inputValidation";
 
 const passwordSchema = z.string().min(8, "La contraseña debe tener al menos 8 caracteres.");
 const emailSchema = z.string().email("Correo electrónico inválido.");
+
+export const CLIENT_PAYMENT_DEFAULTS = {
+  condition: "Pagará en ITALIA (Torino)",
+  status: "Falta cancelar",
+} as const;
+
+export const clientShipmentInputSchema = z.object({
+  senderName: optionalPersonNameSchema,
+  senderLastName: optionalPersonNameSchema,
+  senderDni: optionalDniSchema,
+  senderPhone: z.string().optional(),
+  recipientName: optionalPersonNameSchema,
+  recipientLastName: optionalPersonNameSchema,
+  recipientDni: optionalDniSchema,
+  recipientPhone: z.string().optional(),
+  notes: z.string().optional(),
+  documentCount: z.number().min(1).default(1),
+  docType: z.enum(["simple", "apostillado"]).default("apostillado"),
+  sheetCount: z.number().min(1).default(1),
+}).strict();
 
 export const accountRouter = router({
   register: publicProcedure
     .input(z.object({
       email: emailSchema,
       phone: z.string().min(8).optional(),
-      name: z.string().min(1, "Nombres requeridos"),
-      lastName: z.string().min(1, "Apellidos requeridos"),
-      dni: z.string().min(8, "DNI requerido"),
+      name: personNameSchema,
+      lastName: personNameSchema,
+      dni: dniSchema,
       password: passwordSchema,
     }))
     .mutation(async ({ input, ctx }) => {
@@ -118,9 +139,9 @@ export const accountRouter = router({
 
   updateProfile: publicProcedure
     .input(z.object({
-      name: z.string().min(1, "Nombre requerido"),
-      lastName: z.string().min(1, "Apellido requerido"),
-      dni: z.string().min(8, "DNI requerido"),
+      name: personNameSchema,
+      lastName: personNameSchema,
+      dni: dniSchema,
       phone: z.string().min(8, "Teléfono requerido"),
     }))
     .mutation(async ({ input, ctx }) => {
@@ -146,21 +167,7 @@ export const accountRouter = router({
   }),
 
   createMyShipment: publicProcedure
-    .input(z.object({
-      senderName: z.string().optional(),
-      senderLastName: z.string().optional(),
-      senderDni: z.string().optional(),
-      senderPhone: z.string().optional(),
-      recipientName: z.string().optional(),
-      recipientLastName: z.string().optional(),
-      recipientDni: z.string().optional(),
-      recipientPhone: z.string().optional(),
-      notes: z.string().optional(),
-      documentCount: z.number().min(1).default(1),
-      docType: z.enum(["simple", "apostillado"]).default("apostillado"),
-      sheetCount: z.number().min(1).default(1),
-      paymentCondition: z.string().optional(),
-    }))
+    .input(clientShipmentInputSchema)
     .mutation(async ({ input, ctx }) => {
       const session = getAccountSession(ctx.req);
       if (!session) {
@@ -206,7 +213,8 @@ export const accountRouter = router({
         input.recipientPhone,
         calculatedNotes,
         session.accountId,
-        input.paymentCondition
+        CLIENT_PAYMENT_DEFAULTS.condition,
+        CLIENT_PAYMENT_DEFAULTS.status
       );
       if (!result) {
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No se pudo registrar el envío." });

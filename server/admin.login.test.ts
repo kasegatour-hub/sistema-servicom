@@ -10,6 +10,7 @@ function createPublicContext(): TrpcContext {
       headers: {},
     } as TrpcContext["req"],
     res: {
+      cookie: () => {},
       clearCookie: () => {},
     } as TrpcContext["res"],
   };
@@ -50,6 +51,15 @@ describe("admin.login", () => {
     ).rejects.toMatchObject({
       code: "UNAUTHORIZED",
       message: "Credenciales inválidas",
+    });
+  });
+
+  it("protects shipment queries when no admin session exists", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+
+    await expect(caller.admin.getAllShipments()).rejects.toMatchObject({
+      code: "UNAUTHORIZED",
+      message: "Sesión administrativa requerida",
     });
   });
 });

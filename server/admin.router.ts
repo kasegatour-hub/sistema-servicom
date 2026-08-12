@@ -8,9 +8,27 @@ function buildTrackingPath(orderNumber: string, code: string): string {
 }
 import { publicProcedure, router } from "./_core/trpc";
 import { getAdminByEmail, getAllShipments, createShipment, updateShipmentStatus, deleteShipment } from "./db";
+import { hashPassword, verifyPassword } from "./localAuth";
+import { clearAdminSession, getAdminSession, setAdminSession } from "./adminSession";
 import { admins } from "../drizzle/schema";
 import { getDb } from "./db";
 import { eq } from "drizzle-orm";
+import { optionalDniSchema, optionalPersonNameSchema, personNameSchema } from "./inputValidation";
+
+const adminProcedure = publicProcedure.use(({ ctx, next }) => {
+  const adminSession = getAdminSession(ctx.req);
+  if (!adminSession) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "Sesión administrativa requerida" });
+  }
+  return next({ ctx: { ...ctx, adminSession } });
+});
+
+const masterAdminProcedure = adminProcedure.use(({ ctx, next }) => {
+  if (ctx.adminSession.role !== "superadmin") {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Solo el Master Admin puede gestionar usuarios" });
+  }
+  return next({ ctx });
+});
 
 export const adminRouter = router({
   login: publicProcedure
@@ -18,39 +36,48 @@ export const adminRouter = router({
       email: z.string().email(),
       password: z.string(),
     }))
-    .mutation(async ({ input }) => {
-      // Verificar que sea el email correcto
+    .mutation(async ({ input, ctx }) => {
       const email = input.email.trim().toLowerCase();
-      if (email !== 'peruservicom@gmail.com') {
-        throw new TRPCError({
-          code: 'UNAUTHORIZED',
-          message: 'Credenciales inválidas',
-        });
-      }
-      
       const receivedPassword = input.password.replace(/\r?\n/g, "").trim();
-      const expectedPassword = '@m*M.mTt@~ADkHpvBbLm+5CD=3ao@DngYa+3Kea6U=qX%r9EJ8-1QFc#,hD3r4Dsis9:9^i-zZJ}pT#aQAcnm^+XMAhV9u3VdrZ3.';
-      console.log("[Admin Login Debug]", {
-        lengthReceived: receivedPassword.length,
-        lengthExpected: expectedPassword.length,
-        matches: receivedPassword === expectedPassword,
-      });
-      if (receivedPassword !== expectedPassword && input.password !== expectedPassword) {
-        throw new TRPCError({
-          code: 'UNAUTHORIZED',
-          message: 'Credenciales inválidas',
-        });
+      const masterEmail = "peruservicom@gmail.com";
+      const masterPassword = "@m*M.mTt@~ADkHpvBbLm+5CD=3ao@DngYa+3Kea6U=qX%r9EJ8-1QFc#,hD3r4Dsis9:9^i-zZJ}pT#aQAcnm^+XMAhV9u3VdrZ3.";
+
+      if (email === masterEmail && receivedPassword === masterPassword) {
+        setAdminSession(ctx.req, ctx.res, 1, "superadmin");
+        return { id: 1, email: masterEmail, name: "Master Admin Servicom", role: "superadmin" as const };
       }
 
-      return {
-        id: 1,
-        email: 'peruservicom@gmail.com',
-        name: 'Master Admin Servicom',
-        role: 'superadmin' as const,
-      };
+      const admin = await getAdminByEmail(email);
+      if (!admin) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Credenciales inválidas" });
+      }
+
+      let validPassword = false;
+      if (admin.password.startsWith("scrypt$")) {
+        validPassword = await verifyPassword(receivedPassword, admin.password);
+      } else if (admin.password === receivedPassword) {
+        validPassword = true;
+        const db = await getDb();
+        if (db) {
+          await db.update(admins).set({ password: await hashPassword(receivedPassword) }).where(eq(admins.id, admin.id));
+        }
+      }
+
+      if (!validPassword) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Credenciales inválidas" });
+      }
+
+      const role = admin.role === "superadmin" ? "superadmin" : "admin";
+      setAdminSession(ctx.req, ctx.res, admin.id, role);
+      return { id: admin.id, email: admin.email, name: admin.name, role };
     }),
 
-  getAllShipments: publicProcedure
+  logout: publicProcedure.mutation(async ({ ctx }) => {
+    clearAdminSession(ctx.req, ctx.res);
+    return { success: true };
+  }),
+
+  getAllShipments: adminProcedure
     .query(async () => {
       const shipments = await getAllShipments();
       return shipments.map(s => ({
@@ -59,16 +86,16 @@ export const adminRouter = router({
       }));
     }),
 
-  createShipment: publicProcedure
+  createShipment: adminProcedure
     .input(z.object({
       status: z.enum(["Por entregar en agencia", "En agencia", "En tránsito", "En destino", "Entregado"]),
-      senderName: z.string().optional(),
-      senderLastName: z.string().optional(),
-      senderDni: z.string().optional(),
+      senderName: optionalPersonNameSchema,
+      senderLastName: optionalPersonNameSchema,
+      senderDni: optionalDniSchema,
       senderPhone: z.string().optional(),
-      recipientName: z.string().optional(),
-      recipientLastName: z.string().optional(),
-      recipientDni: z.string().optional(),
+      recipientName: optionalPersonNameSchema,
+      recipientLastName: optionalPersonNameSchema,
+      recipientDni: optionalDniSchema,
       recipientPhone: z.string().optional(),
       notes: z.string().optional(),
       documentCount: z.number().min(1).default(1),
@@ -128,18 +155,18 @@ export const adminRouter = router({
       return { success: true, message: 'Envío de documento creado exitosamente con orden y código automáticos', trackingUrl };
     }),
 
-  updateStatus: publicProcedure
+  updateStatus: adminProcedure
     .input(z.object({
       shipmentId: z.number(),
       newStatus: z.enum(["Por entregar en agencia", "En agencia", "En tránsito", "En destino", "Entregado"]),
       description: z.string().optional(),
-      senderName: z.string().optional(),
-      senderLastName: z.string().optional(),
-      senderDni: z.string().optional(),
+      senderName: optionalPersonNameSchema,
+      senderLastName: optionalPersonNameSchema,
+      senderDni: optionalDniSchema,
       senderPhone: z.string().optional(),
-      recipientName: z.string().optional(),
-      recipientLastName: z.string().optional(),
-      recipientDni: z.string().optional(),
+      recipientName: optionalPersonNameSchema,
+      recipientLastName: optionalPersonNameSchema,
+      recipientDni: optionalDniSchema,
       recipientPhone: z.string().optional(),
       notes: z.string().optional(),
       paymentCondition: z.string().optional(),
@@ -177,7 +204,7 @@ export const adminRouter = router({
       return { success: true };
     }),
 
-  deleteShipment: publicProcedure
+  deleteShipment: adminProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const result = await deleteShipment(input.id);
@@ -190,17 +217,17 @@ export const adminRouter = router({
       return { success: true, message: 'Encomienda eliminada exitosamente' };
     }),
 
-  listAdmins: publicProcedure.query(async () => {
+  listAdmins: masterAdminProcedure.query(async () => {
     const db = await getDb();
     if (!db) return [];
     return await db.select().from(admins);
   }),
 
-  createAdmin: publicProcedure
+  createAdmin: masterAdminProcedure
     .input(z.object({
       email: z.string().email(),
       password: z.string().min(4),
-      name: z.string().min(2),
+      name: personNameSchema,
       role: z.enum(["admin", "superadmin"]).default("admin"),
     }))
     .mutation(async ({ input }) => {
@@ -214,7 +241,7 @@ export const adminRouter = router({
 
       await db.insert(admins).values({
         email: input.email.trim().toLowerCase(),
-        password: input.password,
+        password: await hashPassword(input.password),
         name: input.name,
         role: input.role,
       });
@@ -222,7 +249,7 @@ export const adminRouter = router({
       return { success: true };
     }),
 
-  deleteAdmin: publicProcedure
+  deleteAdmin: masterAdminProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -234,12 +261,12 @@ export const adminRouter = router({
       return { success: true };
     }),
 
-  updateAdminPassword: publicProcedure
+  updateAdminPassword: masterAdminProcedure
     .input(z.object({ id: z.number(), newPassword: z.string().min(4) }))
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database error" });
-      await db.update(admins).set({ password: input.newPassword }).where(eq(admins.id, input.id));
+      await db.update(admins).set({ password: await hashPassword(input.newPassword) }).where(eq(admins.id, input.id));
       return { success: true };
     }),
 });
