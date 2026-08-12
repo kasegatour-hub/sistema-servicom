@@ -297,8 +297,11 @@ export default function AdminDashboard() {
           </div>
 
           <div class="section">
-            <div class="section-title">Descripción (Contenido)</div>
-            <div class="value" style="min-height: 40px; border: 1px solid #eee; padding: 5px;">${printShipment.notes || 'Documentación Lícita'}</div>
+            <div class="section-title">Condición de Pago y Descripción</div>
+            <div style="font-size: 12px; border: 1px solid #eee; padding: 8px; background: #fafafa;">
+              <strong>Condición de Pago:</strong> [${(printShipment.paymentCondition || '').includes('Lima') ? 'X' : ' '}] Pagado en Lima (Jr. de la Unión 518) &nbsp;&nbsp;&nbsp; [${!(printShipment.paymentCondition || '').includes('Lima') ? 'X' : ' '}] Pagará en ITALIA (Torino)<br><br>
+              ${printShipment.notes || 'Documentación Lícita'}
+            </div>
           </div>
 
             <div class="qr-container">
@@ -318,16 +321,18 @@ export default function AdminDashboard() {
           <!-- TICKET RECORTABLE PARA TORINO -->
           <div class="cut-ticket">
             <div class="cut-icon">✂</div>
-            <div class="ticket-header">CONTROL DE ENTREGA - TORINO</div>
-            <div style="display: flex; justify-content: space-between;">
+            <div class="ticket-header">CONTROL DE ENTREGA - TORINO, ITALIA</div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
               <div style="flex: 1;">
-                <div class="row"><div class="label" style="width:80px">ORDEN:</div><div class="value"><strong>${printShipment.orderNumber}</strong></div></div>
-                <div class="row"><div class="label" style="width:80px">DESTINO:</div><div class="value">TORINO, ITALIA</div></div>
-                <div class="row"><div class="label" style="width:80px">RECEPTOR:</div><div class="value">${printShipment.recipientName} ${printShipment.recipientLastName}</div></div>
+                <div class="row"><div class="label" style="width:130px">ORDEN:</div><div class="value"><strong>${printShipment.orderNumber}</strong></div></div>
+                <div class="row"><div class="label" style="width:130px">CÓDIGO:</div><div class="value"><strong>${printShipment.code}</strong></div></div>
+                <div class="row"><div class="label" style="width:130px">DESTINO:</div><div class="value">TORINO, ITALIA</div></div>
+                <div class="row"><div class="label" style="width:130px">RECEPTOR:</div><div class="value">${printShipment.recipientName} ${printShipment.recipientLastName}</div></div>
+                <div class="row"><div class="label" style="width:130px">CEL. DESTINATARIA:</div><div class="value">${printShipment.recipientPhone || 'No especificado'}</div></div>
               </div>
-              <div style="text-align: right;">
-                <div style="font-size: 24px; font-weight: bold; border: 2px solid #0B2B5E; padding: 5px;">${printShipment.code.split('-').pop()}</div>
-                <div style="font-size: 9px; margin-top: 5px;">ADJUNTAR A FOLDER MANILA</div>
+              <div style="text-align: right; min-width: 140px;">
+                <div style="font-size: 15px; font-weight: bold; border: 2px solid #0B2B5E; padding: 8px; background: #fff; text-align: center;">${printShipment.code}</div>
+                <div style="font-size: 9px; margin-top: 5px; font-weight: bold;">ADJUNTAR A FOLDER MANILA</div>
               </div>
             </div>
           </div>
