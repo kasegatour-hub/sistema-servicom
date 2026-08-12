@@ -189,4 +189,57 @@ export const adminRouter = router({
       }
       return { success: true, message: 'Encomienda eliminada exitosamente' };
     }),
+
+  listAdmins: publicProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) return [];
+    return await db.select().from(admins);
+  }),
+
+  createAdmin: publicProcedure
+    .input(z.object({
+      email: z.string().email(),
+      password: z.string().min(4),
+      name: z.string().min(2),
+      role: z.enum(["admin", "superadmin"]).default("admin"),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database error" });
+      
+      const existing = await db.select().from(admins).where(eq(admins.email, input.email.trim().toLowerCase()));
+      if (existing.length > 0) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "El correo ya está registrado" });
+      }
+
+      await db.insert(admins).values({
+        email: input.email.trim().toLowerCase(),
+        password: input.password,
+        name: input.name,
+        role: input.role,
+      });
+
+      return { success: true };
+    }),
+
+  deleteAdmin: publicProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database error" });
+      if (input.id === 1) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "No se puede eliminar al Master Admin principal" });
+      }
+      await db.delete(admins).where(eq(admins.id, input.id));
+      return { success: true };
+    }),
+
+  updateAdminPassword: publicProcedure
+    .input(z.object({ id: z.number(), newPassword: z.string().min(4) }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database error" });
+      await db.update(admins).set({ password: input.newPassword }).where(eq(admins.id, input.id));
+      return { success: true };
+    }),
 });

@@ -22,7 +22,7 @@ const loginSchema = z.object({
 });
 
 const createShipmentSchema = z.object({
-  status: z.enum(["En agencia", "En tránsito", "En destino", "Entregado"]),
+  status: z.enum(["Por entregar en agencia", "En agencia", "En tránsito", "En destino", "Entregado"]),
   senderName: z.string().optional(),
   senderLastName: z.string().optional(),
   senderDni: z.string().optional(),
@@ -36,11 +36,15 @@ const createShipmentSchema = z.object({
   docType: z.enum(["simple", "apostillado"]).optional(),
   sheetCount: z.number().optional(),
   paymentCondition: z.string().optional(),
+  paymentStatus: z.enum(["Pagado", "Falta cancelar"]).default("Falta cancelar"),
+  route: z.string().default("Lima - Torino"),
+  originAddress: z.string().optional(),
+  destinationAddress: z.string().optional(),
 });
 
 const updateStatusSchema = z.object({
   shipmentId: z.number(),
-  newStatus: z.enum(["En agencia", "En tránsito", "En destino", "Entregado"]),
+  newStatus: z.enum(["Por entregar en agencia", "En agencia", "En tránsito", "En destino", "Entregado"]),
   description: z.string().optional(),
   senderName: z.string().optional(),
   senderLastName: z.string().optional(),
@@ -52,6 +56,10 @@ const updateStatusSchema = z.object({
   recipientPhone: z.string().optional(),
   notes: z.string().optional(),
   paymentCondition: z.string().optional(),
+  paymentStatus: z.enum(["Pagado", "Falta cancelar"]).optional(),
+  route: z.string().optional(),
+  originAddress: z.string().optional(),
+  destinationAddress: z.string().optional(),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
