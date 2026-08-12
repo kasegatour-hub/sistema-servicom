@@ -29,18 +29,30 @@ describe("receipt window helpers", () => {
     expect(styles).toContain(".ticket{break-inside:avoid;page-break-inside:avoid");
   });
 
-  it("uses green for paid and red for pending payment", () => {
-    expect(getPaymentStatusPresentation("Pagado")).toMatchObject({
+  it("uses black without background for paid outside Lima and red for pending payment", () => {
+    expect(getPaymentStatusPresentation("Pagado", "Pagará en Italia (Torino)")).toMatchObject({
       label: "Pagado",
-      color: "#059669",
-      background: "#ecfdf5",
+      color: "#000000",
+      background: "transparent",
       isPaid: true,
+      paidInLima: false,
     });
-    expect(getPaymentStatusPresentation("Falta cancelar")).toMatchObject({
+    expect(getPaymentStatusPresentation("Falta cancelar", "Pagará en Italia (Torino)")).toMatchObject({
       label: "No cancelado",
       color: "#e11d48",
       background: "#fff1f2",
       isPaid: false,
+      paidInLima: false,
+    });
+  });
+
+  it("uses green for paid in Lima", () => {
+    expect(getPaymentStatusPresentation("Pagado", "Pagado en Lima (Jr. de la Unión 518)")).toMatchObject({
+      label: "Pagado",
+      color: "#059669",
+      background: "#ecfdf5",
+      isPaid: true,
+      paidInLima: true,
     });
   });
 });

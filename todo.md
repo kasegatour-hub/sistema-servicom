@@ -112,3 +112,8 @@
 ## Verificación directa del modal de actualización
 - [x] Añadir prueba de componente/integración que abra el modal con nombres y apellidos válidos precargados sin errores rojos
 - [x] Añadir prueba del modal que simule entrada inválida y confirme que los errores desaparecen después de sanitizar/corregir
+
+## Ajustes solicitados por el usuario
+- [x] Ajustar la visualización de pago: 'Pagado' en negro sin color y 'No cancelado' en rojo; verde exclusivamente para 'Pagado en Lima'
+- [x] Restaurar el selector de país con búsqueda en el formulario de creación de cuenta del cliente
+- [x] Retirar o simplificar el flujo de SMS en recuperación de contraseña manteniendo operativo el envío por correo

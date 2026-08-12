@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 
 const COUNTRIES = [
@@ -30,10 +30,11 @@ interface PhoneInputProps {
   onChange: (val: string) => void;
   placeholder?: string;
   required?: boolean;
+  id?: string;
   className?: string;
 }
 
-export function PhoneInput({ value, onChange, placeholder = "970188447", required = false, className = "" }: PhoneInputProps) {
+export function PhoneInput({ value, onChange, placeholder = "970188447", required = false, id, className = "" }: PhoneInputProps) {
   // Separar prefijo y número inicial si existe
   const initialCountry = COUNTRIES.find(c => value.startsWith(c.code)) || COUNTRIES[0];
   const initialNumber = value.startsWith(initialCountry.code) ? value.slice(initialCountry.code.length).trim() : value;
@@ -45,8 +46,9 @@ export function PhoneInput({ value, onChange, placeholder = "970188447", require
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    onChange(`${selectedCountry.code} ${phoneNumber}`.trim());
-  }, [selectedCountry, phoneNumber]);
+    const normalizedValue = phoneNumber.trim() ? `${selectedCountry.code} ${phoneNumber}`.trim() : "";
+    onChange(normalizedValue);
+  }, [onChange, selectedCountry, phoneNumber]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -114,6 +116,7 @@ export function PhoneInput({ value, onChange, placeholder = "970188447", require
 
       {/* Input de número telefónico */}
       <Input
+        id={id}
         type="tel"
         placeholder={placeholder}
         value={phoneNumber}

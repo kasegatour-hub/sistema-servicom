@@ -22,7 +22,6 @@ import {
   normalizeEmail,
   normalizePhone,
   sendVerificationEmail,
-  sendVerificationSms,
   verifyPassword,
   verificationExpiry,
 } from "./localAuth";
@@ -31,6 +30,7 @@ import { dniSchema, optionalDniSchema, optionalPersonNameSchema, personNameSchem
 
 const passwordSchema = z.string().min(8, "La contraseña debe tener al menos 8 caracteres.");
 const emailSchema = z.string().email("Correo electrónico inválido.");
+export const passwordResetChannelSchema = z.literal("email");
 
 export const CLIENT_PAYMENT_DEFAULTS = {
   condition: "Pagará en ITALIA (Torino)",
@@ -257,7 +257,7 @@ export const accountRouter = router({
     }),
 
   requestPasswordReset: publicProcedure
-    .input(z.object({ email: emailSchema, channel: z.enum(["email", "sms"]) }))
+    .input(z.object({ email: emailSchema, channel: passwordResetChannelSchema }))
     .mutation(async ({ input }) => {
       const email = normalizeEmail(input.email);
       const account = await getLocalAccountByEmail(email);
@@ -267,18 +267,10 @@ export const accountRouter = router({
         return { success: true, message: "Si los datos existen, recibirás un código de verificación." };
       }
 
-      const destination = input.channel === "email" ? account.email : account.phone;
-      if (!destination) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "La cuenta no tiene un destino configurado para ese canal." });
-      }
-
+      const destination = account.email;
       const code = generateVerificationCode();
       try {
-        if (input.channel === "email") {
-          await sendVerificationEmail(destination, code);
-        } else {
-          await sendVerificationSms(destination, code);
-        }
+        await sendVerificationEmail(destination, code);
       } catch (error) {
         console.error("[Account] Verification delivery failed", error);
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No se pudo enviar el código de verificación." });
@@ -298,7 +290,7 @@ export const accountRouter = router({
   resetPassword: publicProcedure
     .input(z.object({
       email: emailSchema,
-      channel: z.enum(["email", "sms"]),
+      channel: passwordResetChannelSchema,
       code: z.string().regex(/^\d{6}$/, "El código debe tener 6 dígitos."),
       newPassword: passwordSchema,
     }))

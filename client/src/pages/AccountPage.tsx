@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
-import { ArrowLeft, CheckCircle2, Download, Eye, EyeOff, KeyRound, Lock, LogOut, Mail, Package, Phone, Plus, Printer, Search, User, UserPlus } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Download, Eye, EyeOff, KeyRound, Lock, LogOut, Mail, Package, Plus, Printer, Search, User, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -31,7 +31,6 @@ export default function AccountPage() {
   const [registerLastName, setRegisterLastName] = useState("");
   const [registerDni, setRegisterDni] = useState("");
   const [code, setCode] = useState("");
-  const [channel, setChannel] = useState<"email" | "sms">("email");
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -166,7 +165,7 @@ export default function AccountPage() {
 
   // Si ya inició sesión, mostrar su panel personal, datos de perfil y envíos
   if (me) {
-    const receiptPaymentUi = receiptShipment ? getPaymentStatusUi(receiptShipment.paymentStatus) : null;
+    const receiptPaymentUi = receiptShipment ? getPaymentStatusUi(receiptShipment.paymentStatus, receiptShipment.paymentCondition) : null;
 
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#eef6fb] to-white pb-12">
@@ -339,7 +338,7 @@ export default function AccountPage() {
                 {changePasswordMutation.isPending ? "Actualizando..." : "Cambiar contraseña"}
               </Button>
             </form>
-            <p className="mt-3 text-xs text-slate-500">También puedes recuperar la contraseña desde la pantalla de inicio de sesión mediante código por correo o SMS.</p>
+            <p className="mt-3 text-xs text-slate-500">También puedes recuperar la contraseña desde la pantalla de inicio de sesión mediante un código enviado por correo electrónico.</p>
           </Card>
 
           {/* Mis Envíos y Registro */}
@@ -455,8 +454,8 @@ export default function AccountPage() {
                         <span className={`rounded px-2 py-0.5 text-xs font-semibold ${shipment.status === 'Entregado' ? 'bg-blue-600 text-white' : shipment.status === 'Por entregar en agencia' ? 'bg-sky-100 text-sky-800' : 'bg-orange-100 text-[#F28C00]'}`}>
                           {shipment.status}
                         </span>
-                        <span className={`rounded px-2 py-0.5 text-xs font-semibold ${getPaymentStatusUi(shipment.paymentStatus).badgeClass}`}>
-                          {getPaymentStatusUi(shipment.paymentStatus).label}
+                        <span className={`rounded px-2 py-0.5 text-xs font-semibold ${getPaymentStatusUi(shipment.paymentStatus, shipment.paymentCondition).badgeClass}`}>
+                          {getPaymentStatusUi(shipment.paymentStatus, shipment.paymentCondition).label}
                         </span>
                       </div>
                       <p className="text-sm text-slate-600 mt-1">
@@ -487,9 +486,9 @@ export default function AccountPage() {
     } else if (mode === "login") {
       loginMutation.mutate({ email, password });
     } else if (mode === "request") {
-      requestMutation.mutate({ email, channel });
+      requestMutation.mutate({ email, channel: "email" });
     } else {
-      resetMutation.mutate({ email, channel, code, newPassword });
+      resetMutation.mutate({ email, channel: "email", code, newPassword });
     }
   };
 
@@ -543,13 +542,13 @@ export default function AccountPage() {
                   <p className="mt-1 text-xs text-slate-500">Solo números; mínimo 8 dígitos.</p>
                   {identityErrors.registerDni && <p className="text-xs text-red-600">{identityErrors.registerDni}</p>}
                 </div>
-                <div>
-                  <Label htmlFor="account-phone">Celular con código de país (opcional)</Label>
-                  <div className="relative mt-2">
-                    <Phone className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                    <Input id="account-phone" type="tel" placeholder="+51 970 188 447" value={phone} onChange={event => setPhone(event.target.value)} className="pl-9" />
+                  <div>
+                    <Label htmlFor="account-phone">Celular con código de país (opcional)</Label>
+                    <div className="mt-2">
+                      <PhoneInput id="account-phone" value={phone} onChange={setPhone} placeholder="970 188 447" />
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500">Selecciona el país y busca por nombre o código internacional.</p>
                   </div>
-                </div>
               </>
             )}
 
@@ -565,17 +564,9 @@ export default function AccountPage() {
             )}
 
             {(mode === "request" || mode === "reset") && (
-              <fieldset>
-                <legend className="text-sm font-medium text-slate-900">Canal de verificación</legend>
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  <button type="button" onClick={() => setChannel("email")} className={`rounded-lg border px-3 py-2 text-sm ${channel === "email" ? "border-[#F28C00] bg-orange-50 text-[#0B2B5E]" : "border-slate-200 text-slate-600"}`}>
-                    Correo
-                  </button>
-                  <button type="button" onClick={() => setChannel("sms")} className={`rounded-lg border px-3 py-2 text-sm ${channel === "sms" ? "border-[#F28C00] bg-orange-50 text-[#0B2B5E]" : "border-slate-200 text-slate-600"}`}>
-                    SMS al celular
-                  </button>
-                </div>
-              </fieldset>
+              <div className="rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-sm text-[#0B2B5E]">
+                El código de recuperación se enviará al correo electrónico registrado.
+              </div>
             )}
 
             {mode === "reset" && (

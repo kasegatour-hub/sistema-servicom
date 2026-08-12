@@ -325,9 +325,12 @@ export default function AdminDashboard() {
       const trackingUrl = buildTrackingUrl(printShipment.orderNumber, printShipment.code);
       const brandLogo = new URL('/manus-storage/servicom_logo_final_e7ce35aa.png', window.location.origin).href;
       const today = new Date().toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' });
-      const paymentIsPaid = printShipment.paymentStatus === 'Pagado';
-      const paymentColor = paymentIsPaid ? '#059669' : '#e11d48';
-      const paymentBackground = paymentIsPaid ? '#ecfdf5' : '#fff1f2';
+      const paymentUi = getPaymentStatusUi(printShipment.paymentStatus, printShipment.paymentCondition);
+      const paymentIsPaid = paymentUi.isPaid;
+      const paidOptionColor = paymentIsPaid && paymentUi.paidInLima ? '#059669' : '#000000';
+      const paidOptionBackground = paymentIsPaid && paymentUi.paidInLima ? '#ecfdf5' : 'transparent';
+      const pendingOptionColor = paymentIsPaid ? '#000000' : '#e11d48';
+      const pendingOptionBackground = paymentIsPaid ? 'transparent' : '#fff1f2';
       const html = `
         <!DOCTYPE html>
         <html>
@@ -417,7 +420,7 @@ export default function AdminDashboard() {
           <div class="section">
             <div class="section-title">Condición de Pago y Descripción</div>
             <div style="font-size: 12px; border: 1px solid #eee; padding: 8px; background: #fafafa;">
-              <strong>Estado de Pago:</strong> <span style="color:${paymentColor};background:${paymentBackground};padding:2px 8px;border-radius:4px;font-weight:bold">[${paymentIsPaid ? 'X' : ' '}] Pagado &nbsp;&nbsp;&nbsp; [${!paymentIsPaid ? 'X' : ' '}] No cancelado</span><br><br>
+              <strong>Estado de Pago:</strong> <span style="font-weight:bold"><span style="color:${paidOptionColor};background:${paidOptionBackground};padding:2px 8px;border-radius:4px">[${paymentIsPaid ? 'X' : ' '}] Pagado</span>&nbsp;&nbsp;&nbsp;<span style="color:${pendingOptionColor};background:${pendingOptionBackground};padding:2px 8px;border-radius:4px">[${!paymentIsPaid ? 'X' : ' '}] No cancelado</span></span><br><br>
               ${printShipment.notes || 'Documentación Lícita'}
             </div>
           </div>
@@ -1007,8 +1010,8 @@ export default function AdminDashboard() {
                           }`}>
                             {shipment.status}
                           </span>
-                          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${getPaymentStatusUi(shipment.paymentStatus).badgeClass}`}>
-                            {getPaymentStatusUi(shipment.paymentStatus).label}
+                          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${getPaymentStatusUi(shipment.paymentStatus, shipment.paymentCondition).badgeClass}`}>
+                            {getPaymentStatusUi(shipment.paymentStatus, shipment.paymentCondition).label}
                           </span>
                         </div>
                       </TableCell>
