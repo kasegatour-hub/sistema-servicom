@@ -197,10 +197,15 @@ export default function AdminDashboard() {
     }, 100);
   };
 
-  const printReceipt = () => {
-    const printWindow = window.open('', '', 'width=800,height=900');
-    if (printWindow && printShipment) {
+  const printReceipt = async () => {
+    if (!printShipment) return;
+    const receiptUrl = new URL('/recibo', window.location.origin);
+    receiptUrl.searchParams.set('order', String(printShipment.orderNumber));
+    receiptUrl.searchParams.set('code', String(printShipment.code));
+    const printWindow = window.open(receiptUrl.href, '_blank', 'width=800,height=900');
+    if (printWindow) {
       const trackingUrl = buildTrackingUrl(printShipment.orderNumber, printShipment.code);
+      const brandLogo = new URL('/manus-storage/servicom_logo_final_e7ce35aa.png', window.location.origin).href;
       const today = new Date().toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' });
       const html = `
         <!DOCTYPE html>
@@ -212,6 +217,7 @@ export default function AdminDashboard() {
             body { font-family: 'Helvetica', Arial, sans-serif; margin: 0; padding: 40px; color: #0B2B5E; line-height: 1.4; }
             .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; border-bottom: 2px solid #F28C00; padding-bottom: 10px; }
             .company-info { flex: 1; }
+            .brand-logo { width: 150px; height: 76px; object-fit: contain; object-position: left center; display: block; margin-bottom: 8px; }
             .company { font-size: 26px; font-weight: bold; color: #0B2B5E; margin: 0; }
             .subtitle { font-size: 14px; color: #F28C00; font-weight: bold; margin-top: 2px; }
             .ruc-contact { font-size: 11px; color: #666; margin-top: 5px; }
@@ -248,6 +254,7 @@ export default function AdminDashboard() {
           <!-- PÁGINA 1: RECIBO E INFORMACIÓN -->
           <div class="header">
             <div class="company-info">
+              <img class="brand-logo" src="${brandLogo}" alt="Servicom Internacional">
               <h1 class="company">SERVICOM INTERNACIONAL</h1>
               <div class="subtitle">SERVICOM INTERNACIONAL</div>
               <div class="ruc-contact">
@@ -289,9 +296,9 @@ export default function AdminDashboard() {
             <div class="value" style="min-height: 40px; border: 1px solid #eee; padding: 5px;">${printShipment.notes || 'Documentación Lícita'}</div>
           </div>
 
-          <div class="qr-container">
-            <div class="qr-box">
-              <canvas id="printQR"></canvas>
+            <div class="qr-container">
+              <div class="qr-box">
+                <canvas id="printQR"></canvas>
               <div class="qr-hint">Rastreo en Tiempo Real</div>
             </div>
             <div style="font-size: 11px; max-width: 300px;">
@@ -362,19 +369,26 @@ export default function AdminDashboard() {
       printWindow.document.write(html);
       printWindow.document.close();
       
-      // Generar QR en el documento impreso
-      setTimeout(() => {
-        const canvas = printWindow.document.getElementById('printQR') as HTMLCanvasElement;
-        if (canvas) {
-          QRCode.toCanvas(canvas, trackingUrl, {
-            ...TRACKING_QR_OPTIONS,
-            width: 140,
-            margin: 1,
-            color: { dark: '#0B2B5E', light: '#ffffff' }
-          });
-        }
-        printWindow.print();
-      }, 500);
+      // Esperar el logo antes de generar el QR e imprimir.
+      await Promise.all(Array.from(printWindow.document.images).map((image) => {
+        if (image.complete) return Promise.resolve();
+        return new Promise<void>((resolve) => {
+          image.addEventListener('load', () => resolve(), { once: true });
+          image.addEventListener('error', () => resolve(), { once: true });
+        });
+      }));
+      const canvas = printWindow.document.getElementById('printQR') as HTMLCanvasElement;
+      if (canvas) {
+        await QRCode.toCanvas(canvas, trackingUrl, {
+          ...TRACKING_QR_OPTIONS,
+          width: 140,
+          margin: 1,
+          color: { dark: '#0B2B5E', light: '#ffffff' }
+        });
+      }
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      printWindow.focus();
+      printWindow.print();
     }
   };
 
