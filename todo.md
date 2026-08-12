@@ -41,10 +41,10 @@
 - [x] Mostrar mensaje 'Debe crear otra encomienda' al exceder el límite
 
 ## Nuevos Requerimientos de Roles y Direcciones
-- [ ] Distinguir Master Admin (gestión de usuarios y envíos) y Usuario Registrador (gestión de envíos sin crear usuarios)
-- [ ] Permitir al cliente elegir únicamente 'Pagará en Torino' o 'En agencia'
-- [ ] Permitir a Master y Usuario editar el estado de pago (Pagado / Falta cancelar)
-- [ ] Añadir selector de ruta predeterminada (Lima - Torino / Torino - Lima) y direcciones con búsqueda de Google Maps o manual
+- [x] Distinguir Master Admin (gestión de usuarios y envíos) y Usuario Registrador (gestión de envíos sin crear usuarios)
+- [x] Permitir al cliente elegir únicamente 'Pagará en Torino' o 'En agencia'
+- [x] Permitir a Master y Usuario editar el estado de pago (Pagado / Falta cancelar)
+- [x] Añadir selector de ruta predeterminada (Lima - Torino / Torino - Lima) y direcciones con búsqueda de Google Maps o manual
 
 ## Estado Inicial "Por entregar en agencia"
 - [x] Actualizar base de datos, backend y frontend para usar 'Por entregar en agencia' en lugar de 'En agencia' como estado inicial de cliente

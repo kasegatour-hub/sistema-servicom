@@ -899,6 +899,29 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
+                <div className="border-t pt-4 grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Estado de Pago</label>
+                    <select
+                      {...updateForm.register("paymentStatus")}
+                      className="w-full p-2 bg-white border-2 border-slate-200 rounded-md text-sm font-medium focus:border-primary"
+                    >
+                      <option value="Falta cancelar">Falta cancelar</option>
+                      <option value="Pagado">Pagado</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Ruta</label>
+                    <select
+                      {...updateForm.register("route")}
+                      className="w-full p-2 bg-white border-2 border-slate-200 rounded-md text-sm font-medium focus:border-primary"
+                    >
+                      <option value="Lima - Torino">Lima - Torino</option>
+                      <option value="Torino - Lima">Torino - Lima</option>
+                    </select>
+                  </div>
+                </div>
+
                 <div className="border-t pt-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Condición de Pago</label>
                   <select

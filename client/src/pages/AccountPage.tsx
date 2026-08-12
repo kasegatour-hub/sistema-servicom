@@ -57,7 +57,7 @@ export default function AccountPage() {
   const [recipientDni, setRecipientDni] = useState("");
   const [recipientPhone, setRecipientPhone] = useState("+51 ");
   const [notes, setNotes] = useState("");
-  const [paymentCondition, setPaymentCondition] = useState("Pagado en Lima (Jr. de la Unión 518)");
+  const [paymentCondition, setPaymentCondition] = useState("Pagará en ITALIA (Torino)");
 
   const utils = trpc.useUtils();
   const { data: me, isLoading: meLoading } = trpc.account.me.useQuery();
