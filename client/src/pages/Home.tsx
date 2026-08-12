@@ -180,7 +180,9 @@ export default function Home() {
                 <label className="block text-xs md:text-sm font-medium text-gray-700 mb-2">
                   Número de Orden
                 </label>
-                <p className="text-[10px] text-gray-500 mb-1 italic">El número de orden tiene 10 dígitos</p>
+                <div className="h-4 mb-1">
+                  <p className="text-[10px] text-gray-500 italic">El número de orden tiene 10 dígitos</p>
+                </div>
                 <Input
                   placeholder="Ej: 3520992723"
                   {...register("orderNumber")}
@@ -197,6 +199,9 @@ export default function Home() {
                 <label className="block text-xs md:text-sm font-medium text-gray-700 mb-2">
                   Código de Envío
                 </label>
+                <div className="h-4 mb-1">
+                  <span className="text-[10px] text-transparent select-none">&nbsp;</span>
+                </div>
                 <Input
                   placeholder="Ej: CA06721WB"
                   {...register("code")}

@@ -17,30 +17,16 @@ export const adminRouter = router({
     }))
     .mutation(async ({ input }) => {
       // Verificar que sea el email correcto
-      if (input.email !== 'yeslygian2030@gmail.com') {
+      const email = input.email.trim().toLowerCase();
+      if (email !== 'peruservicom@gmail.com') {
         throw new TRPCError({
           code: 'UNAUTHORIZED',
           message: 'Credenciales inválidas',
         });
       }
       
-      const admin = await getAdminByEmail(input.email);
-      if (!admin) {
-        throw new TRPCError({
-          code: 'UNAUTHORIZED',
-          message: 'Credenciales inválidas',
-        });
-      }
-
-      // Validación sencilla para la cuenta administrativa configurada.
-      // Se recortan espacios accidentales sin registrar nunca la contraseña.
       const receivedPassword = input.password.trim();
-      const expectedPassword = 'Y3sl1G1an2035';
-      console.log('[Auth] Admin login attempt', {
-        emailMatches: input.email === 'yeslygian2030@gmail.com',
-        passwordLength: receivedPassword.length,
-        passwordMatches: receivedPassword === expectedPassword,
-      });
+      const expectedPassword = '@m*M.mTt@~ADkHpvBbLm+5CD=3ao@DngYa+3Kea6U=qX%r9EJ8-1QFc#,hD3r4Dsis9:9^i-zZJ}pT#aQAcnm^+XMAhV9u3VdrZ3.'.trim();
       if (receivedPassword !== expectedPassword) {
         throw new TRPCError({
           code: 'UNAUTHORIZED',
@@ -49,10 +35,10 @@ export const adminRouter = router({
       }
 
       return {
-        id: admin.id,
-        email: admin.email,
-        name: admin.name,
-        role: admin.role,
+        id: 1,
+        email: 'peruservicom@gmail.com',
+        name: 'Master Admin Servicom',
+        role: 'superadmin' as const,
       };
     }),
 
@@ -84,6 +70,10 @@ export const adminRouter = router({
       const randomSuffix = Math.random().toString(36).substring(2, 7).toUpperCase();
       const code = `DOC-${new Date().getFullYear()}-${randomSuffix}`;
       
+      // Modelo de negocio de tarifas documentales:
+      // - Simple (hasta 4 hojas): 45 euros
+      // - Apostillado (hasta 4 hojas): 50 soles o 50 euros según naturaleza. Se agregan 10 euros por cada documento adicional.
+      // - Adicional simple tras 4 hojas: 2 euros más por hojas adicionales hasta 4.
       const baseFeeEur = 50;
       const additionalFeeEur = Math.max(0, input.documentCount - 1) * 10;
       const totalEur = baseFeeEur + additionalFeeEur;

@@ -20,11 +20,11 @@ describe("admin.login", () => {
     const caller = appRouter.createCaller(createPublicContext());
 
     const result = await caller.admin.login({
-      email: "yeslygian2030@gmail.com",
-      password: "Y3sl1G1an2035",
+      email: "peruservicom@gmail.com",
+      password: "@m*M.mTt@~ADkHpvBbLm+5CD=3ao@DngYa+3Kea6U=qX%r9EJ8-1QFc#,hD3r4Dsis9:9^i-zZJ}pT#aQAcnm^+XMAhV9u3VdrZ3.",
     });
 
-    expect(result.email).toBe("yeslygian2030@gmail.com");
+    expect(result.email).toBe("peruservicom@gmail.com");
     expect(result.role).toBe("superadmin");
   });
 
@@ -33,8 +33,8 @@ describe("admin.login", () => {
 
     await expect(
       caller.admin.login({
-        email: "yeslygian2030@gmail.com",
-        password: "Y3sl1G1ian2035",
+        email: "peruservicom@gmail.com",
+        password: "wrongpassword",
       }),
     ).rejects.toMatchObject({
       code: "UNAUTHORIZED",

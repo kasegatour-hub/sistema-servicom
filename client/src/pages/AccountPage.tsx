@@ -34,11 +34,12 @@ export default function AccountPage() {
   const [showAccountNewPassword, setShowAccountNewPassword] = useState(false);
   const [receiptShipment, setReceiptShipment] = useState<any>(null);
 
-  // Perfil editable
+  // Perfil con modo de visualización y edición
   const [profileName, setProfileName] = useState("");
   const [profileLastName, setProfileLastName] = useState("");
   const [profileDni, setProfileDni] = useState("");
   const [profilePhone, setProfilePhone] = useState("");
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
 
   // Registro de encomienda por usuario
   const [showNewShipment, setShowNewShipment] = useState(false);
@@ -187,35 +188,66 @@ export default function AccountPage() {
 
           {/* Datos Personales */}
           <Card className="p-6 shadow-md border-0">
-            <h2 className="text-lg font-bold text-[#0B2B5E] mb-4 flex items-center gap-2">
-              <User className="h-5 w-5 text-[#F28C00]" /> Datos Personales del Usuario
-            </h2>
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              updateProfileMutation.mutate({ name: profileName, lastName: profileLastName, dni: profileDni, phone: profilePhone });
-            }} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label>Nombres</Label>
-                <Input value={profileName} onChange={e => setProfileName(e.target.value)} placeholder="Ej: Juan" required className="mt-1" />
-              </div>
-              <div>
-                <Label>Apellidos</Label>
-                <Input value={profileLastName} onChange={e => setProfileLastName(e.target.value)} placeholder="Ej: Pérez Gómez" required className="mt-1" />
-              </div>
-              <div>
-                <Label>DNI</Label>
-                <Input value={profileDni} onChange={e => setProfileDni(e.target.value)} placeholder="Ej: 71234567" required className="mt-1" />
-              </div>
-              <div>
-                <Label>Teléfono Celular / WhatsApp</Label>
-                <Input value={profilePhone} onChange={e => setProfilePhone(e.target.value)} placeholder="Ej: +51 970188447" required className="mt-1" />
-              </div>
-              <div className="md:col-span-2 flex justify-end">
-                <Button type="submit" disabled={updateProfileMutation.isPending} className="bg-[#0B2B5E] text-white hover:bg-[#123d78]">
-                  {updateProfileMutation.isPending ? "Guardando..." : "Guardar Mis Datos"}
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold text-[#0B2B5E] flex items-center gap-2">
+                <User className="h-5 w-5 text-[#F28C00]" /> Perfil del Usuario
+              </h2>
+              {!isEditingProfile && (
+                <Button type="button" size="sm" onClick={() => setIsEditingProfile(true)} className="bg-[#F28C00] text-white hover:bg-[#d67900]">
+                  Editar Datos
                 </Button>
+              )}
+            </div>
+
+            {!isEditingProfile ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div>
+                  <span className="text-xs font-semibold text-slate-500 uppercase">Nombres y Apellidos</span>
+                  <p className="text-base font-bold text-[#0B2B5E]">{me.name} {me.lastName}</p>
+                </div>
+                <div>
+                  <span className="text-xs font-semibold text-slate-500 uppercase">Correo Electrónico</span>
+                  <p className="text-base text-slate-800">{me.email}</p>
+                </div>
+                <div>
+                  <span className="text-xs font-semibold text-slate-500 uppercase">DNI</span>
+                  <p className="text-base text-slate-800">{me.dni || "No especificado"}</p>
+                </div>
+                <div>
+                  <span className="text-xs font-semibold text-slate-500 uppercase">Teléfono / Celular</span>
+                  <p className="text-base text-slate-800">{me.phone || "No especificado"}</p>
+                </div>
               </div>
-            </form>
+            ) : (
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                updateProfileMutation.mutate({ name: profileName, lastName: profileLastName, dni: profileDni, phone: profilePhone });
+                setIsEditingProfile(false);
+              }} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Nombres</Label>
+                  <Input value={profileName} onChange={e => setProfileName(e.target.value)} placeholder="Ej: Juan" required className="mt-1" />
+                </div>
+                <div>
+                  <Label>Apellidos</Label>
+                  <Input value={profileLastName} onChange={e => setProfileLastName(e.target.value)} placeholder="Ej: Pérez Gómez" required className="mt-1" />
+                </div>
+                <div>
+                  <Label>DNI</Label>
+                  <Input value={profileDni} onChange={e => setProfileDni(e.target.value)} placeholder="Ej: 71234567" required className="mt-1" />
+                </div>
+                <div>
+                  <Label>Teléfono Celular / WhatsApp</Label>
+                  <Input value={profilePhone} onChange={e => setProfilePhone(e.target.value)} placeholder="Ej: +51 970188447" required className="mt-1" />
+                </div>
+                <div className="md:col-span-2 flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setIsEditingProfile(false)}>Cancelar</Button>
+                  <Button type="submit" disabled={updateProfileMutation.isPending} className="bg-[#0B2B5E] text-white hover:bg-[#123d78]">
+                    {updateProfileMutation.isPending ? "Guardando..." : "Guardar Mis Datos"}
+                  </Button>
+                </div>
+              </form>
+            )}
           </Card>
 
           {/* Cambio de contraseña */}
@@ -282,8 +314,12 @@ export default function AccountPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label>Cantidad de Documentos</Label>
-                    <Input type="number" min="1" value={documentCount} onChange={e => setDocumentCount(parseInt(e.target.value) || 1)} required className="mt-1 bg-white" />
-                    <p className="text-[10px] text-gray-500 mt-1">Tarifa: 50 € base + 10 € por cada doc. adicional</p>
+                    <Input type="number" min="1" max="4" value={String(documentCount)} onChange={e => {
+                      const val = e.target.value.replace(/^0+/, '');
+                      const num = val === '' ? 1 : parseInt(val, 10);
+                      setDocumentCount(isNaN(num) ? 1 : Math.max(1, Math.min(4, num)));
+                    }} required className="mt-1 bg-white" />
+                    <p className="text-[10px] text-gray-500 mt-1">Simple (hasta 4 hojas): 45 €. Apostillado (hasta 4 hojas): 50 € + 10 € por adicional. Máximo 4 hojas por registro.</p>
                   </div>
                   <div className="flex flex-col justify-center">
                     <p className="text-xs text-gray-600 italic">El número de orden y código se generarán automáticamente al guardar.</p>
