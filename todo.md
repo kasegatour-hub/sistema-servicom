@@ -7011,3 +7011,9 @@
 - [x] Revisar y documentar el cambio del hostname desde Settings → Domains — el código no controla el hostname de plataforma; se mantiene pendiente el cambio desde la configuración de dominios
 - [x] Ejecutar pruebas y verificación visual
 - [x] Guardar checkpoint de la corrección
+
+## Incidencia de hostname — Servicom Internacional
+- [x] Verificar el hostname publicado actual y confirmar que la marca interna ya es Servicom Internacional
+- [x] Preparar el nombre de dominio/prefijo deseado para Servicom Internacional — propuesta: servicom-internacional
+- [ ] Cambiar el hostname desde Settings → Domains o vincular un dominio propio
+- [ ] Validar que la URL final ya no muestre shalomtrack-fsayagjs.manus.space
