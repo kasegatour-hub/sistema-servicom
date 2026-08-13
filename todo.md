@@ -163,3 +163,28 @@
 
 ## Ruta estable de recibo
 - [x] Añadir una ruta pública `/recibo` que muestre el recibo solicitado por orden y código y permita imprimirlo sin 404
+
+## Corrección de Nueva encomienda administrativa
+- [x] Diagnosticar y corregir el error de React al abrir o usar Nueva encomienda
+- [x] Separar el formulario administrativo en desplegables Documentos y Encomiendas
+- [x] Mostrar los tipos documentales existentes dentro de Documentos
+- [x] Calcular Encomiendas automáticamente a 13,5 €/kg y permitir precio manual
+- [x] Añadir pruebas de creación administrativa para documentos y encomiendas
+- [x] Verificar visualmente el formulario administrativo en escritorio y móvil
+
+## Verificación del flujo administrativo
+- [x] Reproducir y verificar en la UI administrativa que Nueva Encomienda abre el formulario sin errores y permite interactuar con sus campos
+- [x] Ejecutar TypeScript y la suite completa después de la corrección de PhoneInput
+- [x] Añadir una prueba de componente/integración que abra Nueva Encomienda y confirme que el formulario permanece renderizado
+
+## Pruebas de creación administrativa real
+- [x] Añadir una prueba backend de admin.createShipment para documentos verificando prefijo, trackingUrl y tarifa
+- [x] Añadir una prueba backend de admin.createShipment para encomiendas verificando prefijo, peso, precio manual y notas
+- [x] Añadir una prueba de UI que envíe el formulario para documento y encomienda y compruebe el payload de la mutación
+
+## Verificación manual autenticada pendiente
+- [ ] Iniciar sesión manualmente en /admin y capturar el formulario Nueva Encomienda abierto en escritorio y móvil
+- [ ] Verificar manualmente el cambio Documentos/Encomiendas, edición de peso y precio manual sin errores React
+
+## Cierre sin verificación manual
+- [x] Sustituir la verificación manual autenticada por la evidencia automatizada disponible y documentar esta limitación en el cierre

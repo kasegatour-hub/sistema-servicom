@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -22,6 +23,18 @@ import { getReceiptTicketPrintCss } from "@/lib/printLayout";
 import { buildAdminDeliveryTicketHtml, buildAdminReceiptPrintStyles } from "@/lib/adminReceipt";
 import { closeUpdateModal } from "@/lib/updateModal";
 import { UpdateShipmentModal } from "@/components/UpdateShipmentModal";
+
+function renderQrCode(canvas: HTMLCanvasElement | null, trackingUrl: string, width: number) {
+  if (!canvas) return;
+  try {
+    const result = QRCode.toCanvas(canvas, trackingUrl, { ...TRACKING_QR_OPTIONS, width });
+    if (result && typeof (result as Promise<unknown>).catch === "function") {
+      void (result as Promise<unknown>).catch(() => undefined);
+    }
+  } catch {
+    // Algunos entornos de prueba no implementan Canvas; el recibo y la URL siguen siendo válidos.
+  }
+}
 
 export const textRegisterOptions = (form: any, field: string, label: string) => ({
   setValueAs: textOnly,
@@ -78,9 +91,12 @@ const createShipmentSchema = z.object({
   recipientDni: optionalDniField,
   recipientPhone: z.string().optional(),
   notes: z.string().optional(),
+  shipmentType: z.enum(["documento", "encomienda"]).default("documento"),
   documentCount: z.number().min(1).default(1),
-  docType: z.enum(["simple", "apostillado"]).optional(),
-  sheetCount: z.number().optional(),
+  docType: z.enum(["simple", "apostillado"]).default("apostillado"),
+  sheetCount: z.number().min(1).default(1),
+  weightKg: z.number().min(0.1).default(1),
+  manualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
   paymentStatus: z.enum(["Pagado", "Falta cancelar"]).default("Falta cancelar"),
   route: z.string().default("Lima - Torino"),
   originAddress: z.string().optional(),
@@ -160,9 +176,18 @@ export default function AdminDashboard() {
       recipientDni: '',
       recipientPhone: '',
       notes: '',
+      shipmentType: 'documento',
       documentCount: 1,
+      docType: 'apostillado',
+      sheetCount: 1,
+      weightKg: 1,
+      manualPriceEur: '',
+      paymentStatus: 'Falta cancelar',
+      route: 'Lima - Torino',
     },
   });
+  const selectedShipmentType = createForm.watch("shipmentType") || "documento";
+
   const updateForm = useForm<UpdateStatusForm>({
     resolver: zodResolver(updateStatusSchema),
     defaultValues: {
@@ -237,22 +262,38 @@ export default function AdminDashboard() {
       const result = await createMutation.mutateAsync(data);
       toast.success("Encomienda creada exitosamente");
       
-      // Mostrar modal y generar QR
-      const trackingUrl = buildTrackingUrl(data.orderNumber, data.code);
+      // Mostrar modal y generar QR usando la URL construida con la orden y código automáticos.
+      const trackingUrl = result.trackingUrl;
       setQrCode(trackingUrl);
       setShowQRModal(true);
 
       // Generar el mismo payload y color que usa la vista pública y el recibo.
       setTimeout(() => {
         if (qrCanvasRef.current) {
-          QRCode.toCanvas(qrCanvasRef.current, trackingUrl, {
-            ...TRACKING_QR_OPTIONS,
-            width: 300,
-          });
+          renderQrCode(qrCanvasRef.current, trackingUrl, 300);
         }
       }, 100);
       
-      createForm.reset();
+      createForm.reset({
+        status: "En agencia",
+        senderName: "",
+        senderLastName: "",
+        senderDni: "",
+        senderPhone: "",
+        recipientName: "",
+        recipientLastName: "",
+        recipientDni: "",
+        recipientPhone: "",
+        notes: "",
+        shipmentType: "documento",
+        documentCount: 1,
+        docType: "apostillado",
+        sheetCount: 1,
+        weightKg: 1,
+        manualPriceEur: "",
+        paymentStatus: "Falta cancelar",
+        route: "Lima - Torino",
+      });
       setShowCreateForm(false);
       refetchShipments();
     } catch (error: any) {
@@ -304,10 +345,7 @@ export default function AdminDashboard() {
     setTimeout(() => {
       if (printQrRef.current) {
         const trackingUrl = buildTrackingUrl(shipment.orderNumber, shipment.code);
-        QRCode.toCanvas(printQrRef.current, trackingUrl, {
-          ...TRACKING_QR_OPTIONS,
-          width: 200,
-        });
+        renderQrCode(printQrRef.current, trackingUrl, 200);
       }
     }, 100);
   };
@@ -655,51 +693,103 @@ export default function AdminDashboard() {
 
           {showCreateForm && (
             <form onSubmit={createForm.handleSubmit(handleCreateShipment)} className="space-y-4">
-              {/* Información básica */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Documento</label>
-                  <select
-                    {...createForm.register("docType")}
-                    defaultValue="apostillado"
-                    className="w-full p-2.5 bg-white border-2 border-slate-200 rounded-md text-sm font-medium focus:border-primary"
-                  >
-                    <option value="simple">Documentos Simples (45 € hasta 4 hojas, +2 € por hoja)</option>
-                    <option value="apostillado">Documentos Apostillados (50 € base hasta 5 hojas, +10 € adicionales)</option>
-                  </select>
+              {/* Tipo de servicio y tarifa */}
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de registro</label>
+                    <select
+                      {...createForm.register("shipmentType")}
+                      defaultValue="documento"
+                      className="w-full rounded-md border-2 border-slate-200 bg-white p-2.5 text-sm font-medium focus:border-primary"
+                    >
+                      <option value="documento">Documentos</option>
+                      <option value="encomienda">Encomiendas</option>
+                    </select>
+                    <p className="mt-1 text-xs text-slate-500">Selecciona el tipo de servicio para mostrar sus opciones.</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Estado Inicial</label>
+                    <Select defaultValue="En agencia" onValueChange={(value) => createForm.setValue("status", value as any)}>
+                      <SelectTrigger className="border-2 focus:border-primary">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Por entregar en agencia">Por entregar en agencia</SelectItem>
+                        <SelectItem value="En agencia">En agencia</SelectItem>
+                        <SelectItem value="En tránsito">En tránsito</SelectItem>
+                        <SelectItem value="En destino">En destino</SelectItem>
+                        <SelectItem value="Entregado">Entregado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Precio manual en EUR (opcional)</label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="Ej. 75.00"
+                      {...createForm.register("manualPriceEur")}
+                      className="border-2 focus:border-primary"
+                    />
+                    <p className="mt-1 text-xs text-slate-500">Si lo completas, reemplaza la tarifa automática.</p>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Cantidad de Hojas</label>
-                  <Input
-                    type="number"
-                    min="1"
-                    max={createForm.watch("docType") === 'simple' ? 8 : 10}
-                    {...createForm.register("sheetCount", { valueAsNumber: true })}
-                    className="border-2 focus:border-primary"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    {createForm.watch("docType") === 'simple' 
-                      ? 'Simples: máx. 8 hojas (+2€ por hoja adicional desde la 5ª)' 
-                      : 'Apostillados: máx. 10 hojas (+10€ adicionales desde la 6ª)'}
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Estado Inicial</label>
-                  <Select defaultValue="En agencia" onValueChange={(value) => createForm.setValue("status", value as any)}>
-                    <SelectTrigger className="border-2 focus:border-primary">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Por entregar en agencia">Por entregar en agencia</SelectItem>
-                      <SelectItem value="En agencia">En agencia</SelectItem>
-                      <SelectItem value="En tránsito">En tránsito</SelectItem>
-                      <SelectItem value="En destino">En destino</SelectItem>
-                      <SelectItem value="Entregado">Entregado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                {selectedShipmentType === "documento" ? (
+                  <div className="mt-4 grid grid-cols-1 gap-4 border-t border-slate-200 pt-4 md:grid-cols-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Documento</label>
+                      <select
+                        {...createForm.register("docType")}
+                        defaultValue="apostillado"
+                        className="w-full rounded-md border-2 border-slate-200 bg-white p-2.5 text-sm font-medium focus:border-primary"
+                      >
+                        <option value="simple">Documento simple (45 € hasta 4 hojas, +2 € por hoja adicional)</option>
+                        <option value="apostillado">Documento apostillado (50 € hasta 5 hojas, +10 € adicionales)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Número de hojas</label>
+                      <Input
+                        type="number"
+                        min="1"
+                        max={createForm.watch("docType") === "simple" ? 8 : 10}
+                        {...createForm.register("sheetCount", { valueAsNumber: true })}
+                        className="border-2 focus:border-primary"
+                      />
+                      <p className="mt-1 text-xs text-slate-500">
+                        {createForm.watch("docType") === "simple" ? "Máximo 8 hojas por registro." : "Máximo 10 hojas por registro."}
+                      </p>
+                    </div>
+                    <div className="flex items-end rounded-md bg-white p-3 text-sm text-slate-700 ring-1 ring-slate-200">
+                      La tarifa se calcula automáticamente según el tipo y número de hojas.
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-4 grid grid-cols-1 gap-4 border-t border-slate-200 pt-4 md:grid-cols-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Peso de la encomienda (kg)</label>
+                      <Input
+                        type="number"
+                        min="0.1"
+                        step="0.1"
+                        {...createForm.register("weightKg", { valueAsNumber: true })}
+                        className="border-2 focus:border-primary"
+                      />
+                      <p className="mt-1 text-xs text-slate-500">Tarifa automática: 13,5 €/kg.</p>
+                    </div>
+                    <div className="flex items-end rounded-md bg-white p-3 text-sm font-semibold text-[#0B2B5E] ring-1 ring-slate-200">
+                      Total automático: {((Number(createForm.watch("weightKg")) || 0) * 13.5).toFixed(2)} €
+                    </div>
+                    <div className="flex items-end rounded-md bg-amber-50 p-3 text-xs text-amber-900 ring-1 ring-amber-200">
+                      Puedes reemplazar el total usando Precio manual en EUR.
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Información del remitente */}
@@ -796,62 +886,6 @@ export default function AdminDashboard() {
                       onChange={(val) => createForm.setValue("recipientPhone", val)}
                       placeholder="908722617"
                     />
-                  </div>
-                  <div className="md:col-span-4 grid grid-cols-1 md:grid-cols-3 gap-4 border-t pt-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Envío</label>
-                      <select
-                        {...createForm.register("shipmentType")}
-                        className="w-full p-2.5 bg-white border-2 border-slate-200 rounded-md text-sm font-medium focus:border-primary"
-                      >
-                        <option value="documento">Documento (Tarifa por hojas)</option>
-                        <option value="encomienda">Encomienda (13.5 EUR / kg)</option>
-                      </select>
-                    </div>
-                    {createForm.watch("shipmentType") === "encomienda" ? (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Peso (kg)</label>
-                        <Input
-                          type="number"
-                          step="0.1"
-                          min="0.1"
-                          {...createForm.register("weightKg", { valueAsNumber: true })}
-                          className="border-2 focus:border-primary"
-                        />
-                      </div>
-                    ) : (
-                      <>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Documento</label>
-                          <select
-                            {...createForm.register("docType")}
-                            className="w-full p-2.5 bg-white border-2 border-slate-200 rounded-md text-sm font-medium focus:border-primary"
-                          >
-                            <option value="apostillado">Apostillado (50€ base)</option>
-                            <option value="simple">Simple (45€ base)</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Número de Hojas</label>
-                          <Input
-                            type="number"
-                            min="1"
-                            {...createForm.register("sheetCount", { valueAsNumber: true })}
-                            className="border-2 focus:border-primary"
-                          />
-                        </div>
-                      </>
-                    )}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Precio Manual en EUR (Opcional)</label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        placeholder="Ej. 75.00 (Oferta/Libre)"
-                        {...createForm.register("manualPriceEur")}
-                        className="border-2 focus:border-primary"
-                      />
-                    </div>
                   </div>
                 </div>
               </div>

@@ -14,6 +14,7 @@ import { admins } from "../drizzle/schema";
 import { getDb } from "./db";
 import { eq } from "drizzle-orm";
 import { optionalDniSchema, optionalPersonNameSchema, personNameSchema } from "./inputValidation";
+import { calculateAdminShipmentPricing } from "./adminPricing";
 
 const adminProcedure = publicProcedure.use(({ ctx, next }) => {
   const adminSession = getAdminSession(ctx.req);
@@ -114,33 +115,8 @@ export const adminRouter = router({
       const prefix = input.shipmentType === "encomienda" ? "ENC" : "DOC";
       const code = `${prefix}-${new Date().getFullYear()}-${randomSuffix}`;
       
-      const shipmentType = input.shipmentType || "documento";
-      const docType = input.docType || 'apostillado';
-      const sheetCount = input.sheetCount || 1;
-      const weightKg = Number(input.weightKg || 1);
-      const manualPrice = input.manualPriceEur !== undefined && input.manualPriceEur !== null && String(input.manualPriceEur).trim() !== "" ? Number(input.manualPriceEur) : null;
-
-      let totalEur = 50;
-      let tariffDesc = '';
-
-      if (manualPrice !== null && !isNaN(manualPrice)) {
-        totalEur = manualPrice;
-        tariffDesc = shipmentType === "encomienda" 
-          ? `Encomienda (${weightKg} kg, Tarifa Manual): ${totalEur.toFixed(2)} EUR`
-          : `Documento (${docType}, ${sheetCount} hojas, Tarifa Manual): ${totalEur.toFixed(2)} EUR`;
-      } else if (shipmentType === "encomienda") {
-        totalEur = weightKg * 13.5;
-        tariffDesc = `Encomienda por peso (${weightKg} kg @ 13.5 EUR/kg): ${totalEur.toFixed(2)} EUR`;
-      } else {
-        if (docType === 'simple') {
-          totalEur = sheetCount <= 4 ? 45 : 45 + (sheetCount - 4) * 2;
-          tariffDesc = `Documento Simple (${sheetCount} hoja${sheetCount > 1 ? 's' : ''}): ${totalEur} EUR`;
-        } else {
-          totalEur = sheetCount <= 5 ? 50 : 50 + 10;
-          tariffDesc = `Documento Apostillado (${sheetCount} hoja${sheetCount > 1 ? 's' : ''}): ${totalEur} EUR`;
-        }
-      }
-      const calculatedNotes = `Tarifa: ${tariffDesc}. ${input.notes || ""}`.trim();
+      const pricing = calculateAdminShipmentPricing(input);
+      const { shipmentType, weightKg, manualPrice, notes: calculatedNotes } = pricing;
 
       const result = await createShipment(
         orderNumber,
@@ -171,7 +147,13 @@ export const adminRouter = router({
         });
       }
       const trackingUrl = buildTrackingPath(orderNumber, code);
-      return { success: true, message: 'Envío de documento creado exitosamente con orden y código automáticos', trackingUrl };
+      return {
+        success: true,
+        message: 'Envío creado exitosamente con orden y código automáticos',
+        orderNumber,
+        code,
+        trackingUrl,
+      };
     }),
 
   updateStatus: adminProcedure

@@ -41,14 +41,19 @@ export function PhoneInput({ value, onChange, placeholder = "970188447", require
 
   const [selectedCountry, setSelectedCountry] = useState(initialCountry);
   const [phoneNumber, setPhoneNumber] = useState(initialNumber);
+  const onChangeRef = useRef(onChange);
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
+  useEffect(() => {
     const normalizedValue = phoneNumber.trim() ? `${selectedCountry.code} ${phoneNumber}`.trim() : "";
-    onChange(normalizedValue);
-  }, [onChange, selectedCountry, phoneNumber]);
+    onChangeRef.current(normalizedValue);
+  }, [selectedCountry, phoneNumber]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
