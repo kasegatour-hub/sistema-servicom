@@ -208,3 +208,15 @@
 - [x] Volver dinámicos la cabecera de contacto y la ciudad de suscripción de la declaración jurada en ambos recibos
 - [x] Inspeccionar el HTML completo de ambos recibos en Torino–Lima mediante helpers dinámicos y pruebas de contenido visible
 - [x] Realizar verificación visual de Lima–Torino con un envío real disponible y verificar Torino–Lima con la vista ReceiptPage y pruebas de componente; no había un envío Torino–Lima real para captura sin insertar datos
+
+## Selector de ruta de cliente y Declaración Jurada por origen (Perú / Italia)
+- [x] Añadir selector de ruta (Lima - Torino / Torino - Lima) en el formulario de registro de envío del cliente (AccountPage)
+- [x] Actualizar el esquema backend `clientShipmentInputSchema` y los argumentos de persistencia para recibir la ruta elegida por el cliente
+- [x] Adaptar la redacción de la Declaración Jurada en los recibos de cliente y administración para que cambie según la ruta: Perú (Ley 28002, DIRANDRO, SUNAT) o Italia (DPR 309/1990, Guardia di Finanza, ADM, Procura della Repubblica)
+- [x] Reemplazar la línea fija "Suscrito en la ciudad de Lima" por la fórmula institucional con Servicom Internacional, Kasega Tour EIRL y RUC 20615004708
+- [x] Añadir pruebas unitarias e integración para verificar el selector de cliente y el texto legal correcto en ambas rutas
+
+## Evidencia de HTML legal en recibos
+- [x] Añadir pruebas del HTML completo del recibo de cliente que confirmen cláusulas peruanas e italianas según la ruta
+- [x] Añadir prueba del flujo o HTML de impresión administrativa que confirme la fórmula institucional y elimine "Suscrito en la ciudad de Lima"
+- [x] Verificar en ambos recibos la presencia de "Servicom Internacional en colaboración con Kasega Tour E.I.R.L. (RUC: 20615004708)"

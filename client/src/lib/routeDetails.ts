@@ -38,3 +38,26 @@ export function getRoutePresentation(route?: string | null) {
     deliveryTitle: `CONTROL DE ENTREGA — ${destination.printLabel}`,
   };
 }
+
+export function getDeclarationLegalText(route?: string | null) {
+  const { originCity, origin } = getRoutePresentation(route);
+  const isItalyOrigin = originCity === "Torino";
+
+  if (isItalyOrigin) {
+    return {
+      country: "República Italiana",
+      guarantee: "Garantizo formalmente que los documentos entregados a la agencia no ocultan, no camuflan, ni se encuentran impregnados de sustancias estupefacientes, alcaloides, dinero en efectivo no declarado, ni ningún material prohibido por la legislación penal de la República Italiana —incluyendo de forma explícita el Decreto del Presidente de la República N° 309 del 9 de octubre de 1990 (Texto Único sobre Estupefacientes), las normas sobre blanqueo de capitales y los convenios aduaneros internacionales vigentes en la Unión Europea.",
+      authorities: "Mediante mi firma y huella dactilar estampada en el presente documento, asumo la responsabilidad penal, civil y administrativa absoluta e indelegable ante las autoridades italianas competentes, específicamente la Guardia di Finanza, la Agencia de Aduanas y Monopolios (Agenzia delle Dogane e dei Monopoli - ADM), la Fiscalía de la República (Procura della Repubblica) y cualquier otra autoridad judicial o policial de la Unión Europea o extranjera en caso de detectarse alteraciones, camuflajes o sustancias ilícitas en mi envío.",
+      originLine: `Suscrito en la sede de origen de ${origin.shortLabel}, el`,
+    };
+  }
+
+  return {
+    country: "República del Perú",
+    guarantee: "Garantizo formalmente que los documentos entregados a la agencia no ocultan, no camuflan, ni se encuentran impregnados de sustancias estupefacientes, alcaloides, dinero en efectivo no declarado, ni ningún material prohibido por la legislación penal de la República del Perú (incluyendo de forma explícita la Ley N° 28002 - Ley que penaliza el Tráfico Ilícito de Drogas) y los convenios aduaneros internacionales vigentes.",
+    authorities: "Mediante mi firma y huella dactilar estampada en el presente documento, asumo la responsabilidad penal, civil y administrativa absoluta e indelegable ante la Policía Nacional del Perú (DIRANDRO), SUNAT/Aduanas, Ministerio Público y cualquier autoridad judicial nacional o extranjera en caso de detectarse alteraciones, camuflajes o sustancias ilícitas en mi envío.",
+    originLine: `Suscrito en la sede de origen de ${origin.shortLabel}, el`,
+  };
+}
+
+export const INSTITUTIONAL_DECLARATION_ENTITY = "Servicom Internacional en colaboración con KASEGA TOUR EIRL (RUC: 20615004708)";

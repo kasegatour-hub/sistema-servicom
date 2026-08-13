@@ -9,6 +9,7 @@ describe("account.createMyShipment persistence policy", () => {
       recipientDni: "71234567",
       docType: "simple",
       sheetCount: 1,
+      route: "Torino - Lima",
     });
     const args = buildClientShipmentPersistenceArgs(input, "1234567890", "DOC-2026-ABCDE", "Documento Simple (1 hoja): 45 EUR.", 42);
 
@@ -18,6 +19,7 @@ describe("account.createMyShipment persistence policy", () => {
     expect(args[9]).toBe("71234567");
     expect(args[13]).toBe("documento");
     expect(args[16]).toBe("Falta cancelar");
+    expect(args[17]).toBe("Torino - Lima");
   });
 
   it("rejects payment condition from the client input", () => {

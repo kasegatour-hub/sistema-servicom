@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 const mutation = vi.hoisted(() => () => ({ mutate: vi.fn(), isPending: false }));
 
@@ -33,5 +33,16 @@ describe("AccountPage client labels", () => {
 
     expect(screen.getByRole("button", { name: /Registrar Nuevo Documento/ })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Registrar Nueva Encomienda/ })).toBeNull();
+  });
+
+  it("shows the two shipment route options when the client starts a document registration", async () => {
+    render(<AccountPage />);
+    fireEvent.click(screen.getByRole("button", { name: /Registrar Nuevo Documento/ }));
+
+    await waitFor(() => expect(screen.getByRole("combobox", { name: "Ruta de envío" })).toBeTruthy());
+    const routeSelect = screen.getByRole("combobox", { name: "Ruta de envío" });
+    expect(routeSelect).toBeTruthy();
+    expect(screen.getByRole("option", { name: "Lima – Torino" })).toBeTruthy();
+    expect(screen.getByRole("option", { name: "Torino – Lima" })).toBeTruthy();
   });
 });

@@ -50,6 +50,7 @@ export const clientShipmentInputSchema = z.object({
   documentCount: z.number().min(1).default(1),
   docType: z.enum(["simple", "apostillado"]).default("apostillado"),
   sheetCount: z.number().min(1).default(1),
+  route: z.enum(["Lima - Torino", "Torino - Lima"]).default("Lima - Torino"),
 }).strict();
 
 export function buildClientShipmentPersistenceArgs(
@@ -77,7 +78,7 @@ export function buildClientShipmentPersistenceArgs(
     1,
     null,
     CLIENT_PAYMENT_DEFAULTS.status,
-    "Lima - Torino",
+    input.route,
     "",
     "",
   ] as const;

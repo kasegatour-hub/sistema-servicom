@@ -1,8 +1,20 @@
 import { getReceiptTicketPrintCss } from "./printLayout";
-import { getRoutePresentation } from "./routeDetails";
+import { getDeclarationLegalText, getRoutePresentation, INSTITUTIONAL_DECLARATION_ENTITY } from "./routeDetails";
 
 export function buildAdminReceiptPrintStyles() {
   return getReceiptTicketPrintCss(".cut-ticket");
+}
+
+export function buildAdminDeclarationHtml(data: {
+  sender: string;
+  senderDni: string;
+  order: string;
+  token: string;
+  today: string;
+  route?: string | null;
+}) {
+  const legal = getDeclarationLegalText(data.route);
+  return `<p>Yo, <strong>${data.sender}</strong>, identificado(a) con documento de identidad N° <strong>${data.senderDni}</strong>, en pleno uso de mis facultades, declaro bajo juramento que el envío amparado bajo la Orden N° <strong>${data.order}</strong> (Token de seguridad: ${data.token}) contiene <strong>ÚNICA Y ESTRICTAMENTE DOCUMENTACIÓN LÍCITA</strong>.</p><p>${legal.guarantee}</p><p>${legal.authorities}</p><p>En consecuencia, eximo expresa, legal y totalmente de cualquier implicancia, investigación, responsabilidad operativa o financiera a la empresa <strong>${INSTITUTIONAL_DECLARATION_ENTITY}</strong>. Asimismo, autorizo de manera irrevocable la apertura, revisión física detallada y escaneo del presente envío por parte de la agencia o las autoridades competentes sin necesidad de mi presencia ni notificación previa.</p><p>${legal.originLine} ${data.today}. <strong>${INSTITUTIONAL_DECLARATION_ENTITY}</strong>.</p>`;
 }
 
 export function buildAdminRouteSummaryHtml(routeValue?: string | null) {

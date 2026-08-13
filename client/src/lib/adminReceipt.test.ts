@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildAdminDeliveryTicketHtml, buildAdminReceiptPrintStyles, buildAdminRouteSummaryHtml } from "./adminReceipt";
+import { buildAdminDeclarationHtml, buildAdminDeliveryTicketHtml, buildAdminReceiptPrintStyles, buildAdminRouteSummaryHtml } from "./adminReceipt";
 
 describe("administrative receipt ticket", () => {
   it("includes the complete ticket markup and anti-split print rule", () => {
@@ -38,5 +38,25 @@ describe("administrative receipt ticket", () => {
     expect(summary).toContain("LIMA, PERÚ");
     expect(summary).toContain("Jr. de la Unión Nro. 518 Int. S101");
     expect(summary).not.toContain("TORINO, ITALIA</div>");
+  });
+
+  it("renders the Italian declaration and institutional signature for Torino–Lima", () => {
+    const html = buildAdminDeclarationHtml({
+      sender: "Luis Mendoza",
+      senderDni: "72918463",
+      order: "8844027727",
+      token: "TOKEN-IT",
+      today: "12 de agosto de 2026",
+      route: "Torino - Lima",
+    });
+
+    expect(html).toContain("República Italiana");
+    expect(html).toContain("Decreto del Presidente de la República N° 309");
+    expect(html).toContain("Guardia di Finanza");
+    expect(html).toContain("Agenzia delle Dogane e dei Monopoli - ADM");
+    expect(html).toContain("Suscrito en la sede de origen de Torino, Italia, el 12 de agosto de 2026");
+    expect(html).toContain("Servicom Internacional en colaboración con KASEGA TOUR EIRL (RUC: 20615004708)");
+    expect(html).not.toContain("Suscrito en la ciudad de Lima");
+    expect(html).not.toContain("Ley N° 28002");
   });
 });

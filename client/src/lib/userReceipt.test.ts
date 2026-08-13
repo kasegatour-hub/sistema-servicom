@@ -1,5 +1,25 @@
-import { describe, expect, it } from "vitest";
-import { buildReceiptRouteSummaryHtml, buildReceiptTicketHtml, buildReceiptPrintStyles, buildReceiptUrl, getPaymentStatusPresentation, resolveReceiptAssetUrl } from "./userReceipt";
+/** @vitest-environment jsdom */
+import { describe, expect, it, vi, afterEach } from "vitest";
+import {
+  buildReceiptRouteSummaryHtml,
+  buildReceiptTicketHtml,
+  buildReceiptPrintStyles,
+  buildReceiptUrl,
+  getPaymentStatusPresentation,
+  printUserShipmentReceipt,
+  resolveReceiptAssetUrl,
+} from "./userReceipt";
+
+vi.mock("qrcode", () => ({
+  default: {
+    toDataURL: vi.fn().mockResolvedValue("data:image/png;base64,qr"),
+  },
+}));
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
 
 describe("receipt window helpers", () => {
   it("resolves the logo against the published site origin", () => {
@@ -50,6 +70,50 @@ describe("receipt window helpers", () => {
     expect(summary).toContain("Jr. de la Unión Nro. 518 Int. S101");
     expect(summary).toContain("+51 970 188 447");
     expect(summary).not.toContain("Destino:</span> <span class=\"line\">TORINO, ITALIA");
+  });
+
+  it("renders the Italian legal declaration in the complete client receipt for Torino–Lima", async () => {
+    const writes: string[] = [];
+    const documentRef = {
+      readyState: "complete",
+      images: [],
+      open: vi.fn(),
+      write: vi.fn((html: string) => writes.push(html)),
+      close: vi.fn(),
+    };
+    const printWindow = {
+      closed: false,
+      document: documentRef,
+      focus: vi.fn(),
+      print: vi.fn(),
+      close: vi.fn(),
+    } as unknown as Window;
+    vi.spyOn(window, "open").mockReturnValue(printWindow);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 404 }));
+
+    await printUserShipmentReceipt({
+      orderNumber: "8844027727",
+      code: "ENC-2026-75ZRD",
+      route: "Torino - Lima",
+      senderName: "Luis",
+      senderLastName: "Mendoza",
+      senderDni: "72918463",
+      recipientName: "Jorge",
+      recipientLastName: "Paredes",
+      recipientPhone: "+51 945 612 378",
+      paymentStatus: "Falta cancelar",
+      status: "Por entregar en agencia",
+    });
+
+    const finalHtml = writes.at(-1) ?? "";
+    expect(finalHtml).toContain("República Italiana");
+    expect(finalHtml).toContain("Decreto del Presidente de la República N° 309");
+    expect(finalHtml).toContain("Guardia di Finanza");
+    expect(finalHtml).toContain("Agenzia delle Dogane e dei Monopoli - ADM");
+    expect(finalHtml).toContain("Suscrito en la sede de origen de Torino, Italia");
+    expect(finalHtml).toContain("Servicom Internacional en colaboración con KASEGA TOUR EIRL (RUC: 20615004708)");
+    expect(finalHtml).not.toContain("Suscrito en la ciudad de Lima");
+    expect(finalHtml).not.toContain("Ley N° 28002");
   });
 
   it("uses green only for Pagado and red only for No cancelado", () => {

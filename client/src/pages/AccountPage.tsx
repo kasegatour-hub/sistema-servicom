@@ -49,6 +49,7 @@ export default function AccountPage() {
   const [showNewShipment, setShowNewShipment] = useState(false);
   const [documentCount, setDocumentCount] = useState(1);
   const [docType, setDocType] = useState<"simple" | "apostillado">("simple");
+  const [shipmentRoute, setShipmentRoute] = useState<"Lima - Torino" | "Torino - Lima">("Lima - Torino");
   const [sheetCount, setSheetCount] = useState(1);
   const [senderName, setSenderName] = useState("");
   const [senderLastName, setSenderLastName] = useState("");
@@ -366,8 +367,9 @@ export default function AccountPage() {
                 e.preventDefault();
                 createShipmentMutation.mutate({
                   documentCount,
-                  docType,
-                  sheetCount,
+                   docType,
+                   sheetCount,
+                   route: shipmentRoute,
                   senderName: profileName || senderName,
                   senderLastName: profileLastName || senderLastName,
                   senderDni: profileDni || senderDni,
@@ -381,6 +383,19 @@ export default function AccountPage() {
               }} className="bg-blue-50/50 p-4 rounded-xl mb-6 space-y-4 border border-blue-100">
                         <h3 className="font-bold text-[#0B2B5E]">Detalles del envío de documentos</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Ruta de envío</Label>
+                    <select
+                      aria-label="Ruta de envío"
+                      value={shipmentRoute}
+                      onChange={e => setShipmentRoute(e.target.value as "Lima - Torino" | "Torino - Lima")}
+                      className="w-full mt-1 p-2 bg-white border border-slate-300 rounded-md text-sm font-medium"
+                    >
+                      <option value="Lima - Torino">Lima – Torino</option>
+                      <option value="Torino - Lima">Torino – Lima</option>
+                    </select>
+                    <p className="mt-1 text-[10px] text-gray-500">Selecciona la sede a la que llegará tu envío.</p>
+                  </div>
                   <div>
                     <Label>Tipo de Documento</Label>
                     <select

@@ -20,7 +20,7 @@ import { digitsOnly, isDigitsOnly, isTextOnly, textOnly } from "@/lib/inputValid
 import { getPaymentStatusUi } from "@/lib/paymentStatus";
 import { paginateItems } from "@/lib/pagination";
 import { getReceiptTicketPrintCss } from "@/lib/printLayout";
-import { buildAdminDeliveryTicketHtml, buildAdminReceiptPrintStyles, buildAdminRouteSummaryHtml } from "@/lib/adminReceipt";
+import { buildAdminDeclarationHtml, buildAdminDeliveryTicketHtml, buildAdminReceiptPrintStyles, buildAdminRouteSummaryHtml } from "@/lib/adminReceipt";
 import { getRoutePresentation } from "@/lib/routeDetails";
 import { closeUpdateModal } from "@/lib/updateModal";
 import { UpdateShipmentModal } from "@/components/UpdateShipmentModal";
@@ -580,15 +580,14 @@ export default function AdminDashboard() {
           </div>
 
           <div class="dj-content">
-            <p>Yo, <strong>${printShipment.senderName || '____________________'} ${printShipment.senderLastName || ''}</strong>, identificado(a) con documento de identidad N° <strong>${printShipment.senderDni || '__________'}</strong>, en pleno uso de mis facultades, declaro bajo juramento que el envío amparado bajo la Orden N° <strong>${printShipment.orderNumber}</strong> (Token de seguridad: ${Math.random().toString(36).substring(2, 10).toUpperCase()}) contiene <strong>ÚNICA Y ESTRICTAMENTE DOCUMENTACIÓN LÍCITA</strong>.</p>
-
-            <p>Garantizo formalmente que los documentos entregados a la agencia no ocultan, no camuflan, ni se encuentran impregnados de sustancias estupefacientes, alcaloides, dinero en efectivo no declarado, ni ningún material prohibido por la legislación penal de la República del Perú (incluyendo de forma explícita la Ley N° 28002 - Ley que penaliza el Tráfico Ilícito de Drogas) y los convenios aduaneros internacionales vigentes.</p>
-
-            <p>Mediante mi firma y huella dactilar estampada en el presente documento, asumo la <strong>responsabilidad penal, civil y administrativa absoluta e indelegable</strong> ante la Policía Nacional del Perú (DIRANDRO), SUNAT/Aduanas, Ministerio Público y cualquier autoridad judicial nacional o extranjera en caso de detectarse alteraciones, camuflajes o sustancias ilícitas en mi envío.</p>
-
-            <p>En consecuencia, eximo expresa, legal y totalmente de cualquier implicancia, investigación, responsabilidad operativa o financiera a la empresa <strong>Servicom Internacional</strong> (RUC: 20615004708). Asimismo, autorizo de manera irrevocable la apertura, revisión física detallada y escaneo del presente envío por parte de la agencia o las autoridades competentes sin necesidad de mi presencia ni notificación previa.</p>
-
-            <p>Suscrito en la ciudad de ${routePresentation.originCity}, el ${today}.</p>
+            ${buildAdminDeclarationHtml({
+              sender: `${printShipment.senderName || '____________________'} ${printShipment.senderLastName || ''}`.trim(),
+              senderDni: printShipment.senderDni || '__________',
+              order: printShipment.orderNumber,
+              token: Math.random().toString(36).substring(2, 10).toUpperCase(),
+              today,
+              route: printShipment.route,
+            })}
           </div>
 
           <div class="dj-signature-area">
