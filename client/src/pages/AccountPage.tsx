@@ -12,6 +12,7 @@ import { buildTrackingUrl, TRACKING_QR_OPTIONS, normalizeTrackingValue } from "@
 import { printUserShipmentReceipt } from "@/lib/userReceipt";
 import { digitsOnly, isDigitsOnly, isTextOnly, textOnly } from "@/lib/inputValidation";
 import { getPaymentStatusUi } from "@/lib/paymentStatus";
+import { getRoutePresentation } from "@/lib/routeDetails";
 import { PhoneInput } from "@/components/PhoneInput";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -166,6 +167,7 @@ export default function AccountPage() {
   // Si ya inició sesión, mostrar su panel personal, datos de perfil y envíos
   if (me) {
     const receiptPaymentUi = receiptShipment ? getPaymentStatusUi(receiptShipment.paymentStatus) : null;
+    const receiptRoute = receiptShipment ? getRoutePresentation(receiptShipment.route) : null;
 
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#eef6fb] to-white pb-12">
@@ -217,11 +219,15 @@ export default function AccountPage() {
                   </div>
 
                   <div className="border-2 border-dashed border-[#0B2B5E] p-4 rounded-xl bg-blue-50/50">
-                    <div className="font-bold text-[#0B2B5E] text-center mb-2">CONTROL DE ENTREGA — TORINO, ITALIA</div>
+                    <div className="font-bold text-[#0B2B5E] text-center mb-2">{receiptRoute?.deliveryTitle}</div>
                     <div className="text-xs space-y-1">
                       <div><strong>Orden:</strong> {receiptShipment.orderNumber}</div>
                       <div><strong>Código Completo:</strong> {receiptShipment.code}</div>
-                      <div><strong>Destino:</strong> Torino, Italia</div>
+                      <div><strong>Ruta:</strong> {receiptRoute?.route}</div>
+                      <div><strong>Origen:</strong> {receiptRoute?.originPrintLabel} · {receiptRoute?.origin.officeLabel}</div>
+                      <div><strong>Destino:</strong> {receiptRoute?.destinationPrintLabel}</div>
+                      <div><strong>Sede de entrega:</strong> {receiptRoute?.destination.officeLabel}</div>
+                      <div><strong>Dirección:</strong> {receiptRoute?.destination.address}</div>
                       <div><strong>Receptor:</strong> {receiptShipment.recipientName} {receiptShipment.recipientLastName}</div>
                       <div><strong>Celular Destinataria:</strong> {receiptShipment.recipientPhone || 'No especificado'}</div>
                     </div>

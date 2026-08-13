@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildReceiptTicketHtml, buildReceiptPrintStyles, buildReceiptUrl, getPaymentStatusPresentation, resolveReceiptAssetUrl } from "./userReceipt";
+import { buildReceiptRouteSummaryHtml, buildReceiptTicketHtml, buildReceiptPrintStyles, buildReceiptUrl, getPaymentStatusPresentation, resolveReceiptAssetUrl } from "./userReceipt";
 
 describe("receipt window helpers", () => {
   it("resolves the logo against the published site origin", () => {
@@ -20,13 +20,36 @@ describe("receipt window helpers", () => {
       code: "07900824",
       recipient: "MIGUEL DIAZ OJITOS",
       recipientPhone: "+39 333 123 456",
+      route: "Lima - Torino",
     });
     const styles = buildReceiptPrintStyles();
 
     expect(ticket).toContain('class="ticket"');
     expect(ticket).toContain("CONTROL DE ENTREGA — TORINO, ITALIA");
+    expect(ticket).toContain("SEDE DE ENTREGA:</strong> Corso Peschiera");
     expect(ticket).toContain("CELULAR DESTINATARIA:");
     expect(styles).toContain(".ticket{break-inside:avoid;page-break-inside:avoid");
+  });
+
+  it("prints Lima as destination for the reverse route", () => {
+    const ticket = buildReceiptTicketHtml({
+      order: "8844027727",
+      code: "ENC-2026-75ZRD",
+      recipient: "Luis Mendoza Castro",
+      recipientPhone: "+39 389 766 3723",
+      route: "Torino - Lima",
+    });
+
+    expect(ticket).toContain("CONTROL DE ENTREGA — LIMA, PERÚ");
+    expect(ticket).toContain("<strong>RUTA:</strong> Torino - Lima");
+    expect(ticket).toContain("<strong>DESTINO:</strong> LIMA, PERÚ");
+    expect(ticket).toContain("<strong>SEDE DE ENTREGA:</strong> Jr. de la Unión 518");
+    expect(ticket).not.toContain("<strong>DESTINO:</strong> TORINO, ITALIA");
+    const summary = buildReceiptRouteSummaryHtml("Torino - Lima");
+    expect(summary).toContain("LIMA, PERÚ");
+    expect(summary).toContain("Jr. de la Unión Nro. 518 Int. S101");
+    expect(summary).toContain("+51 970 188 447");
+    expect(summary).not.toContain("Destino:</span> <span class=\"line\">TORINO, ITALIA");
   });
 
   it("uses green only for Pagado and red only for No cancelado", () => {

@@ -199,3 +199,12 @@
 
 ## Verificación visual del buscador administrativo
 - [x] Añadir capturas de pantalla de la búsqueda y autocompletado de clientes en el panel de administración
+
+## Rutas dinámicas en recibos y controles
+- [x] Corregir el control de entrega para que la sede y el destino correspondan a la ruta seleccionada
+- [x] Mostrar origen, destino, dirección y contacto correctos para Lima–Torino y Torino–Lima
+- [x] Aplicar la configuración dinámica en recibos de cliente y administración
+- [x] Añadir pruebas para ambas rutas y validar la salida imprimible mediante la página pública disponible, ReceiptPage visible y HTML generado
+- [x] Volver dinámicos la cabecera de contacto y la ciudad de suscripción de la declaración jurada en ambos recibos
+- [x] Inspeccionar el HTML completo de ambos recibos en Torino–Lima mediante helpers dinámicos y pruebas de contenido visible
+- [x] Realizar verificación visual de Lima–Torino con un envío real disponible y verificar Torino–Lima con la vista ReceiptPage y pruebas de componente; no había un envío Torino–Lima real para captura sin insertar datos

@@ -6,6 +6,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { trpc } from "@/lib/trpc";
 import { printUserShipmentReceipt } from "@/lib/userReceipt";
 import { getPaymentStatusUi } from "@/lib/paymentStatus";
+import { getRoutePresentation } from "@/lib/routeDetails";
 
 function getReceiptQuery() {
   const params = new URLSearchParams(window.location.search);
@@ -21,6 +22,7 @@ export default function ReceiptPage() {
     enabled: Boolean(query.orderNumber && query.code),
   });
   const paymentUi = getPaymentStatusUi(shipment?.paymentStatus);
+  const routePresentation = getRoutePresentation(shipment?.route);
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-[#eef6fb] to-white px-4 py-8 text-[#0B2B5E]">
@@ -60,13 +62,18 @@ export default function ReceiptPage() {
                 <p><strong>Destinatario:</strong> {shipment.recipientName || "No especificado"} {shipment.recipientLastName || ""}</p>
                 <p><strong>Celular destinatario:</strong> {shipment.recipientPhone || "No especificado"}</p>
                 <p><strong>Estado del envío:</strong> {shipment.status}</p>
+                <p><strong>Ruta:</strong> {routePresentation.route}</p>
+                <p><strong>Origen:</strong> {routePresentation.originPrintLabel} · {routePresentation.origin.officeLabel}</p>
+                <p><strong>Destino:</strong> {routePresentation.destinationPrintLabel} · {routePresentation.destination.officeLabel}</p>
+                <p className="md:col-span-2"><strong>Dirección de entrega:</strong> {routePresentation.destination.address}</p>
+                <p className="md:col-span-2"><strong>Contacto de sede:</strong> {routePresentation.destination.phone}</p>
                 <p className="md:col-span-2"><strong>Estado de Pago:</strong> <span className={`ml-1 inline-flex rounded px-2 py-0.5 font-semibold ${paymentUi.badgeClass}`}>{paymentUi.label}</span></p>
               </div>
 
               <div className="flex flex-col gap-3 rounded-lg border border-[#0B2B5E]/15 bg-[#0B2B5E]/5 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="font-semibold">Recibo listo para imprimir</p>
-                  <p className="text-sm text-slate-600">Incluye el código QR, la declaración jurada y el ticket recortable de Torino.</p>
+                  <p className="text-sm text-slate-600">Incluye el código QR, la declaración jurada y el ticket recortable de la sede de entrega.</p>
                 </div>
                 <Button type="button" onClick={() => printUserShipmentReceipt(shipment)} className="bg-[#0B2B5E] text-white hover:bg-[#123d78]">
                   <Printer className="mr-2 h-4 w-4" aria-hidden="true" /> Imprimir recibo

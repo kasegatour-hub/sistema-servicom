@@ -20,7 +20,8 @@ import { digitsOnly, isDigitsOnly, isTextOnly, textOnly } from "@/lib/inputValid
 import { getPaymentStatusUi } from "@/lib/paymentStatus";
 import { paginateItems } from "@/lib/pagination";
 import { getReceiptTicketPrintCss } from "@/lib/printLayout";
-import { buildAdminDeliveryTicketHtml, buildAdminReceiptPrintStyles } from "@/lib/adminReceipt";
+import { buildAdminDeliveryTicketHtml, buildAdminReceiptPrintStyles, buildAdminRouteSummaryHtml } from "@/lib/adminReceipt";
+import { getRoutePresentation } from "@/lib/routeDetails";
 import { closeUpdateModal } from "@/lib/updateModal";
 import { UpdateShipmentModal } from "@/components/UpdateShipmentModal";
 
@@ -444,6 +445,7 @@ export default function AdminDashboard() {
       const trackingUrl = buildTrackingUrl(printShipment.orderNumber, printShipment.code);
       const brandLogo = new URL('/manus-storage/servicom_logo_final_e7ce35aa.png', window.location.origin).href;
       const today = new Date().toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' });
+      const routePresentation = getRoutePresentation(printShipment.route);
       const paymentUi = getPaymentStatusUi(printShipment.paymentStatus);
       const paymentIsPaid = paymentUi.isPaid;
       const paymentIsPending = paymentUi.isPending;
@@ -504,8 +506,8 @@ export default function AdminDashboard() {
               <h1 class="company">SERVICOM INTERNACIONAL</h1>
               <div class="subtitle">SERVICOM INTERNACIONAL</div>
               <div class="ruc-contact">
-                RUC: 20615004708 | Cel: +51 970188 447<br>
-                Jr de la Unión 518 INT SOT101, Lima
+                RUC: 20615004708 | Contacto: ${routePresentation.origin.phone}<br>
+                ${routePresentation.origin.address}
               </div>
             </div>
             <div class="digital-seal">
@@ -518,7 +520,9 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div class="main-title">INFORMACIÓN DE ENVÍO DE DOCUMENTO</div>
+          <div class="main-title">INFORMACIÓN DE ENVÍO DE DOCUMENTO — ${routePresentation.route}</div>
+
+          ${buildAdminRouteSummaryHtml(printShipment.route)}
 
           <div class="section">
             <div class="row"><div class="label">Orden:</div><div class="value">${printShipment.orderNumber}</div><div class="label" style="margin-left:20px">Cód. Envío:</div><div class="value">${printShipment.code}</div></div>
@@ -559,12 +563,13 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <!-- TICKET RECORTABLE PARA TORINO -->
+          <!-- TICKET RECORTABLE PARA LA SEDE DE ENTREGA -->
           ${buildAdminDeliveryTicketHtml({
             order: String(printShipment.orderNumber),
             code: String(printShipment.code),
             recipient: `${printShipment.recipientName || ''} ${printShipment.recipientLastName || ''}`.trim(),
             recipientPhone: printShipment.recipientPhone || 'No especificado',
+            route: printShipment.route,
           })}
 
           <!-- PÁGINA 2: DECLARACIÓN JURADA -->
@@ -583,7 +588,7 @@ export default function AdminDashboard() {
 
             <p>En consecuencia, eximo expresa, legal y totalmente de cualquier implicancia, investigación, responsabilidad operativa o financiera a la empresa <strong>Servicom Internacional</strong> (RUC: 20615004708). Asimismo, autorizo de manera irrevocable la apertura, revisión física detallada y escaneo del presente envío por parte de la agencia o las autoridades competentes sin necesidad de mi presencia ni notificación previa.</p>
 
-            <p>Suscrito en la ciudad de Lima, el ${today}.</p>
+            <p>Suscrito en la ciudad de ${routePresentation.originCity}, el ${today}.</p>
           </div>
 
           <div class="dj-signature-area">
