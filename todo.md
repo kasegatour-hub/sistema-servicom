@@ -151,3 +151,15 @@
 - [x] Actualizar la sede de Lima con teléfonos +51 970188 447, +51 908722617, fijo 01 3907269 y referencia 'Galería en el sótano - Frente a Saga Falabella'
 - [x] Actualizar la sede de Torino con el teléfono específico +39 389 766 3723
 - [x] Actualizar las pruebas de componentes y de datos de ubicaciones para verificar los nuevos números y la referencia exacta de Lima
+
+## Actualización de contactos Torino y colores de Estado de Pago
+- [x] Añadir los dos teléfonos de Torino (+39 351 278 7962 y +39 350 902 5271) vinculados a WhatsApp en la tarjeta de la sede Torino y en la sección de información de contacto inferior
+- [x] Asegurar que no quede ninguna referencia a 'Condición de Pago' en el modal de administración ni en ningún formulario
+- [x] Ajustar la representación del Estado de Pago en los recibos impresos para que sea verde solo cuando está Pagado, rojo solo cuando está No cancelado, y negro/sin color cuando no esté marcado
+
+## Auditoría final de pago y formularios
+- [x] Hacer una búsqueda final y eliminar cualquier referencia restante a `paymentCondition` o "Condición de Pago" en todos los formularios del frontend
+- [x] Añadir una prueba específica que confirme que los formularios administrativos solo exponen "Estado de Pago"
+
+## Ruta estable de recibo
+- [x] Añadir una ruta pública `/recibo` que muestre el recibo solicitado por orden y código y permita imprimirlo sin 404

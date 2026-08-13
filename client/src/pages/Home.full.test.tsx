@@ -52,9 +52,10 @@ describe("Home public page", () => {
     expect(screen.getByText("Lunes a sábado, de 10:00 a. m. a 8:30 p. m.")).toBeTruthy();
     expect(screen.getByText("Lunes a sábado, de 9:00 a. m. a 8:30 p. m.")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Teléfono fijo 01 390 7269" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "WhatsApp +51 970 188 447" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "WhatsApp +51 908 722 617" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Teléfono Torino +39 389 766 3723" })).toBeTruthy();
+    expect(screen.getAllByRole("link", { name: "WhatsApp +51 970 188 447" }).length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByRole("link", { name: "WhatsApp +51 908 722 617" }).length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByRole("link", { name: "WhatsApp Torino +39 351 278 7962" }).length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByRole("link", { name: "WhatsApp Torino +39 350 902 5271" }).length).toBeGreaterThanOrEqual(2);
     expect(screen.getByRole("link", { name: /Abrir Lima en Google Maps/ })).toBeTruthy();
     expect(screen.getByRole("link", { name: /Abrir Torino en Google Maps/ })).toBeTruthy();
   });

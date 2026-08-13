@@ -71,11 +71,13 @@ describe("UpdateShipmentModal component", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it("renders Pagado and No cancelado in the real payment selector", () => {
+  it("renders only Estado de Pago with Pagado and No cancelado choices", () => {
     renderUpdateModal();
 
+    expect(screen.getByText("Estado de Pago")).toBeTruthy();
     expect(screen.getByRole("option", { name: "Pagado" })).toBeTruthy();
     expect(screen.getByRole("option", { name: "No cancelado" })).toBeTruthy();
+    expect(screen.queryByText("Condición de Pago")).toBeNull();
   });
 
   it("does not show inline errors when the modal opens with valid preloaded identity data", () => {

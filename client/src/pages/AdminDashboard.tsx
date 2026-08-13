@@ -81,7 +81,6 @@ const createShipmentSchema = z.object({
   documentCount: z.number().min(1).default(1),
   docType: z.enum(["simple", "apostillado"]).optional(),
   sheetCount: z.number().optional(),
-  paymentCondition: z.string().optional(),
   paymentStatus: z.enum(["Pagado", "Falta cancelar"]).default("Falta cancelar"),
   route: z.string().default("Lima - Torino"),
   originAddress: z.string().optional(),
@@ -101,7 +100,6 @@ const updateStatusSchema = z.object({
   recipientDni: optionalDniField,
   recipientPhone: z.string().optional(),
   notes: z.string().optional(),
-  paymentCondition: z.string().optional(),
   paymentStatus: z.enum(["Pagado", "Falta cancelar"]).optional(),
   route: z.string().optional(),
   originAddress: z.string().optional(),
@@ -182,7 +180,6 @@ export default function AdminDashboard() {
       notes: '',
       paymentStatus: 'Falta cancelar',
       route: 'Lima - Torino',
-      paymentCondition: 'Pagará en Italia (Torino)',
       originAddress: '',
       destinationAddress: '',
     },
@@ -327,8 +324,11 @@ export default function AdminDashboard() {
       const today = new Date().toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' });
       const paymentUi = getPaymentStatusUi(printShipment.paymentStatus);
       const paymentIsPaid = paymentUi.isPaid;
-      const paymentColor = paymentIsPaid ? '#059669' : '#e11d48';
-      const paymentBackground = paymentIsPaid ? '#ecfdf5' : '#fff1f2';
+      const paymentIsPending = paymentUi.isPending;
+      const paymentColor = paymentIsPaid ? '#059669' : paymentIsPending ? '#e11d48' : '#000000';
+      const paymentBackground = paymentIsPaid ? '#ecfdf5' : paymentIsPending ? '#fff1f2' : 'transparent';
+      const pendingColor = paymentIsPending ? '#e11d48' : '#000000';
+      const pendingBackground = paymentIsPending ? '#fff1f2' : 'transparent';
       const html = `
         <!DOCTYPE html>
         <html>
@@ -418,7 +418,7 @@ export default function AdminDashboard() {
           <div class="section">
             <div class="section-title">Estado de Pago y Descripción</div>
             <div style="font-size: 12px; border: 1px solid #eee; padding: 8px; background: #fafafa;">
-              <strong>Estado de Pago:</strong> <span style="color:${paymentColor};background:${paymentBackground};padding:2px 8px;border-radius:4px;font-weight:bold">[${paymentIsPaid ? 'X' : ' '}] Pagado &nbsp;&nbsp;&nbsp; [${!paymentIsPaid ? 'X' : ' '}] No cancelado</span><br><br>
+              <strong>Estado de Pago:</strong> <span style="color:${paymentColor};background:${paymentBackground};padding:2px 8px;border-radius:4px;font-weight:bold">[${paymentIsPaid ? 'X' : ' '}] Pagado</span> &nbsp;&nbsp;&nbsp; <span style="color:${pendingColor};background:${pendingBackground};padding:2px 8px;border-radius:4px;font-weight:bold">[${paymentIsPending ? 'X' : ' '}] No cancelado</span><br><br>
               ${printShipment.notes || 'Documentación Lícita'}
             </div>
           </div>
@@ -1079,7 +1079,6 @@ export default function AdminDashboard() {
                                 notes: shipment.notes || "",
                                 paymentStatus: shipment.paymentStatus || "Falta cancelar",
                                 route: shipment.route || "Lima - Torino",
-                                paymentCondition: shipment.paymentCondition || "Pagará en Italia (Torino)",
                                 originAddress: shipment.originAddress || "",
                                 destinationAddress: shipment.destinationAddress || "",
                               });
@@ -1210,17 +1209,6 @@ export default function AdminDashboard() {
                       <option value="Torino - Lima">Torino - Lima</option>
                     </select>
                   </div>
-                </div>
-
-                <div className="border-t pt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Condición de Pago</label>
-                  <select
-                    {...updateForm.register("paymentCondition")}
-                    className="w-full p-2.5 bg-white border-2 border-slate-200 rounded-md text-sm font-medium focus:border-primary"
-                  >
-                    <option value="Pagado en Lima (Jr. de la Unión 518)">Pagado en Lima (Jr. de la Unión 518)</option>
-                    <option value="Pagará en ITALIA (Torino)">Pagará en ITALIA (Torino)</option>
-                  </select>
                 </div>
 
                 <div className="border-t pt-4">
