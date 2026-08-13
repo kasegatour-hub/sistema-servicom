@@ -188,3 +188,14 @@
 
 ## Cierre sin verificación manual
 - [x] Sustituir la verificación manual autenticada por la evidencia automatizada disponible y documentar esta limitación en el cierre
+
+## Registro persistente de clientes
+- [x] Crear una tabla separada de clientes que conserve nombre, apellidos, DNI y teléfonos aunque se elimine una cuenta de acceso
+- [x] Sincronizar remitentes y destinatarios de nuevos envíos con el registro persistente sin mostrarlos como usuarios activos
+- [x] Añadir búsqueda administrativa de clientes por DNI o nombre
+- [x] Permitir seleccionar un cliente encontrado y completar rápidamente sus datos en el formulario de envío
+- [x] Añadir y verificar el WhatsApp de Torino +39 389 766 3723 en la tarjeta de sede y el pie de contacto
+- [x] Añadir pruebas backend, UI y visuales para persistencia, búsqueda y contacto
+
+## Verificación visual del buscador administrativo
+- [x] Añadir capturas de pantalla de la búsqueda y autocompletado de clientes en el panel de administración

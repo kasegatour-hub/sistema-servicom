@@ -1,4 +1,4 @@
-import { mysqlTable, mysqlEnum, int, varchar, text, timestamp, longtext, decimal } from "drizzle-orm/mysql-core";
+import { mysqlTable, mysqlEnum, int, varchar, text, timestamp, longtext, decimal, index } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -41,6 +41,23 @@ export const localAccounts = mysqlTable("local_accounts", {
 });
 export type LocalAccount = typeof localAccounts.$inferSelect;
 export type InsertLocalAccount = typeof localAccounts.$inferInsert;
+
+/** Registro operativo persistente de remitentes y destinatarios, independiente de las cuentas de acceso. */
+export const clients = mysqlTable("clients", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  lastName: varchar("lastName", { length: 255 }).notNull(),
+  dni: varchar("dni", { length: 20 }),
+  phone: varchar("phone", { length: 32 }),
+  email: varchar("email", { length: 320 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => ({
+  dniIdx: index("clients_dni_idx").on(table.dni),
+  nameIdx: index("clients_name_last_name_idx").on(table.name, table.lastName),
+}));
+export type Client = typeof clients.$inferSelect;
+export type InsertClient = typeof clients.$inferInsert;
 
 export const verificationCodes = mysqlTable("verification_codes", {
   id: int("id").autoincrement().primaryKey(),

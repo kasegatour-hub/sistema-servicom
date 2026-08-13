@@ -17,6 +17,12 @@ const mocks = vi.hoisted(() => ({
   deactivateAdmin: { isPending: false, mutateAsync: vi.fn() },
   refetchShipments: vi.fn(),
   refetchAdminUsers: vi.fn(),
+  searchClients: {
+    useQuery: (input: { query?: string }) => ({
+      data: input.query?.trim() ? [{ id: 21, name: "Ana", lastName: "Pérez", dni: "71234567", phone: "+51 970188447", email: null }] : [],
+      isFetching: false,
+    }),
+  },
 }));
 
 vi.mock("@/lib/trpc", () => ({
@@ -24,6 +30,7 @@ vi.mock("@/lib/trpc", () => ({
     admin: {
       getAllShipments: { useQuery: () => ({ data: [], isLoading: false, refetch: mocks.refetchShipments }) },
       listAdmins: { useQuery: () => ({ data: [], isLoading: false, refetch: mocks.refetchAdminUsers }) },
+      searchClients: mocks.searchClients,
       login: { useMutation: () => mocks.login },
       logout: { useMutation: () => mocks.logout },
       createShipment: { useMutation: () => mocks.createShipment },
@@ -65,6 +72,23 @@ describe("AdminDashboard Nueva Encomienda", () => {
 
     expect(screen.getByText("Peso de la encomienda (kg)")).toBeTruthy();
     expect(screen.getByText("Total automático: 13.50 €")).toBeTruthy();
+  });
+
+  it("fills sender data from a persistent client match by DNI", async () => {
+    render(<AdminDashboard />);
+    fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
+    fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Nueva Encomienda" })).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "Nueva Encomienda" }));
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Buscar remitente guardado" }), { target: { value: "71234567" } });
+    const match = await screen.findByRole("button", { name: /Ana Pérez/ });
+    fireEvent.click(match);
+
+    expect((screen.getAllByPlaceholderText("Nombre")[0] as HTMLInputElement).value).toBe("Ana");
+    expect((screen.getAllByPlaceholderText("Apellido")[0] as HTMLInputElement).value).toBe("Pérez");
+    expect((screen.getAllByPlaceholderText("DNI")[0] as HTMLInputElement).value).toBe("71234567");
   });
 
   it("submits document and parcel payloads through the administrative mutation", async () => {

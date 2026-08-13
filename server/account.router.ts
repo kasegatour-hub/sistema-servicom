@@ -14,6 +14,7 @@ import {
   getShipmentsByAccountId,
   createShipment,
   updateLocalAccountPassword,
+  upsertClient,
 } from "./db";
 import {
   generateVerificationCode,
@@ -108,6 +109,7 @@ export const accountRouter = router({
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No se pudo crear la cuenta." });
       }
 
+      await upsertClient({ name: input.name, lastName: input.lastName, dni: input.dni, phone, email });
       setAccountSession(ctx.req, ctx.res, account.id);
       return {
         success: true,
@@ -183,6 +185,7 @@ export const accountRouter = router({
       if (!account) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Cuenta no encontrada." });
       }
+      await upsertClient({ name: input.name, lastName: input.lastName, dni: input.dni, phone: input.phone, email: account.email });
       return { success: true, account };
     }),
 

@@ -56,6 +56,7 @@ describe("Home public page", () => {
     expect(screen.getAllByRole("link", { name: "WhatsApp +51 908 722 617" }).length).toBeGreaterThanOrEqual(2);
     expect(screen.getAllByRole("link", { name: "WhatsApp Torino +39 351 278 7962" }).length).toBeGreaterThanOrEqual(2);
     expect(screen.getAllByRole("link", { name: "WhatsApp Torino +39 350 902 5271" }).length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByRole("link", { name: "WhatsApp Torino +39 389 766 3723" }).length).toBeGreaterThanOrEqual(2);
     expect(screen.getByRole("link", { name: /Abrir Lima en Google Maps/ })).toBeTruthy();
     expect(screen.getByRole("link", { name: /Abrir Torino en Google Maps/ })).toBeTruthy();
   });

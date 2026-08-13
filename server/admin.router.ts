@@ -7,7 +7,7 @@ function buildTrackingPath(orderNumber: string, code: string): string {
   return `/?order=${encodeURIComponent(order)}&code=${encodeURIComponent(normalizedCode)}`;
 }
 import { publicProcedure, router } from "./_core/trpc";
-import { getAdminByEmail, getAllShipments, createShipment, updateShipmentStatus, deleteShipment } from "./db";
+import { getAdminByEmail, getAllShipments, createShipment, updateShipmentStatus, deleteShipment, searchClients } from "./db";
 import { hashPassword, verifyPassword } from "./localAuth";
 import { clearAdminSession, getAdminSession, setAdminSession } from "./adminSession";
 import { admins } from "../drizzle/schema";
@@ -86,6 +86,10 @@ export const adminRouter = router({
         events: JSON.parse(s.events),
       }));
     }),
+
+  searchClients: adminProcedure
+    .input(z.object({ query: z.string().trim().min(2), limit: z.number().int().min(1).max(20).default(8) }))
+    .query(async ({ input }) => searchClients(input.query, input.limit)),
 
   createShipment: adminProcedure
     .input(z.object({

@@ -1,7 +1,8 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, like, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, shipments, admins, localAccounts, verificationCodes } from "../drizzle/schema";
+import { InsertUser, users, shipments, admins, localAccounts, verificationCodes, clients } from "../drizzle/schema";
 import { ENV } from './_core/env';
+import { buildShipmentClientDirectoryRecords, type ClientDirectoryRecord, type ShipmentClientDirectoryInput } from "./clientDirectory";
 
 // Normalizar números de orden y códigos: remover espacios y convertir a mayúsculas
 function normalizeOrderCode(value: string): string {
@@ -151,6 +152,60 @@ export async function getAdminByEmail(email: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
+export async function getClientById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(clients).where(eq(clients.id, id)).limit(1);
+  return result[0];
+}
+
+export async function searchClients(query: string, limit = 8) {
+  const db = await getDb();
+  const normalizedQuery = query.trim();
+  if (!db || normalizedQuery.length < 2) return [];
+  const pattern = `%${normalizedQuery}%`;
+  return db.select().from(clients)
+    .where(or(like(clients.dni, pattern), like(clients.name, pattern), like(clients.lastName, pattern)))
+    .orderBy(asc(clients.lastName), asc(clients.name))
+    .limit(Math.min(Math.max(limit, 1), 20));
+}
+
+export async function upsertClient(record: ClientDirectoryRecord) {
+  const db = await getDb();
+  const name = record.name;
+  const lastName = record.lastName;
+  if (!db || !name || !lastName) return undefined;
+
+  const dni = record.dni;
+  const phone = record.phone;
+  const email = record.email;
+  const existing = dni
+    ? await db.select().from(clients).where(eq(clients.dni, dni)).limit(1)
+    : await db.select().from(clients).where(and(
+        eq(clients.name, name),
+        eq(clients.lastName, lastName),
+        phone ? eq(clients.phone, phone) : isNull(clients.phone),
+      )).limit(1);
+
+  if (existing[0]) {
+    await db.update(clients).set({ name, lastName, dni, phone, email, updatedAt: new Date() }).where(eq(clients.id, existing[0].id));
+    return getClientById(existing[0].id);
+  }
+
+  const inserted = await db.insert(clients).values({ name, lastName, dni, phone, email });
+  const insertedId = Number((inserted as { insertId?: number }).insertId);
+  return insertedId ? getClientById(insertedId) : undefined;
+}
+
+export async function persistShipmentClients(input: ShipmentClientDirectoryInput) {
+  const records = buildShipmentClientDirectoryRecords(input);
+  const [sender, recipient] = await Promise.all([
+    records[0] ? upsertClient(records[0]) : Promise.resolve(undefined),
+    records[1] ? upsertClient(records[1]) : Promise.resolve(undefined),
+  ]);
+  return { sender, recipient };
+}
+
 export async function getLocalAccountByEmail(email: string) {
   const db = await getDb();
   if (!db) return undefined;
@@ -294,7 +349,7 @@ export async function createShipment(
   ];
 
   const result = await db.insert(shipments).values({
-    accountId: accountId || null,
+    accountId: accountId ?? null,
     orderNumber: normalizedOrder,
     code: normalizedCode,
     status,
@@ -315,6 +370,18 @@ export async function createShipment(
     route: route || "Lima - Torino",
     originAddress: originAddress || "",
     destinationAddress: destinationAddress || "",
+  });
+
+  // El directorio de clientes no depende de la cuenta de acceso y no se elimina con ella.
+  await persistShipmentClients({
+    senderName,
+    senderLastName,
+    senderDni,
+    senderPhone,
+    recipientName,
+    recipientLastName,
+    recipientDni,
+    recipientPhone,
   });
 
   return result;

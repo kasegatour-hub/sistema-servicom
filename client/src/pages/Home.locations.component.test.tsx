@@ -24,6 +24,7 @@ describe("LocationsSection", () => {
     expect(screen.getByRole("link", { name: "WhatsApp +51 908 722 617" }).getAttribute("href")).toBe("https://wa.me/51908722617");
     expect(screen.getByRole("link", { name: "WhatsApp Torino +39 351 278 7962" }).getAttribute("href")).toBe("https://wa.me/393512787962");
     expect(screen.getByRole("link", { name: "WhatsApp Torino +39 350 902 5271" }).getAttribute("href")).toBe("https://wa.me/393509025271");
+    expect(screen.getByRole("link", { name: "WhatsApp Torino +39 389 766 3723" }).getAttribute("href")).toBe("https://wa.me/393897663723");
     expect(screen.getByRole("link", { name: /Abrir Lima en Google Maps/ }).getAttribute("href")).toBe("https://share.google/F5wrStU2oICvKgIWx");
     expect(screen.getByRole("link", { name: /Abrir Torino en Google Maps/ }).getAttribute("href")).toContain("google.com/maps/search");
   });

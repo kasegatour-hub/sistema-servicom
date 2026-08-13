@@ -39,9 +39,10 @@ export const LOCATION_DETAILS = {
     address: "Corso Peschiera, 162A, Zona Piazza Sabotino, Torino, Italia",
     reference: "Referencia: Corso Peschiera",
     hours: "Lunes a sábado, de 9:00 a. m. a 8:30 p. m.",
-    whatsapp: "+39 351 278 7962 / +39 350 902 5271",
+    whatsapp: "+39 351 278 7962 / +39 350 902 5271 / +39 389 766 3723",
     whatsappPrimaryHref: "https://wa.me/393512787962",
     whatsappSecondaryHref: "https://wa.me/393509025271",
+    whatsappTertiaryHref: "https://wa.me/393897663723",
     mapsUrl: "https://www.google.com/maps/search/?api=1&query=Corso+Peschiera+162A%2C+Zona+Piazza+Sabotino%2C+Torino%2C+Italia",
   },
 } as const;
@@ -116,7 +117,7 @@ export function LocationsSection() {
               <p className="flex gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#0B2B5E]" aria-hidden="true" /><span>{LOCATION_DETAILS.torino.address}</span></p>
               <p className="flex gap-2"><span className="mt-0.5 h-4 w-4 shrink-0 text-center text-xs font-bold text-[#0B2B5E]" aria-hidden="true">R</span><span>{LOCATION_DETAILS.torino.reference}</span></p>
               <p className="flex gap-2"><Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-[#0B2B5E]" aria-hidden="true" /><span>{LOCATION_DETAILS.torino.hours}</span></p>
-              <p className="flex gap-2"><Phone className="mt-0.5 h-4 w-4 shrink-0 text-[#0B2B5E]" aria-hidden="true" /><span className="space-y-1"><span className="block font-medium">WhatsApp Torino:</span><span className="block"><a className="font-semibold text-[#0B2B5E] hover:underline" href={LOCATION_DETAILS.torino.whatsappPrimaryHref} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp Torino +39 351 278 7962">+39 351 278 7962</a><span> / </span><a className="font-semibold text-[#0B2B5E] hover:underline" href={LOCATION_DETAILS.torino.whatsappSecondaryHref} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp Torino +39 350 902 5271">+39 350 902 5271</a></span></span></p>
+              <p className="flex gap-2"><Phone className="mt-0.5 h-4 w-4 shrink-0 text-[#0B2B5E]" aria-hidden="true" /><span className="space-y-1"><span className="block font-medium">WhatsApp Torino:</span><span className="block"><a className="font-semibold text-[#0B2B5E] hover:underline" href={LOCATION_DETAILS.torino.whatsappPrimaryHref} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp Torino +39 351 278 7962">+39 351 278 7962</a><span> / </span><a className="font-semibold text-[#0B2B5E] hover:underline" href={LOCATION_DETAILS.torino.whatsappSecondaryHref} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp Torino +39 350 902 5271">+39 350 902 5271</a><span> / </span><a className="font-semibold text-[#0B2B5E] hover:underline" href={LOCATION_DETAILS.torino.whatsappTertiaryHref} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp Torino +39 389 766 3723">+39 389 766 3723</a></span></span></p>
             </div>
             <a href={LOCATION_DETAILS.torino.mapsUrl} target="_blank" rel="noopener noreferrer" className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#0B2B5E] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#123b78] focus:outline-none focus:ring-2 focus:ring-[#F28C00] focus:ring-offset-2">
               Abrir Torino en Google Maps <ExternalLink className="h-4 w-4" aria-hidden="true" />
@@ -503,7 +504,7 @@ export default function Home() {
                 <p><strong>Email:</strong> peruservicom@gmail.com</p>
                 <p><strong>Lima — Celular / WhatsApp:</strong> <a className="hover:text-white hover:underline" href={LOCATION_DETAILS.lima.whatsappHref} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp +51 970 188 447">+51 970 188 447</a> / <a className="hover:text-white hover:underline" href={LOCATION_DETAILS.lima.whatsappSecondHref} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp +51 908 722 617">+51 908 722 617</a></p>
                 <p><strong>Lima — Teléfono fijo:</strong> <a className="hover:text-white hover:underline" href={LOCATION_DETAILS.lima.phoneHref}>01 390 7269</a></p>
-                <p><strong>Torino — WhatsApp:</strong> <a className="hover:text-white hover:underline" href={LOCATION_DETAILS.torino.whatsappPrimaryHref} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp Torino +39 351 278 7962">+39 351 278 7962</a> / <a className="hover:text-white hover:underline" href={LOCATION_DETAILS.torino.whatsappSecondaryHref} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp Torino +39 350 902 5271">+39 350 902 5271</a></p>
+                <p><strong>Torino — WhatsApp:</strong> <a className="hover:text-white hover:underline" href={LOCATION_DETAILS.torino.whatsappPrimaryHref} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp Torino +39 351 278 7962">+39 351 278 7962</a> / <a className="hover:text-white hover:underline" href={LOCATION_DETAILS.torino.whatsappSecondaryHref} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp Torino +39 350 902 5271">+39 350 902 5271</a> / <a className="hover:text-white hover:underline" href={LOCATION_DETAILS.torino.whatsappTertiaryHref} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp Torino +39 389 766 3723">+39 389 766 3723</a></p>
                 <p><strong>Servicio:</strong> Envío de documentos internacionales</p>
               </div>
             </div>

@@ -12,7 +12,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import { Lock, LogOut, Plus, RefreshCw, Download, Printer } from "lucide-react";
+import { Lock, LogOut, Plus, RefreshCw, Download, Printer, Search } from "lucide-react";
 import QRCode from "qrcode";
 import { buildTrackingUrl, TRACKING_QR_OPTIONS } from "@/lib/tracking";
 import { PhoneInput } from "@/components/PhoneInput";
@@ -34,6 +34,69 @@ function renderQrCode(canvas: HTMLCanvasElement | null, trackingUrl: string, wid
   } catch {
     // Algunos entornos de prueba no implementan Canvas; el recibo y la URL siguen siendo válidos.
   }
+}
+
+type ClientLookupRecord = {
+  id: number;
+  name: string;
+  lastName: string;
+  dni?: string | null;
+  phone?: string | null;
+  email?: string | null;
+};
+
+function ClientLookup({
+  label,
+  value,
+  onChange,
+  results,
+  isLoading,
+  onSelect,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  results: ClientLookupRecord[];
+  isLoading: boolean;
+  onSelect: (client: ClientLookupRecord) => void;
+}) {
+  const shouldShow = value.trim().length >= 2;
+  return (
+    <div className="relative">
+      <label className="mb-2 block text-sm font-medium text-gray-700">{label}</label>
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+        <Input
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder="Buscar por nombre o DNI"
+          aria-label={label}
+          className="border-2 pl-9 focus:border-primary"
+        />
+      </div>
+      {shouldShow && (
+        <div className="absolute left-0 right-0 top-full z-30 mt-1 overflow-hidden rounded-md border border-slate-200 bg-white shadow-lg">
+          {isLoading ? (
+            <p className="p-3 text-xs text-slate-500">Buscando clientes...</p>
+          ) : results.length > 0 ? (
+            results.map((client) => (
+              <button
+                type="button"
+                key={client.id}
+                onClick={() => onSelect(client)}
+                className="block w-full border-b border-slate-100 px-3 py-2 text-left last:border-b-0 hover:bg-blue-50 focus:bg-blue-50 focus:outline-none"
+              >
+                <span className="block text-sm font-semibold text-[#0B2B5E]">{client.name} {client.lastName}</span>
+                <span className="block text-xs text-slate-500">DNI: {client.dni || "No registrado"} · Tel.: {client.phone || "No registrado"}</span>
+              </button>
+            ))
+          ) : (
+            <p className="p-3 text-xs text-slate-500">No se encontraron clientes guardados.</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export const textRegisterOptions = (form: any, field: string, label: string) => ({
@@ -139,6 +202,8 @@ export default function AdminDashboard() {
   const [currentPage, setCurrentPage] = useState(1);
   const [showUserForm, setShowUserForm] = useState(false);
   const [printShipment, setPrintShipment] = useState<any>(null);
+  const [senderClientQuery, setSenderClientQuery] = useState("");
+  const [recipientClientQuery, setRecipientClientQuery] = useState("");
   const pageSize = 10;
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
   const printQrRef = useRef<HTMLCanvasElement>(null);
@@ -146,6 +211,14 @@ export default function AdminDashboard() {
   // Queries
   const { data: shipments, isLoading: loadingShipments, refetch: refetchShipments } = trpc.admin.getAllShipments.useQuery(undefined, { enabled: isLoggedIn });
   const { data: adminUsers, refetch: refetchAdminUsers } = trpc.admin.listAdmins.useQuery(undefined, { enabled: isLoggedIn && admin?.role === "superadmin" });
+  const { data: senderClientResults = [], isFetching: isSearchingSender } = trpc.admin.searchClients.useQuery(
+    { query: senderClientQuery.trim(), limit: 8 },
+    { enabled: isLoggedIn && showCreateForm && senderClientQuery.trim().length >= 2 },
+  );
+  const { data: recipientClientResults = [], isFetching: isSearchingRecipient } = trpc.admin.searchClients.useQuery(
+    { query: recipientClientQuery.trim(), limit: 8 },
+    { enabled: isLoggedIn && showCreateForm && recipientClientQuery.trim().length >= 2 },
+  );
 
   // Mutations
   const loginMutation = trpc.admin.login.useMutation();
@@ -187,6 +260,15 @@ export default function AdminDashboard() {
     },
   });
   const selectedShipmentType = createForm.watch("shipmentType") || "documento";
+
+  const fillShipmentPerson = (prefix: "sender" | "recipient", client: ClientLookupRecord) => {
+    createForm.setValue(`${prefix}Name`, client.name, { shouldDirty: true });
+    createForm.setValue(`${prefix}LastName`, client.lastName, { shouldDirty: true });
+    createForm.setValue(`${prefix}Dni`, client.dni || "", { shouldDirty: true });
+    createForm.setValue(`${prefix}Phone`, client.phone || "", { shouldDirty: true });
+    if (prefix === "sender") setSenderClientQuery(`${client.name} ${client.lastName}`);
+    else setRecipientClientQuery(`${client.name} ${client.lastName}`);
+  };
 
   const updateForm = useForm<UpdateStatusForm>({
     resolver: zodResolver(updateStatusSchema),
@@ -274,6 +356,8 @@ export default function AdminDashboard() {
         }
       }, 100);
       
+      setSenderClientQuery("");
+      setRecipientClientQuery("");
       createForm.reset({
         status: "En agencia",
         senderName: "",
@@ -795,6 +879,17 @@ export default function AdminDashboard() {
               {/* Información del remitente */}
               <div className="border-t pt-4">
                 <h3 className="font-semibold text-gray-900 mb-3">Información del Remitente</h3>
+                <div className="mb-4 max-w-xl">
+                  <ClientLookup
+                    label="Buscar remitente guardado"
+                    value={senderClientQuery}
+                    onChange={setSenderClientQuery}
+                    results={senderClientResults as ClientLookupRecord[]}
+                    isLoading={isSearchingSender}
+                    onSelect={(client) => fillShipmentPerson("sender", client)}
+                  />
+                  <p className="mt-1 text-xs text-slate-500">Escribe al menos 2 caracteres del nombre o DNI para reutilizar sus datos.</p>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Nombre</label>
@@ -844,6 +939,17 @@ export default function AdminDashboard() {
               {/* Información del destinatario */}
               <div className="border-t pt-4">
                 <h3 className="font-semibold text-gray-900 mb-3">Información del Destinatario</h3>
+                <div className="mb-4 max-w-xl">
+                  <ClientLookup
+                    label="Buscar destinatario guardado"
+                    value={recipientClientQuery}
+                    onChange={setRecipientClientQuery}
+                    results={recipientClientResults as ClientLookupRecord[]}
+                    isLoading={isSearchingRecipient}
+                    onSelect={(client) => fillShipmentPerson("recipient", client)}
+                  />
+                  <p className="mt-1 text-xs text-slate-500">Selecciona una coincidencia para completar nombre, DNI y teléfono.</p>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Nombre</label>

@@ -18,9 +18,10 @@ describe("public location details", () => {
     expect(LOCATION_DETAILS.torino.address).toContain("162A");
     expect(LOCATION_DETAILS.torino.reference).toBe("Referencia: Corso Peschiera");
     expect(LOCATION_DETAILS.torino.hours).toBe("Lunes a sábado, de 9:00 a. m. a 8:30 p. m.");
-    expect(LOCATION_DETAILS.torino.whatsapp).toBe("+39 351 278 7962 / +39 350 902 5271");
+    expect(LOCATION_DETAILS.torino.whatsapp).toBe("+39 351 278 7962 / +39 350 902 5271 / +39 389 766 3723");
     expect(LOCATION_DETAILS.torino.whatsappPrimaryHref).toBe("https://wa.me/393512787962");
     expect(LOCATION_DETAILS.torino.whatsappSecondaryHref).toBe("https://wa.me/393509025271");
+    expect(LOCATION_DETAILS.torino.whatsappTertiaryHref).toBe("https://wa.me/393897663723");
     expect(LOCATION_DETAILS.torino.mapsUrl).toContain("google.com/maps/search");
   });
 });
