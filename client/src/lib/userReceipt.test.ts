@@ -40,6 +40,13 @@ describe("receipt window helpers", () => {
       code: "07900824",
       recipient: "MIGUEL DIAZ OJITOS",
       recipientPhone: "+39 333 123 456",
+      recipientDni: "72918463",
+      sender: "ANA PÉREZ",
+      senderPhone: "+51 970 188 447",
+      senderDni: "70445566",
+      notes: "Registro de propiedad inmueble",
+      shipmentType: "documento",
+      price: { basePriceEur: 50, finalPriceEur: 37.5, discountPercent: 25, discountAmountEur: 12.5 },
       route: "Lima - Torino",
     });
     const styles = buildReceiptPrintStyles();
@@ -48,6 +55,10 @@ describe("receipt window helpers", () => {
     expect(ticket).toContain("CONTROL DE ENTREGA — TORINO, ITALIA");
     expect(ticket).toContain("SEDE DE ENTREGA:</strong> Corso Peschiera");
     expect(ticket).toContain("CELULAR DESTINATARIA:");
+    expect(ticket).toContain("REMITENTE:");
+    expect(ticket).toContain("NOTAS:");
+    expect(ticket).toContain("PRECIO FINAL");
+    expect(ticket).toContain("37.50 EUR");
     expect(styles).toContain(".ticket{break-inside:avoid;page-break-inside:avoid");
   });
 

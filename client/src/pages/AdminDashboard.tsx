@@ -18,10 +18,12 @@ import { buildTrackingUrl, TRACKING_QR_OPTIONS } from "@/lib/tracking";
 import { PhoneInput } from "@/components/PhoneInput";
 import { digitsOnly, isDigitsOnly, isTextOnly, textOnly } from "@/lib/inputValidation";
 import { getPaymentStatusUi } from "@/lib/paymentStatus";
+import { getPaymentPrintPresentation } from "@/lib/paymentPrint";
 import { paginateItems } from "@/lib/pagination";
 import { getReceiptTicketPrintCss } from "@/lib/printLayout";
 import { buildAdminDeclarationHtml, buildAdminDeliveryTicketHtml, buildAdminReceiptPrintStyles, buildAdminRouteSummaryHtml } from "@/lib/adminReceipt";
 import { getRoutePresentation } from "@/lib/routeDetails";
+import { buildReceiptPriceHtml } from "@/lib/receiptPrice";
 import { closeUpdateModal } from "@/lib/updateModal";
 import { UpdateShipmentModal } from "@/components/UpdateShipmentModal";
 
@@ -165,6 +167,7 @@ const createShipmentSchema = z.object({
   route: z.string().default("Lima - Torino"),
   originAddress: z.string().optional(),
   destinationAddress: z.string().optional(),
+  couponCode: z.string().trim().max(64).optional(),
 });
 
 const updateStatusSchema = z.object({
@@ -203,6 +206,7 @@ export default function AdminDashboard() {
   const [shipmentView, setShipmentView] = useState<'documento' | 'encomienda'>('documento');
   const [currentPage, setCurrentPage] = useState(1);
   const [showUserForm, setShowUserForm] = useState(false);
+  const [showCouponForm, setShowCouponForm] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [adminPasswordEmail, setAdminPasswordEmail] = useState("");
   const [adminCurrentPassword, setAdminCurrentPassword] = useState("");
@@ -219,6 +223,7 @@ export default function AdminDashboard() {
 
   // Queries
   const { data: currentAdminSession, isLoading: loadingAdminSession, refetch: refetchAdminSession } = trpc.admin.me.useQuery();
+  const { data: coupons = [], refetch: refetchCoupons } = trpc.admin.listCoupons.useQuery(undefined, { enabled: isLoggedIn && !admin?.reauthRequired });
   const { data: shipments, isLoading: loadingShipments, refetch: refetchShipments } = trpc.admin.getAllShipments.useQuery(undefined, { enabled: isLoggedIn && !admin?.reauthRequired });
   const { data: adminUsers, refetch: refetchAdminUsers } = trpc.admin.listAdmins.useQuery(undefined, { enabled: isLoggedIn && admin?.role === "superadmin" && !admin?.reauthRequired });
   const { data: senderClientResults = [], isFetching: isSearchingSender } = trpc.admin.searchClients.useQuery(
@@ -233,6 +238,8 @@ export default function AdminDashboard() {
   // Mutations
   const loginMutation = trpc.admin.login.useMutation();
   const logoutMutation = trpc.admin.logout.useMutation();
+  const createCouponMutation = trpc.admin.createCoupon.useMutation();
+  const deactivateCouponMutation = trpc.admin.deactivateCoupon.useMutation();
   const reauthenticateMutation = trpc.admin.reauthenticate.useMutation({
     onSuccess: async (result) => {
       toast.success(result.message);
@@ -262,6 +269,10 @@ export default function AdminDashboard() {
 
   // Forms
   const loginForm = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
+  const couponForm = useForm({
+    defaultValues: { code: "", startsAt: new Date().toISOString().slice(0, 10), endsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) },
+  });
+
   const createAdminForm = useForm<CreateAdminForm>({
     resolver: zodResolver(createAdminSchema),
     defaultValues: { name: "", email: "", password: "" },
@@ -356,6 +367,27 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleCreateCoupon = async (data: { code: string; startsAt: string; endsAt: string }) => {
+    try {
+      const result = await createCouponMutation.mutateAsync({ code: data.code.trim() || undefined, startsAt: data.startsAt, endsAt: data.endsAt });
+      toast.success(`Cupón ${result.code} creado con descuento del 25%.`);
+      couponForm.reset({ code: "", startsAt: data.startsAt, endsAt: data.endsAt });
+      await refetchCoupons();
+    } catch (error: any) {
+      toast.error(error.message || "No se pudo crear el cupón");
+    }
+  };
+
+  const handleDeactivateCoupon = async (id: number) => {
+    try {
+      await deactivateCouponMutation.mutateAsync({ id });
+      toast.success("Cupón desactivado.");
+      await refetchCoupons();
+    } catch (error: any) {
+      toast.error(error.message || "No se pudo desactivar el cupón");
+    }
+  };
+
   const handleDeleteAdmin = async (user: { id: number; role: string; name: string }) => {
     if (user.role === "superadmin") return;
     if (!confirm(`¿Eliminar definitivamente a ${user.name}? Esta acción no se puede deshacer.`)) return;
@@ -418,6 +450,7 @@ export default function AdminDashboard() {
         manualPriceEur: "",
         paymentStatus: "Falta cancelar",
         route: "Lima - Torino",
+        couponCode: "",
       });
       setShowCreateForm(false);
       refetchShipments();
@@ -486,13 +519,13 @@ export default function AdminDashboard() {
       const brandLogo = new URL('/manus-storage/servicom_logo_final_e7ce35aa.png', window.location.origin).href;
       const today = new Date().toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' });
       const routePresentation = getRoutePresentation(printShipment.route);
-      const paymentUi = getPaymentStatusUi(printShipment.paymentStatus);
-      const paymentIsPaid = paymentUi.isPaid;
-      const paymentIsPending = paymentUi.isPending;
-      const paymentColor = paymentIsPaid ? '#059669' : paymentIsPending ? '#e11d48' : '#000000';
-      const paymentBackground = paymentIsPaid ? '#ecfdf5' : paymentIsPending ? '#fff1f2' : 'transparent';
-      const pendingColor = paymentIsPending ? '#e11d48' : '#000000';
-      const pendingBackground = paymentIsPending ? '#fff1f2' : 'transparent';
+      const paymentPrint = getPaymentPrintPresentation(printShipment.paymentStatus);
+      const paymentIsPaid = paymentPrint.isPaid;
+      const paymentIsPending = paymentPrint.isPending;
+      const paidColor = paymentPrint.paidColor;
+      const paidBackground = paymentPrint.paidBackground;
+      const pendingColor = paymentPrint.pendingColor;
+      const pendingBackground = paymentPrint.pendingBackground;
       const html = `
         <!DOCTYPE html>
         <html>
@@ -513,7 +546,7 @@ export default function AdminDashboard() {
             .seal-title { font-weight: bold; font-size: 12px; color: #0B2B5E; border-bottom: 1px solid #0B2B5E; margin-bottom: 5px; padding-bottom: 3px; }
             .seal-details { font-size: 10px; text-align: left; }
             
-            .main-title { text-align: center; font-size: 20px; font-weight: bold; margin: 20px 0; background: #f4f4f4; padding: 8px; border-radius: 4px; }
+            .main-title { text-align: center; font-size: 20px; font-weight: bold; margin: 20px 0; background: #f4f4f4; padding: 8px; border-radius: 4px; } .price-highlight { display:flex; flex-wrap:wrap; align-items:baseline; gap:8px; margin-top:8px; padding:8px 10px; border-left:5px solid #F28C00; background:#fff7ed; color:#0B2B5E; } .price-label { font-size:10px; font-weight:700; letter-spacing:.08em; } .price-value { font-size:18px; color:#ea580c; font-weight:800; } .price-base { font-size:10px; color:#64748b; }
             
             .section { margin: 15px 0; }
             .section-title { font-weight: bold; font-size: 14px; border-left: 4px solid #F28C00; padding-left: 8px; margin-bottom: 10px; text-transform: uppercase; }
@@ -560,7 +593,7 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div class="main-title">INFORMACIÓN DE ENVÍO DE DOCUMENTO — ${routePresentation.route}</div>
+          <div class="main-title">INFORMACIÓN DE ENVÍO DE ${printShipment.shipmentType === 'encomienda' ? 'ENCOMIENDA' : 'DOCUMENTO'} — ${routePresentation.route}</div>
 
           ${buildAdminRouteSummaryHtml(printShipment.route)}
 
@@ -584,8 +617,9 @@ export default function AdminDashboard() {
           <div class="section">
             <div class="section-title">Estado de Pago y Descripción</div>
             <div style="font-size: 12px; border: 1px solid #eee; padding: 8px; background: #fafafa;">
-              <strong>Estado de Pago:</strong> <span style="color:${paymentColor};background:${paymentBackground};padding:2px 8px;border-radius:4px;font-weight:bold">[${paymentIsPaid ? 'X' : ' '}] Pagado</span> &nbsp;&nbsp;&nbsp; <span style="color:${pendingColor};background:${pendingBackground};padding:2px 8px;border-radius:4px;font-weight:bold">[${paymentIsPending ? 'X' : ' '}] No cancelado</span><br><br>
-              ${printShipment.notes || 'Documentación Lícita'}
+              <strong>Estado de Pago:</strong> <span style="color:${paidColor};background:${paidBackground};padding:2px 8px;border-radius:4px;font-weight:bold">[${paymentIsPaid ? 'X' : ' '}] Pagado</span> &nbsp;&nbsp;&nbsp; <span style="color:${pendingColor};background:${pendingBackground};padding:2px 8px;border-radius:4px;font-weight:bold">[${paymentIsPending ? 'X' : ' '}] No cancelado</span><br><br>
+              <strong>NOTAS:</strong> ${printShipment.notes || 'Sin notas'}
+              ${buildReceiptPriceHtml(printShipment)}
             </div>
           </div>
 
@@ -609,6 +643,13 @@ export default function AdminDashboard() {
             code: String(printShipment.code),
             recipient: `${printShipment.recipientName || ''} ${printShipment.recipientLastName || ''}`.trim(),
             recipientPhone: printShipment.recipientPhone || 'No especificado',
+            recipientDni: printShipment.recipientDni || 'No especificado',
+            sender: `${printShipment.senderName || ''} ${printShipment.senderLastName || ''}`.trim(),
+            senderPhone: printShipment.senderPhone || 'No especificado',
+            senderDni: printShipment.senderDni || 'No especificado',
+            notes: printShipment.notes || 'Sin notas',
+            shipmentType: printShipment.shipmentType,
+            price: printShipment,
             route: printShipment.route,
           })}
 
@@ -905,6 +946,54 @@ export default function AdminDashboard() {
           </Card>
         )}
 
+        {/* Coupon Management Section */}
+        <Card className="mb-8 border-0 p-6 shadow-lg">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">Cupones promocionales</h2>
+              <p className="mt-1 text-sm text-slate-500">Genera códigos con descuento fijo del 25% y define el periodo en que podrán canjearse en agencia.</p>
+            </div>
+            <Button type="button" variant="outline" onClick={() => setShowCouponForm(value => !value)}>{showCouponForm ? "Cerrar" : "Nuevo cupón"}</Button>
+          </div>
+          {showCouponForm && (
+            <form onSubmit={couponForm.handleSubmit(handleCreateCoupon)} className="mt-5 grid grid-cols-1 gap-4 rounded-xl border border-amber-200 bg-amber-50 p-4 md:grid-cols-4">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">Código personalizado (opcional)</label>
+                <Input placeholder="Ej. SERVI25-VERANO" {...couponForm.register("code")} className="bg-white" />
+                <p className="mt-1 text-xs text-slate-500">Si lo dejas vacío, se genera automáticamente.</p>
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">Válido desde</label>
+                <Input type="date" {...couponForm.register("startsAt", { required: true })} className="bg-white" />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">Válido hasta</label>
+                <Input type="date" {...couponForm.register("endsAt", { required: true })} className="bg-white" />
+              </div>
+              <div className="flex items-end">
+                <Button type="submit" disabled={createCouponMutation.isPending} className="w-full bg-[#F28C00] text-white hover:bg-[#d97800]">{createCouponMutation.isPending ? "Generando..." : "Generar cupón 25%"}</Button>
+              </div>
+            </form>
+          )}
+          <div className="mt-5 overflow-x-auto rounded-lg border border-slate-200">
+            <table className="min-w-[720px] w-full text-sm">
+              <thead className="bg-slate-50 text-left text-slate-600"><tr><th className="px-4 py-3">Código</th><th className="px-4 py-3">Descuento</th><th className="px-4 py-3">Vigencia</th><th className="px-4 py-3">Canjes</th><th className="px-4 py-3">Estado</th><th className="px-4 py-3">Acción</th></tr></thead>
+              <tbody>
+                {(coupons as any[]).length > 0 ? (coupons as any[]).map((coupon: any) => (
+                  <tr key={coupon.id} className="border-t">
+                    <td className="px-4 py-3 font-mono font-semibold text-[#0B2B5E]">{coupon.code}</td>
+                    <td className="px-4 py-3 font-bold text-[#F28C00]">{Number(coupon.discountPercent).toFixed(0)}%</td>
+                    <td className="px-4 py-3">{new Date(coupon.startsAt).toLocaleDateString("es-PE")} – {new Date(coupon.endsAt).toLocaleDateString("es-PE")}</td>
+                    <td className="px-4 py-3">{coupon.redeemedCount || 0}</td>
+                    <td className="px-4 py-3"><span className={`rounded-full px-2 py-1 text-xs font-semibold ${coupon.isActive === 1 ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-600"}`}>{coupon.isActive === 1 ? "Activo" : "Desactivado"}</span></td>
+                    <td className="px-4 py-3">{coupon.isActive === 1 && <Button type="button" size="sm" variant="outline" onClick={() => handleDeactivateCoupon(coupon.id)} disabled={deactivateCouponMutation.isPending}>Desactivar</Button>}</td>
+                  </tr>
+                )) : <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-500">Aún no hay cupones generados.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+
         {/* Create Shipment Section */}
         <Card className="p-6 mb-8 shadow-lg border-0">
           <div className="flex justify-between items-center mb-6">
@@ -964,6 +1053,15 @@ export default function AdminDashboard() {
                     />
                     <p className="mt-1 text-xs text-slate-500">Si lo completas, reemplaza la tarifa automática.</p>
                   </div>
+                </div>
+
+                <div className="mt-4 grid grid-cols-1 gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+                  <div>
+                    <label className="block text-sm font-medium text-emerald-900 mb-2">Cupón de descuento (opcional)</label>
+                    <Input placeholder="Ej. SERVI25-VERANO" {...createForm.register("couponCode")} className="border-emerald-300 bg-white uppercase" />
+                    <p className="mt-1 text-xs text-emerald-800">Se validará la vigencia en el momento de crear el envío y aplicará un 25% al precio final.</p>
+                  </div>
+                  <div className="rounded-md bg-white px-4 py-3 text-sm font-semibold text-emerald-800 ring-1 ring-emerald-200">El precio promocional se calcula al guardar</div>
                 </div>
 
                 {selectedShipmentType === "documento" ? (

@@ -8,6 +8,13 @@ describe("administrative receipt ticket", () => {
       code: "07900824",
       recipient: "MIGUEL DIAZ OJITOS",
       recipientPhone: "+39 333 123 456",
+      recipientDni: "72918463",
+      sender: "ANA PÉREZ",
+      senderPhone: "+51 970 188 447",
+      senderDni: "70445566",
+      notes: "Registro de propiedad inmueble",
+      shipmentType: "documento",
+      price: { basePriceEur: 50, finalPriceEur: 37.5, discountPercent: 25, discountAmountEur: 12.5 },
       route: "Lima - Torino",
     });
     const styles = buildAdminReceiptPrintStyles();
@@ -15,7 +22,11 @@ describe("administrative receipt ticket", () => {
     expect(html).toContain('class="cut-ticket"');
     expect(html).toContain("CONTROL DE ENTREGA — TORINO, ITALIA");
     expect(html).toContain('SEDE DE ENTREGA:</div><div class="value">Corso Peschiera');
-    expect(html).toContain("CEL. DESTINATARIA:");
+    expect(html).toContain("DESTINATARIO:");
+    expect(html).toContain("REMITENTE:");
+    expect(html).toContain("NOTAS:");
+    expect(html).toContain("PRECIO FINAL");
+    expect(html).toContain("37.50 EUR");
     expect(styles).toContain(".cut-ticket{break-inside:avoid;page-break-inside:avoid");
   });
 
@@ -25,6 +36,7 @@ describe("administrative receipt ticket", () => {
       code: "ENC-2026-75ZRD",
       recipient: "Luis Mendoza Castro",
       recipientPhone: "+39 389 766 3723",
+      shipmentType: "encomienda",
       route: "Torino - Lima",
     });
 

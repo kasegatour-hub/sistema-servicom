@@ -87,6 +87,22 @@ export const admins = mysqlTable("admins", {
 export type Admin = typeof admins.$inferSelect;
 export type InsertAdmin = typeof admins.$inferInsert;
 
+/** Cupones promocionales del 25% gestionados por operadores y Master Admin. */
+export const discountCoupons = mysqlTable("discount_coupons", {
+  id: int("id").autoincrement().primaryKey(),
+  code: varchar("code", { length: 64 }).notNull().unique(),
+  discountPercent: decimal("discountPercent", { precision: 5, scale: 2 }).default("25.00").notNull(),
+  startsAt: timestamp("startsAt").notNull(),
+  endsAt: timestamp("endsAt").notNull(),
+  isActive: int("isActive").default(1).notNull(),
+  createdByAdminId: int("createdByAdminId").notNull(),
+  redeemedCount: int("redeemedCount").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type DiscountCoupon = typeof discountCoupons.$inferSelect;
+export type InsertDiscountCoupon = typeof discountCoupons.$inferInsert;
+
 export const shipments = mysqlTable("shipments", {
   id: int("id").autoincrement().primaryKey(),
   accountId: int("accountId"), // Propietario del envío (opcional para mantener compatibilidad con envíos públicos o de admin)
@@ -111,6 +127,11 @@ export const shipments = mysqlTable("shipments", {
   shipmentType: mysqlEnum("shipmentType", ["documento", "encomienda"]).default("documento").notNull(),
   weightKg: decimal("weightKg", { precision: 10, scale: 2 }).default("1.00"),
   manualPriceEur: decimal("manualPriceEur", { precision: 10, scale: 2 }),
+  couponCode: varchar("couponCode", { length: 64 }),
+  basePriceEur: decimal("basePriceEur", { precision: 10, scale: 2 }),
+  discountPercent: decimal("discountPercent", { precision: 5, scale: 2 }).default("0.00").notNull(),
+  discountAmountEur: decimal("discountAmountEur", { precision: 10, scale: 2 }).default("0.00").notNull(),
+  finalPriceEur: decimal("finalPriceEur", { precision: 10, scale: 2 }),
   paymentStatus: mysqlEnum("paymentStatus", ["Pagado", "Falta cancelar"]).default("Falta cancelar").notNull(),
   route: varchar("route", { length: 100 }).default("Lima - Torino").notNull(),
   originAddress: text("originAddress"),

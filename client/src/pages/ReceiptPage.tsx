@@ -6,6 +6,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { trpc } from "@/lib/trpc";
 import { printUserShipmentReceipt } from "@/lib/userReceipt";
 import { getPaymentStatusUi } from "@/lib/paymentStatus";
+import { getReceiptPricePresentation } from "@/lib/receiptPrice";
 import { getRoutePresentation } from "@/lib/routeDetails";
 
 function getReceiptQuery() {
@@ -21,7 +22,8 @@ export default function ReceiptPage() {
   const { data: shipment, isLoading, error } = trpc.shipment.search.useQuery(query, {
     enabled: Boolean(query.orderNumber && query.code),
   });
-  const paymentUi = getPaymentStatusUi(shipment?.paymentStatus);
+  const paymentUi = shipment ? getPaymentStatusUi(shipment.paymentStatus) : getPaymentStatusUi(undefined);
+  const priceUi = shipment ? getReceiptPricePresentation(shipment) : null;
   const routePresentation = getRoutePresentation(shipment?.route);
 
   return (
@@ -68,6 +70,7 @@ export default function ReceiptPage() {
                 <p className="md:col-span-2"><strong>Dirección de entrega:</strong> {routePresentation.destination.address}</p>
                 <p className="md:col-span-2"><strong>Contacto de sede:</strong> {routePresentation.destination.phone}</p>
                 <p className="md:col-span-2"><strong>Estado de Pago:</strong> <span className={`ml-1 inline-flex rounded px-2 py-0.5 font-semibold ${paymentUi.badgeClass}`}>{paymentUi.label}</span></p>
+                <div className="md:col-span-2 rounded-md border-l-4 border-[#F28C00] bg-orange-50 px-4 py-3"><span className="block text-xs font-bold uppercase tracking-wide text-slate-600">Precio final</span><strong className="text-xl font-extrabold text-orange-700">{priceUi?.finalLabel}</strong>{priceUi?.hasDiscount && <span className="ml-2 text-xs font-medium text-slate-600">Precio base {priceUi.baseLabel} · descuento {priceUi.discountPercent.toFixed(0)}%</span>}</div>
               </div>
 
               <div className="flex flex-col gap-3 rounded-lg border border-[#0B2B5E]/15 bg-[#0B2B5E]/5 p-4 sm:flex-row sm:items-center sm:justify-between">

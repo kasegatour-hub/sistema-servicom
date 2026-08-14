@@ -7,7 +7,7 @@ function buildTrackingPath(orderNumber: string, code: string): string {
   return `/?order=${encodeURIComponent(order)}&code=${encodeURIComponent(normalizedCode)}`;
 }
 import { publicProcedure, router } from "./_core/trpc";
-import { getAdminByEmail, getAllShipments, createShipment, updateShipmentStatus, deleteShipment, searchClients } from "./db";
+import { createDiscountCoupon, createShipment, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAllShipments, getDiscountCouponByCode, incrementDiscountCouponRedemption, listDiscountCoupons, searchClients, updateShipmentStatus } from "./db";
 import { hashPassword, verifyPassword } from "./localAuth";
 import { AdminSessionPayload, clearAdminSession, getAdminSession, setAdminSession } from "./adminSession";
 import { admins } from "../drizzle/schema";
@@ -15,6 +15,7 @@ import { getDb } from "./db";
 import { eq } from "drizzle-orm";
 import { optionalDniSchema, optionalPersonNameSchema, personNameSchema } from "./inputValidation";
 import { calculateAdminShipmentPricing } from "./adminPricing";
+import { applyCouponDiscount, isCouponCurrentlyValid, normalizeCouponCode, PROMOTIONAL_DISCOUNT_PERCENT } from "./couponPricing";
 
 const MASTER_ADMIN_EMAIL = "peruservicom@gmail.com";
 const MASTER_ADMIN_PASSWORD = "@m*M.mTt@~ADkHpvBbLm+5CD=3ao@DngYa+3Kea6U=qX%r9EJ8-1QFc#,hD3r4Dsis9:9^i-zZJ}pT#aQAcnm^+XMAhV9u3VdrZ3.";
@@ -160,6 +161,40 @@ export const adminRouter = router({
       return { success: true, message: "Contraseña administrativa actualizada correctamente." };
     }),
 
+  listCoupons: adminProcedure.query(async () => listDiscountCoupons()),
+
+  createCoupon: adminProcedure
+    .input(z.object({
+      code: z.string().trim().max(64).optional(),
+      startsAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inicial inválida."),
+      endsAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha final inválida."),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const startsAt = new Date(`${input.startsAt}T00:00:00.000Z`);
+      const endsAt = new Date(`${input.endsAt}T23:59:59.999Z`);
+      if (!Number.isFinite(startsAt.getTime()) || !Number.isFinite(endsAt.getTime()) || endsAt <= startsAt) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "La fecha final debe ser posterior a la fecha inicial." });
+      }
+      const requestedCode = normalizeCouponCode(input.code);
+      const code = requestedCode || `SERVI25-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+      if (!/^[A-Z0-9_-]{4,64}$/.test(code)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "El código solo puede contener letras, números, guiones y guiones bajos." });
+      }
+      try {
+        await createDiscountCoupon({ code, startsAt, endsAt, createdByAdminId: ctx.adminSession.adminId });
+      } catch {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "El código de cupón ya existe o no pudo registrarse." });
+      }
+      return { success: true, code, discountPercent: PROMOTIONAL_DISCOUNT_PERCENT, startsAt, endsAt };
+    }),
+
+  deactivateCoupon: adminProcedure
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(async ({ input }) => {
+      await deactivateDiscountCoupon(input.id);
+      return { success: true };
+    }),
+
   getAllShipments: adminProcedure
     .input(z.object({ shipmentType: z.enum(["documento", "encomienda"]).optional() }).optional())
     .query(async ({ input }) => {
@@ -195,6 +230,7 @@ export const adminRouter = router({
       route: z.string().default("Lima - Torino"),
       originAddress: z.string().optional(),
       destinationAddress: z.string().optional(),
+      couponCode: z.string().trim().max(64).optional(),
     }))
     .mutation(async ({ input }) => {
       const orderNumber = Math.floor(1000000000 + Math.random() * 9000000000).toString();
@@ -203,7 +239,17 @@ export const adminRouter = router({
       const code = `${prefix}-${new Date().getFullYear()}-${randomSuffix}`;
       
       const pricing = calculateAdminShipmentPricing(input);
-      const { shipmentType, weightKg, manualPrice, notes: calculatedNotes } = pricing;
+      const couponCode = normalizeCouponCode(input.couponCode);
+      const coupon = couponCode ? await getDiscountCouponByCode(couponCode) : undefined;
+      if (couponCode && !coupon) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "El código de cupón no existe." });
+      }
+      if (coupon && !isCouponCurrentlyValid(coupon)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "El cupón no está vigente o fue desactivado." });
+      }
+      const discount = applyCouponDiscount(pricing.totalEur, coupon);
+      const calculatedNotes = `${pricing.notes}${coupon ? ` Cupón ${coupon.code}: descuento del ${discount.discountPercent}% (-${discount.discountAmountEur.toFixed(2)} EUR). Total final: ${discount.finalPriceEur.toFixed(2)} EUR.` : ""}`;
+      const { shipmentType, weightKg, manualPrice } = pricing;
 
       const result = await createShipment(
         orderNumber,
@@ -225,7 +271,12 @@ export const adminRouter = router({
         input.paymentStatus,
         input.route,
         input.originAddress,
-        input.destinationAddress
+        input.destinationAddress,
+        coupon?.code || null,
+        discount.basePriceEur,
+        discount.discountPercent,
+        discount.discountAmountEur,
+        discount.finalPriceEur
       );
       if (!result) {
         throw new TRPCError({
@@ -233,6 +284,7 @@ export const adminRouter = router({
           message: 'Error al crear envío de documento',
         });
       }
+      if (coupon) await incrementDiscountCouponRedemption(coupon.id);
       const trackingUrl = buildTrackingPath(orderNumber, code);
       return {
         success: true,
@@ -240,6 +292,11 @@ export const adminRouter = router({
         orderNumber,
         code,
         trackingUrl,
+        couponCode: coupon?.code || null,
+        basePriceEur: discount.basePriceEur,
+        discountPercent: discount.discountPercent,
+        discountAmountEur: discount.discountAmountEur,
+        finalPriceEur: discount.finalPriceEur,
       };
     }),
 

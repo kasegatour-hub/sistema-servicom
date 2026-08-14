@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, isNull, like, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, shipments, admins, localAccounts, verificationCodes, clients } from "../drizzle/schema";
+import { InsertUser, users, shipments, admins, localAccounts, verificationCodes, clients, discountCoupons } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { buildShipmentClientDirectoryRecords, type ClientDirectoryRecord, type ShipmentClientDirectoryInput } from "./clientDirectory";
 
@@ -298,6 +298,55 @@ export async function incrementVerificationAttempts(id: number) {
   return db.update(verificationCodes).set({ attempts: code[0].attempts + 1 }).where(eq(verificationCodes.id, id));
 }
 
+export async function createDiscountCoupon(input: {
+  code: string;
+  startsAt: Date;
+  endsAt: Date;
+  createdByAdminId: number;
+}) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const code = normalizeOrderCode(input.code);
+  const result = await db.insert(discountCoupons).values({
+    code,
+    discountPercent: "25.00",
+    startsAt: input.startsAt,
+    endsAt: input.endsAt,
+    createdByAdminId: input.createdByAdminId,
+  });
+  return { ...input, code, discountPercent: "25.00", result };
+}
+
+export async function listDiscountCoupons() {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(discountCoupons);
+}
+
+export async function getDiscountCouponByCode(code: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const normalizedCode = normalizeOrderCode(code);
+  const rows = await db.select().from(discountCoupons).where(eq(discountCoupons.code, normalizedCode)).limit(1);
+  return rows[0];
+}
+
+export async function deactivateDiscountCoupon(id: number) {
+  const db = await getDb();
+  if (!db) return false;
+  await db.update(discountCoupons).set({ isActive: 0, updatedAt: new Date() }).where(eq(discountCoupons.id, id));
+  return true;
+}
+
+export async function incrementDiscountCouponRedemption(id: number) {
+  const db = await getDb();
+  if (!db) return false;
+  const rows = await db.select({ redeemedCount: discountCoupons.redeemedCount }).from(discountCoupons).where(eq(discountCoupons.id, id)).limit(1);
+  const redeemedCount = Number(rows[0]?.redeemedCount || 0);
+  await db.update(discountCoupons).set({ redeemedCount: redeemedCount + 1, updatedAt: new Date() }).where(eq(discountCoupons.id, id));
+  return true;
+}
+
 export async function getAllShipments(shipmentType?: "documento" | "encomienda") {
   const db = await getDb();
   if (!db) {
@@ -331,7 +380,12 @@ export async function createShipment(
   paymentStatus?: "Pagado" | "Falta cancelar",
   route?: string,
   originAddress?: string,
-  destinationAddress?: string
+  destinationAddress?: string,
+  couponCode?: string | null,
+  basePriceEur?: string | number | null,
+  discountPercent?: string | number | null,
+  discountAmountEur?: string | number | null,
+  finalPriceEur?: string | number | null
 ) {
   const db = await getDb();
   if (!db) {
@@ -369,6 +423,11 @@ export async function createShipment(
     shipmentType: shipmentType || "documento",
     weightKg: String(weightKg ?? "1.00"),
     manualPriceEur: manualPriceEur !== undefined && manualPriceEur !== null && String(manualPriceEur).trim() !== "" ? String(manualPriceEur) : null,
+    couponCode: couponCode ? normalizeOrderCode(couponCode) : null,
+    basePriceEur: basePriceEur !== undefined && basePriceEur !== null && String(basePriceEur).trim() !== "" ? String(basePriceEur) : null,
+    discountPercent: discountPercent !== undefined && discountPercent !== null && String(discountPercent).trim() !== "" ? String(discountPercent) : "0.00",
+    discountAmountEur: discountAmountEur !== undefined && discountAmountEur !== null && String(discountAmountEur).trim() !== "" ? String(discountAmountEur) : "0.00",
+    finalPriceEur: finalPriceEur !== undefined && finalPriceEur !== null && String(finalPriceEur).trim() !== "" ? String(finalPriceEur) : null,
     paymentStatus: paymentStatus || "Falta cancelar",
     route: route || "Lima - Torino",
     originAddress: originAddress || "",
@@ -409,7 +468,12 @@ export async function updateShipmentStatus(
   paymentStatus?: "Pagado" | "Falta cancelar",
   route?: string,
   originAddress?: string,
-  destinationAddress?: string
+  destinationAddress?: string,
+  couponCode?: string | null,
+  basePriceEur?: string | number | null,
+  discountPercent?: string | number | null,
+  discountAmountEur?: string | number | null,
+  finalPriceEur?: string | number | null
 ) {
   const db = await getDb();
   if (!db) {
@@ -455,6 +519,11 @@ export async function updateShipmentStatus(
         shipmentType: shipmentType ?? shipment.shipmentType ?? "documento",
         weightKg: weightKg !== undefined ? String(weightKg) : shipment.weightKg ?? "1.00",
         manualPriceEur: manualPriceEur !== undefined ? (manualPriceEur !== null && String(manualPriceEur).trim() !== "" ? String(manualPriceEur) : null) : shipment.manualPriceEur,
+        couponCode: couponCode !== undefined ? (couponCode ? normalizeOrderCode(couponCode) : null) : shipment.couponCode,
+        basePriceEur: basePriceEur !== undefined ? (basePriceEur !== null && String(basePriceEur).trim() !== "" ? String(basePriceEur) : null) : shipment.basePriceEur,
+        discountPercent: discountPercent !== undefined ? (discountPercent !== null && String(discountPercent).trim() !== "" ? String(discountPercent) : "0.00") : shipment.discountPercent,
+        discountAmountEur: discountAmountEur !== undefined ? (discountAmountEur !== null && String(discountAmountEur).trim() !== "" ? String(discountAmountEur) : "0.00") : shipment.discountAmountEur,
+        finalPriceEur: finalPriceEur !== undefined ? (finalPriceEur !== null && String(finalPriceEur).trim() !== "" ? String(finalPriceEur) : null) : shipment.finalPriceEur,
         paymentStatus: paymentStatus ?? shipment.paymentStatus ?? "Falta cancelar",
         route: route ?? shipment.route ?? "Lima - Torino",
         originAddress: originAddress ?? shipment.originAddress ?? "",

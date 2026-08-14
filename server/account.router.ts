@@ -72,6 +72,7 @@ export function buildClientShipmentPersistenceArgs(
   code: string,
   calculatedNotes: string,
   accountId: number,
+  basePriceEur?: number,
 ) {
   return [
     orderNumber,
@@ -94,6 +95,11 @@ export function buildClientShipmentPersistenceArgs(
     input.route,
     "",
     "",
+    null,
+    basePriceEur ?? null,
+    0,
+    0,
+    basePriceEur ?? null,
   ] as const;
 }
 
@@ -260,7 +266,7 @@ export const accountRouter = router({
       const calculatedNotes = `Tarifa: ${tariffDesc}. ${input.notes || ""}`.trim();
 
       const result = await createShipment(
-        ...buildClientShipmentPersistenceArgs(input, orderNumber, code, calculatedNotes, session.accountId),
+        ...buildClientShipmentPersistenceArgs(input, orderNumber, code, calculatedNotes, session.accountId, totalEur),
       );
       if (!result) {
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No se pudo registrar el envío." });

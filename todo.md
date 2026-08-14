@@ -235,3 +235,13 @@
 - [x] Separar en el panel administrativo las vistas/listados de Documentos y Encomiendas para operadores y Master Admin
 - [x] Añadir pruebas de expiración, reautenticación, autorización por rol y filtros separados de envíos
 - [x] Ejecutar suite completa, compilación y verificación responsive antes del checkpoint
+
+## Estado de pago, recibos y cupones solicitados
+- [x] Mostrar únicamente en rojo la opción marcada No cancelado y dejar Pagado sin marcar en negro
+- [x] Mostrar únicamente en verde la opción marcada Pagado y dejar No cancelado sin marcar en negro
+- [x] Completar el control de entrega con tipo de envío, datos completos de remitente y destinatario, notas y precio destacado
+- [x] Resaltar visualmente el precio en el recibo del cliente y en la descripción del control de entrega
+- [x] Implementar cupones de descuento del 25 por ciento para operadores y Master Admin con código y fecha de inicio y fin
+- [x] Permitir aplicar un cupón vigente al registro del envío y evitar cupones vencidos o fuera de calendario
+- [x] Añadir pruebas de colores de pago, recibos, permisos, cálculo de cupón y vigencia
+- [x] Ejecutar migración, suite completa, compilación y verificación responsive antes del checkpoint

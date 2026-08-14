@@ -15,11 +15,15 @@ const mocks = vi.hoisted(() => ({
   createAdmin: { isPending: false, mutateAsync: vi.fn() },
   deleteAdmin: { isPending: false, mutateAsync: vi.fn() },
   deactivateAdmin: { isPending: false, mutateAsync: vi.fn() },
+  listCoupons: { data: [], refetch: vi.fn() },
+  createCoupon: { isPending: false, mutateAsync: vi.fn().mockResolvedValue({ code: "SERVI25-TEST", discountPercent: 25 }) },
+  deactivateCoupon: { isPending: false, mutateAsync: vi.fn() },
   changeMyPassword: { isPending: false, mutate: vi.fn() },
   reauthenticate: { isPending: false, mutate: vi.fn() },
   refetchAdminSession: vi.fn().mockResolvedValue({ data: null }),
   refetchShipments: vi.fn(),
   refetchAdminUsers: vi.fn(),
+  refetchCoupons: vi.fn(),
   searchClients: {
     useQuery: (input: { query?: string }) => ({
       data: input.query?.trim() ? [{ id: 21, name: "Ana", lastName: "Pérez", dni: "71234567", phone: "+51 970188447", email: null }] : [],
@@ -34,6 +38,7 @@ vi.mock("@/lib/trpc", () => ({
       me: { useQuery: () => ({ data: null, isLoading: false, refetch: mocks.refetchAdminSession }) },
       getAllShipments: { useQuery: () => ({ data: [], isLoading: false, refetch: mocks.refetchShipments }) },
       listAdmins: { useQuery: () => ({ data: [], isLoading: false, refetch: mocks.refetchAdminUsers }) },
+      listCoupons: { useQuery: () => ({ data: mocks.listCoupons.data, isLoading: false, refetch: mocks.refetchCoupons }) },
       searchClients: mocks.searchClients,
       login: { useMutation: () => mocks.login },
       logout: { useMutation: () => mocks.logout },
@@ -43,6 +48,8 @@ vi.mock("@/lib/trpc", () => ({
       createAdmin: { useMutation: () => mocks.createAdmin },
       deleteAdmin: { useMutation: () => mocks.deleteAdmin },
       deactivateAdmin: { useMutation: () => mocks.deactivateAdmin },
+      createCoupon: { useMutation: () => mocks.createCoupon },
+      deactivateCoupon: { useMutation: () => mocks.deactivateCoupon },
       changeMyPassword: { useMutation: () => mocks.changeMyPassword },
       reauthenticate: { useMutation: () => mocks.reauthenticate },
     },
@@ -73,6 +80,18 @@ describe("AdminDashboard Nueva Encomienda", () => {
     expect(screen.getByRole("heading", { name: "Actualizar contraseña administrativa" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
     expect(screen.queryByRole("heading", { name: "Actualizar contraseña administrativa" })).toBeNull();
+  });
+
+  it("shows coupon management for an authenticated operator", async () => {
+    render(<AdminDashboard />);
+    fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
+    fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Cupones promocionales" })).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "Nuevo cupón" }));
+    expect(screen.getByRole("button", { name: "Generar cupón 25%" })).toBeTruthy();
+    expect(screen.getByText("Válido desde")).toBeTruthy();
+    expect(screen.getByText("Válido hasta")).toBeTruthy();
   });
 
   it("opens without a React loop and switches between document and parcel options", async () => {
