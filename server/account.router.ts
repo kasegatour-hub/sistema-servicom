@@ -26,12 +26,25 @@ import {
   verifyPassword,
   verificationExpiry,
 } from "./localAuth";
-import { clearAccountSession, getAccountSession, setAccountSession } from "./localSession";
+import { AccountSessionPayload, clearAccountSession, getAccountSession, setAccountSession } from "./localSession";
 import { dniSchema, optionalDniSchema, optionalPersonNameSchema, personNameSchema } from "./inputValidation";
 
 const passwordSchema = z.string().min(8, "La contraseña debe tener al menos 8 caracteres.");
 const emailSchema = z.string().email("Correo electrónico inválido.");
 export const passwordResetChannelSchema = z.literal("email");
+
+export const ACCOUNT_REAUTH_REQUIRED_MESSAGE = "Por seguridad, vuelve a escribir tu contraseña para continuar.";
+
+async function requireFreshAccountSession(req: Parameters<typeof getAccountSession>[0], action: string): Promise<AccountSessionPayload> {
+  const session = getAccountSession(req);
+  if (!session) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: `Inicia sesión para ${action}.` });
+  }
+  if (session.reauthRequired) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: ACCOUNT_REAUTH_REQUIRED_MESSAGE });
+  }
+  return session;
+}
 
 export const CLIENT_PAYMENT_DEFAULTS = {
   status: "Falta cancelar",
@@ -162,8 +175,24 @@ export const accountRouter = router({
       lastName: account.lastName,
       dni: account.dni,
       createdAt: account.createdAt,
+      reauthRequired: session.reauthRequired,
     };
   }),
+
+  reauthenticate: publicProcedure
+    .input(z.object({ password: z.string().min(1) }))
+    .mutation(async ({ input, ctx }) => {
+      const session = getAccountSession(ctx.req);
+      if (!session) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Tu sesión ha expirado. Inicia sesión nuevamente." });
+      }
+      const account = await getLocalAccountById(session.accountId);
+      if (!account || !(await verifyPassword(input.password, account.passwordHash))) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "La contraseña actual no es correcta." });
+      }
+      setAccountSession(ctx.req, ctx.res, account.id);
+      return { success: true, message: "Identidad verificada. Puedes continuar." };
+    }),
 
   logout: publicProcedure.mutation(({ ctx }) => {
     clearAccountSession(ctx.req, ctx.res);
@@ -178,10 +207,7 @@ export const accountRouter = router({
       phone: z.string().min(8, "Teléfono requerido"),
     }))
     .mutation(async ({ input, ctx }) => {
-      const session = getAccountSession(ctx.req);
-      if (!session) {
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "Inicia sesión para actualizar tu perfil." });
-      }
+      const session = await requireFreshAccountSession(ctx.req, "actualizar tu perfil");
       const account = await updateLocalAccountProfile(session.accountId, input.name, input.lastName, input.dni, input.phone);
       if (!account) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Cuenta no encontrada." });
@@ -193,6 +219,9 @@ export const accountRouter = router({
   myShipments: publicProcedure.query(async ({ ctx }) => {
     const session = getAccountSession(ctx.req);
     if (!session) return [];
+    if (session.reauthRequired) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: ACCOUNT_REAUTH_REQUIRED_MESSAGE });
+    }
     const shipmentsList = await getShipmentsByAccountId(session.accountId);
     return shipmentsList.map(s => ({
       ...s,
@@ -203,10 +232,7 @@ export const accountRouter = router({
   createMyShipment: publicProcedure
     .input(clientShipmentInputSchema)
     .mutation(async ({ input, ctx }) => {
-      const session = getAccountSession(ctx.req);
-      if (!session) {
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "Inicia sesión para registrar un envío." });
-      }
+      const session = await requireFreshAccountSession(ctx.req, "registrar un envío");
       // Generación automática estricta: Orden de 10 dígitos y código de envío alfanumérico único
       const orderNumber = Math.floor(1000000000 + Math.random() * 9000000000).toString();
       const randomSuffix = Math.random().toString(36).substring(2, 7).toUpperCase();
@@ -252,10 +278,7 @@ export const accountRouter = router({
   changePassword: publicProcedure
     .input(z.object({ currentPassword: z.string().min(1), newPassword: passwordSchema }))
     .mutation(async ({ input, ctx }) => {
-      const session = getAccountSession(ctx.req);
-      if (!session) {
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "Inicia sesión para cambiar tu contraseña." });
-      }
+      const session = await requireFreshAccountSession(ctx.req, "cambiar tu contraseña");
       const account = await getLocalAccountById(session.accountId);
       if (!account || !(await verifyPassword(input.currentPassword, account.passwordHash))) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "La contraseña actual no es correcta." });

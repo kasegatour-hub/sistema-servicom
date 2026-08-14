@@ -200,6 +200,7 @@ export default function AdminDashboard() {
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [showQRModal, setShowQRModal] = useState(false);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [shipmentView, setShipmentView] = useState<'documento' | 'encomienda'>('documento');
   const [currentPage, setCurrentPage] = useState(1);
   const [showUserForm, setShowUserForm] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -207,6 +208,8 @@ export default function AdminDashboard() {
   const [adminCurrentPassword, setAdminCurrentPassword] = useState("");
   const [adminNewPassword, setAdminNewPassword] = useState("");
   const [adminPasswordConfirmation, setAdminPasswordConfirmation] = useState("");
+  const [reauthPassword, setReauthPassword] = useState("");
+  const [showReauthPassword, setShowReauthPassword] = useState(false);
   const [printShipment, setPrintShipment] = useState<any>(null);
   const [senderClientQuery, setSenderClientQuery] = useState("");
   const [recipientClientQuery, setRecipientClientQuery] = useState("");
@@ -215,20 +218,31 @@ export default function AdminDashboard() {
   const printQrRef = useRef<HTMLCanvasElement>(null);
 
   // Queries
-  const { data: shipments, isLoading: loadingShipments, refetch: refetchShipments } = trpc.admin.getAllShipments.useQuery(undefined, { enabled: isLoggedIn });
-  const { data: adminUsers, refetch: refetchAdminUsers } = trpc.admin.listAdmins.useQuery(undefined, { enabled: isLoggedIn && admin?.role === "superadmin" });
+  const { data: currentAdminSession, isLoading: loadingAdminSession, refetch: refetchAdminSession } = trpc.admin.me.useQuery();
+  const { data: shipments, isLoading: loadingShipments, refetch: refetchShipments } = trpc.admin.getAllShipments.useQuery(undefined, { enabled: isLoggedIn && !admin?.reauthRequired });
+  const { data: adminUsers, refetch: refetchAdminUsers } = trpc.admin.listAdmins.useQuery(undefined, { enabled: isLoggedIn && admin?.role === "superadmin" && !admin?.reauthRequired });
   const { data: senderClientResults = [], isFetching: isSearchingSender } = trpc.admin.searchClients.useQuery(
     { query: senderClientQuery.trim(), limit: 8 },
-    { enabled: isLoggedIn && showCreateForm && senderClientQuery.trim().length >= 2 },
+    { enabled: isLoggedIn && !admin?.reauthRequired && showCreateForm && senderClientQuery.trim().length >= 2 },
   );
   const { data: recipientClientResults = [], isFetching: isSearchingRecipient } = trpc.admin.searchClients.useQuery(
     { query: recipientClientQuery.trim(), limit: 8 },
-    { enabled: isLoggedIn && showCreateForm && recipientClientQuery.trim().length >= 2 },
+    { enabled: isLoggedIn && !admin?.reauthRequired && showCreateForm && recipientClientQuery.trim().length >= 2 },
   );
 
   // Mutations
   const loginMutation = trpc.admin.login.useMutation();
   const logoutMutation = trpc.admin.logout.useMutation();
+  const reauthenticateMutation = trpc.admin.reauthenticate.useMutation({
+    onSuccess: async (result) => {
+      toast.success(result.message);
+      setReauthPassword("");
+      setAdmin((previous: any) => previous ? { ...previous, reauthRequired: false } : previous);
+      await refetchAdminSession();
+      await refetchShipments();
+    },
+    onError: (error) => toast.error(error.message),
+  });
   const createMutation = trpc.admin.createShipment.useMutation();
   const updateMutation = trpc.admin.updateStatus.useMutation();
   const deleteMutation = trpc.admin.deleteShipment.useMutation();
@@ -286,6 +300,16 @@ export default function AdminDashboard() {
     else setRecipientClientQuery(`${client.name} ${client.lastName}`);
   };
 
+  useEffect(() => {
+    if (currentAdminSession) {
+      setAdmin(currentAdminSession);
+      setIsLoggedIn(true);
+    } else if (!loadingAdminSession) {
+      setAdmin(null);
+      setIsLoggedIn(false);
+    }
+  }, [currentAdminSession, loadingAdminSession]);
+
   const updateForm = useForm<UpdateStatusForm>({
     resolver: zodResolver(updateStatusSchema),
     defaultValues: {
@@ -311,8 +335,9 @@ export default function AdminDashboard() {
   const handleLogin = async (data: LoginForm) => {
     try {
       const result = await loginMutation.mutateAsync(data);
-      setAdmin(result);
+      setAdmin({ ...result, reauthRequired: false });
       setIsLoggedIn(true);
+      await refetchAdminSession();
       toast.success("Sesión iniciada correctamente");
     } catch (error: any) {
       toast.error(error.message || "Error al iniciar sesión");
@@ -655,7 +680,9 @@ export default function AdminDashboard() {
 
   const sortedShipments = useMemo(() => {
     if (!shipments) return [];
-    let list = [...shipments];
+    let list = [...shipments].filter((shipment) => shipmentView === 'documento'
+      ? shipment.shipmentType !== 'encomienda'
+      : shipment.shipmentType === 'encomienda');
     if (searchTerm.trim()) {
       const q = searchTerm.trim().toLowerCase();
       list = list.filter(s => 
@@ -672,11 +699,11 @@ export default function AdminDashboard() {
       const dateB = new Date(b.createdAt).getTime();
       return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
     });
-  }, [shipments, sortOrder, searchTerm]);
+  }, [shipments, shipmentView, sortOrder, searchTerm]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, sortOrder]);
+  }, [searchTerm, shipmentView, sortOrder]);
 
   const pagination = paginateItems(sortedShipments, currentPage, pageSize);
   const totalPages = pagination.totalPages;
@@ -716,6 +743,10 @@ export default function AdminDashboard() {
       window.location.href = '/';
     }
   };
+
+  if (loadingAdminSession && !isLoggedIn) {
+    return <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-blue-50 to-white text-primary"><Spinner className="mr-2 h-5 w-5" /> Verificando sesión...</div>;
+  }
 
   if (!isLoggedIn) {
     return (
@@ -780,6 +811,29 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      {admin?.reauthRequired && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4" role="dialog" aria-modal="true" aria-labelledby="admin-reauth-title">
+          <Card className="w-full max-w-md border-0 p-6 shadow-2xl">
+            <div className="mb-4 flex items-center gap-3">
+              <Lock className="h-6 w-6 text-primary" />
+              <h2 id="admin-reauth-title" className="text-xl font-semibold text-primary">Verificación de seguridad</h2>
+            </div>
+            <p className="mb-5 text-sm text-slate-600">Tu sesión administrativa continúa activa, pero debes volver a escribir tu contraseña para continuar.</p>
+            <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); reauthenticateMutation.mutate({ password: reauthPassword }); }}>
+              <div className="relative">
+                <label htmlFor="admin-reauth-password" className="mb-2 block text-sm font-medium text-slate-700">Contraseña administrativa</label>
+                <Input id="admin-reauth-password" type={showReauthPassword ? "text" : "password"} value={reauthPassword} onChange={(event) => setReauthPassword(event.target.value)} autoComplete="current-password" className="pr-10" />
+                <button type="button" aria-label={showReauthPassword ? "Ocultar contraseña" : "Mostrar contraseña"} onClick={() => setShowReauthPassword(value => !value)} className="absolute right-2 top-8 rounded p-1 text-slate-500 hover:text-primary"><Lock className="h-4 w-4" /></button>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={handleLogout} disabled={logoutMutation.isPending}>Cerrar sesión</Button>
+                <Button type="submit" disabled={!reauthPassword || reauthenticateMutation.isPending}>{reauthenticateMutation.isPending ? "Verificando..." : "Verificar contraseña"}</Button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      )}
+
       {/* Header */}
       <header className="bg-primary text-white shadow-md sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
@@ -1218,7 +1272,29 @@ export default function AdminDashboard() {
         {/* Shipments Table */}
         <Card className="p-6 shadow-lg border-0">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">Encomiendas Registradas</h2>
+            <div className="flex flex-wrap items-center gap-3">
+              <h2 className="text-xl font-semibold text-gray-900">{shipmentView === 'documento' ? 'Documentos Registrados' : 'Encomiendas Registradas'}</h2>
+              <div className="flex items-center gap-1 rounded-lg bg-slate-100 p-1" role="tablist" aria-label="Tipo de envío">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={shipmentView === 'documento'}
+                  onClick={() => setShipmentView('documento')}
+                  className={`rounded-md px-3 py-1.5 text-sm font-semibold transition ${shipmentView === 'documento' ? 'bg-white text-[#0B2B5E] shadow-sm' : 'text-slate-500 hover:text-[#0B2B5E]'}`}
+                >
+                  Documentos <span className="ml-1 text-xs">({(shipments || []).filter((shipment: any) => shipment.shipmentType !== 'encomienda').length})</span>
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={shipmentView === 'encomienda'}
+                  onClick={() => setShipmentView('encomienda')}
+                  className={`rounded-md px-3 py-1.5 text-sm font-semibold transition ${shipmentView === 'encomienda' ? 'bg-white text-[#0B2B5E] shadow-sm' : 'text-slate-500 hover:text-[#0B2B5E]'}`}
+                >
+                  Encomiendas <span className="ml-1 text-xs">({(shipments || []).filter((shipment: any) => shipment.shipmentType === 'encomienda').length})</span>
+                </button>
+              </div>
+            </div>
             <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
               <div className="relative flex-1 md:w-64">
                 <Input
@@ -1238,7 +1314,7 @@ export default function AdminDashboard() {
               <Button
                 onClick={async () => {
                   await refetchShipments();
-                  toast.success("Lista de encomiendas actualizada");
+                  toast.success(`Lista de ${shipmentView === 'documento' ? 'documentos' : 'encomiendas'} actualizada`);
                 }}
                 variant="outline"
                 size="sm"
@@ -1355,7 +1431,7 @@ export default function AdminDashboard() {
               </div>
             </div>
           ) : (
-            <p className="text-center text-gray-500 py-8">No hay encomiendas registradas</p>
+            <p className="text-center text-gray-500 py-8">No hay {shipmentView === 'documento' ? 'documentos' : 'encomiendas'} registradas</p>
           )}
         </Card>
 

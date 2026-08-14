@@ -16,6 +16,8 @@ const mocks = vi.hoisted(() => ({
   deleteAdmin: { isPending: false, mutateAsync: vi.fn() },
   deactivateAdmin: { isPending: false, mutateAsync: vi.fn() },
   changeMyPassword: { isPending: false, mutate: vi.fn() },
+  reauthenticate: { isPending: false, mutate: vi.fn() },
+  refetchAdminSession: vi.fn().mockResolvedValue({ data: null }),
   refetchShipments: vi.fn(),
   refetchAdminUsers: vi.fn(),
   searchClients: {
@@ -29,6 +31,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/lib/trpc", () => ({
   trpc: {
     admin: {
+      me: { useQuery: () => ({ data: null, isLoading: false, refetch: mocks.refetchAdminSession }) },
       getAllShipments: { useQuery: () => ({ data: [], isLoading: false, refetch: mocks.refetchShipments }) },
       listAdmins: { useQuery: () => ({ data: [], isLoading: false, refetch: mocks.refetchAdminUsers }) },
       searchClients: mocks.searchClients,
@@ -41,6 +44,7 @@ vi.mock("@/lib/trpc", () => ({
       deleteAdmin: { useMutation: () => mocks.deleteAdmin },
       deactivateAdmin: { useMutation: () => mocks.deactivateAdmin },
       changeMyPassword: { useMutation: () => mocks.changeMyPassword },
+      reauthenticate: { useMutation: () => mocks.reauthenticate },
     },
   },
 }));
@@ -143,5 +147,19 @@ describe("AdminDashboard Nueva Encomienda", () => {
       weightKg: 2.5,
       manualPriceEur: "40",
     });
+  });
+
+  it("separa las vistas de documentos y encomiendas en pestañas", async () => {
+    render(<AdminDashboard />);
+    fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
+    fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
+
+    await waitFor(() => expect(screen.getByRole("tab", { name: /Documentos/ })).toBeTruthy());
+    expect(screen.getByRole("heading", { name: "Documentos Registrados" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: /Encomiendas/ }));
+    expect(screen.getByRole("heading", { name: "Encomiendas Registradas" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: /Documentos/ }));
+    expect(screen.getByRole("heading", { name: "Documentos Registrados" })).toBeTruthy();
   });
 });

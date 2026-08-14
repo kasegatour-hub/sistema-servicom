@@ -9,11 +9,12 @@ vi.mock("@/lib/trpc", () => ({
   trpc: {
     useUtils: () => ({ account: { me: { invalidate: vi.fn() } } }),
     account: {
-      me: { useQuery: () => ({ data: { email: "cliente@example.com", name: "Ana", lastName: "López", dni: "71234567", phone: "+51 970188447" }, isLoading: false }) },
+      me: { useQuery: () => ({ data: { email: "cliente@example.com", name: "Ana", lastName: "López", dni: "71234567", phone: "+51 970188447", reauthRequired: false }, isLoading: false }) },
       myShipments: { useQuery: () => ({ data: [], refetch: vi.fn() }) },
       register: { useMutation: mutation },
       login: { useMutation: mutation },
       logout: { useMutation: mutation },
+      reauthenticate: { useMutation: mutation },
       updateProfile: { useMutation: mutation },
       changePassword: { useMutation: mutation },
       createMyShipment: { useMutation: mutation },

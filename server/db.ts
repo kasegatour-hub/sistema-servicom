@@ -298,13 +298,16 @@ export async function incrementVerificationAttempts(id: number) {
   return db.update(verificationCodes).set({ attempts: code[0].attempts + 1 }).where(eq(verificationCodes.id, id));
 }
 
-export async function getAllShipments() {
+export async function getAllShipments(shipmentType?: "documento" | "encomienda") {
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot get shipments: database not available");
     return [];
   }
 
+  if (shipmentType) {
+    return await db.select().from(shipments).where(eq(shipments.shipmentType, shipmentType));
+  }
   return await db.select().from(shipments);
 }
 

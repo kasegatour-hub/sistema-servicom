@@ -228,3 +228,10 @@
 - [x] Añadir salidas claras en pestañas, modales y vistas internas para evitar callejones sin salida
 - [x] Revisar que las credenciales no queden expuestas ni precargadas visualmente
 - [x] Añadir pruebas de validación, cambio de contraseña y navegación
+
+## JWT y separación de envíos solicitados
+- [x] Convertir el inicio de sesión local de clientes, registradores y Master Admin a sesiones JWT con expiración configurable y reautenticación por contraseña cuando la sesión supere el plazo de seguridad
+- [x] Hacer que el inicio de sesión sea el punto de entrada de las áreas privadas y conservar el control de roles y el acceso público de rastreo
+- [x] Separar en el panel administrativo las vistas/listados de Documentos y Encomiendas para operadores y Master Admin
+- [x] Añadir pruebas de expiración, reautenticación, autorización por rol y filtros separados de envíos
+- [x] Ejecutar suite completa, compilación y verificación responsive antes del checkpoint

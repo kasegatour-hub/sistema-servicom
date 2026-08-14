@@ -37,6 +37,8 @@ export default function AccountPage() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showAccountNewPassword, setShowAccountNewPassword] = useState(false);
   const [receiptShipment, setReceiptShipment] = useState<any>(null);
+  const [reauthPassword, setReauthPassword] = useState("");
+  const [showReauthPassword, setShowReauthPassword] = useState(false);
 
   // Perfil con modo de visualización y edición
   const [profileName, setProfileName] = useState("");
@@ -87,7 +89,7 @@ export default function AccountPage() {
   }, [me]);
 
   const { data: myShipments, refetch: refetchShipments } = trpc.account.myShipments.useQuery(undefined, {
-    enabled: !!me,
+    enabled: !!me && !me.reauthRequired,
   });
 
   const registerMutation = trpc.account.register.useMutation({
@@ -112,6 +114,16 @@ export default function AccountPage() {
       toast.success("Sesión cerrada.");
       utils.account.me.invalidate();
     },
+  });
+
+  const reauthenticateMutation = trpc.account.reauthenticate.useMutation({
+    onSuccess: async result => {
+      toast.success(result.message);
+      setReauthPassword("");
+      await utils.account.me.invalidate();
+      await refetchShipments();
+    },
+    onError: error => toast.error(error.message),
   });
 
   const updateProfileMutation = trpc.account.updateProfile.useMutation({
@@ -208,6 +220,27 @@ export default function AccountPage() {
         </header>
 
         <main className="mx-auto max-w-5xl px-4 py-8 space-y-8">
+          {me.reauthRequired && (
+            <Dialog open>
+              <DialogContent className="max-w-md" onPointerDownOutside={(event) => event.preventDefault()} onEscapeKeyDown={(event) => event.preventDefault()}>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2 text-[#0B2B5E]"><Lock className="h-5 w-5" /> Verificación de seguridad</DialogTitle>
+                </DialogHeader>
+                <p className="text-sm text-slate-600">Tu sesión continúa activa, pero por seguridad debes volver a escribir tu contraseña antes de seguir usando tu cuenta.</p>
+                <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); reauthenticateMutation.mutate({ password: reauthPassword }); }}>
+                  <div className="relative">
+                    <Label htmlFor="account-reauth-password">Contraseña</Label>
+                    <Input id="account-reauth-password" type={showReauthPassword ? "text" : "password"} value={reauthPassword} onChange={(event) => setReauthPassword(event.target.value)} autoComplete="current-password" className="pr-10" />
+                    <button type="button" aria-label={showReauthPassword ? "Ocultar contraseña" : "Mostrar contraseña"} onClick={() => setShowReauthPassword(value => !value)} className="absolute right-2 top-7 rounded p-1 text-slate-500 hover:text-[#0B2B5E]"><Eye className="h-4 w-4" /></button>
+                  </div>
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <Button type="button" variant="outline" onClick={() => logoutMutation.mutate()} disabled={logoutMutation.isPending}>Cerrar sesión</Button>
+                    <Button type="submit" disabled={!reauthPassword || reauthenticateMutation.isPending}>{reauthenticateMutation.isPending ? "Verificando..." : "Verificar contraseña"}</Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+          )}
           {receiptShipment && (
             <Dialog open={!!receiptShipment} onOpenChange={(open) => { if (!open) setReceiptShipment(null); }}>
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
