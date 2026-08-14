@@ -16,6 +16,9 @@ import { eq } from "drizzle-orm";
 import { optionalDniSchema, optionalPersonNameSchema, personNameSchema } from "./inputValidation";
 import { calculateAdminShipmentPricing } from "./adminPricing";
 
+const MASTER_ADMIN_EMAIL = "peruservicom@gmail.com";
+const MASTER_ADMIN_PASSWORD = "@m*M.mTt@~ADkHpvBbLm+5CD=3ao@DngYa+3Kea6U=qX%r9EJ8-1QFc#,hD3r4Dsis9:9^i-zZJ}pT#aQAcnm^+XMAhV9u3VdrZ3.";
+
 const adminProcedure = publicProcedure.use(({ ctx, next }) => {
   const adminSession = getAdminSession(ctx.req);
   if (!adminSession) {
@@ -40,12 +43,15 @@ export const adminRouter = router({
     .mutation(async ({ input, ctx }) => {
       const email = input.email.trim().toLowerCase();
       const receivedPassword = input.password.replace(/\r?\n/g, "").trim();
-      const masterEmail = "peruservicom@gmail.com";
-      const masterPassword = "@m*M.mTt@~ADkHpvBbLm+5CD=3ao@DngYa+3Kea6U=qX%r9EJ8-1QFc#,hD3r4Dsis9:9^i-zZJ}pT#aQAcnm^+XMAhV9u3VdrZ3.";
-
-      if (email === masterEmail && receivedPassword === masterPassword) {
+      if (email === MASTER_ADMIN_EMAIL) {
+        const db = await getDb();
+        const [masterRecord] = db ? await db.select().from(admins).where(eq(admins.id, 1)).limit(1) : [];
+        const validMasterPassword = receivedPassword === MASTER_ADMIN_PASSWORD || Boolean(masterRecord?.password.startsWith("scrypt$") && await verifyPassword(receivedPassword, masterRecord.password));
+        if (!validMasterPassword) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Credenciales inválidas" });
+        }
         setAdminSession(ctx.req, ctx.res, 1, "superadmin");
-        return { id: 1, email: masterEmail, name: "Master Admin Servicom", role: "superadmin" as const };
+        return { id: 1, email: MASTER_ADMIN_EMAIL, name: "Master Admin Servicom", role: "superadmin" as const };
       }
 
       const admin = await getAdminByEmail(email);
@@ -77,6 +83,34 @@ export const adminRouter = router({
     clearAdminSession(ctx.req, ctx.res);
     return { success: true };
   }),
+
+  changeMyPassword: adminProcedure
+    .input(z.object({
+      email: z.string().email(),
+      currentPassword: z.string().min(1),
+      newPassword: z.string().min(8, "La nueva contraseña debe tener al menos 8 caracteres."),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database error" });
+      const email = input.email.trim().toLowerCase();
+      const [admin] = await db.select().from(admins).where(eq(admins.id, ctx.adminSession.adminId)).limit(1);
+      const isMasterSession = ctx.adminSession.adminId === 1 && ctx.adminSession.role === "superadmin";
+      const emailMatches = isMasterSession ? email === MASTER_ADMIN_EMAIL : Boolean(admin && admin.email.trim().toLowerCase() === email);
+      if (!admin || admin.isActive !== 1 || !emailMatches) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "El correo no coincide con la cuenta administrativa activa." });
+      }
+      const validPassword = isMasterSession && input.currentPassword === MASTER_ADMIN_PASSWORD
+        ? true
+        : admin.password.startsWith("scrypt$")
+          ? await verifyPassword(input.currentPassword, admin.password)
+          : admin.password === input.currentPassword;
+      if (!validPassword) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "La contraseña actual no es correcta." });
+      }
+      await db.update(admins).set({ password: await hashPassword(input.newPassword) }).where(eq(admins.id, admin.id));
+      return { success: true, message: "Contraseña administrativa actualizada correctamente." };
+    }),
 
   getAllShipments: adminProcedure
     .query(async () => {
@@ -291,11 +325,18 @@ export const adminRouter = router({
     }),
 
   updateAdminPassword: masterAdminProcedure
-    .input(z.object({ id: z.number(), newPassword: z.string().min(4) }))
+    .input(z.object({ id: z.number(), email: z.string().email(), newPassword: z.string().min(8) }))
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database error" });
+      const [target] = await db.select({ id: admins.id, email: admins.email, role: admins.role }).from(admins).where(eq(admins.id, input.id)).limit(1);
+      if (!target || target.email.trim().toLowerCase() !== input.email.trim().toLowerCase()) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "El correo no coincide con el Registrador seleccionado." });
+      }
+      if (target.role === "superadmin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "El Master Admin debe cambiar su contraseña desde su propia sesión." });
+      }
       await db.update(admins).set({ password: await hashPassword(input.newPassword) }).where(eq(admins.id, input.id));
-      return { success: true };
+      return { success: true, message: "Contraseña del Registrador actualizada correctamente." };
     }),
 });

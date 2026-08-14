@@ -75,6 +75,28 @@ describe("admin.login", () => {
     });
   });
 
+  it("requires an authenticated administrative account and its registered email to change a password", async () => {
+    const publicCaller = appRouter.createCaller(createPublicContext());
+    await expect(publicCaller.admin.changeMyPassword({ email: "admin@servicom.pe", currentPassword: "old-password", newPassword: "new-password-2026" })).rejects.toMatchObject({
+      code: "UNAUTHORIZED",
+      message: "Sesión administrativa requerida",
+    });
+
+    const sessionCaller = appRouter.createCaller(createRoleContext("registrador"));
+    await expect(sessionCaller.admin.changeMyPassword({ email: "otra@servicom.pe", currentPassword: "old-password", newPassword: "new-password-2026" })).rejects.toMatchObject({
+      code: "UNAUTHORIZED",
+      message: "El correo no coincide con la cuenta administrativa activa.",
+    });
+  });
+
+  it("requires the selected Registrador email when a Master Admin resets it", async () => {
+    const caller = appRouter.createCaller(createRoleContext("superadmin"));
+    await expect(caller.admin.updateAdminPassword({ id: 90001, email: "otra@servicom.pe", newPassword: "new-password-2026" })).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      message: "El correo no coincide con el Registrador seleccionado.",
+    });
+  });
+
   it("prevents a Registrador from managing admin users", async () => {
     const caller = appRouter.createCaller(createRoleContext("registrador"));
 

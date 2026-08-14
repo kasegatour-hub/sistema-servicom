@@ -202,6 +202,11 @@ export default function AdminDashboard() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const [showUserForm, setShowUserForm] = useState(false);
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [adminPasswordEmail, setAdminPasswordEmail] = useState("");
+  const [adminCurrentPassword, setAdminCurrentPassword] = useState("");
+  const [adminNewPassword, setAdminNewPassword] = useState("");
+  const [adminPasswordConfirmation, setAdminPasswordConfirmation] = useState("");
   const [printShipment, setPrintShipment] = useState<any>(null);
   const [senderClientQuery, setSenderClientQuery] = useState("");
   const [recipientClientQuery, setRecipientClientQuery] = useState("");
@@ -230,6 +235,16 @@ export default function AdminDashboard() {
   const createAdminMutation = trpc.admin.createAdmin.useMutation();
   const deleteAdminMutation = trpc.admin.deleteAdmin.useMutation();
   const deactivateAdminMutation = trpc.admin.deactivateAdmin.useMutation();
+  const changeMyPasswordMutation = trpc.admin.changeMyPassword.useMutation({
+    onSuccess: result => {
+      toast.success(result.message);
+      setAdminCurrentPassword("");
+      setAdminNewPassword("");
+      setAdminPasswordConfirmation("");
+      setShowPasswordForm(false);
+    },
+    onError: error => toast.error(error.message),
+  });
 
   // Forms
   const loginForm = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
@@ -671,6 +686,25 @@ export default function AdminDashboard() {
     if (currentPage > totalPages) setCurrentPage(totalPages);
   }, [currentPage, totalPages]);
 
+  const handleChangeMyPassword = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const registeredEmail = String(admin?.email || "").trim().toLowerCase();
+    const enteredEmail = adminPasswordEmail.trim().toLowerCase();
+    if (!registeredEmail || enteredEmail !== registeredEmail) {
+      toast.error("El correo debe coincidir exactamente con el correo administrativo registrado.");
+      return;
+    }
+    if (adminNewPassword.length < 8) {
+      toast.error("La nueva contraseña debe tener al menos 8 caracteres.");
+      return;
+    }
+    if (adminNewPassword !== adminPasswordConfirmation) {
+      toast.error("La confirmación de contraseña no coincide.");
+      return;
+    }
+    changeMyPasswordMutation.mutate({ email: enteredEmail, currentPassword: adminCurrentPassword, newPassword: adminNewPassword });
+  };
+
   const handleLogout = async () => {
     try {
       await logoutMutation.mutateAsync();
@@ -687,18 +721,22 @@ export default function AdminDashboard() {
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center p-4">
         <Card className="w-full max-w-md p-6 shadow-lg border-0">
+          <div className="mb-5 flex justify-start">
+            <a href="/" className="text-sm font-semibold text-primary underline-offset-4 hover:underline">← Volver al inicio</a>
+          </div>
           <div className="flex items-center justify-center mb-6">
             <Lock className="w-8 h-8 text-primary mr-3" />
             <h1 className="text-2xl font-bold text-primary">Admin Servicom Internacional</h1>
           </div>
 
-          <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-4">
+          <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-4" autoComplete="off">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
               <Input
                 type="email"
                 placeholder="Ingresa tu correo administrativo"
                 {...loginForm.register("email")}
+                autoComplete="off"
                 className="border-2 focus:border-primary"
               />
               {loginForm.formState.errors.email && (
@@ -712,6 +750,7 @@ export default function AdminDashboard() {
                 type="password"
                 placeholder="Contraseña"
                 {...loginForm.register("password")}
+                autoComplete="new-password"
                 className="border-2 focus:border-primary"
               />
               {loginForm.formState.errors.password && (
@@ -748,11 +787,23 @@ export default function AdminDashboard() {
             <h1 className="text-2xl font-bold">Panel de Administración</h1>
             <p className="text-sm opacity-90">Servicom Internacional - Gestión de Encomiendas</p>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center justify-end gap-2 md:gap-4">
+            <a href="/" className="rounded-md border border-white/70 px-3 py-2 text-sm font-semibold text-white transition hover:bg-white/20">Inicio</a>
             <div className="text-right">
               <span className="block text-sm">{admin?.name}</span>
               <span className="block text-xs opacity-80">{admin?.role === "superadmin" ? "Master Admin" : "Registrador"}</span>
             </div>
+            <Button
+              type="button"
+              onClick={() => {
+                setAdminPasswordEmail(admin?.email || "");
+                setShowPasswordForm(previous => !previous);
+              }}
+              variant="outline"
+              className="border-white text-white hover:bg-white/20"
+            >
+              Cambiar contraseña
+            </Button>
             <Button
               onClick={handleLogout}
               variant="outline"
@@ -766,6 +817,40 @@ export default function AdminDashboard() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-8">
+        {showPasswordForm && (
+          <Card className="mb-8 border-0 p-6 shadow-lg">
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Actualizar contraseña administrativa</h2>
+                <p className="mt-1 text-sm text-slate-500">Confirma el correo registrado para validar que estás cambiando tu propia cuenta.</p>
+              </div>
+              <Button type="button" variant="outline" onClick={() => setShowPasswordForm(false)} aria-label="Cerrar cambio de contraseña">Cerrar</Button>
+            </div>
+            <form onSubmit={handleChangeMyPassword} className="grid grid-cols-1 gap-4 md:grid-cols-4">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">Correo registrado</label>
+                <Input type="email" value={adminPasswordEmail} onChange={event => setAdminPasswordEmail(event.target.value)} required autoComplete="username" />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">Contraseña actual</label>
+                <Input type="password" value={adminCurrentPassword} onChange={event => setAdminCurrentPassword(event.target.value)} required autoComplete="current-password" />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">Nueva contraseña</label>
+                <Input type="password" value={adminNewPassword} onChange={event => setAdminNewPassword(event.target.value)} minLength={8} required autoComplete="new-password" />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">Confirmar nueva contraseña</label>
+                <Input type="password" value={adminPasswordConfirmation} onChange={event => setAdminPasswordConfirmation(event.target.value)} minLength={8} required autoComplete="new-password" />
+              </div>
+              <div className="flex flex-wrap justify-end gap-2 md:col-span-4">
+                <Button type="button" variant="outline" onClick={() => setShowPasswordForm(false)}>Cancelar</Button>
+                <Button type="submit" disabled={changeMyPasswordMutation.isPending} className="bg-primary text-white">{changeMyPasswordMutation.isPending ? "Actualizando..." : "Guardar contraseña"}</Button>
+              </div>
+            </form>
+          </Card>
+        )}
+
         {/* Create Shipment Section */}
         <Card className="p-6 mb-8 shadow-lg border-0">
           <div className="flex justify-between items-center mb-6">

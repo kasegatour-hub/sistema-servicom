@@ -117,10 +117,25 @@ export default function AccountPage() {
   const updateProfileMutation = trpc.account.updateProfile.useMutation({
     onSuccess: () => {
       toast.success("Datos de perfil actualizados correctamente.");
+      setIsEditingProfile(false);
       utils.account.me.invalidate();
     },
     onError: error => toast.error(error.message),
   });
+
+  const handleProfileSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const nextErrors: Record<string, string> = {};
+    if (!profileName.trim() || !isTextOnly(profileName)) nextErrors.profileName = "El nombre solo puede contener letras y espacios.";
+    if (!profileLastName.trim() || !isTextOnly(profileLastName)) nextErrors.profileLastName = "El apellido solo puede contener letras y espacios.";
+    if (!profileDni.trim() || !isDigitsOnly(profileDni)) nextErrors.profileDni = "El DNI solo puede contener números.";
+    if (Object.keys(nextErrors).length > 0) {
+      setIdentityErrors(previous => ({ ...previous, ...nextErrors }));
+      toast.error("Revisa los datos personales antes de guardar.");
+      return;
+    }
+    updateProfileMutation.mutate({ name: profileName.trim().replace(/\s+/g, " "), lastName: profileLastName.trim().replace(/\s+/g, " "), dni: profileDni.trim(), phone: profilePhone.trim() });
+  };
 
   const changePasswordMutation = trpc.account.changePassword.useMutation({
     onSuccess: result => {
@@ -281,11 +296,7 @@ export default function AccountPage() {
                 </div>
               </div>
             ) : (
-              <form onSubmit={(e) => {
-                e.preventDefault();
-                updateProfileMutation.mutate({ name: profileName, lastName: profileLastName, dni: profileDni, phone: profilePhone });
-                setIsEditingProfile(false);
-              }} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <form onSubmit={handleProfileSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label>Nombres</Label>
                   <Input value={profileName} onChange={e => updateTextValue("profileName", e.target.value, setProfileName, "El nombre")} placeholder="Ej: Juan" autoComplete="given-name" required className="mt-1" />

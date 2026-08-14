@@ -220,3 +220,11 @@
 - [x] Añadir pruebas del HTML completo del recibo de cliente que confirmen cláusulas peruanas e italianas según la ruta
 - [x] Añadir prueba del flujo o HTML de impresión administrativa que confirme la fórmula institucional y elimine "Suscrito en la ciudad de Lima"
 - [x] Verificar en ambos recibos la presencia de "Servicom Internacional en colaboración con Kasega Tour E.I.R.L. (RUC: 20615004708)"
+
+## Seguridad de perfil y navegación administrativa
+- [x] Impedir dígitos y caracteres inválidos en nombres y apellidos al actualizar el perfil del cliente
+- [x] Permitir que el administrador actualice su contraseña validando el correo registrado
+- [x] Añadir un botón visible para volver al inicio desde la pantalla Admin, incluso si el cliente entra por error
+- [x] Añadir salidas claras en pestañas, modales y vistas internas para evitar callejones sin salida
+- [x] Revisar que las credenciales no queden expuestas ni precargadas visualmente
+- [x] Añadir pruebas de validación, cambio de contraseña y navegación

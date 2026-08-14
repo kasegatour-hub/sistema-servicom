@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   createAdmin: { isPending: false, mutateAsync: vi.fn() },
   deleteAdmin: { isPending: false, mutateAsync: vi.fn() },
   deactivateAdmin: { isPending: false, mutateAsync: vi.fn() },
+  changeMyPassword: { isPending: false, mutate: vi.fn() },
   refetchShipments: vi.fn(),
   refetchAdminUsers: vi.fn(),
   searchClients: {
@@ -39,6 +40,7 @@ vi.mock("@/lib/trpc", () => ({
       createAdmin: { useMutation: () => mocks.createAdmin },
       deleteAdmin: { useMutation: () => mocks.deleteAdmin },
       deactivateAdmin: { useMutation: () => mocks.deactivateAdmin },
+      changeMyPassword: { useMutation: () => mocks.changeMyPassword },
     },
   },
 }));
@@ -53,6 +55,22 @@ beforeEach(() => {
 });
 
 describe("AdminDashboard Nueva Encomienda", () => {
+  it("shows escape links and the administrative password form", async () => {
+    render(<AdminDashboard />);
+    expect(screen.getByRole("link", { name: /Volver al inicio/ }).getAttribute("href")).toBe("/");
+
+    fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
+    fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Cambiar contraseña" })).toBeTruthy());
+
+    expect(screen.getByRole("link", { name: "Inicio" }).getAttribute("href")).toBe("/");
+    fireEvent.click(screen.getByRole("button", { name: "Cambiar contraseña" }));
+    expect(screen.getByRole("heading", { name: "Actualizar contraseña administrativa" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(screen.queryByRole("heading", { name: "Actualizar contraseña administrativa" })).toBeNull();
+  });
+
   it("opens without a React loop and switches between document and parcel options", async () => {
     render(<AdminDashboard />);
 
