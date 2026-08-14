@@ -421,10 +421,15 @@ export default function AdminDashboard() {
     }
   };
 
+  const openCreateForm = (shipmentType: "documento" | "encomienda") => {
+    createForm.setValue("shipmentType", shipmentType, { shouldDirty: true });
+    setShowCreateForm(true);
+  };
+
   const handleCreateShipment = async (data: any) => {
     try {
       const result = await createMutation.mutateAsync(data);
-      toast.success("Encomienda creada exitosamente");
+      toast.success(`${data.shipmentType === "encomienda" ? "Encomienda" : "Documento"} creado exitosamente`);
       
       // Mostrar modal y generar QR usando la URL construida con la orden y código automáticos.
       const trackingUrl = result.trackingUrl;
@@ -1005,35 +1010,33 @@ export default function AdminDashboard() {
 
         {/* Create Shipment Section */}
         <Card className="p-6 mb-8 shadow-lg border-0">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">Crear Nueva Encomienda</h2>
-            <Button
-              onClick={() => setShowCreateForm(!showCreateForm)}
-              className="bg-primary hover:bg-primary/90 text-white"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Nueva Encomienda
-            </Button>
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">Crear nuevo registro</h2>
+              <p className="mt-1 text-sm text-slate-500">Elige directamente qué deseas registrar.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" onClick={() => openCreateForm("documento")} className="bg-primary text-white hover:bg-primary/90">
+                <Plus className="mr-2 h-4 w-4" /> Nuevo documento
+              </Button>
+              <Button type="button" onClick={() => openCreateForm("encomienda")} className="bg-[#F28C00] text-white hover:bg-[#d67900]">
+                <Plus className="mr-2 h-4 w-4" /> Nueva encomienda
+              </Button>
+            </div>
           </div>
 
           {showCreateForm && (
             <form onSubmit={createForm.handleSubmit(handleCreateShipment)} className="space-y-4">
-              {/* Tipo de servicio y tarifa */}
+              {/* Tarifa y estado del registro; el tipo ya lo define el botón de entrada */}
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de registro</label>
-                    <select
-                      {...createForm.register("shipmentType")}
-                      defaultValue="documento"
-                      className="w-full rounded-md border-2 border-slate-200 bg-white p-2.5 text-sm font-medium focus:border-primary"
-                    >
-                      <option value="documento">Documentos</option>
-                      <option value="encomienda">Encomiendas</option>
-                    </select>
-                    <p className="mt-1 text-xs text-slate-500">Selecciona el tipo de servicio para mostrar sus opciones.</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[#0B2B5E]">Formulario de registro</p>
+                    <p className="text-lg font-bold text-[#0B2B5E]">{selectedShipmentType === "encomienda" ? "Nueva encomienda" : "Nuevo documento"}</p>
                   </div>
-
+                  <span className="text-xs text-slate-600">El tipo ya fue definido por el botón elegido</span>
+                </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Estado Inicial</label>
                     <Select defaultValue="En agencia" onValueChange={(value) => createForm.setValue("status", value as any)}>
@@ -1259,14 +1262,14 @@ export default function AdminDashboard() {
                   disabled={createMutation.isPending}
                   className="bg-primary hover:bg-primary/90 text-white"
                 >
-                  {createMutation.isPending ? (
-                    <>
-                      <Spinner className="w-4 h-4 mr-2" />
-                      Creando...
-                    </>
-                  ) : (
-                    "Crear Encomienda"
-                  )}
+                    {createMutation.isPending ? (
+                      <>
+                        <Spinner className="w-4 h-4 mr-2" />
+                        Creando...
+                      </>
+                    ) : (
+                      selectedShipmentType === "encomienda" ? "Crear Encomienda" : "Crear Documento"
+                    )}
                 </Button>
                 <Button
                   type="button"

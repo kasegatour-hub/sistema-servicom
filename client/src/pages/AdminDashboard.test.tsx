@@ -94,25 +94,28 @@ describe("AdminDashboard Nueva Encomienda", () => {
     expect(screen.getByText("Válido hasta")).toBeTruthy();
   });
 
-  it("opens without a React loop and switches between document and parcel options", async () => {
+  it("opens each creation type directly without a redundant selector", async () => {
     render(<AdminDashboard />);
 
     fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
     fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
     fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
 
-    await waitFor(() => expect(screen.getByRole("button", { name: "Nueva Encomienda" })).toBeTruthy());
-    fireEvent.click(screen.getByRole("button", { name: "Nueva Encomienda" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Nuevo documento" })).toBeTruthy());
+    expect(screen.getByRole("button", { name: "Nueva encomienda" })).toBeTruthy();
 
-    expect(screen.getByText("Tipo de registro")).toBeTruthy();
-    expect(screen.getByDisplayValue("Documentos")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Nuevo documento" }));
+    expect(screen.getAllByText("Nuevo documento").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Tipo de registro")).toBeNull();
+    expect(screen.queryByDisplayValue("Documentos")).toBeNull();
     expect(screen.getByText("Tipo de Documento")).toBeTruthy();
     expect(screen.getByText("Precio manual en EUR (opcional)")).toBeTruthy();
 
-    fireEvent.change(screen.getByDisplayValue("Documentos"), { target: { value: "encomienda" } });
-
+    fireEvent.click(screen.getByRole("button", { name: "Nueva encomienda" }));
+    expect(screen.getAllByText("Nueva encomienda").length).toBeGreaterThan(0);
     expect(screen.getByText("Peso de la encomienda (kg)")).toBeTruthy();
     expect(screen.getByText("Total automático: 13.50 €")).toBeTruthy();
+    expect(screen.queryByDisplayValue("Documentos")).toBeNull();
   });
 
   it("fills sender data from a persistent client match by DNI", async () => {
@@ -120,8 +123,8 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
     fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
     fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Nueva Encomienda" })).toBeTruthy());
-    fireEvent.click(screen.getByRole("button", { name: "Nueva Encomienda" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Nuevo documento" })).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "Nuevo documento" }));
 
     fireEvent.change(screen.getByRole("textbox", { name: "Buscar remitente guardado" }), { target: { value: "71234567" } });
     const match = await screen.findByRole("button", { name: /Ana Pérez/ });
@@ -141,10 +144,9 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
     fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
     fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Nueva Encomienda" })).toBeTruthy());
-
-    fireEvent.click(screen.getByRole("button", { name: "Nueva Encomienda" }));
-    fireEvent.click(screen.getByRole("button", { name: "Crear Encomienda" }));
+        await waitFor(() => expect(screen.getByRole("button", { name: "Nuevo documento" })).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "Nuevo documento" }));
+    fireEvent.click(screen.getByRole("button", { name: "Crear Documento" }));
     await waitFor(() => expect(mocks.createShipment.mutateAsync).toHaveBeenCalledTimes(1));
     expect(mocks.createShipment.mutateAsync.mock.calls[0][0]).toMatchObject({
       shipmentType: "documento",
@@ -154,8 +156,7 @@ describe("AdminDashboard Nueva Encomienda", () => {
       manualPriceEur: "",
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Nueva Encomienda" }));
-    fireEvent.change(screen.getByDisplayValue("Documentos"), { target: { value: "encomienda" } });
+    fireEvent.click(screen.getByRole("button", { name: "Nueva encomienda" }));
     fireEvent.change(screen.getByDisplayValue("1"), { target: { value: "2.5" } });
     fireEvent.change(screen.getByPlaceholderText("Ej. 75.00"), { target: { value: "40" } });
     fireEvent.click(screen.getByRole("button", { name: "Crear Encomienda" }));

@@ -252,3 +252,10 @@
 - [x] Separar visualmente el código de país del número real en campos y recibos
 - [x] Formatear teléfonos con espacios legibles por humanos en pantalla, tickets y recibos
 - [x] Añadir pruebas de cantidad, normalización telefónica y verificación responsive antes del checkpoint
+
+## Flujo de creación directa solicitado
+- [x] Hacer que «Nueva encomienda» abra directamente el formulario de Encomienda
+- [x] Hacer que «Nuevo documento» abra directamente el formulario de Documento
+- [x] Eliminar del formulario abierto el selector redundante «Documentos / Encomiendas»
+- [x] Añadir pruebas de navegación y payload para ambos botones sin regresiones
+- [x] Ejecutar suite completa, compilación y verificación responsive antes del checkpoint
