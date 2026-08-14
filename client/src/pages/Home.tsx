@@ -13,6 +13,7 @@ import { QRScanner } from "@/components/QRScanner";
 import QRCode from "qrcode";
 import { buildTrackingPath, buildTrackingUrl, TRACKING_QR_OPTIONS, normalizeTrackingValue } from "@/lib/tracking";
 import { getPaymentStatusUi } from "@/lib/paymentStatus";
+import { formatPhoneNumber } from "@/lib/phoneFormatting";
 
 const searchSchema = z.object({
   orderNumber: z.string().min(1, "Número de orden requerido"),
@@ -384,7 +385,7 @@ export default function Home() {
                       <p className="text-xs font-semibold uppercase tracking-wide text-blue-700 mb-2">Remitente</p>
                       <p className="font-semibold text-gray-900">{shipmentData.senderName} {shipmentData.senderLastName || ""}</p>
                       {shipmentData.senderDni && <p className="text-sm text-gray-600 mt-1">DNI: {shipmentData.senderDni}</p>}
-                      {shipmentData.senderPhone && <p className="text-sm text-gray-600">Celular: {shipmentData.senderPhone}</p>}
+                      {shipmentData.senderPhone && <p className="text-sm text-gray-600">Celular: {formatPhoneNumber(shipmentData.senderPhone)}</p>}
                     </div>
                   )}
                   {shipmentData.recipientName && (
@@ -392,7 +393,7 @@ export default function Home() {
                       <p className="text-xs font-semibold uppercase tracking-wide text-orange-700 mb-2">Destinatario</p>
                       <p className="font-semibold text-gray-900">{shipmentData.recipientName} {shipmentData.recipientLastName || ""}</p>
                       {shipmentData.recipientDni && <p className="text-sm text-gray-600 mt-1">DNI: {shipmentData.recipientDni}</p>}
-                      {shipmentData.recipientPhone && <p className="text-sm text-gray-600">Celular: {shipmentData.recipientPhone}</p>}
+                      {shipmentData.recipientPhone && <p className="text-sm text-gray-600">Celular: {formatPhoneNumber(shipmentData.recipientPhone)}</p>}
                     </div>
                   )}
                 </div>

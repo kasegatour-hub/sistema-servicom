@@ -14,6 +14,8 @@ import { digitsOnly, isDigitsOnly, isTextOnly, textOnly } from "@/lib/inputValid
 import { getPaymentStatusUi } from "@/lib/paymentStatus";
 import { getRoutePresentation } from "@/lib/routeDetails";
 import { PhoneInput } from "@/components/PhoneInput";
+import { QuantityStepper } from "@/components/QuantityStepper";
+import { formatPhoneNumber } from "@/lib/phoneFormatting";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const brandLogo = "/manus-storage/servicom_logo_final_e7ce35aa.png";
@@ -63,6 +65,11 @@ export default function AccountPage() {
   const [recipientPhone, setRecipientPhone] = useState("+51 ");
   const [notes, setNotes] = useState("");
   const [identityErrors, setIdentityErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const maximum = docType === "simple" ? 8 : 10;
+    if (sheetCount > maximum) setSheetCount(maximum);
+  }, [docType]);
 
   const updateTextValue = (field: string, rawValue: string, setter: (value: string) => void, label: string) => {
     if (rawValue && !isTextOnly(rawValue)) setIdentityErrors(previous => ({ ...previous, [field]: `${label} solo puede contener letras y espacios.` }));
@@ -258,9 +265,10 @@ export default function AccountPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
                       <div><strong>Remitente:</strong> {receiptShipment.senderName} {receiptShipment.senderLastName}</div>
                       <div><strong>DNI Remitente:</strong> {receiptShipment.senderDni || '-'}</div>
+                      <div><strong>Cel. Remitente:</strong> {formatPhoneNumber(receiptShipment.senderPhone) || '-'}</div>
                       <div><strong>Destinatario:</strong> {receiptShipment.recipientName} {receiptShipment.recipientLastName}</div>
                       <div><strong>DNI Destinatario:</strong> {receiptShipment.recipientDni || '-'}</div>
-                      <div><strong>Cel. Destinataria:</strong> {receiptShipment.recipientPhone || '-'}</div>
+                      <div><strong>Cel. Destinataria:</strong> {formatPhoneNumber(receiptShipment.recipientPhone) || '-'}</div>
                       <div><strong>Fecha:</strong> {new Date(receiptShipment.createdAt || Date.now()).toLocaleDateString()}</div>
                       <div className="col-span-2"><strong>Estado de Pago:</strong> <span className={`inline-flex rounded px-2 py-0.5 font-semibold ${receiptPaymentUi?.badgeClass}`}>{receiptPaymentUi?.label}</span></div>
                       <div className="col-span-2"><strong>Descripción / Notas:</strong> {receiptShipment.notes || "Documentación lícita"}</div>
@@ -278,7 +286,7 @@ export default function AccountPage() {
                       <div><strong>Sede de entrega:</strong> {receiptRoute?.destination.officeLabel}</div>
                       <div><strong>Dirección:</strong> {receiptRoute?.destination.address}</div>
                       <div><strong>Receptor:</strong> {receiptShipment.recipientName} {receiptShipment.recipientLastName}</div>
-                      <div><strong>Celular Destinataria:</strong> {receiptShipment.recipientPhone || 'No especificado'}</div>
+                      <div><strong>Celular Destinataria:</strong> {formatPhoneNumber(receiptShipment.recipientPhone) || 'No especificado'}</div>
                     </div>
                   </div>
 
@@ -325,7 +333,7 @@ export default function AccountPage() {
                 </div>
                 <div>
                   <span className="text-xs font-semibold text-slate-500 uppercase">Teléfono / Celular</span>
-                  <p className="text-base text-slate-800">{me.phone || "No especificado"}</p>
+                  <p className="text-base text-slate-800">{formatPhoneNumber(me.phone) || "No especificado"}</p>
                 </div>
               </div>
             ) : (
@@ -350,7 +358,7 @@ export default function AccountPage() {
                 </div>
                 <div>
                   <Label>Teléfono Celular / WhatsApp</Label>
-                  <Input value={profilePhone} onChange={e => setProfilePhone(e.target.value)} placeholder="Ej: +51 970188447" required className="mt-1" />
+                  <PhoneInput value={profilePhone} onChange={setProfilePhone} placeholder="970 188 447" required />
                 </div>
                 <div className="md:col-span-2 flex justify-end gap-2">
                   <Button type="button" variant="outline" onClick={() => setIsEditingProfile(false)}>Cancelar</Button>
@@ -451,19 +459,17 @@ export default function AccountPage() {
                       <option value="apostillado">Documentos Apostillados (50 € base hasta 5 hojas, +10 € adicionales)</option>
                     </select>
                   </div>
-                  <div>
-                    <Label>Cantidad de Hojas / Documentos</Label>
-                    <Input type="number" min="1" max={docType === 'simple' ? 8 : 10} value={String(sheetCount)} onChange={e => {
-                      const val = e.target.value.replace(/^0+/, '');
-                      const num = val === '' ? 1 : parseInt(val, 10);
-                      setSheetCount(isNaN(num) ? 1 : Math.max(1, num));
-                    }} required className="mt-1 bg-white" />
-                    <p className="text-[10px] text-gray-500 mt-1">
-                      {docType === 'simple' 
-                        ? (sheetCount <= 4 ? 'Tarifa: 45 € (Máx. 8 hojas)' : sheetCount <= 8 ? 'Tarifa calculada (Máx. 8)' : '⚠️ Límite de 8 hojas excedido. Debe crear otra encomienda.')
-                        : (sheetCount <= 5 ? 'Tarifa: 50 € (Máx. 10 hojas)' : sheetCount <= 10 ? 'Tarifa: 60 € (Máx. 10 hojas)' : '⚠️ Límite de 10 hojas excedido. Debe crear otra encomienda.')}
-                    </p>
-                  </div>
+                  <QuantityStepper
+                    id="account-sheet-count"
+                    label="Cantidad de Hojas / Documentos"
+                    value={sheetCount}
+                    min={1}
+                    max={docType === "simple" ? 8 : 10}
+                    onChange={setSheetCount}
+                    description={docType === "simple"
+                      ? (sheetCount <= 4 ? "Tarifa: 45 € (máx. 8 hojas)" : "Tarifa calculada (máx. 8 hojas)")
+                      : (sheetCount <= 5 ? "Tarifa: 50 € (máx. 10 hojas)" : "Tarifa: 60 € (máx. 10 hojas)")}
+                  />
                   <div>
                     <Label>Destinatario - Nombres</Label>
                     <Input value={recipientName} onChange={e => updateTextValue("recipientName", e.target.value, setRecipientName, "El nombre")} placeholder="Ej: María" autoComplete="given-name" required className="mt-1 bg-white" />
@@ -524,7 +530,7 @@ export default function AccountPage() {
                         </span>
                       </div>
                       <p className="text-sm text-slate-600 mt-1">
-                        <strong>Destinatario:</strong> {shipment.recipientName || "No especificado"} {shipment.recipientLastName || ""} ({shipment.recipientPhone || "Sin teléfono"})
+                        <strong>Destinatario:</strong> {shipment.recipientName || "No especificado"} {shipment.recipientLastName || ""} ({formatPhoneNumber(shipment.recipientPhone) || "Sin teléfono"})
                       </p>
                       <p className="text-xs text-slate-400 mt-0.5">Registrado el {new Date(shipment.createdAt).toLocaleDateString()}</p>
                     </div>

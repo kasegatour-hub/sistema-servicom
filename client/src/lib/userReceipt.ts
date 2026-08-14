@@ -4,6 +4,7 @@ import { getReceiptTicketPrintCss } from "./printLayout";
 import { getPaymentPrintPresentation } from "./paymentPrint";
 import { buildReceiptPriceHtml, type ReceiptPriceData } from "./receiptPrice";
 import { getDeclarationLegalText, getRoutePresentation, INSTITUTIONAL_DECLARATION_ENTITY } from "./routeDetails";
+import { formatPhoneNumber } from "./phoneFormatting";
 
 const brandLogoPath = "/manus-storage/servicom_logo_final_e7ce35aa.png";
 
@@ -138,9 +139,9 @@ export async function printUserShipmentReceipt(shipment: any): Promise<void> {
     const code = escapeHtml(shipment.code);
     const sender = escapeHtml(fullName(shipment.senderName, shipment.senderLastName));
     const recipient = escapeHtml(fullName(shipment.recipientName, shipment.recipientLastName));
-    const senderPhone = escapeHtml(shipment.senderPhone || "No especificado");
+    const senderPhone = escapeHtml(formatPhoneNumber(shipment.senderPhone) || "No especificado");
     const senderDni = escapeHtml(shipment.senderDni || "No especificado");
-    const recipientPhone = escapeHtml(shipment.recipientPhone || "No especificado");
+    const recipientPhone = escapeHtml(formatPhoneNumber(shipment.recipientPhone) || "No especificado");
     const recipientDni = escapeHtml(shipment.recipientDni || "No especificado");
     const notes = escapeHtml(shipment.notes || "Documentación lícita");
     const createdAt = new Date(shipment.createdAt || Date.now()).toLocaleString("es-PE");

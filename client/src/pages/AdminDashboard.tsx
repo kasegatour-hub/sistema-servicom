@@ -16,6 +16,8 @@ import { Lock, LogOut, Plus, RefreshCw, Download, Printer, Search } from "lucide
 import QRCode from "qrcode";
 import { buildTrackingUrl, TRACKING_QR_OPTIONS } from "@/lib/tracking";
 import { PhoneInput } from "@/components/PhoneInput";
+import { QuantityStepper } from "@/components/QuantityStepper";
+import { formatPhoneNumber } from "@/lib/phoneFormatting";
 import { digitsOnly, isDigitsOnly, isTextOnly, textOnly } from "@/lib/inputValidation";
 import { getPaymentStatusUi } from "@/lib/paymentStatus";
 import { getPaymentPrintPresentation } from "@/lib/paymentPrint";
@@ -90,7 +92,7 @@ function ClientLookup({
                 className="block w-full border-b border-slate-100 px-3 py-2 text-left last:border-b-0 hover:bg-blue-50 focus:bg-blue-50 focus:outline-none"
               >
                 <span className="block text-sm font-semibold text-[#0B2B5E]">{client.name} {client.lastName}</span>
-                <span className="block text-xs text-slate-500">DNI: {client.dni || "No registrado"} · Tel.: {client.phone || "No registrado"}</span>
+                <span className="block text-xs text-slate-500">DNI: {client.dni || "No registrado"} · Tel.: {formatPhoneNumber(client.phone) || "No registrado"}</span>
               </button>
             ))
           ) : (
@@ -301,6 +303,13 @@ export default function AdminDashboard() {
     },
   });
   const selectedShipmentType = createForm.watch("shipmentType") || "documento";
+  const selectedDocType = createForm.watch("docType") || "apostillado";
+
+  useEffect(() => {
+    const maximum = selectedDocType === "simple" ? 8 : 10;
+    const currentCount = Number(createForm.getValues("sheetCount")) || 1;
+    if (currentCount > maximum) createForm.setValue("sheetCount", maximum, { shouldValidate: true, shouldDirty: true });
+  }, [selectedDocType]);
 
   const fillShipmentPerson = (prefix: "sender" | "recipient", client: ClientLookupRecord) => {
     createForm.setValue(`${prefix}Name`, client.name, { shouldDirty: true });
@@ -605,13 +614,13 @@ export default function AdminDashboard() {
           <div class="section">
             <div class="section-title">Datos del Remitente</div>
             <div class="row"><div class="label">Remitente:</div><div class="value">${printShipment.senderName || ''} ${printShipment.senderLastName || ''}</div></div>
-            <div class="row"><div class="label">Celular:</div><div class="value">${printShipment.senderPhone || ''}</div><div class="label" style="margin-left:20px">DNI/RUC:</div><div class="value">${printShipment.senderDni || ''}</div></div>
+            <div class="row"><div class="label">Celular:</div><div class="value">${formatPhoneNumber(printShipment.senderPhone) || ''}</div><div class="label" style="margin-left:20px">DNI/RUC:</div><div class="value">${printShipment.senderDni || ''}</div></div>
           </div>
 
           <div class="section">
             <div class="section-title">Datos del Destinatario</div>
             <div class="row"><div class="label">Destinatario:</div><div class="value">${printShipment.recipientName || ''} ${printShipment.recipientLastName || ''}</div></div>
-            <div class="row"><div class="label">Celular:</div><div class="value">${printShipment.recipientPhone || ''}</div><div class="label" style="margin-left:20px">DNI/C.I.:</div><div class="value">${printShipment.recipientDni || ''}</div></div>
+            <div class="row"><div class="label">Celular:</div><div class="value">${formatPhoneNumber(printShipment.recipientPhone) || ''}</div><div class="label" style="margin-left:20px">DNI/C.I.:</div><div class="value">${printShipment.recipientDni || ''}</div></div>
           </div>
 
           <div class="section">
@@ -1077,19 +1086,15 @@ export default function AdminDashboard() {
                         <option value="apostillado">Documento apostillado (50 € hasta 5 hojas, +10 € adicionales)</option>
                       </select>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Número de hojas</label>
-                      <Input
-                        type="number"
-                        min="1"
-                        max={createForm.watch("docType") === "simple" ? 8 : 10}
-                        {...createForm.register("sheetCount", { valueAsNumber: true })}
-                        className="border-2 focus:border-primary"
-                      />
-                      <p className="mt-1 text-xs text-slate-500">
-                        {createForm.watch("docType") === "simple" ? "Máximo 8 hojas por registro." : "Máximo 10 hojas por registro."}
-                      </p>
-                    </div>
+                    <QuantityStepper
+                      id="admin-sheet-count"
+                      label="Cantidad de Hojas / Documentos"
+                      value={Number(createForm.watch("sheetCount")) || 1}
+                      min={1}
+                      max={createForm.watch("docType") === "simple" ? 8 : 10}
+                      onChange={(nextValue) => createForm.setValue("sheetCount", nextValue, { shouldValidate: true, shouldDirty: true })}
+                      description={createForm.watch("docType") === "simple" ? "Máximo 8 hojas por registro." : "Máximo 10 hojas por registro."}
+                    />
                     <div className="flex items-end rounded-md bg-white p-3 text-sm text-slate-700 ring-1 ring-slate-200">
                       La tarifa se calcula automáticamente según el tipo y número de hojas.
                     </div>
@@ -1581,7 +1586,11 @@ export default function AdminDashboard() {
                     <Input placeholder="DNI" inputMode="numeric" pattern="[0-9]*" {...updateForm.register("senderDni", digitsRegisterOptions(updateForm, "senderDni"))} />
                     <p className="text-xs text-gray-500">Solo números.</p>
                     {updateForm.formState.errors.senderDni?.message && <p className="text-xs text-red-600">{String(updateForm.formState.errors.senderDni.message)}</p>}
-                    <Input placeholder="Teléfono" {...updateForm.register("senderPhone")} />
+                    <PhoneInput
+                      value={updateForm.watch("senderPhone") || ""}
+                      onChange={(value) => updateForm.setValue("senderPhone", value, { shouldDirty: true })}
+                      placeholder="970 188 447"
+                    />
                   </div>
                 </div>
 
@@ -1597,7 +1606,11 @@ export default function AdminDashboard() {
                     <Input placeholder="DNI" inputMode="numeric" pattern="[0-9]*" {...updateForm.register("recipientDni", digitsRegisterOptions(updateForm, "recipientDni"))} />
                     <p className="text-xs text-gray-500">Solo números.</p>
                     {updateForm.formState.errors.recipientDni?.message && <p className="text-xs text-red-600">{String(updateForm.formState.errors.recipientDni.message)}</p>}
-                    <Input placeholder="Teléfono" {...updateForm.register("recipientPhone")} />
+                    <PhoneInput
+                      value={updateForm.watch("recipientPhone") || ""}
+                      onChange={(value) => updateForm.setValue("recipientPhone", value, { shouldDirty: true })}
+                      placeholder="908 722 617"
+                    />
                   </div>
                 </div>
 
@@ -1698,7 +1711,7 @@ export default function AdminDashboard() {
                     <div className="font-bold text-xs bg-gray-100 p-1 mb-2">REMITENTE</div>
                     <div className="text-xs mb-1">{printShipment.senderName} {printShipment.senderLastName || ""}</div>
                     {printShipment.senderDni && <div className="text-xs mb-1">DNI: {printShipment.senderDni}</div>}
-                    {printShipment.senderPhone && <div className="text-xs">Tel: {printShipment.senderPhone}</div>}
+                    {printShipment.senderPhone && <div className="text-xs">Tel: {formatPhoneNumber(printShipment.senderPhone)}</div>}
                   </div>
                 )}
 
@@ -1707,7 +1720,7 @@ export default function AdminDashboard() {
                     <div className="font-bold text-xs bg-gray-100 p-1 mb-2">DESTINATARIO</div>
                     <div className="text-xs mb-1">{printShipment.recipientName} {printShipment.recipientLastName || ""}</div>
                     {printShipment.recipientDni && <div className="text-xs mb-1">DNI: {printShipment.recipientDni}</div>}
-                    {printShipment.recipientPhone && <div className="text-xs">Tel: {printShipment.recipientPhone}</div>}
+                    {printShipment.recipientPhone && <div className="text-xs">Tel: {formatPhoneNumber(printShipment.recipientPhone)}</div>}
                   </div>
                 )}
 

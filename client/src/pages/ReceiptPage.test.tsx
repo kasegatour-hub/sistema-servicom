@@ -12,6 +12,7 @@ const shipment = {
   paymentStatus: "Falta cancelar",
   senderName: "Ana",
   senderLastName: "Pérez",
+  senderPhone: "51970188447",
   recipientName: "Marco",
   recipientLastName: "Rossi",
   recipientPhone: "+39 351 000 000",
@@ -44,6 +45,8 @@ describe("ReceiptPage", () => {
     expect(screen.getByText("3520992723")).toBeTruthy();
     expect(screen.getByText("CA06721WB")).toBeTruthy();
     expect(screen.getByText("No cancelado")).toBeTruthy();
+    expect(screen.getByText("+51 970 188 447")).toBeTruthy();
+    expect(screen.getByText("+39 351 000 000")).toBeTruthy();
     expect(screen.getByText("Lima - Torino")).toBeTruthy();
     expect(screen.getByText(/TORINO, ITALIA · Corso Peschiera/)).toBeTruthy();
     expect(screen.getByText(/Corso Peschiera, 162A/)).toBeTruthy();

@@ -7,6 +7,7 @@ import { trpc } from "@/lib/trpc";
 import { printUserShipmentReceipt } from "@/lib/userReceipt";
 import { getPaymentStatusUi } from "@/lib/paymentStatus";
 import { getReceiptPricePresentation } from "@/lib/receiptPrice";
+import { formatPhoneNumber } from "@/lib/phoneFormatting";
 import { getRoutePresentation } from "@/lib/routeDetails";
 
 function getReceiptQuery() {
@@ -61,14 +62,15 @@ export default function ReceiptPage() {
                 <p><strong>Orden:</strong> {shipment.orderNumber}</p>
                 <p><strong>Código de envío:</strong> {shipment.code}</p>
                 <p><strong>Remitente:</strong> {shipment.senderName || "No especificado"} {shipment.senderLastName || ""}</p>
+                <p><strong>Celular remitente:</strong> {formatPhoneNumber(shipment.senderPhone) || "No especificado"}</p>
                 <p><strong>Destinatario:</strong> {shipment.recipientName || "No especificado"} {shipment.recipientLastName || ""}</p>
-                <p><strong>Celular destinatario:</strong> {shipment.recipientPhone || "No especificado"}</p>
+                <p><strong>Celular destinatario:</strong> {formatPhoneNumber(shipment.recipientPhone) || "No especificado"}</p>
                 <p><strong>Estado del envío:</strong> {shipment.status}</p>
                 <p><strong>Ruta:</strong> {routePresentation.route}</p>
                 <p><strong>Origen:</strong> {routePresentation.originPrintLabel} · {routePresentation.origin.officeLabel}</p>
                 <p><strong>Destino:</strong> {routePresentation.destinationPrintLabel} · {routePresentation.destination.officeLabel}</p>
                 <p className="md:col-span-2"><strong>Dirección de entrega:</strong> {routePresentation.destination.address}</p>
-                <p className="md:col-span-2"><strong>Contacto de sede:</strong> {routePresentation.destination.phone}</p>
+                <p className="md:col-span-2"><strong>Contacto de sede:</strong> {formatPhoneNumber(routePresentation.destination.phone) || routePresentation.destination.phone}</p>
                 <p className="md:col-span-2"><strong>Estado de Pago:</strong> <span className={`ml-1 inline-flex rounded px-2 py-0.5 font-semibold ${paymentUi.badgeClass}`}>{paymentUi.label}</span></p>
                 <div className="md:col-span-2 rounded-md border-l-4 border-[#F28C00] bg-orange-50 px-4 py-3"><span className="block text-xs font-bold uppercase tracking-wide text-slate-600">Precio final</span><strong className="text-xl font-extrabold text-orange-700">{priceUi?.finalLabel}</strong>{priceUi?.hasDiscount && <span className="ml-2 text-xs font-medium text-slate-600">Precio base {priceUi.baseLabel} · descuento {priceUi.discountPercent.toFixed(0)}%</span>}</div>
               </div>

@@ -18,6 +18,24 @@ describe("PhoneInput", () => {
     expect(screen.getByRole("button").textContent).toContain("+51");
   });
 
+  it("separates a normalized stored value when the field loads", () => {
+    render(<PhoneInput value="51970188447" onChange={() => undefined} />);
+    expect((screen.getByRole("textbox", { name: "Número de teléfono" }) as HTMLInputElement).value).toBe("970 188 447");
+    expect(screen.getByRole("button").textContent).toContain("+51");
+  });
+
+  it("formats direct numeric typing and emits country code separately", async () => {
+    const user = userEvent.setup();
+    let currentValue = "";
+    render(<PhoneInput value="" onChange={value => { currentValue = value; }} />);
+    const input = screen.getByRole("textbox", { name: "Número de teléfono" });
+
+    await user.type(input, "970188447");
+
+    expect((input as HTMLInputElement).value).toBe("970 188 447");
+    expect(currentValue).toBe("+51 970 188 447");
+  });
+
   it("shows the country selector and searchable country list", async () => {
     const user = userEvent.setup();
     let currentValue = "initial";

@@ -245,3 +245,10 @@
 - [x] Permitir aplicar un cupón vigente al registro del envío y evitar cupones vencidos o fuera de calendario
 - [x] Añadir pruebas de colores de pago, recibos, permisos, cálculo de cupón y vigencia
 - [x] Ejecutar migración, suite completa, compilación y verificación responsive antes del checkpoint
+
+## Cantidad de documentos y formato telefónico solicitados
+- [x] Reemplazar el input nativo de hojas/documentos por un control grande con botones «−» y «+»
+- [x] Permitir escribir directamente la cantidad sin concatenar el valor anterior y respetar los límites por tipo documental
+- [x] Separar visualmente el código de país del número real en campos y recibos
+- [x] Formatear teléfonos con espacios legibles por humanos en pantalla, tickets y recibos
+- [x] Añadir pruebas de cantidad, normalización telefónica y verificación responsive antes del checkpoint

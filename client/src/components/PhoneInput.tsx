@@ -1,29 +1,6 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
-
-const COUNTRIES = [
-  { name: "Perú", code: "+51", flag: "🇵🇪" },
-  { name: "Italia", code: "+39", flag: "🇮🇹" },
-  { name: "España", code: "+34", flag: "🇪🇸" },
-  { name: "Estados Unidos", code: "+1", flag: "🇺🇸" },
-  { name: "Argentina", code: "+54", flag: "🇦🇷" },
-  { name: "Colombia", code: "+57", flag: "🇨🇴" },
-  { name: "Chile", code: "+56", flag: "🇨🇱" },
-  { name: "Bolivia", code: "+591", flag: "🇧🇴" },
-  { name: "Brasil", code: "+55", flag: "🇧🇷" },
-  { name: "Ecuador", code: "+593", flag: "🇪🇨" },
-  { name: "México", code: "+52", flag: "🇲🇽" },
-  { name: "Venezuela", code: "+58", flag: "🇻🇪" },
-  { name: "Bosnia y Herzegovina", code: "+387", flag: "🇧🇦" },
-  { name: "India", code: "+91", flag: "🇮🇳" },
-  { name: "Indonesia", code: "+62", flag: "🇮🇩" },
-  { name: "Irak", code: "+964", flag: "🇮🇶" },
-  { name: "Irán", code: "+98", flag: "🇮🇷" },
-  { name: "Irlanda", code: "+353", flag: "🇮🇪" },
-  { name: "Reino Unido", code: "+44", flag: "🇬🇧" },
-  { name: "Francia", code: "+33", flag: "🇫🇷" },
-  { name: "Alemania", code: "+49", flag: "🇩🇪" },
-];
+import { COUNTRY_CODES, formatLocalPhoneInput, formatPhoneNumber, splitPhoneNumber } from "@/lib/phoneFormatting";
 
 interface PhoneInputProps {
   value: string;
@@ -34,14 +11,13 @@ interface PhoneInputProps {
   className?: string;
 }
 
-export function PhoneInput({ value, onChange, placeholder = "970188447", required = false, id, className = "" }: PhoneInputProps) {
-  // Separar prefijo y número inicial si existe
-  const initialCountry = COUNTRIES.find(c => value.startsWith(c.code)) || COUNTRIES[0];
-  const initialNumber = value.startsWith(initialCountry.code) ? value.slice(initialCountry.code.length).trim() : value;
-
+export function PhoneInput({ value, onChange, placeholder = "970 188 447", required = false, id, className = "" }: PhoneInputProps) {
+  const initialParts = splitPhoneNumber(value);
+  const initialCountry = COUNTRY_CODES.find(country => country.code === initialParts.countryCode) || COUNTRY_CODES[0];
   const [selectedCountry, setSelectedCountry] = useState(initialCountry);
-  const [phoneNumber, setPhoneNumber] = useState(initialNumber);
+  const [phoneNumber, setPhoneNumber] = useState(formatLocalPhoneInput(initialParts.localNumber));
   const onChangeRef = useRef(onChange);
+  const lastExternalValue = useRef(value);
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -51,83 +27,90 @@ export function PhoneInput({ value, onChange, placeholder = "970188447", require
   }, [onChange]);
 
   useEffect(() => {
-    const normalizedValue = phoneNumber.trim() ? `${selectedCountry.code} ${phoneNumber}`.trim() : "";
+    if (value === lastExternalValue.current) return;
+    lastExternalValue.current = value;
+    const parts = splitPhoneNumber(value);
+    const nextCountry = COUNTRY_CODES.find(country => country.code === parts.countryCode) || COUNTRY_CODES[0];
+    setSelectedCountry(nextCountry);
+    setPhoneNumber(formatLocalPhoneInput(parts.localNumber));
+  }, [value]);
+
+  useEffect(() => {
+    const normalizedValue = phoneNumber.trim()
+      ? formatPhoneNumber(`${selectedCountry.code} ${phoneNumber}`)
+      : "";
+    lastExternalValue.current = normalizedValue;
     onChangeRef.current(normalizedValue);
   }, [selectedCountry, phoneNumber]);
 
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) setIsOpen(false);
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const filteredCountries = COUNTRIES.filter(c =>
-    c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.code.includes(searchQuery)
+  const filteredCountries = COUNTRY_CODES.filter(country =>
+    country.name.toLowerCase().includes(searchQuery.toLowerCase()) || country.code.includes(searchQuery),
   );
 
   return (
-    <div className={`relative flex gap-2 items-center ${className}`} ref={dropdownRef}>
-      {/* Botón selector de país */}
+    <div className={`relative flex items-center gap-2 ${className}`} ref={dropdownRef}>
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1 px-3 py-2 bg-white border border-slate-300 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary h-10 shrink-0"
+        onClick={() => setIsOpen(open => !open)}
+        aria-label={`Seleccionar país, ${selectedCountry.name}`}
+        className="flex h-12 shrink-0 items-center gap-1 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary"
       >
         <span>{selectedCountry.flag}</span>
         <span>{selectedCountry.code}</span>
         <span className="text-xs text-slate-400">▼</span>
       </button>
 
-      {/* Menú desplegable con buscador estilo WhatsApp */}
       {isOpen && (
-        <div className="absolute top-11 left-0 z-50 w-72 bg-white border border-slate-200 rounded-xl shadow-2xl p-2 max-h-80 overflow-y-auto">
-          <div className="p-2 border-b border-slate-100">
+        <div className="absolute left-0 top-13 z-50 max-h-80 w-72 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-2xl">
+          <div className="border-b border-slate-100 p-2">
             <input
               type="text"
               placeholder="Buscar país o código..."
               value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              onChange={event => setSearchQuery(event.target.value)}
+              className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               autoFocus
             />
           </div>
           <div className="mt-1 space-y-0.5">
-            {filteredCountries.map(c => (
+            {filteredCountries.map(country => (
               <button
                 type="button"
-                key={c.code + c.name}
+                key={country.code + country.name}
                 onClick={() => {
-                  setSelectedCountry(c);
+                  setSelectedCountry(country);
                   setIsOpen(false);
                   setSearchQuery("");
                 }}
-                className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg text-left hover:bg-slate-100 ${selectedCountry.code === c.code && selectedCountry.name === c.name ? 'bg-blue-50 font-semibold text-primary' : 'text-slate-700'}`}
+                className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-slate-100 ${selectedCountry.code === country.code && selectedCountry.name === country.name ? "bg-blue-50 font-semibold text-primary" : "text-slate-700"}`}
               >
-                <div className="flex items-center gap-2">
-                  <span>{c.flag}</span>
-                  <span>{c.name}</span>
-                </div>
-                <span className="text-slate-500 font-mono text-xs">{c.code}</span>
+                <span className="flex items-center gap-2"><span>{country.flag}</span><span>{country.name}</span></span>
+                <span className="font-mono text-xs text-slate-500">{country.code}</span>
               </button>
             ))}
           </div>
         </div>
       )}
 
-      {/* Input de número telefónico */}
       <Input
         id={id}
         type="tel"
+        inputMode="numeric"
         placeholder={placeholder}
-        value={phoneNumber}
-        onChange={e => setPhoneNumber(e.target.value)}
+        value={formatLocalPhoneInput(phoneNumber)}
+        onFocus={event => event.currentTarget.select()}
+        onChange={event => setPhoneNumber(formatLocalPhoneInput(event.target.value))}
         required={required}
-        className="bg-white flex-1"
+        aria-label="Número de teléfono"
+        className="h-12 flex-1 bg-white text-base tracking-wide"
       />
     </div>
   );
