@@ -24,4 +24,22 @@ describe("calculateAdminShipmentPricing", () => {
     expect(calculateAdminShipmentPricing({ shipmentType: "documento", docType: "apostillado", sheetCount: 5 }).totalEur).toBe(50);
     expect(calculateAdminShipmentPricing({ shipmentType: "documento", docType: "apostillado", sheetCount: 6 }).totalEur).toBe(60);
   });
+
+  it("adds flexible document items using automatic and manual prices", () => {
+    const pricing = calculateAdminShipmentPricing({
+      shipmentType: "documento",
+      docType: "apostillado",
+      sheetCount: 1,
+      documentItems: [
+        { docType: "simple", sheetCount: 6 },
+        { docType: "apostillado", sheetCount: 2, manualPriceEur: "35" },
+      ],
+    });
+
+    expect(pricing.additionalDocuments.items).toHaveLength(2);
+    expect(pricing.additionalDocuments.items[0]).toMatchObject({ automaticPriceEur: 49, finalPriceEur: 49, usesManualPrice: false });
+    expect(pricing.additionalDocuments.items[1]).toMatchObject({ automaticPriceEur: 50, finalPriceEur: 35, usesManualPrice: true });
+    expect(pricing.totalEur).toBe(134);
+    expect(pricing.notes).toContain("Adicionales:");
+  });
 });

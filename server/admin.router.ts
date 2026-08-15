@@ -7,7 +7,7 @@ function buildTrackingPath(orderNumber: string, code: string): string {
   return `/?order=${encodeURIComponent(order)}&code=${encodeURIComponent(normalizedCode)}`;
 }
 import { publicProcedure, router } from "./_core/trpc";
-import { createDiscountCoupon, createShipment, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAllShipments, getDiscountCouponByCode, incrementDiscountCouponRedemption, listDiscountCoupons, searchClients, updateShipmentStatus } from "./db";
+import { createDiscountCoupon, createShipment, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAllShipments, getDiscountCouponByCode, getShipmentRoutePolicy, incrementDiscountCouponRedemption, isEncomiendaEnabledForRoute, listDiscountCoupons, searchClients, setEncomiendaAvailabilityForRoute, updateDiscountCoupon, updateShipmentStatus } from "./db";
 import { hashPassword, verifyPassword } from "./localAuth";
 import { AdminSessionPayload, clearAdminSession, getAdminSession, setAdminSession } from "./adminSession";
 import { admins } from "../drizzle/schema";
@@ -15,12 +15,25 @@ import { getDb } from "./db";
 import { eq } from "drizzle-orm";
 import { optionalDniSchema, optionalPersonNameSchema, personNameSchema } from "./inputValidation";
 import { calculateAdminShipmentPricing } from "./adminPricing";
-import { applyCouponDiscount, isCouponCurrentlyValid, normalizeCouponCode, PROMOTIONAL_DISCOUNT_PERCENT } from "./couponPricing";
+import { applyCouponDiscount, isCouponCurrentlyValid, normalizeCouponCode } from "./couponPricing";
 
 const MASTER_ADMIN_EMAIL = "peruservicom@gmail.com";
 const MASTER_ADMIN_PASSWORD = "@m*M.mTt@~ADkHpvBbLm+5CD=3ao@DngYa+3Kea6U=qX%r9EJ8-1QFc#,hD3r4Dsis9:9^i-zZJ}pT#aQAcnm^+XMAhV9u3VdrZ3.";
 
 export const ADMIN_REAUTH_REQUIRED_MESSAGE = "Por seguridad, vuelve a escribir tu contraseña administrativa para continuar.";
+const ROUTE_VALUES = ["Lima - Torino", "Torino - Lima"] as const;
+const COUPON_SCOPE_VALUES = ["ambos", "documento", "encomienda"] as const;
+
+function parseCouponDateTime(value: string, endOfDayForDateOnly: boolean) {
+  const normalized = value.trim();
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(normalized)
+    ? new Date(`${normalized}T${endOfDayForDateOnly ? "23:59:59.999" : "00:00:00.000"}Z`)
+    : new Date(normalized);
+  if (!Number.isFinite(date.getTime())) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "La fecha y hora del cupón no son válidas." });
+  }
+  return date;
+}
 
 const adminProcedure = publicProcedure.use(async ({ ctx, next }) => {
   const adminSession = getAdminSession(ctx.req);
@@ -166,26 +179,51 @@ export const adminRouter = router({
   createCoupon: adminProcedure
     .input(z.object({
       code: z.string().trim().max(64).optional(),
-      startsAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inicial inválida."),
-      endsAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha final inválida."),
+      discountPercent: z.number().min(1, "El descuento mínimo es 1%.").max(100, "El descuento máximo es 100%.").default(25),
+      appliesTo: z.enum(COUPON_SCOPE_VALUES).default("ambos"),
+      startsAt: z.string().min(10, "Fecha inicial inválida."),
+      endsAt: z.string().min(10, "Fecha final inválida."),
     }))
     .mutation(async ({ input, ctx }) => {
-      const startsAt = new Date(`${input.startsAt}T00:00:00.000Z`);
-      const endsAt = new Date(`${input.endsAt}T23:59:59.999Z`);
-      if (!Number.isFinite(startsAt.getTime()) || !Number.isFinite(endsAt.getTime()) || endsAt <= startsAt) {
+      const startsAt = parseCouponDateTime(input.startsAt, false);
+      const endsAt = parseCouponDateTime(input.endsAt, true);
+      if (endsAt <= startsAt) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "La fecha final debe ser posterior a la fecha inicial." });
       }
       const requestedCode = normalizeCouponCode(input.code);
-      const code = requestedCode || `SERVI25-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+      const code = requestedCode || `SERVI${input.discountPercent}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
       if (!/^[A-Z0-9_-]{4,64}$/.test(code)) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "El código solo puede contener letras, números, guiones y guiones bajos." });
       }
       try {
-        await createDiscountCoupon({ code, startsAt, endsAt, createdByAdminId: ctx.adminSession.adminId });
+        await createDiscountCoupon({ code, discountPercent: input.discountPercent, appliesTo: input.appliesTo, startsAt, endsAt, createdByAdminId: ctx.adminSession.adminId });
       } catch {
         throw new TRPCError({ code: "BAD_REQUEST", message: "El código de cupón ya existe o no pudo registrarse." });
       }
-      return { success: true, code, discountPercent: PROMOTIONAL_DISCOUNT_PERCENT, startsAt, endsAt };
+      return { success: true, code, discountPercent: input.discountPercent, appliesTo: input.appliesTo, startsAt, endsAt };
+    }),
+
+  updateCoupon: adminProcedure
+    .input(z.object({
+      id: z.number().int().positive(),
+      code: z.string().trim().min(4).max(64),
+      discountPercent: z.number().min(1).max(100),
+      appliesTo: z.enum(COUPON_SCOPE_VALUES),
+      startsAt: z.string().min(10),
+      endsAt: z.string().min(10),
+    }))
+    .mutation(async ({ input }) => {
+      const startsAt = parseCouponDateTime(input.startsAt, false);
+      const endsAt = parseCouponDateTime(input.endsAt, true);
+      if (endsAt <= startsAt) throw new TRPCError({ code: "BAD_REQUEST", message: "La fecha final debe ser posterior a la fecha inicial." });
+      const code = normalizeCouponCode(input.code);
+      if (!/^[A-Z0-9_-]{4,64}$/.test(code)) throw new TRPCError({ code: "BAD_REQUEST", message: "El código de cupón no es válido." });
+      try {
+        await updateDiscountCoupon({ id: input.id, code, discountPercent: input.discountPercent, appliesTo: input.appliesTo, startsAt, endsAt });
+      } catch {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "No se pudo actualizar el cupón. Verifica que el código sea único." });
+      }
+      return { success: true };
     }),
 
   deactivateCoupon: adminProcedure
@@ -193,6 +231,22 @@ export const adminRouter = router({
     .mutation(async ({ input }) => {
       await deactivateDiscountCoupon(input.id);
       return { success: true };
+    }),
+
+  getLimaTorinoEncomiendaPolicy: adminProcedure.query(async () => {
+    const policy = await getShipmentRoutePolicy("Lima - Torino");
+    return {
+      route: "Lima - Torino" as const,
+      encomiendasEnabled: policy ? policy.encomiendasEnabled === 1 : true,
+      updatedAt: policy?.updatedAt ?? null,
+    };
+  }),
+
+  setLimaTorinoEncomiendasEnabled: masterAdminProcedure
+    .input(z.object({ enabled: z.boolean() }))
+    .mutation(async ({ input, ctx }) => {
+      await setEncomiendaAvailabilityForRoute("Lima - Torino", input.enabled, ctx.adminSession.adminId);
+      return { success: true, enabled: input.enabled };
     }),
 
   getAllShipments: adminProcedure
@@ -224,15 +278,27 @@ export const adminRouter = router({
       shipmentType: z.enum(["documento", "encomienda"]).default("documento"),
       docType: z.enum(["simple", "apostillado"]).default("apostillado"),
       sheetCount: z.number().min(1).default(1),
+      documentItems: z.array(z.object({
+        docType: z.enum(["simple", "apostillado"]),
+        sheetCount: z.number().int().min(1).max(10),
+        manualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
+      })).max(10).default([]),
       weightKg: z.number().min(0.1).default(1),
       manualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
       paymentStatus: z.enum(["Pagado", "Falta cancelar"]).default("Falta cancelar"),
-      route: z.string().default("Lima - Torino"),
+      route: z.enum(ROUTE_VALUES).default("Lima - Torino"),
       originAddress: z.string().optional(),
       destinationAddress: z.string().optional(),
       couponCode: z.string().trim().max(64).optional(),
+      contentChecklist: z.array(z.string().trim().min(1).max(160)).max(24).default([]),
     }))
     .mutation(async ({ input }) => {
+      if (input.shipmentType === "encomienda" && input.route === "Lima - Torino" && !await isEncomiendaEnabledForRoute(input.route)) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Las encomiendas de Lima a Torino están desactivadas temporalmente por control de seguridad. Registra únicamente documentos o selecciona Torino - Lima.",
+        });
+      }
       const orderNumber = Math.floor(1000000000 + Math.random() * 9000000000).toString();
       const randomSuffix = Math.random().toString(36).substring(2, 7).toUpperCase();
       const prefix = input.shipmentType === "encomienda" ? "ENC" : "DOC";
@@ -246,6 +312,9 @@ export const adminRouter = router({
       }
       if (coupon && !isCouponCurrentlyValid(coupon)) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "El cupón no está vigente o fue desactivado." });
+      }
+      if (coupon && coupon.appliesTo !== "ambos" && coupon.appliesTo !== input.shipmentType) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: `El cupón ${coupon.code} solo es válido para ${coupon.appliesTo === "documento" ? "documentos" : "encomiendas"}.` });
       }
       const discount = applyCouponDiscount(pricing.totalEur, coupon);
       const calculatedNotes = `${pricing.notes}${coupon ? ` Cupón ${coupon.code}: descuento del ${discount.discountPercent}% (-${discount.discountAmountEur.toFixed(2)} EUR). Total final: ${discount.finalPriceEur.toFixed(2)} EUR.` : ""}`;
@@ -276,7 +345,9 @@ export const adminRouter = router({
         discount.basePriceEur,
         discount.discountPercent,
         discount.discountAmountEur,
-        discount.finalPriceEur
+        discount.finalPriceEur,
+        input.shipmentType === "documento" && pricing.additionalDocuments.items.length ? JSON.stringify(pricing.additionalDocuments.items) : null,
+        input.contentChecklist.length ? JSON.stringify(input.contentChecklist) : null,
       );
       if (!result) {
         throw new TRPCError({

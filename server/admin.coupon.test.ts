@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 const dbMocks = vi.hoisted(() => ({
   createDiscountCoupon: vi.fn(),
+  updateDiscountCoupon: vi.fn(),
   getDiscountCouponByCode: vi.fn(),
   incrementDiscountCouponRedemption: vi.fn(),
   createShipment: vi.fn(),
@@ -28,6 +29,7 @@ describe("admin coupons", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     dbMocks.createDiscountCoupon.mockResolvedValue({ id: 77 });
+    dbMocks.updateDiscountCoupon.mockResolvedValue({ id: 77 });
     dbMocks.createShipment.mockResolvedValue({ id: 101 });
     dbMocks.incrementDiscountCouponRedemption.mockResolvedValue(true);
   });
@@ -46,6 +48,47 @@ describe("admin coupons", () => {
     expect(dbMocks.createDiscountCoupon).not.toHaveBeenCalled();
   });
 
+  it("allows configuring percentage, shipment scope and time-of-day", async () => {
+    const caller = appRouter.createCaller(createAdminContext("registrador"));
+    const result = await caller.admin.createCoupon({
+      code: "DOC40-NOCHE",
+      discountPercent: 40,
+      appliesTo: "documento",
+      startsAt: "2026-08-15T09:30",
+      endsAt: "2026-08-18T18:45",
+    });
+
+    expect(result).toMatchObject({ code: "DOC40-NOCHE", discountPercent: 40, appliesTo: "documento" });
+    expect(dbMocks.createDiscountCoupon).toHaveBeenCalledWith(expect.objectContaining({
+      code: "DOC40-NOCHE",
+      discountPercent: 40,
+      appliesTo: "documento",
+      startsAt: expect.any(Date),
+      endsAt: expect.any(Date),
+    }));
+  });
+
+  it("updates a coupon after it has been generated", async () => {
+    const caller = appRouter.createCaller(createAdminContext("superadmin"));
+    await expect(caller.admin.updateCoupon({
+      id: 77,
+      code: "ENC35-TARDE",
+      discountPercent: 35,
+      appliesTo: "encomienda",
+      startsAt: "2026-08-15T09:30",
+      endsAt: "2026-08-18T18:45",
+    })).resolves.toMatchObject({ success: true });
+
+    expect(dbMocks.updateDiscountCoupon).toHaveBeenCalledWith(expect.objectContaining({
+      id: 77,
+      code: "ENC35-TARDE",
+      discountPercent: 35,
+      appliesTo: "encomienda",
+      startsAt: expect.any(Date),
+      endsAt: expect.any(Date),
+    }));
+  });
+
   it("applies the valid coupon to an administrative shipment and persists the final total", async () => {
     dbMocks.getDiscountCouponByCode.mockResolvedValue({
       id: 12,
@@ -54,6 +97,7 @@ describe("admin coupons", () => {
       startsAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
       endsAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
       isActive: 1,
+      appliesTo: "ambos",
       redeemedCount: 0,
     });
     const caller = appRouter.createCaller(createAdminContext());

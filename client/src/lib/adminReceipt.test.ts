@@ -13,6 +13,7 @@ describe("administrative receipt ticket", () => {
       senderPhone: "+51 970 188 447",
       senderDni: "70445566",
       notes: "Registro de propiedad inmueble",
+      contentChecklist: ["1 partida registral", "1 documento apostillado"],
       shipmentType: "documento",
       price: { basePriceEur: 50, finalPriceEur: 37.5, discountPercent: 25, discountAmountEur: 12.5 },
       route: "Lima - Torino",
@@ -25,6 +26,9 @@ describe("administrative receipt ticket", () => {
     expect(html).toContain("DESTINATARIO:");
     expect(html).toContain("REMITENTE:");
     expect(html).toContain("NOTAS:");
+    expect(html).toContain("CHECKLIST:");
+    expect(html).toContain("1 partida registral");
+    expect(html).toContain("1 documento apostillado");
     expect(html).toContain("PRECIO FINAL");
     expect(html).toContain("37.50 EUR");
     expect(styles).toContain(".cut-ticket{break-inside:avoid;page-break-inside:avoid");
@@ -50,6 +54,22 @@ describe("administrative receipt ticket", () => {
     expect(summary).toContain("LIMA, PERÚ");
     expect(summary).toContain("Jr. de la Unión Nro. 518 Int. S101");
     expect(summary).not.toContain("TORINO, ITALIA</div>");
+  });
+
+  it("shows the Lima–Torino security restriction when encomiendas are disabled", () => {
+    const html = buildAdminDeliveryTicketHtml({
+      order: "3289150504",
+      code: "DOC-2026-SECURE",
+      recipient: "María Rossi",
+      recipientPhone: "+39 389 766 3723",
+      shipmentType: "documento",
+      route: "Lima - Torino",
+      limaTorinoEncomiendasEnabled: false,
+    });
+
+    expect(html).toContain("AVISO DE SEGURIDAD");
+    expect(html).toContain("Las encomiendas Lima – Torino están restringidas temporalmente");
+    expect(html).toContain("Esta ruta solo admite documentos");
   });
 
   it("renders the Italian declaration and institutional signature for Torino–Lima", () => {

@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, gt, isNull, like, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, shipments, shipmentSignatures, admins, localAccounts, verificationCodes, clients, discountCoupons } from "../drizzle/schema";
+import { InsertUser, users, shipments, shipmentSignatures, admins, localAccounts, verificationCodes, clients, discountCoupons, shipmentRoutePolicies } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { buildShipmentClientDirectoryRecords, type ClientDirectoryRecord, type ShipmentClientDirectoryInput } from "./clientDirectory";
 
@@ -374,6 +374,8 @@ export async function incrementVerificationAttempts(id: number) {
 
 export async function createDiscountCoupon(input: {
   code: string;
+  discountPercent: string | number;
+  appliesTo: "ambos" | "documento" | "encomienda";
   startsAt: Date;
   endsAt: Date;
   createdByAdminId: number;
@@ -381,14 +383,37 @@ export async function createDiscountCoupon(input: {
   const db = await getDb();
   if (!db) return undefined;
   const code = normalizeOrderCode(input.code);
+  const discountPercent = String(input.discountPercent);
   const result = await db.insert(discountCoupons).values({
     code,
-    discountPercent: "25.00",
+    discountPercent,
+    appliesTo: input.appliesTo,
     startsAt: input.startsAt,
     endsAt: input.endsAt,
     createdByAdminId: input.createdByAdminId,
   });
-  return { ...input, code, discountPercent: "25.00", result };
+  return { ...input, code, discountPercent, result };
+}
+
+export async function updateDiscountCoupon(input: {
+  id: number;
+  code: string;
+  discountPercent: string | number;
+  appliesTo: "ambos" | "documento" | "encomienda";
+  startsAt: Date;
+  endsAt: Date;
+}) {
+  const db = await getDb();
+  if (!db) return false;
+  await db.update(discountCoupons).set({
+    code: normalizeOrderCode(input.code),
+    discountPercent: String(input.discountPercent),
+    appliesTo: input.appliesTo,
+    startsAt: input.startsAt,
+    endsAt: input.endsAt,
+    updatedAt: new Date(),
+  }).where(eq(discountCoupons.id, input.id));
+  return true;
 }
 
 export async function listDiscountCoupons() {
@@ -418,6 +443,31 @@ export async function incrementDiscountCouponRedemption(id: number) {
   const rows = await db.select({ redeemedCount: discountCoupons.redeemedCount }).from(discountCoupons).where(eq(discountCoupons.id, id)).limit(1);
   const redeemedCount = Number(rows[0]?.redeemedCount || 0);
   await db.update(discountCoupons).set({ redeemedCount: redeemedCount + 1, updatedAt: new Date() }).where(eq(discountCoupons.id, id));
+  return true;
+}
+
+export async function getShipmentRoutePolicy(route: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const rows = await db.select().from(shipmentRoutePolicies).where(eq(shipmentRoutePolicies.route, route)).limit(1);
+  return rows[0];
+}
+
+export async function isEncomiendaEnabledForRoute(route: string) {
+  const policy = await getShipmentRoutePolicy(route);
+  return policy ? policy.encomiendasEnabled === 1 : true;
+}
+
+export async function setEncomiendaAvailabilityForRoute(route: string, encomiendasEnabled: boolean, updatedByAdminId: number) {
+  const db = await getDb();
+  if (!db) return false;
+  await db.insert(shipmentRoutePolicies).values({
+    route,
+    encomiendasEnabled: encomiendasEnabled ? 1 : 0,
+    updatedByAdminId,
+  }).onDuplicateKeyUpdate({
+    set: { encomiendasEnabled: encomiendasEnabled ? 1 : 0, updatedByAdminId, updatedAt: new Date() },
+  });
   return true;
 }
 
@@ -459,7 +509,9 @@ export async function createShipment(
   basePriceEur?: string | number | null,
   discountPercent?: string | number | null,
   discountAmountEur?: string | number | null,
-  finalPriceEur?: string | number | null
+  finalPriceEur?: string | number | null,
+  documentItems?: string | null,
+  contentChecklist?: string | null,
 ) {
   const db = await getDb();
   if (!db) {
@@ -475,7 +527,7 @@ export async function createShipment(
     {
       stage: status,
       date: new Date().toISOString(),
-      description: `Encomienda registrada en estado: ${status}`,
+      description: `${shipmentType === "encomienda" ? "Encomienda" : "Documento"} registrado en estado: ${status}`,
     },
   ];
 
@@ -506,6 +558,8 @@ export async function createShipment(
     route: route || "Lima - Torino",
     originAddress: originAddress || "",
     destinationAddress: destinationAddress || "",
+    documentItems: documentItems || null,
+    contentChecklist: contentChecklist || null,
   });
 
   // El directorio de clientes no depende de la cuenta de acceso y no se elimina con ella.

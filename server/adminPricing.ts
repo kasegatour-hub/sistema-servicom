@@ -1,7 +1,10 @@
+import { calculateAdditionalDocumentItems, type AdditionalDocumentItemInput } from "./documentPricing";
+
 export type AdminShipmentPricingInput = {
   shipmentType?: "documento" | "encomienda";
   docType?: "simple" | "apostillado";
   sheetCount?: number;
+  documentItems?: AdditionalDocumentItemInput[];
   weightKg?: number;
   manualPriceEur?: string | number | null;
   notes?: string;
@@ -19,6 +22,7 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
 
   let totalEur: number;
   let tariffDescription: string;
+  const additionalDocuments = shipmentType === "documento" ? calculateAdditionalDocumentItems(input.documentItems) : { items: [], totalEur: 0 };
 
   if (manualPrice !== null && Number.isFinite(manualPrice) && manualPrice >= 0) {
     totalEur = manualPrice;
@@ -29,11 +33,13 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
     totalEur = weightKg * 13.5;
     tariffDescription = `Encomienda por peso (${weightKg} kg @ 13.5 EUR/kg): ${totalEur.toFixed(2)} EUR`;
   } else if (docType === "simple") {
-    totalEur = sheetCount <= 4 ? 45 : 45 + (sheetCount - 4) * 2;
-    tariffDescription = `Documento simple (${sheetCount} hoja${sheetCount > 1 ? "s" : ""}): ${totalEur} EUR`;
+    const basePrice = sheetCount <= 4 ? 45 : 45 + (sheetCount - 4) * 2;
+    totalEur = basePrice + additionalDocuments.totalEur;
+    tariffDescription = `Documento simple (${sheetCount} hoja${sheetCount > 1 ? "s" : ""}): ${basePrice} EUR${additionalDocuments.items.length ? `. Adicionales: ${additionalDocuments.items.map(item => item.description).join("; ")}` : ""}`;
   } else {
-    totalEur = sheetCount <= 5 ? 50 : 60;
-    tariffDescription = `Documento apostillado (${sheetCount} hoja${sheetCount > 1 ? "s" : ""}): ${totalEur} EUR`;
+    const basePrice = sheetCount <= 5 ? 50 : 60;
+    totalEur = basePrice + additionalDocuments.totalEur;
+    tariffDescription = `Documento apostillado (${sheetCount} hoja${sheetCount > 1 ? "s" : ""}): ${basePrice} EUR${additionalDocuments.items.length ? `. Adicionales: ${additionalDocuments.items.map(item => item.description).join("; ")}` : ""}`;
   }
 
   return {
@@ -43,6 +49,7 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
     weightKg,
     manualPrice,
     totalEur,
+    additionalDocuments,
     notes: `Tarifa: ${tariffDescription}. ${input.notes || ""}`.trim(),
   };
 }

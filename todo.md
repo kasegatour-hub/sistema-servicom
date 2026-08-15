@@ -268,3 +268,17 @@
 - [x] Mostrar la firma electrónica y su estado en el recibo y control de entrega
 - [x] Añadir pruebas de permisos, token, expiración, persistencia y recibo firmado
 - [x] Ejecutar suite completa, compilación y verificación responsive antes del checkpoint
+
+## Rutas, operación y comprobantes solicitados
+- [x] Mantener la ruta de envío como selección explícita validada, sin depender de IP, GPS ni geolocalización
+- [x] Mostrar claramente el origen y destino seleccionados al crear Documento o Encomienda y conservarlos en recibos
+- [x] Añadir un control administrativo para desactivar encomiendas en la ruta Lima–Torino y bloquear su registro cuando esté activo
+- [x] Incluir una advertencia de restricción de encomiendas Lima–Torino en el comprobante correspondiente
+- [x] Permitir documentos flexibles con recargo automático y ajuste manual de precio por operadores y Master Admin
+- [x] Añadir checklist independiente de contenido para documentos y encomiendas, persistido e imprimible
+- [x] Añadir una calculadora científica accesible para Registradores y Master Admin en una ubicación operativa del panel
+- [x] Ampliar cupones con porcentaje configurable, ámbito por tipo de envío, fecha y hora de vigencia, edición y validación al aplicar
+- [x] Eliminar el modal QR posterior a la creación y conservar el QR únicamente en rastreo y comprobantes
+- [x] Corregir los títulos del comprobante para que reflejen Documento o Encomienda y no dupliquen encabezados incorrectos
+- [x] Añadir migración, pruebas de seguridad y cobertura de ruta, restricciones, precios, checklist, cupones y recibos
+- [x] Ejecutar suite completa, compilación y verificación responsive antes del checkpoint

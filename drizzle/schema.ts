@@ -92,6 +92,7 @@ export const discountCoupons = mysqlTable("discount_coupons", {
   id: int("id").autoincrement().primaryKey(),
   code: varchar("code", { length: 64 }).notNull().unique(),
   discountPercent: decimal("discountPercent", { precision: 5, scale: 2 }).default("25.00").notNull(),
+  appliesTo: mysqlEnum("appliesTo", ["ambos", "documento", "encomienda"]).default("ambos").notNull(),
   startsAt: timestamp("startsAt").notNull(),
   endsAt: timestamp("endsAt").notNull(),
   isActive: int("isActive").default(1).notNull(),
@@ -102,6 +103,18 @@ export const discountCoupons = mysqlTable("discount_coupons", {
 });
 export type DiscountCoupon = typeof discountCoupons.$inferSelect;
 export type InsertDiscountCoupon = typeof discountCoupons.$inferInsert;
+
+/** Controles operativos por ruta, modificables únicamente por el Master Admin. */
+export const shipmentRoutePolicies = mysqlTable("shipment_route_policies", {
+  id: int("id").autoincrement().primaryKey(),
+  route: varchar("route", { length: 100 }).notNull().unique(),
+  encomiendasEnabled: int("encomiendasEnabled").default(1).notNull(),
+  updatedByAdminId: int("updatedByAdminId"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type ShipmentRoutePolicy = typeof shipmentRoutePolicies.$inferSelect;
+export type InsertShipmentRoutePolicy = typeof shipmentRoutePolicies.$inferInsert;
 
 /** Registro de firma electrónica remota, independiente de la cuenta de acceso del cliente. */
 export const shipmentSignatures = mysqlTable("shipment_signatures", {
@@ -156,6 +169,8 @@ export const shipments = mysqlTable("shipments", {
   route: varchar("route", { length: 100 }).default("Lima - Torino").notNull(),
   originAddress: text("originAddress"),
   destinationAddress: text("destinationAddress"),
+  documentItems: longtext("documentItems"), // JSON con documentos adicionales y sus recargos/manuales
+  contentChecklist: longtext("contentChecklist"), // JSON con la lista de contenido verificado
   notes: text("notes"),
   
   createdAt: timestamp("createdAt").defaultNow().notNull(),

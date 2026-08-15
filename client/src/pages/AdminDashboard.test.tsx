@@ -17,7 +17,10 @@ const mocks = vi.hoisted(() => ({
   deactivateAdmin: { isPending: false, mutateAsync: vi.fn() },
   listCoupons: { data: [], refetch: vi.fn() },
   createCoupon: { isPending: false, mutateAsync: vi.fn().mockResolvedValue({ code: "SERVI25-TEST", discountPercent: 25 }) },
+  updateCoupon: { isPending: false, mutateAsync: vi.fn() },
   deactivateCoupon: { isPending: false, mutateAsync: vi.fn() },
+  limaTorinoPolicy: { data: { route: "Lima - Torino", encomiendasEnabled: true, updatedAt: null }, refetch: vi.fn() },
+  setLimaTorinoEncomiendasEnabled: { isPending: false, mutateAsync: vi.fn().mockResolvedValue({ success: true, enabled: false }) },
   changeMyPassword: { isPending: false, mutate: vi.fn() },
   reauthenticate: { isPending: false, mutate: vi.fn() },
   refetchAdminSession: vi.fn().mockResolvedValue({ data: null }),
@@ -39,6 +42,7 @@ vi.mock("@/lib/trpc", () => ({
       getAllShipments: { useQuery: () => ({ data: [], isLoading: false, refetch: mocks.refetchShipments }) },
       listAdmins: { useQuery: () => ({ data: [], isLoading: false, refetch: mocks.refetchAdminUsers }) },
       listCoupons: { useQuery: () => ({ data: mocks.listCoupons.data, isLoading: false, refetch: mocks.refetchCoupons }) },
+      getLimaTorinoEncomiendaPolicy: { useQuery: () => ({ data: mocks.limaTorinoPolicy.data, isLoading: false, refetch: mocks.limaTorinoPolicy.refetch }) },
       searchClients: mocks.searchClients,
       login: { useMutation: () => mocks.login },
       logout: { useMutation: () => mocks.logout },
@@ -49,7 +53,9 @@ vi.mock("@/lib/trpc", () => ({
       deleteAdmin: { useMutation: () => mocks.deleteAdmin },
       deactivateAdmin: { useMutation: () => mocks.deactivateAdmin },
       createCoupon: { useMutation: () => mocks.createCoupon },
+      updateCoupon: { useMutation: () => mocks.updateCoupon },
       deactivateCoupon: { useMutation: () => mocks.deactivateCoupon },
+      setLimaTorinoEncomiendasEnabled: { useMutation: () => mocks.setLimaTorinoEncomiendasEnabled },
       changeMyPassword: { useMutation: () => mocks.changeMyPassword },
       reauthenticate: { useMutation: () => mocks.reauthenticate },
     },
@@ -89,7 +95,9 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
     await waitFor(() => expect(screen.getByRole("heading", { name: "Cupones promocionales" })).toBeTruthy());
     fireEvent.click(screen.getByRole("button", { name: "Nuevo cupón" }));
-    expect(screen.getByRole("button", { name: "Generar cupón 25%" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Generar cupón" })).toBeTruthy();
+    expect(screen.getByText("Descuento (%)")).toBeTruthy();
+    expect(screen.getByText("Aplica a")).toBeTruthy();
     expect(screen.getByText("Válido desde")).toBeTruthy();
     expect(screen.getByText("Válido hasta")).toBeTruthy();
   });

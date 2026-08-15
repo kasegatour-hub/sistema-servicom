@@ -28,6 +28,7 @@ import { getRoutePresentation } from "@/lib/routeDetails";
 import { buildReceiptPriceHtml } from "@/lib/receiptPrice";
 import { closeUpdateModal } from "@/lib/updateModal";
 import { UpdateShipmentModal } from "@/components/UpdateShipmentModal";
+import { evaluateScientificExpression } from "@/lib/scientificCalculator";
 
 function renderQrCode(canvas: HTMLCanvasElement | null, trackingUrl: string, width: number) {
   if (!canvas) return;
@@ -139,6 +140,22 @@ const createAdminSchema = z.object({
   password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres."),
 });
 
+const couponFormSchema = z.object({
+  code: z.string().trim().max(64),
+  discountPercent: z.number().min(1, "El descuento mínimo es 1%.").max(100, "El descuento máximo es 100%."),
+  appliesTo: z.enum(["ambos", "documento", "encomienda"]),
+  startsAt: z.string().min(10, "Ingresa la fecha y hora inicial."),
+  endsAt: z.string().min(10, "Ingresa la fecha y hora final."),
+});
+
+function getCouponDateTimeLocalValue(value: string | Date | null | undefined) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "";
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return localDate.toISOString().slice(0, 16);
+}
+
 const optionalTextField = z.union([
   z.literal(""),
   z.string().trim().regex(/^[A-Za-z\u00C0-\u024F]+(?: +[A-Za-z\u00C0-\u024F]+)*$/, "Solo letras y espacios."),
@@ -170,6 +187,12 @@ const createShipmentSchema = z.object({
   originAddress: z.string().optional(),
   destinationAddress: z.string().optional(),
   couponCode: z.string().trim().max(64).optional(),
+  documentItems: z.array(z.object({
+    docType: z.enum(["simple", "apostillado"]),
+    sheetCount: z.number().int().min(1).max(10),
+    manualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
+  })).default([]),
+  contentChecklist: z.array(z.string().trim().min(1).max(160)).default([]),
 });
 
 const updateStatusSchema = z.object({
@@ -193,6 +216,7 @@ const updateStatusSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>;
 type CreateAdminForm = z.infer<typeof createAdminSchema>;
+type CouponForm = z.infer<typeof couponFormSchema>;
 type CreateShipmentForm = z.infer<typeof createShipmentSchema>;
 type UpdateStatusForm = z.infer<typeof updateStatusSchema>;
 
@@ -202,13 +226,12 @@ export default function AdminDashboard() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedShipmentId, setSelectedShipmentId] = useState<number | null>(null);
   const [showUpdateForm, setShowUpdateForm] = useState(false);
-  const [qrCode, setQrCode] = useState<string | null>(null);
-  const [showQRModal, setShowQRModal] = useState(false);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [shipmentView, setShipmentView] = useState<'documento' | 'encomienda'>('documento');
   const [currentPage, setCurrentPage] = useState(1);
   const [showUserForm, setShowUserForm] = useState(false);
   const [showCouponForm, setShowCouponForm] = useState(false);
+  const [editingCoupon, setEditingCoupon] = useState<any>(null);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [adminPasswordEmail, setAdminPasswordEmail] = useState("");
   const [adminCurrentPassword, setAdminCurrentPassword] = useState("");
@@ -219,13 +242,18 @@ export default function AdminDashboard() {
   const [printShipment, setPrintShipment] = useState<any>(null);
   const [senderClientQuery, setSenderClientQuery] = useState("");
   const [recipientClientQuery, setRecipientClientQuery] = useState("");
+  const [additionalDocumentItems, setAdditionalDocumentItems] = useState<Array<{ docType: "simple" | "apostillado"; sheetCount: number; manualPriceEur: string }>>([]);
+  const [contentChecklist, setContentChecklist] = useState<string[]>([]);
+  const [showCalculator, setShowCalculator] = useState(false);
+  const [calculatorExpression, setCalculatorExpression] = useState("");
+  const [calculatorResult, setCalculatorResult] = useState("");
   const pageSize = 10;
-  const qrCanvasRef = useRef<HTMLCanvasElement>(null);
   const printQrRef = useRef<HTMLCanvasElement>(null);
 
   // Queries
   const { data: currentAdminSession, isLoading: loadingAdminSession, refetch: refetchAdminSession } = trpc.admin.me.useQuery();
   const { data: coupons = [], refetch: refetchCoupons } = trpc.admin.listCoupons.useQuery(undefined, { enabled: isLoggedIn && !admin?.reauthRequired });
+  const { data: limaTorinoPolicy, refetch: refetchLimaTorinoPolicy } = trpc.admin.getLimaTorinoEncomiendaPolicy.useQuery(undefined, { enabled: isLoggedIn && !admin?.reauthRequired });
   const { data: shipments, isLoading: loadingShipments, refetch: refetchShipments } = trpc.admin.getAllShipments.useQuery(undefined, { enabled: isLoggedIn && !admin?.reauthRequired });
   const { data: adminUsers, refetch: refetchAdminUsers } = trpc.admin.listAdmins.useQuery(undefined, { enabled: isLoggedIn && admin?.role === "superadmin" && !admin?.reauthRequired });
   const { data: senderClientResults = [], isFetching: isSearchingSender } = trpc.admin.searchClients.useQuery(
@@ -241,7 +269,9 @@ export default function AdminDashboard() {
   const loginMutation = trpc.admin.login.useMutation();
   const logoutMutation = trpc.admin.logout.useMutation();
   const createCouponMutation = trpc.admin.createCoupon.useMutation();
+  const updateCouponMutation = trpc.admin.updateCoupon.useMutation();
   const deactivateCouponMutation = trpc.admin.deactivateCoupon.useMutation();
+  const setLimaTorinoEncomiendasEnabledMutation = trpc.admin.setLimaTorinoEncomiendasEnabled.useMutation();
   const reauthenticateMutation = trpc.admin.reauthenticate.useMutation({
     onSuccess: async (result) => {
       toast.success(result.message);
@@ -271,8 +301,13 @@ export default function AdminDashboard() {
 
   // Forms
   const loginForm = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
-  const couponForm = useForm({
-    defaultValues: { code: "", startsAt: new Date().toISOString().slice(0, 10), endsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) },
+  const couponForm = useForm<CouponForm>({
+    resolver: zodResolver(couponFormSchema),
+    defaultValues: { code: "", discountPercent: 25, appliesTo: "ambos", startsAt: getCouponDateTimeLocalValue(new Date()), endsAt: getCouponDateTimeLocalValue(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)) },
+  });
+  const editCouponForm = useForm<CouponForm>({
+    resolver: zodResolver(couponFormSchema),
+    defaultValues: { code: "", discountPercent: 25, appliesTo: "ambos", startsAt: "", endsAt: "" },
   });
 
   const createAdminForm = useForm<CreateAdminForm>({
@@ -304,6 +339,15 @@ export default function AdminDashboard() {
   });
   const selectedShipmentType = createForm.watch("shipmentType") || "documento";
   const selectedDocType = createForm.watch("docType") || "apostillado";
+  const selectedRoute = createForm.watch("route") || "Lima - Torino";
+  const limaTorinoEncomiendasEnabled = limaTorinoPolicy?.encomiendasEnabled !== false;
+  const additionalDocumentAutoTotal = additionalDocumentItems.reduce((total, item) => {
+    const automaticPrice = item.docType === "simple"
+      ? (item.sheetCount <= 4 ? 45 : 45 + (item.sheetCount - 4) * 2)
+      : (item.sheetCount <= 5 ? 50 : 60);
+    const manualPrice = Number(item.manualPriceEur);
+    return total + (item.manualPriceEur.trim() !== "" && Number.isFinite(manualPrice) && manualPrice >= 0 ? manualPrice : automaticPrice);
+  }, 0);
 
   useEffect(() => {
     const maximum = selectedDocType === "simple" ? 8 : 10;
@@ -376,14 +420,37 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleCreateCoupon = async (data: { code: string; startsAt: string; endsAt: string }) => {
+  const handleCreateCoupon = async (data: CouponForm) => {
     try {
-      const result = await createCouponMutation.mutateAsync({ code: data.code.trim() || undefined, startsAt: data.startsAt, endsAt: data.endsAt });
-      toast.success(`Cupón ${result.code} creado con descuento del 25%.`);
-      couponForm.reset({ code: "", startsAt: data.startsAt, endsAt: data.endsAt });
+      const result = await createCouponMutation.mutateAsync({ code: data.code.trim() || undefined, discountPercent: data.discountPercent, appliesTo: data.appliesTo, startsAt: data.startsAt, endsAt: data.endsAt });
+      toast.success(`Cupón ${result.code} creado con descuento del ${result.discountPercent}%.`);
+      couponForm.reset({ code: "", discountPercent: data.discountPercent, appliesTo: data.appliesTo, startsAt: data.startsAt, endsAt: data.endsAt });
       await refetchCoupons();
     } catch (error: any) {
       toast.error(error.message || "No se pudo crear el cupón");
+    }
+  };
+
+  const openCouponEditForm = (coupon: any) => {
+    setEditingCoupon(coupon);
+    editCouponForm.reset({
+      code: coupon.code || "",
+      discountPercent: Number(coupon.discountPercent) || 25,
+      appliesTo: coupon.appliesTo === "documento" || coupon.appliesTo === "encomienda" ? coupon.appliesTo : "ambos",
+      startsAt: getCouponDateTimeLocalValue(coupon.startsAt),
+      endsAt: getCouponDateTimeLocalValue(coupon.endsAt),
+    });
+  };
+
+  const handleUpdateCoupon = async (data: CouponForm) => {
+    if (!editingCoupon) return;
+    try {
+      await updateCouponMutation.mutateAsync({ id: editingCoupon.id, ...data, code: data.code.trim() });
+      toast.success("Cupón actualizado correctamente.");
+      setEditingCoupon(null);
+      await refetchCoupons();
+    } catch (error: any) {
+      toast.error(error.message || "No se pudo actualizar el cupón");
     }
   };
 
@@ -423,28 +490,52 @@ export default function AdminDashboard() {
 
   const openCreateForm = (shipmentType: "documento" | "encomienda") => {
     createForm.setValue("shipmentType", shipmentType, { shouldDirty: true });
+    if (shipmentType === "encomienda" && !limaTorinoEncomiendasEnabled) {
+      createForm.setValue("route", "Torino - Lima", { shouldDirty: true });
+      toast.message("Lima - Torino está restringida para encomiendas; se seleccionó Torino - Lima.");
+    }
     setShowCreateForm(true);
+  };
+
+  const handleLimaTorinoEncomiendaPolicy = async () => {
+    try {
+      const result = await setLimaTorinoEncomiendasEnabledMutation.mutateAsync({ enabled: !limaTorinoEncomiendasEnabled });
+      toast.success(result.enabled ? "Encomiendas Lima - Torino habilitadas." : "Encomiendas Lima - Torino desactivadas por control de seguridad.");
+      await refetchLimaTorinoPolicy();
+    } catch (error: any) {
+      toast.error(error.message || "No se pudo actualizar la política de la ruta.");
+    }
+  };
+
+  const appendCalculatorValue = (value: string) => {
+    setCalculatorExpression(current => current + value);
+    setCalculatorResult("");
+  };
+
+  const calculateScientificExpression = () => {
+    try {
+      const result = evaluateScientificExpression(calculatorExpression);
+      const formattedResult = Number.isInteger(result) ? String(result) : String(Number(result.toFixed(10)));
+      setCalculatorExpression(formattedResult);
+      setCalculatorResult(`Resultado: ${formattedResult}`);
+    } catch (error: any) {
+      setCalculatorResult(error.message || "No se pudo calcular la expresión.");
+    }
   };
 
   const handleCreateShipment = async (data: any) => {
     try {
-      const result = await createMutation.mutateAsync(data);
+      const normalizedChecklist = contentChecklist.map(item => item.trim()).filter(Boolean);
+      await createMutation.mutateAsync({
+        ...data,
+        documentItems: data.shipmentType === "documento" ? additionalDocumentItems : [],
+        contentChecklist: normalizedChecklist,
+      });
       toast.success(`${data.shipmentType === "encomienda" ? "Encomienda" : "Documento"} creado exitosamente`);
-      
-      // Mostrar modal y generar QR usando la URL construida con la orden y código automáticos.
-      const trackingUrl = result.trackingUrl;
-      setQrCode(trackingUrl);
-      setShowQRModal(true);
-
-      // Generar el mismo payload y color que usa la vista pública y el recibo.
-      setTimeout(() => {
-        if (qrCanvasRef.current) {
-          renderQrCode(qrCanvasRef.current, trackingUrl, 300);
-        }
-      }, 100);
-      
       setSenderClientQuery("");
       setRecipientClientQuery("");
+      setAdditionalDocumentItems([]);
+      setContentChecklist([]);
       createForm.reset({
         status: "En agencia",
         senderName: "",
@@ -465,20 +556,13 @@ export default function AdminDashboard() {
         paymentStatus: "Falta cancelar",
         route: "Lima - Torino",
         couponCode: "",
+        documentItems: [],
+        contentChecklist: [],
       });
       setShowCreateForm(false);
       refetchShipments();
     } catch (error: any) {
       toast.error(error.message || "Error al crear encomienda");
-    }
-  };
-
-  const downloadQR = () => {
-    if (qrCanvasRef.current) {
-      const link = document.createElement('a');
-      link.href = qrCanvasRef.current.toDataURL();
-      link.download = `QR-${Date.now()}.png`;
-      link.click();
     }
   };
 
@@ -532,6 +616,7 @@ export default function AdminDashboard() {
       const trackingUrl = buildTrackingUrl(printShipment.orderNumber, printShipment.code);
       const brandLogo = new URL('/manus-storage/servicom_logo_final_e7ce35aa.png', window.location.origin).href;
       const today = new Date().toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' });
+      const receiptShipmentLabel = printShipment.shipmentType === 'encomienda' ? 'ENCOMIENDA' : 'DOCUMENTO';
       const routePresentation = getRoutePresentation(printShipment.route);
       const paymentPrint = getPaymentPrintPresentation(printShipment.paymentStatus);
       const paymentIsPaid = paymentPrint.isPaid;
@@ -540,11 +625,21 @@ export default function AdminDashboard() {
       const paidBackground = paymentPrint.paidBackground;
       const pendingColor = paymentPrint.pendingColor;
       const pendingBackground = paymentPrint.pendingBackground;
+      const printableChecklist = (() => {
+        if (Array.isArray(printShipment.contentChecklist)) return printShipment.contentChecklist.filter((item: unknown) => typeof item === "string" && item.trim());
+        if (typeof printShipment.contentChecklist !== "string") return [];
+        try {
+          const parsed = JSON.parse(printShipment.contentChecklist);
+          return Array.isArray(parsed) ? parsed.filter((item: unknown) => typeof item === "string" && item.trim()) : [];
+        } catch {
+          return [];
+        }
+      })();
       const html = `
         <!DOCTYPE html>
         <html>
         <head>
-          <title>INFORMACIÓN DE ENVÍO DE DOCUMENTO - Servicom Internacional</title>
+          <title>INFORMACIÓN DE ENVÍO DE ${receiptShipmentLabel} - Servicom Internacional</title>
           <style>
             @media print {
               ${buildAdminReceiptPrintStyles()}
@@ -662,9 +757,11 @@ export default function AdminDashboard() {
             senderPhone: printShipment.senderPhone || 'No especificado',
             senderDni: printShipment.senderDni || 'No especificado',
             notes: printShipment.notes || 'Sin notas',
+            contentChecklist: printableChecklist,
             shipmentType: printShipment.shipmentType,
             price: printShipment,
             route: printShipment.route,
+            limaTorinoEncomiendasEnabled,
           })}
 
           <!-- PÁGINA 2: DECLARACIÓN JURADA -->
@@ -965,44 +1062,67 @@ export default function AdminDashboard() {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <h2 className="text-xl font-semibold text-gray-900">Cupones promocionales</h2>
-              <p className="mt-1 text-sm text-slate-500">Genera códigos con descuento fijo del 25% y define el periodo en que podrán canjearse en agencia.</p>
+              <p className="mt-1 text-sm text-slate-500">Configura porcentaje, tipo de envío y vigencia exacta con fecha y hora.</p>
             </div>
             <Button type="button" variant="outline" onClick={() => setShowCouponForm(value => !value)}>{showCouponForm ? "Cerrar" : "Nuevo cupón"}</Button>
           </div>
           {showCouponForm && (
-            <form onSubmit={couponForm.handleSubmit(handleCreateCoupon)} className="mt-5 grid grid-cols-1 gap-4 rounded-xl border border-amber-200 bg-amber-50 p-4 md:grid-cols-4">
+            <form onSubmit={couponForm.handleSubmit(handleCreateCoupon)} className="mt-5 grid grid-cols-1 gap-4 rounded-xl border border-amber-200 bg-amber-50 p-4 md:grid-cols-5">
               <div>
                 <label className="mb-2 block text-sm font-medium text-slate-700">Código personalizado (opcional)</label>
                 <Input placeholder="Ej. SERVI25-VERANO" {...couponForm.register("code")} className="bg-white" />
                 <p className="mt-1 text-xs text-slate-500">Si lo dejas vacío, se genera automáticamente.</p>
               </div>
               <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">Descuento (%)</label>
+                <Input type="number" min="1" max="100" step="1" {...couponForm.register("discountPercent", { valueAsNumber: true })} className="bg-white" />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">Aplica a</label>
+                <Select value={couponForm.watch("appliesTo")} onValueChange={(value) => couponForm.setValue("appliesTo", value as CouponForm["appliesTo"], { shouldValidate: true })}>
+                  <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="ambos">Documentos y encomiendas</SelectItem><SelectItem value="documento">Solo documentos</SelectItem><SelectItem value="encomienda">Solo encomiendas</SelectItem></SelectContent>
+                </Select>
+              </div>
+              <div>
                 <label className="mb-2 block text-sm font-medium text-slate-700">Válido desde</label>
-                <Input type="date" {...couponForm.register("startsAt", { required: true })} className="bg-white" />
+                <Input type="datetime-local" {...couponForm.register("startsAt", { required: true })} className="bg-white" />
               </div>
               <div>
                 <label className="mb-2 block text-sm font-medium text-slate-700">Válido hasta</label>
-                <Input type="date" {...couponForm.register("endsAt", { required: true })} className="bg-white" />
+                <Input type="datetime-local" {...couponForm.register("endsAt", { required: true })} className="bg-white" />
               </div>
-              <div className="flex items-end">
-                <Button type="submit" disabled={createCouponMutation.isPending} className="w-full bg-[#F28C00] text-white hover:bg-[#d97800]">{createCouponMutation.isPending ? "Generando..." : "Generar cupón 25%"}</Button>
+              <div className="flex items-end md:col-span-5 md:justify-end">
+                <Button type="submit" disabled={createCouponMutation.isPending} className="bg-[#F28C00] text-white hover:bg-[#d97800]">{createCouponMutation.isPending ? "Generando..." : "Generar cupón"}</Button>
               </div>
             </form>
           )}
+          {editingCoupon && (
+            <form onSubmit={editCouponForm.handleSubmit(handleUpdateCoupon)} className="mt-5 grid grid-cols-1 gap-4 rounded-xl border border-blue-200 bg-blue-50 p-4 md:grid-cols-5">
+              <div className="md:col-span-5 flex items-center justify-between gap-3"><div><h3 className="font-semibold text-[#0B2B5E]">Editar cupón {editingCoupon.code}</h3><p className="text-xs text-slate-600">Los cambios aplicarán a nuevos registros desde el momento de guardarlos.</p></div><Button type="button" variant="outline" size="sm" onClick={() => setEditingCoupon(null)}>Cancelar</Button></div>
+              <div><label className="mb-2 block text-sm font-medium text-slate-700">Código</label><Input {...editCouponForm.register("code")} className="bg-white uppercase" /></div>
+              <div><label className="mb-2 block text-sm font-medium text-slate-700">Descuento (%)</label><Input type="number" min="1" max="100" step="1" {...editCouponForm.register("discountPercent", { valueAsNumber: true })} className="bg-white" /></div>
+              <div><label className="mb-2 block text-sm font-medium text-slate-700">Aplica a</label><Select value={editCouponForm.watch("appliesTo")} onValueChange={(value) => editCouponForm.setValue("appliesTo", value as CouponForm["appliesTo"], { shouldValidate: true })}><SelectTrigger className="bg-white"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ambos">Documentos y encomiendas</SelectItem><SelectItem value="documento">Solo documentos</SelectItem><SelectItem value="encomienda">Solo encomiendas</SelectItem></SelectContent></Select></div>
+              <div><label className="mb-2 block text-sm font-medium text-slate-700">Válido desde</label><Input type="datetime-local" {...editCouponForm.register("startsAt", { required: true })} className="bg-white" /></div>
+              <div><label className="mb-2 block text-sm font-medium text-slate-700">Válido hasta</label><Input type="datetime-local" {...editCouponForm.register("endsAt", { required: true })} className="bg-white" /></div>
+              <div className="md:col-span-5 flex justify-end"><Button type="submit" disabled={updateCouponMutation.isPending} className="bg-[#0B2B5E] text-white">{updateCouponMutation.isPending ? "Guardando..." : "Guardar cambios"}</Button></div>
+            </form>
+          )}
           <div className="mt-5 overflow-x-auto rounded-lg border border-slate-200">
-            <table className="min-w-[720px] w-full text-sm">
-              <thead className="bg-slate-50 text-left text-slate-600"><tr><th className="px-4 py-3">Código</th><th className="px-4 py-3">Descuento</th><th className="px-4 py-3">Vigencia</th><th className="px-4 py-3">Canjes</th><th className="px-4 py-3">Estado</th><th className="px-4 py-3">Acción</th></tr></thead>
+            <table className="min-w-[860px] w-full text-sm">
+              <thead className="bg-slate-50 text-left text-slate-600"><tr><th className="px-4 py-3">Código</th><th className="px-4 py-3">Descuento</th><th className="px-4 py-3">Ámbito</th><th className="px-4 py-3">Vigencia</th><th className="px-4 py-3">Canjes</th><th className="px-4 py-3">Estado</th><th className="px-4 py-3">Acciones</th></tr></thead>
               <tbody>
                 {(coupons as any[]).length > 0 ? (coupons as any[]).map((coupon: any) => (
                   <tr key={coupon.id} className="border-t">
                     <td className="px-4 py-3 font-mono font-semibold text-[#0B2B5E]">{coupon.code}</td>
                     <td className="px-4 py-3 font-bold text-[#F28C00]">{Number(coupon.discountPercent).toFixed(0)}%</td>
-                    <td className="px-4 py-3">{new Date(coupon.startsAt).toLocaleDateString("es-PE")} – {new Date(coupon.endsAt).toLocaleDateString("es-PE")}</td>
+                    <td className="px-4 py-3">{coupon.appliesTo === "documento" ? "Documentos" : coupon.appliesTo === "encomienda" ? "Encomiendas" : "Ambos"}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">{new Date(coupon.startsAt).toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" })} – {new Date(coupon.endsAt).toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" })}</td>
                     <td className="px-4 py-3">{coupon.redeemedCount || 0}</td>
                     <td className="px-4 py-3"><span className={`rounded-full px-2 py-1 text-xs font-semibold ${coupon.isActive === 1 ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-600"}`}>{coupon.isActive === 1 ? "Activo" : "Desactivado"}</span></td>
-                    <td className="px-4 py-3">{coupon.isActive === 1 && <Button type="button" size="sm" variant="outline" onClick={() => handleDeactivateCoupon(coupon.id)} disabled={deactivateCouponMutation.isPending}>Desactivar</Button>}</td>
+                    <td className="px-4 py-3"><div className="flex gap-2"><Button type="button" size="sm" variant="outline" onClick={() => openCouponEditForm(coupon)} disabled={updateCouponMutation.isPending}>Editar</Button>{coupon.isActive === 1 && <Button type="button" size="sm" variant="outline" onClick={() => handleDeactivateCoupon(coupon.id)} disabled={deactivateCouponMutation.isPending}>Desactivar</Button>}</div></td>
                   </tr>
-                )) : <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-500">Aún no hay cupones generados.</td></tr>}
+                )) : <tr><td colSpan={7} className="px-4 py-6 text-center text-slate-500">Aún no hay cupones generados.</td></tr>}
               </tbody>
             </table>
           </div>
@@ -1016,6 +1136,9 @@ export default function AdminDashboard() {
               <p className="mt-1 text-sm text-slate-500">Elige directamente qué deseas registrar.</p>
             </div>
             <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" onClick={() => setShowCalculator(value => !value)} aria-expanded={showCalculator} aria-controls="admin-scientific-calculator">
+                {showCalculator ? "Cerrar calculadora" : "Calculadora científica"}
+              </Button>
               <Button type="button" onClick={() => openCreateForm("documento")} className="bg-primary text-white hover:bg-primary/90">
                 <Plus className="mr-2 h-4 w-4" /> Nuevo documento
               </Button>
@@ -1024,6 +1147,41 @@ export default function AdminDashboard() {
               </Button>
             </div>
           </div>
+
+          {showCalculator && (
+            <div id="admin-scientific-calculator" className="mt-4 max-w-md rounded-xl border border-[#0B2B5E]/20 bg-slate-50 p-4 shadow-sm">
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="font-semibold text-[#0B2B5E]">Calculadora científica</h3>
+                  <p className="mt-1 text-xs text-slate-600">Funciones en radianes: sin, cos, tan, log, ln, √ y abs.</p>
+                </div>
+                <Button type="button" size="sm" variant="outline" onClick={() => { setCalculatorExpression(""); setCalculatorResult(""); }}>Limpiar</Button>
+              </div>
+              <form onSubmit={(event) => { event.preventDefault(); calculateScientificExpression(); }}>
+                <Input aria-label="Operación de calculadora" value={calculatorExpression} onChange={(event) => { setCalculatorExpression(event.target.value); setCalculatorResult(""); }} placeholder="Ej. (13.5 × 2) + 10" className="bg-white font-mono" />
+                <div className="mt-3 grid grid-cols-5 gap-2">
+                  {["sin(", "cos(", "tan(", "log(", "ln(", "sqrt(", "abs(", "pi", "(", ")", "7", "8", "9", "÷", "^", "4", "5", "6", "×", "-", "1", "2", "3", "+", ".", "0", "00"].map(value => (
+                    <Button key={value} type="button" size="sm" variant="outline" onClick={() => appendCalculatorValue(value)} className="bg-white font-mono">{value === "sqrt(" ? "√(" : value}</Button>
+                  ))}
+                  <Button type="button" size="sm" variant="outline" onClick={() => { setCalculatorExpression(value => value.slice(0, -1)); setCalculatorResult(""); }} className="bg-white">⌫</Button>
+                  <Button type="submit" size="sm" className="col-span-2 bg-[#F28C00] text-white hover:bg-[#d97800]">=</Button>
+                </div>
+              </form>
+              <p aria-live="polite" className={`mt-3 min-h-5 text-sm font-semibold ${calculatorResult.startsWith("Resultado") ? "text-emerald-700" : "text-red-700"}`}>{calculatorResult}</p>
+            </div>
+          )}
+
+          {admin?.role === "superadmin" && (
+            <div className={`mt-4 flex flex-col gap-3 rounded-xl border p-4 md:flex-row md:items-center md:justify-between ${limaTorinoEncomiendasEnabled ? "border-amber-200 bg-amber-50" : "border-red-200 bg-red-50"}`}>
+              <div>
+                <p className="font-semibold text-slate-900">Control de encomiendas Lima – Torino</p>
+                <p className="mt-1 text-sm text-slate-600">{limaTorinoEncomiendasEnabled ? "Las encomiendas están habilitadas actualmente." : "Restringidas por control de seguridad; solo se permiten documentos en esta ruta."}</p>
+              </div>
+              <Button type="button" variant="outline" onClick={handleLimaTorinoEncomiendaPolicy} disabled={setLimaTorinoEncomiendasEnabledMutation.isPending} className={limaTorinoEncomiendasEnabled ? "border-red-300 text-red-700 hover:bg-red-100" : "border-emerald-300 text-emerald-700 hover:bg-emerald-100"}>
+                {setLimaTorinoEncomiendasEnabledMutation.isPending ? "Actualizando..." : limaTorinoEncomiendasEnabled ? "Desactivar encomiendas Lima – Torino" : "Habilitar encomiendas Lima – Torino"}
+              </Button>
+            </div>
+          )}
 
           {showCreateForm && (
             <form onSubmit={createForm.handleSubmit(handleCreateShipment)} className="space-y-4">
@@ -1036,7 +1194,18 @@ export default function AdminDashboard() {
                   </div>
                   <span className="text-xs text-slate-600">El tipo ya fue definido por el botón elegido</span>
                 </div>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Ruta de envío</label>
+                    <Select value={selectedRoute} onValueChange={(value) => createForm.setValue("route", value as "Lima - Torino" | "Torino - Lima", { shouldValidate: true, shouldDirty: true })}>
+                      <SelectTrigger className="border-2 focus:border-primary"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Lima - Torino">Lima – Torino</SelectItem>
+                        <SelectItem value="Torino - Lima">Torino – Lima</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="mt-1 text-xs text-slate-500">Origen definido manualmente; no usa IP, GPS ni geolocalización.</p>
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Estado Inicial</label>
                     <Select defaultValue="En agencia" onValueChange={(value) => createForm.setValue("status", value as any)}>
@@ -1067,6 +1236,12 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
+                {selectedShipmentType === "encomienda" && selectedRoute === "Lima - Torino" && !limaTorinoEncomiendasEnabled && (
+                  <div className="mt-4 rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-medium text-red-800">
+                    Encomiendas Lima – Torino desactivadas: por control de seguridad solo se pueden registrar documentos en esta ruta. Selecciona Torino – Lima para continuar con una encomienda.
+                  </div>
+                )}
+
                 <div className="mt-4 grid grid-cols-1 gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
                   <div>
                     <label className="block text-sm font-medium text-emerald-900 mb-2">Cupón de descuento (opcional)</label>
@@ -1077,6 +1252,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {selectedShipmentType === "documento" ? (
+                  <>
                   <div className="mt-4 grid grid-cols-1 gap-4 border-t border-slate-200 pt-4 md:grid-cols-3">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Documento</label>
@@ -1102,6 +1278,43 @@ export default function AdminDashboard() {
                       La tarifa se calcula automáticamente según el tipo y número de hojas.
                     </div>
                   </div>
+                  <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50/60 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <h4 className="font-semibold text-[#0B2B5E]">Documentos adicionales</h4>
+                        <p className="mt-1 text-xs text-slate-600">Añade más piezas documentales con tarifa automática o un importe manual por ítem.</p>
+                      </div>
+                      <Button type="button" size="sm" variant="outline" onClick={() => setAdditionalDocumentItems(items => [...items, { docType: "apostillado", sheetCount: 1, manualPriceEur: "" }])} className="border-blue-300 text-[#0B2B5E]">
+                        <Plus className="mr-1 h-4 w-4" /> Añadir documento
+                      </Button>
+                    </div>
+                    {additionalDocumentItems.length > 0 ? (
+                      <div className="mt-4 space-y-3">
+                        {additionalDocumentItems.map((item, index) => {
+                          const maxSheets = item.docType === "simple" ? 8 : 10;
+                          return (
+                            <div key={`additional-document-${index}`} className="grid grid-cols-1 gap-3 rounded-lg border border-blue-100 bg-white p-3 md:grid-cols-[minmax(180px,1fr)_minmax(190px,1fr)_minmax(180px,1fr)_auto] md:items-end">
+                              <div>
+                                <label className="mb-2 block text-xs font-semibold text-slate-700">Tipo</label>
+                                <Select value={item.docType} onValueChange={(value) => setAdditionalDocumentItems(items => items.map((current, itemIndex) => itemIndex === index ? { ...current, docType: value as "simple" | "apostillado", sheetCount: Math.min(current.sheetCount, value === "simple" ? 8 : 10) } : current))}>
+                                  <SelectTrigger aria-label={`Tipo de documento adicional ${index + 1}`}><SelectValue /></SelectTrigger>
+                                  <SelectContent><SelectItem value="simple">Documento simple</SelectItem><SelectItem value="apostillado">Documento apostillado</SelectItem></SelectContent>
+                                </Select>
+                              </div>
+                              <QuantityStepper id={`additional-sheet-count-${index}`} label="Hojas" value={item.sheetCount} min={1} max={maxSheets} onChange={(nextValue) => setAdditionalDocumentItems(items => items.map((current, itemIndex) => itemIndex === index ? { ...current, sheetCount: nextValue } : current))} description={`Máximo ${maxSheets} hojas.`} />
+                              <div>
+                                <label className="mb-2 block text-xs font-semibold text-slate-700">Precio manual EUR (opcional)</label>
+                                <Input aria-label={`Precio manual documento adicional ${index + 1}`} type="number" min="0" step="0.01" value={item.manualPriceEur} onChange={(event) => setAdditionalDocumentItems(items => items.map((current, itemIndex) => itemIndex === index ? { ...current, manualPriceEur: event.target.value } : current))} placeholder="Tarifa automática" />
+                              </div>
+                              <Button type="button" variant="outline" size="sm" onClick={() => setAdditionalDocumentItems(items => items.filter((_, itemIndex) => itemIndex !== index))} className="border-red-200 text-red-700 hover:bg-red-50">Quitar</Button>
+                            </div>
+                          );
+                        })}
+                        <p className="text-right text-sm font-semibold text-[#0B2B5E]">Subtotal de documentos adicionales: {additionalDocumentAutoTotal.toFixed(2)} €</p>
+                      </div>
+                    ) : <p className="mt-3 text-sm text-slate-500">No hay documentos adicionales registrados.</p>}
+                  </div>
+                  </>
                 ) : (
                   <div className="mt-4 grid grid-cols-1 gap-4 border-t border-slate-200 pt-4 md:grid-cols-3">
                     <div>
@@ -1256,10 +1469,26 @@ export default function AdminDashboard() {
                 />
               </div>
 
+              <div className="border-t pt-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Checklist de contenido</label>
+                    <p className="mt-1 text-xs text-slate-500">Registro verificable de los artículos o documentos entregados, separado de las notas.</p>
+                  </div>
+                  <Button type="button" size="sm" variant="outline" onClick={() => setContentChecklist(items => [...items, ""])}><Plus className="mr-1 h-4 w-4" /> Añadir ítem</Button>
+                </div>
+                {contentChecklist.length > 0 && <div className="mt-3 space-y-2">
+                  {contentChecklist.map((item, index) => <div key={`content-check-${index}`} className="flex gap-2">
+                    <Input aria-label={`Ítem de checklist ${index + 1}`} value={item} maxLength={160} onChange={(event) => setContentChecklist(items => items.map((current, itemIndex) => itemIndex === index ? event.target.value : current))} placeholder="Ej. 1 documento apostillado" />
+                    <Button type="button" size="sm" variant="outline" onClick={() => setContentChecklist(items => items.filter((_, itemIndex) => itemIndex !== index))} className="shrink-0 border-red-200 text-red-700 hover:bg-red-50">Quitar</Button>
+                  </div>)}
+                </div>}
+              </div>
+
               <div className="flex gap-2">
                 <Button
                   type="submit"
-                  disabled={createMutation.isPending}
+                  disabled={createMutation.isPending || (selectedShipmentType === "encomienda" && selectedRoute === "Lima - Torino" && !limaTorinoEncomiendasEnabled)}
                   className="bg-primary hover:bg-primary/90 text-white"
                 >
                     {createMutation.isPending ? (
@@ -1641,44 +1870,6 @@ export default function AdminDashboard() {
                 </div>
 
         </UpdateShipmentModal>
-
-        {/* QR Modal */}
-        {showQRModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <Card className="w-full max-w-md p-6 shadow-lg border-0">
-              <h3 className="text-lg font-semibold mb-4 text-center">Código QR Generado</h3>
-              
-              <div className="flex justify-center mb-6 bg-white p-4 rounded-lg">
-                <canvas ref={qrCanvasRef} />
-              </div>
-
-              <p className="text-sm text-gray-600 text-center mb-4">
-                Este QR enlaza a: <br />
-                <code className="text-xs bg-gray-100 p-1 rounded">{qrCode}</code>
-              </p>
-
-              <div className="flex gap-2">
-                <Button
-                  onClick={downloadQR}
-                  className="flex-1 bg-primary hover:bg-primary/90 text-white"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Descargar QR
-                </Button>
-                <Button
-                  onClick={() => {
-                    setShowQRModal(false);
-                    setQrCode(null);
-                  }}
-                  variant="outline"
-                  className="flex-1"
-                >
-                  Cerrar
-                </Button>
-              </div>
-            </Card>
-          </div>
-        )}
 
         {/* Print Receipt Modal */}
         {printShipment && (
