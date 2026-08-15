@@ -1,9 +1,14 @@
 /** @vitest-environment jsdom */
 import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 const currentRoute = vi.hoisted(() => ({ value: "Lima - Torino" }));
+const signatureMocks = vi.hoisted(() => ({
+  request: vi.fn().mockResolvedValue({ status: "pending", token: "signature-token-12345678901234567890", expiresAt: new Date("2026-08-15T16:30:00.000Z") }),
+  complete: vi.fn(),
+  refetch: vi.fn(),
+}));
 
 const shipment = {
   orderNumber: "3520992723",
@@ -22,8 +27,10 @@ vi.mock("@/lib/trpc", () => ({
   trpc: {
     shipment: {
       search: {
-        useQuery: () => ({ data: { ...shipment, route: currentRoute.value }, isLoading: false, error: null }),
+        useQuery: () => ({ data: { ...shipment, route: currentRoute.value }, isLoading: false, error: null, refetch: signatureMocks.refetch }),
       },
+      requestSignature: { useMutation: () => ({ isPending: false, mutateAsync: signatureMocks.request }) },
+      completeSignature: { useMutation: () => ({ isPending: false, mutateAsync: signatureMocks.complete }) },
     },
   },
 }));
@@ -37,7 +44,7 @@ import ReceiptPage from "./ReceiptPage";
 afterEach(() => cleanup());
 
 describe("ReceiptPage", () => {
-  it("renders the requested shipment receipt route with a print action", () => {
+  it("renders the requested shipment receipt route with a print action", async () => {
     window.history.replaceState({}, "", "/recibo?order=3520992723&code=CA06721WB");
     render(<ReceiptPage />);
 
@@ -51,6 +58,12 @@ describe("ReceiptPage", () => {
     expect(screen.getByText(/TORINO, ITALIA · Corso Peschiera/)).toBeTruthy();
     expect(screen.getByText(/Corso Peschiera, 162A/)).toBeTruthy();
     expect(screen.getByRole("button", { name: /Imprimir recibo/ })).toBeTruthy();
+    const signButton = screen.getByRole("button", { name: /Firmar electrónicamente/ });
+    expect(signButton).toBeTruthy();
+    fireEvent.click(signButton);
+    await waitFor(() => expect(screen.getByRole("dialog")).toBeTruthy());
+    expect(signatureMocks.request).toHaveBeenCalledWith({ orderNumber: "3520992723", code: "CA06721WB" });
+    expect(screen.getByRole("heading", { name: "Firma electrónica del cliente" })).toBeTruthy();
   });
 
   it("renders Lima as the destination for a Torino–Lima receipt", () => {

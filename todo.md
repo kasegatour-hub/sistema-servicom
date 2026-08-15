@@ -259,3 +259,12 @@
 - [x] Eliminar del formulario abierto el selector redundante «Documentos / Encomiendas»
 - [x] Añadir pruebas de navegación y payload para ambos botones sin regresiones
 - [x] Ejecutar suite completa, compilación y verificación responsive antes del checkpoint
+
+## Firma electrónica remota solicitada
+- [x] Añadir un botón azul para iniciar la firma electrónica remota del cliente
+- [x] Permitir que el cliente firme envíos creados por un operador o Master Admin
+- [x] Vincular la firma al envío correcto mediante un token seguro de firma
+- [x] Persistir estado, fecha, firmante y evidencia de la firma sin guardar credenciales
+- [x] Mostrar la firma electrónica y su estado en el recibo y control de entrega
+- [x] Añadir pruebas de permisos, token, expiración, persistencia y recibo firmado
+- [x] Ejecutar suite completa, compilación y verificación responsive antes del checkpoint

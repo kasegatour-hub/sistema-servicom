@@ -66,5 +66,7 @@ describe("Home public page", () => {
 
     expect(await screen.findByText("Estado de Pago")).toBeTruthy();
     expect(screen.getByText("Pagado")).toBeTruthy();
+    const receiptLink = screen.getByRole("link", { name: /Abrir recibo y firmar/ });
+    expect((receiptLink as HTMLAnchorElement).getAttribute("href")).toBe("/recibo?order=3520992723&code=CA06721WB");
   });
 });

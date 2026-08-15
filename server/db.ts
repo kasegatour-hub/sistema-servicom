@@ -1,6 +1,6 @@
-import { and, asc, desc, eq, isNull, like, or } from "drizzle-orm";
+import { and, asc, desc, eq, gt, isNull, like, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, shipments, admins, localAccounts, verificationCodes, clients, discountCoupons } from "../drizzle/schema";
+import { InsertUser, users, shipments, shipmentSignatures, admins, localAccounts, verificationCodes, clients, discountCoupons } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { buildShipmentClientDirectoryRecords, type ClientDirectoryRecord, type ShipmentClientDirectoryInput } from "./clientDirectory";
 
@@ -134,6 +134,80 @@ export async function getShipmentById(id: number) {
     .limit(1);
 
   return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getShipmentSignatureByShipmentId(shipmentId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const rows = await db.select().from(shipmentSignatures).where(eq(shipmentSignatures.shipmentId, shipmentId)).limit(1);
+  return rows[0];
+}
+
+export async function createOrRefreshShipmentSignatureRequest(input: {
+  shipmentId: number;
+  tokenHash: string;
+  expiresAt: Date;
+}) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const existing = await getShipmentSignatureByShipmentId(input.shipmentId);
+  if (existing?.status === "signed") return existing;
+
+  if (existing) {
+    await db.update(shipmentSignatures).set({
+      requestTokenHash: input.tokenHash,
+      requestTokenExpiresAt: input.expiresAt,
+      status: "pending",
+      signerName: null,
+      signerDni: null,
+      signatureStrokes: null,
+      requestedAt: new Date(),
+      signedAt: null,
+      updatedAt: new Date(),
+    }).where(eq(shipmentSignatures.id, existing.id));
+  } else {
+    await db.insert(shipmentSignatures).values({
+      shipmentId: input.shipmentId,
+      requestTokenHash: input.tokenHash,
+      requestTokenExpiresAt: input.expiresAt,
+      status: "pending",
+    });
+  }
+  return getShipmentSignatureByShipmentId(input.shipmentId);
+}
+
+export async function completeShipmentSignature(input: {
+  shipmentId: number;
+  tokenHash: string;
+  signerName: string;
+  signerDni?: string | null;
+  signatureStrokes: string;
+  signedAt?: Date;
+}) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const now = input.signedAt ?? new Date();
+  const rows = await db.select().from(shipmentSignatures).where(and(
+    eq(shipmentSignatures.shipmentId, input.shipmentId),
+    eq(shipmentSignatures.requestTokenHash, input.tokenHash),
+    eq(shipmentSignatures.status, "pending"),
+    gt(shipmentSignatures.requestTokenExpiresAt, now),
+  )).limit(1);
+  const record = rows[0];
+  if (!record) return undefined;
+
+  await db.update(shipmentSignatures).set({
+    status: "signed",
+    signerName: input.signerName,
+    signerDni: input.signerDni || null,
+    signatureStrokes: input.signatureStrokes,
+    signedAt: now,
+    updatedAt: new Date(),
+  }).where(and(
+    eq(shipmentSignatures.id, record.id),
+    eq(shipmentSignatures.status, "pending"),
+  ));
+  return getShipmentSignatureByShipmentId(input.shipmentId);
 }
 
 export async function getAdminByEmail(email: string) {

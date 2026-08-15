@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { AlertCircle, ArrowLeft, CheckCircle2, Printer } from "lucide-react";
+import { AlertCircle, ArrowLeft, CheckCircle2, PenLine, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
@@ -9,6 +9,7 @@ import { getPaymentStatusUi } from "@/lib/paymentStatus";
 import { getReceiptPricePresentation } from "@/lib/receiptPrice";
 import { formatPhoneNumber } from "@/lib/phoneFormatting";
 import { getRoutePresentation } from "@/lib/routeDetails";
+import ElectronicSignatureDialog from "@/components/ElectronicSignatureDialog";
 
 function getReceiptQuery() {
   const params = new URLSearchParams(window.location.search);
@@ -20,12 +21,46 @@ function getReceiptQuery() {
 
 export default function ReceiptPage() {
   const [query] = useState(getReceiptQuery);
-  const { data: shipment, isLoading, error } = trpc.shipment.search.useQuery(query, {
+  const { data: shipment, isLoading, error, refetch: refetchShipment } = trpc.shipment.search.useQuery(query, {
     enabled: Boolean(query.orderNumber && query.code),
   });
+  const requestSignatureMutation = trpc.shipment.requestSignature.useMutation();
+  const completeSignatureMutation = trpc.shipment.completeSignature.useMutation();
+  const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
+  const [signatureToken, setSignatureToken] = useState("");
+  const [signatureExpiresAt, setSignatureExpiresAt] = useState<string | Date | undefined>();
+  const [signatureError, setSignatureError] = useState("");
   const paymentUi = shipment ? getPaymentStatusUi(shipment.paymentStatus) : getPaymentStatusUi(undefined);
   const priceUi = shipment ? getReceiptPricePresentation(shipment) : null;
   const routePresentation = getRoutePresentation(shipment?.route);
+
+  const handleRequestSignature = async () => {
+    setSignatureError("");
+    try {
+      const result = await requestSignatureMutation.mutateAsync(query);
+      if (result.status === "signed") {
+        await refetchShipment();
+        return;
+      }
+      setSignatureToken(result.token);
+      setSignatureExpiresAt(result.expiresAt);
+      setSignatureDialogOpen(true);
+    } catch (requestError: any) {
+      setSignatureError(requestError?.message || "No se pudo preparar la firma electrónica.");
+    }
+  };
+
+  const handleCompleteSignature = async (input: { signerName: string; signerDni?: string; signatureStrokes: string }) => {
+    setSignatureError("");
+    try {
+      await completeSignatureMutation.mutateAsync({ ...query, token: signatureToken, ...input });
+      setSignatureDialogOpen(false);
+      setSignatureToken("");
+      await refetchShipment();
+    } catch (completeError: any) {
+      setSignatureError(completeError?.message || "No se pudo guardar la firma electrónica.");
+    }
+  };
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-[#eef6fb] to-white px-4 py-8 text-[#0B2B5E]">
@@ -75,6 +110,27 @@ export default function ReceiptPage() {
                 <div className="md:col-span-2 rounded-md border-l-4 border-[#F28C00] bg-orange-50 px-4 py-3"><span className="block text-xs font-bold uppercase tracking-wide text-slate-600">Precio final</span><strong className="text-xl font-extrabold text-orange-700">{priceUi?.finalLabel}</strong>{priceUi?.hasDiscount && <span className="ml-2 text-xs font-medium text-slate-600">Precio base {priceUi.baseLabel} · descuento {priceUi.discountPercent.toFixed(0)}%</span>}</div>
               </div>
 
+              {shipment.signature?.status === "signed" ? (
+                <div className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-900">
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" aria-hidden="true" />
+                  <div>
+                    <p className="font-semibold">Firma electrónica registrada</p>
+                    <p className="text-sm">Firmante: {shipment.signature.signerName || "Cliente"}{shipment.signature.signedAt ? ` · ${new Date(shipment.signature.signedAt).toLocaleString("es-PE")}` : ""}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-4 rounded-lg border border-blue-200 bg-blue-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="flex items-center gap-2 font-semibold text-[#0B2B5E]"><PenLine className="h-4 w-4" aria-hidden="true" /> Firma electrónica remota</p>
+                    <p className="mt-1 text-sm text-slate-600">Si el cliente no entregó el envío en oficina o no lo registró personalmente, puede firmarlo aquí con esta orden y código.</p>
+                  </div>
+                  <Button type="button" onClick={handleRequestSignature} disabled={requestSignatureMutation.isPending} className="shrink-0 bg-[#0B2B5E] text-white hover:bg-[#123d78]">
+                    <PenLine className="mr-2 h-4 w-4" aria-hidden="true" /> {requestSignatureMutation.isPending ? "Preparando…" : "Firmar electrónicamente"}
+                  </Button>
+                </div>
+              )}
+              {signatureError && !signatureDialogOpen && <p className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800" role="alert">{signatureError}</p>}
+
               <div className="flex flex-col gap-3 rounded-lg border border-[#0B2B5E]/15 bg-[#0B2B5E]/5 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="font-semibold">Recibo listo para imprimir</p>
@@ -87,6 +143,17 @@ export default function ReceiptPage() {
             </div>
           )}
         </Card>
+
+        <ElectronicSignatureDialog
+          open={signatureDialogOpen}
+          orderNumber={query.orderNumber}
+          code={query.code}
+          expiresAt={signatureExpiresAt}
+          isSubmitting={completeSignatureMutation.isPending}
+          errorMessage={signatureError}
+          onClose={() => { setSignatureDialogOpen(false); setSignatureError(""); }}
+          onSubmit={handleCompleteSignature}
+        />
 
         <p className="mt-5 text-center text-xs text-slate-500"><CheckCircle2 className="mr-1 inline h-3.5 w-3.5 text-emerald-600" aria-hidden="true" /> Recibo oficial de Servicom Internacional en colaboración con Kasega Tour E.I.R.L.</p>
       </div>

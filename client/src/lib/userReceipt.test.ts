@@ -5,6 +5,7 @@ import {
   buildReceiptTicketHtml,
   buildReceiptPrintStyles,
   buildReceiptUrl,
+  buildElectronicSignatureHtml,
   getPaymentStatusPresentation,
   printUserShipmentReceipt,
   resolveReceiptAssetUrl,
@@ -60,6 +61,21 @@ describe("receipt window helpers", () => {
     expect(ticket).toContain("PRECIO FINAL");
     expect(ticket).toContain("37.50 EUR");
     expect(styles).toContain(".ticket{break-inside:avoid;page-break-inside:avoid");
+  });
+
+  it("prints a persisted remote signature in blue with signer metadata", () => {
+    const html = buildElectronicSignatureHtml({
+      status: "signed",
+      signerName: "Ana Pérez",
+      signerDni: "70445566",
+      signedAt: new Date("2026-08-15T12:00:00.000Z"),
+      signatureStrokes: JSON.stringify([[{ x: 10, y: 20 }, { x: 80, y: 40 }]]),
+    }, "Remitente", "00000000");
+    expect(html).toContain("FIRMADO ELECTRÓNICAMENTE POR");
+    expect(html).toContain("Ana Pérez");
+    expect(html).toContain("70445566");
+    expect(html).toContain('stroke=\"#0B2B5E\"');
+    expect(html).toContain("2026");
   });
 
   it("prints Lima as destination for the reverse route", () => {

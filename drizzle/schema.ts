@@ -103,6 +103,26 @@ export const discountCoupons = mysqlTable("discount_coupons", {
 export type DiscountCoupon = typeof discountCoupons.$inferSelect;
 export type InsertDiscountCoupon = typeof discountCoupons.$inferInsert;
 
+/** Registro de firma electrónica remota, independiente de la cuenta de acceso del cliente. */
+export const shipmentSignatures = mysqlTable("shipment_signatures", {
+  id: int("id").autoincrement().primaryKey(),
+  shipmentId: int("shipmentId").notNull().unique(),
+  requestTokenHash: varchar("requestTokenHash", { length: 128 }).notNull().unique(),
+  requestTokenExpiresAt: timestamp("requestTokenExpiresAt").notNull(),
+  status: mysqlEnum("status", ["pending", "signed"]).default("pending").notNull(),
+  signerName: varchar("signerName", { length: 255 }),
+  signerDni: varchar("signerDni", { length: 20 }),
+  signatureStrokes: longtext("signatureStrokes"),
+  requestedAt: timestamp("requestedAt").defaultNow().notNull(),
+  signedAt: timestamp("signedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => ({
+  shipmentIdx: index("shipment_signatures_shipment_idx").on(table.shipmentId),
+}));
+export type ShipmentSignature = typeof shipmentSignatures.$inferSelect;
+export type InsertShipmentSignature = typeof shipmentSignatures.$inferInsert;
+
 export const shipments = mysqlTable("shipments", {
   id: int("id").autoincrement().primaryKey(),
   accountId: int("accountId"), // Propietario del envío (opcional para mantener compatibilidad con envíos públicos o de admin)
