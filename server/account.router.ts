@@ -13,6 +13,11 @@ import {
   updateLocalAccountProfile,
   getShipmentsByAccountId,
   createShipment,
+  deleteShipment,
+  getDeletedShipments,
+  getShipmentById,
+  recordInteractionEvent,
+  restoreShipment,
   updateLocalAccountPassword,
   upsertClient,
 } from "./db";
@@ -60,6 +65,8 @@ export const clientShipmentInputSchema = z.object({
   recipientDni: optionalDniSchema,
   recipientPhone: z.string().optional(),
   notes: z.string().optional(),
+  contentChecklist: z.array(z.string().trim().min(1).max(160)).max(24).min(1, "La lista de cosas enviadas es obligatoria."),
+  deliveryMode: z.literal("remoto").default("remoto"),
   documentCount: z.number().min(1).default(1),
   docType: z.enum(["simple", "apostillado"]).default("apostillado"),
   sheetCount: z.number().min(1).default(1),
@@ -100,6 +107,9 @@ export function buildClientShipmentPersistenceArgs(
     0,
     0,
     basePriceEur ?? null,
+    null,
+    JSON.stringify(input.contentChecklist),
+    input.deliveryMode,
   ] as const;
 }
 
@@ -235,6 +245,39 @@ export const accountRouter = router({
     }));
   }),
 
+  myDeletedShipments: publicProcedure.query(async ({ ctx }) => {
+    const session = await requireFreshAccountSession(ctx.req, "ver tus envíos eliminados");
+    const deleted = await getDeletedShipments();
+    const visible = deleted.filter(shipment => shipment.accountId === session.accountId && shipment.deletedByType === "account" && shipment.deletedById === session.accountId);
+    await recordInteractionEvent({ actorType: "account", actorId: session.accountId, eventName: "trash_viewed", surface: "account", metadata: { count: visible.length } });
+    return visible.map(s => ({ ...s, events: JSON.parse(s.events) }));
+  }),
+
+  deleteMyShipment: publicProcedure
+    .input(z.object({ shipmentId: z.number(), reason: z.string().trim().max(500).optional() }))
+    .mutation(async ({ input, ctx }) => {
+      const session = await requireFreshAccountSession(ctx.req, "eliminar un envío");
+      const shipment = await getShipmentById(input.shipmentId);
+      if (!shipment || shipment.accountId !== session.accountId) throw new TRPCError({ code: "NOT_FOUND", message: "Envío no encontrado." });
+      const deleted = await deleteShipment(input.shipmentId, { actorType: "account", actorId: session.accountId, actorLabel: "Cliente" }, input.reason || "Eliminación solicitada por el cliente");
+      if (!deleted) throw new TRPCError({ code: "CONFLICT", message: "El envío no pudo enviarse a la papelera." });
+      await recordInteractionEvent({ actorType: "account", actorId: session.accountId, eventName: "trash_deleted", surface: "account", metadata: { shipmentId: input.shipmentId } });
+      return { success: true };
+    }),
+
+  restoreMyShipment: publicProcedure
+    .input(z.object({ shipmentId: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const session = await requireFreshAccountSession(ctx.req, "restaurar un envío");
+      const deleted = await getDeletedShipments();
+      const shipment = deleted.find(item => item.id === input.shipmentId && item.accountId === session.accountId && item.deletedByType === "account" && item.deletedById === session.accountId);
+      if (!shipment) throw new TRPCError({ code: "NOT_FOUND", message: "El envío no está disponible para restauración." });
+      const restored = await restoreShipment(input.shipmentId, { actorType: "account", actorId: session.accountId, actorLabel: "Cliente" });
+      if (!restored) throw new TRPCError({ code: "CONFLICT", message: "El envío no pudo restaurarse." });
+      await recordInteractionEvent({ actorType: "account", actorId: session.accountId, eventName: "trash_restored", surface: "account", metadata: { shipmentType: shipment.shipmentType } });
+      return { success: true };
+    }),
+
   createMyShipment: publicProcedure
     .input(clientShipmentInputSchema)
     .mutation(async ({ input, ctx }) => {
@@ -272,6 +315,7 @@ export const accountRouter = router({
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No se pudo registrar el envío." });
       }
       const shipment = await getShipmentByOrderAndCode(orderNumber, code);
+      await recordInteractionEvent({ actorType: "account", actorId: session.accountId, eventName: "shipment_create_completed", surface: "account", metadata: { shipmentType: "documento", deliveryMode: input.deliveryMode } });
       return {
         success: true,
         message: "Envío registrado correctamente con orden y código automáticos.",

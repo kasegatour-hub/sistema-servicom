@@ -29,7 +29,7 @@ function publicContext(): TrpcContext {
   };
 }
 
-const shipment = { id: 81, orderNumber: "3520992723", code: "CA06721WB", events: "[]" } as any;
+const shipment = { id: 81, orderNumber: "3520992723", code: "CA06721WB", events: "[]", shipmentType: "documento", deliveryMode: "remoto" } as any;
 
 beforeEach(() => {
   vi.clearAllMocks();

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "wouter";
-import { ArrowLeft, CheckCircle2, Download, Eye, EyeOff, KeyRound, Lock, LogOut, Mail, Package, Plus, Printer, Search, User, UserPlus } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Download, Eye, EyeOff, KeyRound, Lock, LogOut, Mail, Package, Plus, Printer, RotateCcw, Search, Trash2, User, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -64,6 +64,7 @@ export default function AccountPage() {
   const [recipientDni, setRecipientDni] = useState("");
   const [recipientPhone, setRecipientPhone] = useState("+51 ");
   const [notes, setNotes] = useState("");
+  const [contentChecklist, setContentChecklist] = useState<string[]>([""]);
   const [identityErrors, setIdentityErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -98,6 +99,10 @@ export default function AccountPage() {
   const { data: myShipments, refetch: refetchShipments } = trpc.account.myShipments.useQuery(undefined, {
     enabled: !!me && !me.reauthRequired,
   });
+  const { data: myDeletedShipments, refetch: refetchDeletedShipments } = trpc.account.myDeletedShipments.useQuery(undefined, {
+    enabled: !!me && !me.reauthRequired,
+  });
+  const { data: myInsights } = trpc.analytics.myInsights.useQuery(undefined, { enabled: !!me && !me.reauthRequired });
 
   const registerMutation = trpc.account.register.useMutation({
     onSuccess: async () => {
@@ -171,9 +176,18 @@ export default function AccountPage() {
       setShowNewShipment(false);
       setDocumentCount(1);
       setNotes("");
+      setContentChecklist([""]);
       setReceiptShipment(result.shipment);
       refetchShipments();
     },
+    onError: error => toast.error(error.message),
+  });
+  const deleteMyShipmentMutation = trpc.account.deleteMyShipment.useMutation({
+    onSuccess: async () => { toast.success("Envío enviado a la papelera; puedes restaurarlo."); await refetchShipments(); await refetchDeletedShipments(); },
+    onError: error => toast.error(error.message),
+  });
+  const restoreMyShipmentMutation = trpc.account.restoreMyShipment.useMutation({
+    onSuccess: async () => { toast.success("Envío restaurado."); await refetchShipments(); await refetchDeletedShipments(); },
     onError: error => toast.error(error.message),
   });
 
@@ -400,6 +414,14 @@ export default function AccountPage() {
             <p className="mt-3 text-xs text-slate-500">También puedes recuperar la contraseña desde la pantalla de inicio de sesión mediante un código enviado por correo electrónico.</p>
           </Card>
 
+          {myInsights && (
+            <Card className="border-0 p-6 shadow-md">
+              <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-bold text-[#0B2B5E]">Resumen de uso</h2><p className="mt-1 text-xs text-slate-500">Análisis estadístico de tus acciones en los últimos {myInsights.windowDays} días; no analiza el contenido de tus documentos.</p></div><span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-bold text-[#0B2B5E]">Puntaje {myInsights.engagementScore}/100</span></div>
+              <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4"><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Interacciones</p><strong>{myInsights.totalEvents}</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Sesiones</p><strong>{myInsights.uniqueSessions}</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Continuidad</p><strong>{Math.round(myInsights.completionRate * 100)}%</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Actividad atípica</p><strong>{myInsights.anomalyScore}/100</strong></div></div>
+              <ul className="mt-4 space-y-1 text-sm text-slate-700">{myInsights.insights.map((insight: string) => <li key={insight}>• {insight}</li>)}</ul>
+            </Card>
+          )}
+
           {/* Mis Envíos y Registro */}
           <Card className="p-6 shadow-md border-0">
             <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
@@ -417,6 +439,11 @@ export default function AccountPage() {
             {showNewShipment && (
               <form onSubmit={(e) => {
                 e.preventDefault();
+                const normalizedChecklist = contentChecklist.map(item => item.trim()).filter(Boolean);
+                if (normalizedChecklist.length === 0) {
+                  toast.error("Agrega al menos un elemento a la lista de cosas enviadas.");
+                  return;
+                }
                 createShipmentMutation.mutate({
                   documentCount,
                    docType,
@@ -431,6 +458,8 @@ export default function AccountPage() {
                   recipientDni,
                   recipientPhone,
                   notes,
+                  contentChecklist: normalizedChecklist,
+                  deliveryMode: "remoto",
                 });
               }} className="bg-blue-50/50 p-4 rounded-xl mb-6 space-y-4 border border-blue-100">
                         <h3 className="font-bold text-[#0B2B5E]">Detalles del envío de documentos</h3>
@@ -494,9 +523,22 @@ export default function AccountPage() {
                       <PhoneInput value={recipientPhone} onChange={setRecipientPhone} placeholder="987654321" required />
                     </div>
                   </div>
+                  <div className="md:col-span-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                    <Label>Lista de cosas enviadas <span className="text-red-600">*</span></Label>
+                    <p className="mt-1 text-xs text-slate-600">Indica qué contiene el envío. Este campo es obligatorio; las notas son opcionales.</p>
+                    <div className="mt-2 space-y-2">
+                      {contentChecklist.map((item, index) => (
+                        <div key={index} className="flex gap-2">
+                          <Input value={item} onChange={e => setContentChecklist(items => items.map((current, itemIndex) => itemIndex === index ? e.target.value : current))} placeholder={`Elemento ${index + 1}`} className="bg-white" maxLength={160} required={index === 0} />
+                          <Button type="button" variant="outline" size="icon" aria-label={`Quitar elemento ${index + 1}`} onClick={() => setContentChecklist(items => items.length === 1 ? [""] : items.filter((_, itemIndex) => itemIndex !== index))}><Trash2 className="h-4 w-4" /></Button>
+                        </div>
+                      ))}
+                    </div>
+                    <Button type="button" variant="outline" className="mt-2" onClick={() => setContentChecklist(items => [...items, ""])}><Plus className="mr-2 h-4 w-4" /> Añadir elemento</Button>
+                  </div>
                   <div className="md:col-span-2">
-                    <Label>Notas / Contenido</Label>
-                    <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Descripción del contenido o instrucciones de entrega" className="mt-1 bg-white" />
+                    <Label>Notas (opcional)</Label>
+                    <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Instrucciones adicionales de entrega" className="mt-1 bg-white" />
                   </div>
                 </div>
                 <div className="flex justify-end gap-2">
@@ -539,9 +581,19 @@ export default function AccountPage() {
                         <Button size="sm" className="bg-[#0B2B5E] text-white hover:bg-[#123d78]"><Search className="mr-2 h-3.5 w-3.5" /> Rastrear envío</Button>
                       </Link>
                       <Button size="sm" variant="outline" onClick={() => setReceiptShipment(shipment)} className="border-[#F28C00] text-[#0B2B5E] hover:bg-orange-50"><Download className="mr-2 h-3.5 w-3.5" /> Ver recibo</Button>
+                      <Button size="sm" variant="outline" disabled={deleteMyShipmentMutation.isPending} onClick={() => { if (window.confirm("El envío se moverá a la papelera y podrás restaurarlo.")) deleteMyShipmentMutation.mutate({ shipmentId: shipment.id }); }} className="border-red-200 text-red-700 hover:bg-red-50"><Trash2 className="mr-2 h-3.5 w-3.5" /> Eliminar</Button>
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+            {myDeletedShipments && myDeletedShipments.length > 0 && (
+              <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="flex items-center gap-2"><Trash2 className="h-5 w-5 text-slate-500" /><h3 className="font-bold text-[#0B2B5E]">Papelera y recuperación</h3></div>
+                <p className="mt-1 text-xs text-slate-500">Los envíos eliminados se conservan con su historial y pueden restaurarse.</p>
+                <div className="mt-3 space-y-2">
+                  {myDeletedShipments.map(shipment => <div key={shipment.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-white p-3"><div><strong className="text-sm text-[#0B2B5E]">Orden {shipment.orderNumber}</strong><p className="text-xs text-slate-500">Eliminado el {shipment.deletedAt ? new Date(shipment.deletedAt).toLocaleString() : "fecha no disponible"}</p></div><Button size="sm" variant="outline" disabled={restoreMyShipmentMutation.isPending} onClick={() => restoreMyShipmentMutation.mutate({ shipmentId: shipment.id })}><RotateCcw className="mr-2 h-3.5 w-3.5" /> Restaurar</Button></div>)}
+                </div>
               </div>
             )}
           </Card>

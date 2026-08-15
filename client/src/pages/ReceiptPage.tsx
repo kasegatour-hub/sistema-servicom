@@ -50,7 +50,7 @@ export default function ReceiptPage() {
     }
   };
 
-  const handleCompleteSignature = async (input: { signerName: string; signerDni?: string; signatureStrokes: string }) => {
+  const handleCompleteSignature = async (input: { signerName: string; signerDni?: string; signerEmail?: string; signerPhone?: string; signatureStrokes: string }) => {
     setSignatureError("");
     try {
       await completeSignatureMutation.mutateAsync({ ...query, token: signatureToken, ...input });
@@ -107,27 +107,31 @@ export default function ReceiptPage() {
                 <p className="md:col-span-2"><strong>Dirección de entrega:</strong> {routePresentation.destination.address}</p>
                 <p className="md:col-span-2"><strong>Contacto de sede:</strong> {formatPhoneNumber(routePresentation.destination.phone) || routePresentation.destination.phone}</p>
                 <p className="md:col-span-2"><strong>Estado de Pago:</strong> <span className={`ml-1 inline-flex rounded px-2 py-0.5 font-semibold ${paymentUi.badgeClass}`}>{paymentUi.label}</span></p>
+                <p className="md:col-span-2"><strong>Modalidad:</strong> {shipment.deliveryMode === "remoto" ? "Envío remoto con firma electrónica" : "Entrega en agencia"}</p>
                 <div className="md:col-span-2 rounded-md border-l-4 border-[#F28C00] bg-orange-50 px-4 py-3"><span className="block text-xs font-bold uppercase tracking-wide text-slate-600">Precio final</span><strong className="text-xl font-extrabold text-orange-700">{priceUi?.finalLabel}</strong>{priceUi?.hasDiscount && <span className="ml-2 text-xs font-medium text-slate-600">Precio base {priceUi.baseLabel} · descuento {priceUi.discountPercent.toFixed(0)}%</span>}</div>
               </div>
 
-              {shipment.signature?.status === "signed" ? (
+              {shipment.deliveryMode === "remoto" ? (shipment.signature?.status === "signed" ? (
                 <div className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-900">
                   <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" aria-hidden="true" />
                   <div>
                     <p className="font-semibold">Firma electrónica registrada</p>
                     <p className="text-sm">Firmante: {shipment.signature.signerName || "Cliente"}{shipment.signature.signedAt ? ` · ${new Date(shipment.signature.signedAt).toLocaleString("es-PE")}` : ""}</p>
+                    <p className="mt-1 text-xs text-emerald-800">La evidencia conserva consentimiento versionado, fecha de firma y huella criptográfica para verificación posterior.</p>
                   </div>
                 </div>
               ) : (
                 <div className="flex flex-col gap-4 rounded-lg border border-blue-200 bg-blue-50 p-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="flex items-center gap-2 font-semibold text-[#0B2B5E]"><PenLine className="h-4 w-4" aria-hidden="true" /> Firma electrónica remota</p>
-                    <p className="mt-1 text-sm text-slate-600">Si el cliente no entregó el envío en oficina o no lo registró personalmente, puede firmarlo aquí con esta orden y código.</p>
+                    <p className="mt-1 text-sm text-slate-600">Este envío fue marcado como remoto. El cliente puede firmar con su orden y código; se conservará la evidencia técnica del consentimiento.</p>
                   </div>
                   <Button type="button" onClick={handleRequestSignature} disabled={requestSignatureMutation.isPending} className="shrink-0 bg-[#0B2B5E] text-white hover:bg-[#123d78]">
                     <PenLine className="mr-2 h-4 w-4" aria-hidden="true" /> {requestSignatureMutation.isPending ? "Preparando…" : "Firmar electrónicamente"}
                   </Button>
                 </div>
+              )) : (
+                <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 text-slate-700"><CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-slate-500" aria-hidden="true" /><div><p className="font-semibold">Entrega en agencia</p><p className="text-sm">Este envío se completa presencialmente en la agencia; no requiere firma remota desde este recibo.</p></div></div>
               )}
               {signatureError && !signatureDialogOpen && <p className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800" role="alert">{signatureError}</p>}
 

@@ -21,6 +21,7 @@ const shipment = {
   recipientName: "Marco",
   recipientLastName: "Rossi",
   recipientPhone: "+39 351 000 000",
+  deliveryMode: "remoto",
 };
 
 vi.mock("@/lib/trpc", () => ({

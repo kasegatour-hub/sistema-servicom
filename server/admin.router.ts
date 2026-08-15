@@ -7,7 +7,7 @@ function buildTrackingPath(orderNumber: string, code: string): string {
   return `/?order=${encodeURIComponent(order)}&code=${encodeURIComponent(normalizedCode)}`;
 }
 import { publicProcedure, router } from "./_core/trpc";
-import { createDiscountCoupon, createShipment, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAllShipments, getDiscountCouponByCode, getShipmentRoutePolicy, incrementDiscountCouponRedemption, isEncomiendaEnabledForRoute, listDiscountCoupons, searchClients, setEncomiendaAvailabilityForRoute, updateDiscountCoupon, updateShipmentStatus } from "./db";
+import { createDiscountCoupon, createShipment, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAllShipments, getDeletedShipments, getDiscountCouponByCode, getShipmentAuditLogs, getShipmentById, getShipmentRoutePolicy, incrementDiscountCouponRedemption, isEncomiendaEnabledForRoute, listDiscountCoupons, recordInteractionEvent, recordShipmentAudit, restoreShipment, searchClients, setEncomiendaAvailabilityForRoute, updateDiscountCoupon, updateShipmentStatus } from "./db";
 import { hashPassword, verifyPassword } from "./localAuth";
 import { AdminSessionPayload, clearAdminSession, getAdminSession, setAdminSession } from "./adminSession";
 import { admins } from "../drizzle/schema";
@@ -259,6 +259,36 @@ export const adminRouter = router({
       }));
     }),
 
+  listDeletedShipments: adminProcedure
+    .input(z.object({ shipmentType: z.enum(["documento", "encomienda"]).optional() }).optional())
+    .query(async ({ input, ctx }) => {
+      const deleted = await getDeletedShipments(input?.shipmentType);
+      const visible = ctx.adminSession.role === "superadmin"
+        ? deleted
+        : deleted.filter(shipment => shipment.deletedByType === "admin" && shipment.deletedById === ctx.adminSession.adminId);
+      await recordInteractionEvent({ actorType: "admin", actorId: ctx.adminSession.adminId, eventName: "trash_viewed", surface: "admin", metadata: { count: visible.length } });
+      return visible.map(shipment => ({ ...shipment, events: JSON.parse(shipment.events) }));
+    }),
+
+  restoreShipment: adminProcedure
+    .input(z.object({ shipmentId: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const deleted = await getDeletedShipments();
+      const shipment = deleted.find(item => item.id === input.shipmentId);
+      if (!shipment) throw new TRPCError({ code: "NOT_FOUND", message: "El envío no está en la papelera." });
+      if (ctx.adminSession.role !== "superadmin" && (shipment.deletedByType !== "admin" || shipment.deletedById !== ctx.adminSession.adminId)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Solo puedes restaurar envíos que tú eliminaste." });
+      }
+      const restored = await restoreShipment(input.shipmentId, { actorType: "admin", actorId: ctx.adminSession.adminId, actorLabel: ctx.adminSession.role });
+      if (!restored) throw new TRPCError({ code: "CONFLICT", message: "El envío no pudo restaurarse." });
+      await recordInteractionEvent({ actorType: "admin", actorId: ctx.adminSession.adminId, eventName: "trash_restored", surface: "admin", metadata: { shipmentType: shipment.shipmentType } });
+      return { success: true };
+    }),
+
+  shipmentAudit: adminProcedure
+    .input(z.object({ shipmentId: z.number() }))
+    .query(async ({ input }) => getShipmentAuditLogs(input.shipmentId)),
+
   searchClients: adminProcedure
     .input(z.object({ query: z.string().trim().min(2), limit: z.number().int().min(1).max(20).default(8) }))
     .query(async ({ input }) => searchClients(input.query, input.limit)),
@@ -290,9 +320,10 @@ export const adminRouter = router({
       originAddress: z.string().optional(),
       destinationAddress: z.string().optional(),
       couponCode: z.string().trim().max(64).optional(),
-      contentChecklist: z.array(z.string().trim().min(1).max(160)).max(24).default([]),
+      contentChecklist: z.array(z.string().trim().min(1).max(160)).max(24).min(1, "La lista de cosas enviadas es obligatoria."),
+      deliveryMode: z.enum(["agencia", "remoto"]).default("agencia"),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       if (input.shipmentType === "encomienda" && input.route === "Lima - Torino" && !await isEncomiendaEnabledForRoute(input.route)) {
         throw new TRPCError({
           code: "FORBIDDEN",
@@ -348,6 +379,7 @@ export const adminRouter = router({
         discount.finalPriceEur,
         input.shipmentType === "documento" && pricing.additionalDocuments.items.length ? JSON.stringify(pricing.additionalDocuments.items) : null,
         input.contentChecklist.length ? JSON.stringify(input.contentChecklist) : null,
+        input.deliveryMode,
       );
       if (!result) {
         throw new TRPCError({
@@ -356,6 +388,7 @@ export const adminRouter = router({
         });
       }
       if (coupon) await incrementDiscountCouponRedemption(coupon.id);
+      await recordInteractionEvent({ actorType: "admin", actorId: ctx.adminSession.adminId, eventName: "shipment_create_completed", surface: "admin", metadata: { shipmentType: input.shipmentType, deliveryMode: input.deliveryMode } });
       const trackingUrl = buildTrackingPath(orderNumber, code);
       return {
         success: true,
@@ -392,8 +425,16 @@ export const adminRouter = router({
       route: z.string().optional(),
       originAddress: z.string().optional(),
       destinationAddress: z.string().optional(),
+      deliveryMode: z.enum(["agencia", "remoto"]).optional(),
+      pricingMode: z.enum(["estandar", "manual"]).default("estandar"),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      const currentShipment = await getShipmentById(input.shipmentId);
+      if (!currentShipment) throw new TRPCError({ code: "NOT_FOUND", message: "Envío no encontrado o eliminado." });
+      const effectiveType = input.shipmentType ?? currentShipment.shipmentType;
+      const isParcel = effectiveType === "encomienda";
+      const effectiveWeight = input.weightKg ?? Number(currentShipment.weightKg ?? 1);
+      const pricing = isParcel ? calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: effectiveWeight, manualPriceEur: input.pricingMode === "manual" ? input.manualPriceEur : null }) : null;
       const result = await updateShipmentStatus(
         input.shipmentId,
         input.newStatus,
@@ -409,11 +450,17 @@ export const adminRouter = router({
         input.notes,
         input.shipmentType,
         input.weightKg,
-        input.manualPriceEur,
+        pricing ? pricing.manualPrice : input.manualPriceEur,
         input.paymentStatus,
         input.route,
         input.originAddress,
-        input.destinationAddress
+        input.destinationAddress,
+        undefined,
+        pricing ? pricing.totalEur : undefined,
+        pricing ? 0 : undefined,
+        pricing ? 0 : undefined,
+        pricing ? pricing.totalEur : undefined,
+        input.deliveryMode,
       );
       if (!result) {
         throw new TRPCError({
@@ -421,20 +468,30 @@ export const adminRouter = router({
           message: 'Encomienda no encontrada',
         });
       }
-      return { success: true };
+      const updated = await getShipmentById(input.shipmentId);
+      await recordShipmentAudit({
+        shipmentId: input.shipmentId,
+        action: pricing ? "price_updated" : "updated",
+        actor: { actorType: "admin", actorId: ctx.adminSession.adminId, actorLabel: ctx.adminSession.role },
+        metadata: { newStatus: input.newStatus, pricingMode: input.pricingMode, deliveryMode: input.deliveryMode ?? null },
+        snapshot: updated,
+      });
+      await recordInteractionEvent({ actorType: "admin", actorId: ctx.adminSession.adminId, eventName: pricing ? "price_update_completed" : "shipment_update_completed", surface: "admin", metadata: { shipmentType: effectiveType, pricingMode: input.pricingMode } });
+      return { success: true, finalPriceEur: pricing?.totalEur ?? null };
     }),
 
   deleteShipment: adminProcedure
-    .input(z.object({ id: z.number() }))
-    .mutation(async ({ input }) => {
-      const result = await deleteShipment(input.id);
+    .input(z.object({ id: z.number(), reason: z.string().trim().max(500).optional() }))
+    .mutation(async ({ input, ctx }) => {
+      const result = await deleteShipment(input.id, { actorType: "admin", actorId: ctx.adminSession.adminId, actorLabel: ctx.adminSession.role }, input.reason || "Eliminación solicitada por el operador");
       if (!result) {
         throw new TRPCError({
           code: 'NOT_FOUND',
-          message: 'Encomienda eliminada exitosamente',
+          message: 'El envío no existe o ya está en la papelera.',
         });
       }
-      return { success: true, message: 'Encomienda eliminada exitosamente' };
+      await recordInteractionEvent({ actorType: "admin", actorId: ctx.adminSession.adminId, eventName: "trash_deleted", surface: "admin", metadata: { shipmentId: input.id } });
+      return { success: true, message: 'Envío enviado a la papelera. Puede restaurarse.' };
     }),
 
   listAdmins: masterAdminProcedure.query(async () => {

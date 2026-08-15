@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   createShipment: { isPending: false, mutateAsync: vi.fn() },
   updateStatus: { isPending: false, mutateAsync: vi.fn() },
   deleteShipment: { isPending: false, mutateAsync: vi.fn() },
+  restoreShipment: { isPending: false, mutate: vi.fn() },
   createAdmin: { isPending: false, mutateAsync: vi.fn() },
   deleteAdmin: { isPending: false, mutateAsync: vi.fn() },
   deactivateAdmin: { isPending: false, mutateAsync: vi.fn() },
@@ -40,6 +41,7 @@ vi.mock("@/lib/trpc", () => ({
     admin: {
       me: { useQuery: () => ({ data: null, isLoading: false, refetch: mocks.refetchAdminSession }) },
       getAllShipments: { useQuery: () => ({ data: [], isLoading: false, refetch: mocks.refetchShipments }) },
+      listDeletedShipments: { useQuery: () => ({ data: [], isLoading: false, refetch: vi.fn() }) },
       listAdmins: { useQuery: () => ({ data: [], isLoading: false, refetch: mocks.refetchAdminUsers }) },
       listCoupons: { useQuery: () => ({ data: mocks.listCoupons.data, isLoading: false, refetch: mocks.refetchCoupons }) },
       getLimaTorinoEncomiendaPolicy: { useQuery: () => ({ data: mocks.limaTorinoPolicy.data, isLoading: false, refetch: mocks.limaTorinoPolicy.refetch }) },
@@ -49,6 +51,7 @@ vi.mock("@/lib/trpc", () => ({
       createShipment: { useMutation: () => mocks.createShipment },
       updateStatus: { useMutation: () => mocks.updateStatus },
       deleteShipment: { useMutation: () => mocks.deleteShipment },
+      restoreShipment: { useMutation: () => mocks.restoreShipment },
       createAdmin: { useMutation: () => mocks.createAdmin },
       deleteAdmin: { useMutation: () => mocks.deleteAdmin },
       deactivateAdmin: { useMutation: () => mocks.deactivateAdmin },
@@ -58,6 +61,9 @@ vi.mock("@/lib/trpc", () => ({
       setLimaTorinoEncomiendasEnabled: { useMutation: () => mocks.setLimaTorinoEncomiendasEnabled },
       changeMyPassword: { useMutation: () => mocks.changeMyPassword },
       reauthenticate: { useMutation: () => mocks.reauthenticate },
+    },
+    analytics: {
+      adminInsights: { useQuery: () => ({ data: null }) },
     },
   },
 }));
@@ -154,6 +160,8 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
         await waitFor(() => expect(screen.getByRole("button", { name: "Nuevo documento" })).toBeTruthy());
     fireEvent.click(screen.getByRole("button", { name: "Nuevo documento" }));
+    fireEvent.click(screen.getByRole("button", { name: "Añadir ítem" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Ítem de checklist 1" }), { target: { value: "Documento principal" } });
     fireEvent.click(screen.getByRole("button", { name: "Crear Documento" }));
     await waitFor(() => expect(mocks.createShipment.mutateAsync).toHaveBeenCalledTimes(1));
     expect(mocks.createShipment.mutateAsync.mock.calls[0][0]).toMatchObject({
@@ -167,6 +175,8 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.click(screen.getByRole("button", { name: "Nueva encomienda" }));
     fireEvent.change(screen.getByDisplayValue("1"), { target: { value: "2.5" } });
     fireEvent.change(screen.getByPlaceholderText("Ej. 75.00"), { target: { value: "40" } });
+    fireEvent.click(screen.getByRole("button", { name: "Añadir ítem" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Ítem de checklist 1" }), { target: { value: "Paquete sellado" } });
     fireEvent.click(screen.getByRole("button", { name: "Crear Encomienda" }));
 
     await waitFor(() => expect(mocks.createShipment.mutateAsync).toHaveBeenCalledTimes(2));

@@ -11,6 +11,9 @@ vi.mock("@/lib/trpc", () => ({
     account: {
       me: { useQuery: () => ({ data: { email: "cliente@example.com", name: "Ana", lastName: "López", dni: "71234567", phone: "+51 970188447", reauthRequired: false }, isLoading: false }) },
       myShipments: { useQuery: () => ({ data: [], refetch: vi.fn() }) },
+      myDeletedShipments: { useQuery: () => ({ data: [], refetch: vi.fn() }) },
+      deleteMyShipment: { useMutation: mutation },
+      restoreMyShipment: { useMutation: mutation },
       register: { useMutation: mutation },
       login: { useMutation: mutation },
       logout: { useMutation: mutation },
@@ -20,6 +23,9 @@ vi.mock("@/lib/trpc", () => ({
       createMyShipment: { useMutation: mutation },
       requestPasswordReset: { useMutation: mutation },
       resetPassword: { useMutation: mutation },
+    },
+    analytics: {
+      myInsights: { useQuery: () => ({ data: null }) },
     },
   },
 }));

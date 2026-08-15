@@ -282,3 +282,16 @@
 - [x] Corregir los títulos del comprobante para que reflejen Documento o Encomienda y no dupliquen encabezados incorrectos
 - [x] Añadir migración, pruebas de seguridad y cobertura de ruta, restricciones, precios, checklist, cupones y recibos
 - [x] Ejecutar suite completa, compilación y verificación responsive antes del checkpoint
+
+## Recuperación, analítica y control reforzado solicitados
+- [x] Convertir la eliminación de envíos en papelera reversible con fecha, actor y motivo
+- [x] Crear panel de eliminados para Master Admin con historial, búsqueda y restauración
+- [x] Permitir al Registrador recuperar sus propios envíos eliminados según permisos
+- [x] Mantener respaldo lógico/auditoría de cada envío y evitar borrado físico accidental
+- [x] Registrar eventos de interacción con privacidad y mostrar insights explicables a usuarios y administradores
+- [x] Exigir checklist de contenido como requisito mínimo y conservar notas como campo opcional
+- [x] Distinguir entrega en agencia y envío remoto para aplicar correctamente la firma electrónica
+- [x] Reforzar la evidencia de firma remota con consentimiento, documento, fecha, token y registro de auditoría
+- [x] Permitir actualizar peso, tarifa estándar o precio manual desde Actualizar Estado de Encomienda
+- [x] Añadir pruebas de papelera, restauración, auditoría, analítica, validaciones, firma y actualización de precios
+- [x] Ejecutar suite completa, compilación, verificación responsive y guardar checkpoint

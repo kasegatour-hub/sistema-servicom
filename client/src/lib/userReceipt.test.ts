@@ -49,6 +49,7 @@ describe("receipt window helpers", () => {
       shipmentType: "documento",
       price: { basePriceEur: 50, finalPriceEur: 37.5, discountPercent: 25, discountAmountEur: 12.5 },
       route: "Lima - Torino",
+      contentChecklist: ["1 documento apostillado", "<contenido no ejecutable>"],
     });
     const styles = buildReceiptPrintStyles();
 
@@ -58,6 +59,9 @@ describe("receipt window helpers", () => {
     expect(ticket).toContain("CELULAR DESTINATARIA:");
     expect(ticket).toContain("REMITENTE:");
     expect(ticket).toContain("NOTAS:");
+    expect(ticket).toContain("LISTA DE COSAS ENVIADAS:");
+    expect(ticket).toContain("1 documento apostillado");
+    expect(ticket).toContain("&lt;contenido no ejecutable&gt;");
     expect(ticket).toContain("PRECIO FINAL");
     expect(ticket).toContain("37.50 EUR");
     expect(styles).toContain(".ticket{break-inside:avoid;page-break-inside:avoid");

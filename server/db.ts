@@ -1,6 +1,7 @@
-import { and, asc, desc, eq, gt, isNull, like, or } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, isNotNull, isNull, like, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, shipments, shipmentSignatures, admins, localAccounts, verificationCodes, clients, discountCoupons, shipmentRoutePolicies } from "../drizzle/schema";
+import { createHash } from "node:crypto";
+import { InsertUser, users, shipments, shipmentSignatures, shipmentAuditLogs, interactionEvents, admins, localAccounts, verificationCodes, clients, discountCoupons, shipmentRoutePolicies } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { buildShipmentClientDirectoryRecords, type ClientDirectoryRecord, type ShipmentClientDirectoryInput } from "./clientDirectory";
 
@@ -112,7 +113,8 @@ export async function getShipmentByOrderAndCode(orderNumber: string, code: strin
     .where(
       and(
         eq(shipments.orderNumber, normalizedOrder),
-        eq(shipments.code, normalizedCode)
+        eq(shipments.code, normalizedCode),
+        isNull(shipments.deletedAt)
       )
     )
     .limit(1);
@@ -130,7 +132,7 @@ export async function getShipmentById(id: number) {
   const result = await db
     .select()
     .from(shipments)
-    .where(eq(shipments.id, id))
+    .where(and(eq(shipments.id, id), isNull(shipments.deletedAt)))
     .limit(1);
 
   return result.length > 0 ? result[0] : undefined;
@@ -160,6 +162,11 @@ export async function createOrRefreshShipmentSignatureRequest(input: {
       status: "pending",
       signerName: null,
       signerDni: null,
+      signerEmail: null,
+      signerPhone: null,
+      consentTextVersion: null,
+      consentAcceptedAt: null,
+      evidenceHash: null,
       signatureStrokes: null,
       requestedAt: new Date(),
       signedAt: null,
@@ -181,6 +188,10 @@ export async function completeShipmentSignature(input: {
   tokenHash: string;
   signerName: string;
   signerDni?: string | null;
+  signerEmail?: string | null;
+  signerPhone?: string | null;
+  consentTextVersion: string;
+  consentAcceptedAt: Date;
   signatureStrokes: string;
   signedAt?: Date;
 }) {
@@ -196,10 +207,16 @@ export async function completeShipmentSignature(input: {
   const record = rows[0];
   if (!record) return undefined;
 
+  const evidenceHash = createHash("sha256").update(JSON.stringify({ shipmentId: input.shipmentId, signerName: input.signerName, signerDni: input.signerDni || null, signerEmail: input.signerEmail || null, signerPhone: input.signerPhone || null, consentTextVersion: input.consentTextVersion, consentAcceptedAt: input.consentAcceptedAt.toISOString(), signatureStrokes: input.signatureStrokes })).digest("hex");
   await db.update(shipmentSignatures).set({
     status: "signed",
     signerName: input.signerName,
     signerDni: input.signerDni || null,
+    signerEmail: input.signerEmail || null,
+    signerPhone: input.signerPhone || null,
+    consentTextVersion: input.consentTextVersion,
+    consentAcceptedAt: input.consentAcceptedAt,
+    evidenceHash,
     signatureStrokes: input.signatureStrokes,
     signedAt: now,
     updatedAt: new Date(),
@@ -207,7 +224,9 @@ export async function completeShipmentSignature(input: {
     eq(shipmentSignatures.id, record.id),
     eq(shipmentSignatures.status, "pending"),
   ));
-  return getShipmentSignatureByShipmentId(input.shipmentId);
+  const saved = await getShipmentSignatureByShipmentId(input.shipmentId);
+  await recordShipmentAudit({ shipmentId: input.shipmentId, action: "signature_completed", actor: { actorType: "public", actorLabel: input.signerName }, metadata: { consentTextVersion: input.consentTextVersion, evidenceHash }, snapshot: saved });
+  return saved;
 }
 
 export async function getAdminByEmail(email: string) {
@@ -311,7 +330,69 @@ export async function updateLocalAccountProfile(id: number, name: string, lastNa
 export async function getShipmentsByAccountId(accountId: number) {
   const db = await getDb();
   if (!db) return [];
-  return await db.select().from(shipments).where(eq(shipments.accountId, accountId)).orderBy(desc(shipments.createdAt));
+  return await db.select().from(shipments).where(and(eq(shipments.accountId, accountId), isNull(shipments.deletedAt))).orderBy(desc(shipments.createdAt));
+}
+
+export type ShipmentAuditActor = {
+  actorType: "admin" | "account" | "public" | "system";
+  actorId?: number | null;
+  actorLabel?: string | null;
+};
+
+export async function recordShipmentAudit(input: {
+  shipmentId: number;
+  action: "created" | "updated" | "deleted" | "restored" | "price_updated" | "signature_requested" | "signature_completed";
+  actor: ShipmentAuditActor;
+  reason?: string | null;
+  snapshot?: unknown;
+  metadata?: unknown;
+}) {
+  const db = await getDb();
+  if (!db) return false;
+  await db.insert(shipmentAuditLogs).values({
+    shipmentId: input.shipmentId,
+    action: input.action,
+    actorType: input.actor.actorType,
+    actorId: input.actor.actorId ?? null,
+    actorLabel: input.actor.actorLabel ?? null,
+    reason: input.reason ?? null,
+    snapshot: input.snapshot === undefined ? null : JSON.stringify(input.snapshot),
+    metadata: input.metadata === undefined ? null : JSON.stringify(input.metadata),
+  });
+  return true;
+}
+
+export async function getShipmentAuditLogs(shipmentId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(shipmentAuditLogs).where(eq(shipmentAuditLogs.shipmentId, shipmentId)).orderBy(desc(shipmentAuditLogs.createdAt));
+}
+
+export async function recordInteractionEvent(input: {
+  actorType: "anonymous" | "account" | "admin" | "system";
+  actorId?: number | null;
+  sessionKeyHash?: string | null;
+  eventName: string;
+  surface: string;
+  metadata?: Record<string, string | number | boolean | null>;
+}) {
+  const db = await getDb();
+  if (!db) return false;
+  await db.insert(interactionEvents).values({
+    actorType: input.actorType,
+    actorId: input.actorId ?? null,
+    sessionKeyHash: input.sessionKeyHash ?? null,
+    eventName: input.eventName,
+    surface: input.surface,
+    metadata: input.metadata ? JSON.stringify(input.metadata) : null,
+  });
+  return true;
+}
+
+export async function listInteractionEvents(since: Date) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(interactionEvents).where(gte(interactionEvents.createdAt, since)).orderBy(desc(interactionEvents.createdAt));
 }
 
 export async function updateLocalAccountPassword(id: number, passwordHash: string, channel: "email" | "sms") {
@@ -478,10 +559,19 @@ export async function getAllShipments(shipmentType?: "documento" | "encomienda")
     return [];
   }
 
-  if (shipmentType) {
-    return await db.select().from(shipments).where(eq(shipments.shipmentType, shipmentType));
-  }
-  return await db.select().from(shipments);
+  const activeCondition = shipmentType
+    ? and(eq(shipments.shipmentType, shipmentType), isNull(shipments.deletedAt))
+    : isNull(shipments.deletedAt);
+  return await db.select().from(shipments).where(activeCondition);
+}
+
+export async function getDeletedShipments(shipmentType?: "documento" | "encomienda") {
+  const db = await getDb();
+  if (!db) return [];
+  const deletedCondition = shipmentType
+    ? and(eq(shipments.shipmentType, shipmentType), isNotNull(shipments.deletedAt))
+    : isNotNull(shipments.deletedAt);
+  return await db.select().from(shipments).where(deletedCondition).orderBy(desc(shipments.deletedAt));
 }
 
 export async function createShipment(
@@ -512,6 +602,7 @@ export async function createShipment(
   finalPriceEur?: string | number | null,
   documentItems?: string | null,
   contentChecklist?: string | null,
+  deliveryMode?: "agencia" | "remoto",
 ) {
   const db = await getDb();
   if (!db) {
@@ -560,6 +651,7 @@ export async function createShipment(
     destinationAddress: destinationAddress || "",
     documentItems: documentItems || null,
     contentChecklist: contentChecklist || null,
+    deliveryMode: deliveryMode || "agencia",
   });
 
   // El directorio de clientes no depende de la cuenta de acceso y no se elimina con ella.
@@ -573,6 +665,12 @@ export async function createShipment(
     recipientDni,
     recipientPhone,
   });
+
+  const insertedId = Number((result as any)?.insertId ?? 0);
+  if (insertedId > 0) {
+    const createdShipment = await getShipmentRecordById(insertedId);
+    await recordShipmentAudit({ shipmentId: insertedId, action: "created", actor: { actorType: accountId ? "account" : "system", actorId: accountId ?? null }, snapshot: createdShipment });
+  }
 
   return result;
 }
@@ -601,7 +699,8 @@ export async function updateShipmentStatus(
   basePriceEur?: string | number | null,
   discountPercent?: string | number | null,
   discountAmountEur?: string | number | null,
-  finalPriceEur?: string | number | null
+  finalPriceEur?: string | number | null,
+  deliveryMode?: "agencia" | "remoto"
 ) {
   const db = await getDb();
   if (!db) {
@@ -656,6 +755,7 @@ export async function updateShipmentStatus(
         route: route ?? shipment.route ?? "Lima - Torino",
         originAddress: originAddress ?? shipment.originAddress ?? "",
         destinationAddress: destinationAddress ?? shipment.destinationAddress ?? "",
+        deliveryMode: deliveryMode ?? shipment.deliveryMode ?? "agencia",
         updatedAt: new Date(),
       })
       .where(eq(shipments.id, id));
@@ -668,7 +768,14 @@ export async function updateShipmentStatus(
   }
 }
 
-export async function deleteShipment(id: number) {
+async function getShipmentRecordById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const rows = await db.select().from(shipments).where(eq(shipments.id, id)).limit(1);
+  return rows[0];
+}
+
+export async function deleteShipment(id: number, actor: ShipmentAuditActor = { actorType: "system" }, reason = "Eliminación solicitada") {
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot delete shipment: database not available");
@@ -676,10 +783,35 @@ export async function deleteShipment(id: number) {
   }
 
   try {
-    const result = await db.delete(shipments).where(eq(shipments.id, id));
+    const shipment = await getShipmentRecordById(id);
+    if (!shipment || shipment.deletedAt) return false;
+    await db.update(shipments).set({
+      deletedAt: new Date(),
+      deletedByType: actor.actorType === "public" ? "system" : actor.actorType,
+      deletedById: actor.actorId ?? null,
+      deleteReason: reason,
+      updatedAt: new Date(),
+    }).where(eq(shipments.id, id));
+    await recordShipmentAudit({ shipmentId: id, action: "deleted", actor, reason, snapshot: shipment });
     return true;
   } catch (error) {
-    console.error("[Database] Error deleting shipment:", error);
+    console.error("[Database] Error moving shipment to trash:", error);
     return false;
   }
+}
+
+export async function restoreShipment(id: number, actor: ShipmentAuditActor = { actorType: "system" }) {
+  const db = await getDb();
+  if (!db) return false;
+  const shipment = await getShipmentRecordById(id);
+  if (!shipment || !shipment.deletedAt) return false;
+  await db.update(shipments).set({
+    deletedAt: null,
+    deletedByType: null,
+    deletedById: null,
+    deleteReason: null,
+    updatedAt: new Date(),
+  }).where(eq(shipments.id, id));
+  await recordShipmentAudit({ shipmentId: id, action: "restored", actor, snapshot: shipment });
+  return true;
 }

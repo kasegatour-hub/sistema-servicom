@@ -12,7 +12,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import { Lock, LogOut, Plus, RefreshCw, Download, Printer, Search } from "lucide-react";
+import { Lock, LogOut, Plus, RefreshCw, Download, Printer, RotateCcw, Search, Trash2 } from "lucide-react";
 import QRCode from "qrcode";
 import { buildTrackingUrl, TRACKING_QR_OPTIONS } from "@/lib/tracking";
 import { PhoneInput } from "@/components/PhoneInput";
@@ -193,6 +193,7 @@ const createShipmentSchema = z.object({
     manualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
   })).default([]),
   contentChecklist: z.array(z.string().trim().min(1).max(160)).default([]),
+  deliveryMode: z.enum(["agencia", "remoto"]).default("agencia"),
 });
 
 const updateStatusSchema = z.object({
@@ -212,6 +213,10 @@ const updateStatusSchema = z.object({
   route: z.string().optional(),
   originAddress: z.string().optional(),
   destinationAddress: z.string().optional(),
+  weightKg: z.number().min(0.1).optional(),
+  manualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
+  deliveryMode: z.enum(["agencia", "remoto"]).optional(),
+  pricingMode: z.enum(["estandar", "manual"]).optional(),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
@@ -255,6 +260,8 @@ export default function AdminDashboard() {
   const { data: coupons = [], refetch: refetchCoupons } = trpc.admin.listCoupons.useQuery(undefined, { enabled: isLoggedIn && !admin?.reauthRequired });
   const { data: limaTorinoPolicy, refetch: refetchLimaTorinoPolicy } = trpc.admin.getLimaTorinoEncomiendaPolicy.useQuery(undefined, { enabled: isLoggedIn && !admin?.reauthRequired });
   const { data: shipments, isLoading: loadingShipments, refetch: refetchShipments } = trpc.admin.getAllShipments.useQuery(undefined, { enabled: isLoggedIn && !admin?.reauthRequired });
+  const { data: deletedShipments = [], refetch: refetchDeletedShipments } = trpc.admin.listDeletedShipments.useQuery(undefined, { enabled: isLoggedIn && !admin?.reauthRequired });
+  const { data: adminInsights } = trpc.analytics.adminInsights.useQuery(undefined, { enabled: isLoggedIn && !admin?.reauthRequired });
   const { data: adminUsers, refetch: refetchAdminUsers } = trpc.admin.listAdmins.useQuery(undefined, { enabled: isLoggedIn && admin?.role === "superadmin" && !admin?.reauthRequired });
   const { data: senderClientResults = [], isFetching: isSearchingSender } = trpc.admin.searchClients.useQuery(
     { query: senderClientQuery.trim(), limit: 8 },
@@ -285,6 +292,10 @@ export default function AdminDashboard() {
   const createMutation = trpc.admin.createShipment.useMutation();
   const updateMutation = trpc.admin.updateStatus.useMutation();
   const deleteMutation = trpc.admin.deleteShipment.useMutation();
+  const restoreMutation = trpc.admin.restoreShipment.useMutation({
+    onSuccess: async () => { toast.success("Envío restaurado correctamente."); await refetchDeletedShipments(); await refetchShipments(); },
+    onError: error => toast.error(error.message),
+  });
   const createAdminMutation = trpc.admin.createAdmin.useMutation();
   const deleteAdminMutation = trpc.admin.deleteAdmin.useMutation();
   const deactivateAdminMutation = trpc.admin.deactivateAdmin.useMutation();
@@ -393,6 +404,10 @@ export default function AdminDashboard() {
       route: 'Lima - Torino',
       originAddress: '',
       destinationAddress: '',
+      weightKg: 1,
+      manualPriceEur: '',
+      deliveryMode: 'agencia',
+      pricingMode: 'estandar',
     },
   });
 
@@ -526,6 +541,10 @@ export default function AdminDashboard() {
   const handleCreateShipment = async (data: any) => {
     try {
       const normalizedChecklist = contentChecklist.map(item => item.trim()).filter(Boolean);
+      if (normalizedChecklist.length === 0) {
+        toast.error("Agrega al menos un elemento a la lista de cosas enviadas.");
+        return;
+      }
       await createMutation.mutateAsync({
         ...data,
         documentItems: data.shipmentType === "documento" ? additionalDocumentItems : [],
@@ -558,6 +577,7 @@ export default function AdminDashboard() {
         couponCode: "",
         documentItems: [],
         contentChecklist: [],
+        deliveryMode: "agencia",
       });
       setShowCreateForm(false);
       refetchShipments();
@@ -587,9 +607,10 @@ export default function AdminDashboard() {
   const handleDeleteShipment = async (id: number) => {
     if (confirm('¿Estás seguro de que deseas eliminar esta encomienda?')) {
       try {
-        await deleteMutation.mutateAsync({ id });
-        toast.success('Encomienda eliminada exitosamente');
-        refetchShipments();
+        await deleteMutation.mutateAsync({ id, reason: "Eliminación solicitada desde el panel administrativo" });
+        toast.success('Envío enviado a la papelera; puede restaurarse.');
+        await refetchShipments();
+        await refetchDeletedShipments();
       } catch (error: any) {
         toast.error(error.message || 'Error al eliminar encomienda');
       }
@@ -1171,6 +1192,14 @@ export default function AdminDashboard() {
             </div>
           )}
 
+          {adminInsights && (
+            <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-semibold text-[#0B2B5E]">Analítica de interacción</h3><p className="mt-1 text-xs text-slate-500">Modelo estadístico explicable sobre eventos operativos; no inspecciona nombres, DNI, teléfonos ni contenido libre.</p></div><span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-bold text-[#0B2B5E]">Puntaje {adminInsights.engagementScore}/100</span></div>
+              <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4"><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Interacciones</p><strong>{adminInsights.totalEvents}</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Sesiones</p><strong>{adminInsights.uniqueSessions}</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Continuidad</p><strong>{Math.round(adminInsights.completionRate * 100)}%</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Anomalía</p><strong>{adminInsights.anomalyScore}/100</strong></div></div>
+              <ul className="mt-4 space-y-1 text-sm text-slate-700">{adminInsights.insights.map((insight: string) => <li key={insight}>• {insight}</li>)}</ul>
+            </div>
+          )}
+
           {admin?.role === "superadmin" && (
             <div className={`mt-4 flex flex-col gap-3 rounded-xl border p-4 md:flex-row md:items-center md:justify-between ${limaTorinoEncomiendasEnabled ? "border-amber-200 bg-amber-50" : "border-red-200 bg-red-50"}`}>
               <div>
@@ -1205,6 +1234,14 @@ export default function AdminDashboard() {
                       </SelectContent>
                     </Select>
                     <p className="mt-1 text-xs text-slate-500">Origen definido manualmente; no usa IP, GPS ni geolocalización.</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Modalidad de entrega</label>
+                    <Select value={createForm.watch("deliveryMode") || "agencia"} onValueChange={(value) => createForm.setValue("deliveryMode", value as "agencia" | "remoto", { shouldValidate: true, shouldDirty: true })}>
+                      <SelectTrigger className="border-2 focus:border-primary"><SelectValue /></SelectTrigger>
+                      <SelectContent><SelectItem value="agencia">Entrega en agencia</SelectItem><SelectItem value="remoto">Envío remoto: firma electrónica</SelectItem></SelectContent>
+                    </Select>
+                    <p className="mt-1 text-xs text-slate-500">Solo los envíos remotos muestran la firma electrónica en el recibo.</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Estado Inicial</label>
@@ -1246,7 +1283,7 @@ export default function AdminDashboard() {
                   <div>
                     <label className="block text-sm font-medium text-emerald-900 mb-2">Cupón de descuento (opcional)</label>
                     <Input placeholder="Ej. SERVI25-VERANO" {...createForm.register("couponCode")} className="border-emerald-300 bg-white uppercase" />
-                    <p className="mt-1 text-xs text-emerald-800">Se validará la vigencia en el momento de crear el envío y aplicará un 25% al precio final.</p>
+                    <p className="mt-1 text-xs text-emerald-800">Se validará la vigencia, el horario y el ámbito del cupón; el porcentaje configurado se aplicará al precio final.</p>
                   </div>
                   <div className="rounded-md bg-white px-4 py-3 text-sm font-semibold text-emerald-800 ring-1 ring-emerald-200">El precio promocional se calcula al guardar</div>
                 </div>
@@ -1721,6 +1758,10 @@ export default function AdminDashboard() {
                                 route: shipment.route || "Lima - Torino",
                                 originAddress: shipment.originAddress || "",
                                 destinationAddress: shipment.destinationAddress || "",
+                                weightKg: Number(shipment.weightKg || 1),
+                                manualPriceEur: shipment.manualPriceEur || "",
+                                deliveryMode: shipment.deliveryMode || "agencia",
+                                pricingMode: "estandar",
                               });
                               setShowUpdateForm(true);
                             }}
@@ -1770,11 +1811,27 @@ export default function AdminDashboard() {
           )}
         </Card>
 
+        <Card className="mt-6 border-0 p-6 shadow-md">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="flex items-center gap-2 text-lg font-bold text-[#0B2B5E]"><Trash2 className="h-5 w-5 text-slate-500" /> Papelera y recuperación</h2>
+              <p className="mt-1 text-xs text-slate-500">Los envíos no se borran físicamente. Aquí puedes revisar cuándo, quién y por qué se eliminaron.</p>
+            </div>
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{deletedShipments.length} eliminado(s)</span>
+          </div>
+          {deletedShipments.length === 0 ? <p className="mt-4 text-sm text-slate-500">No hay envíos en la papelera visible para esta cuenta.</p> : <div className="mt-4 space-y-2">
+            {deletedShipments.map((shipment: any) => <div key={shipment.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <div><div className="flex flex-wrap items-center gap-2"><strong className="text-sm text-[#0B2B5E]">{shipment.shipmentType === "encomienda" ? "Encomienda" : "Documento"} · Orden {shipment.orderNumber}</strong><span className="rounded bg-white px-2 py-0.5 text-xs text-slate-500">{shipment.code}</span></div><p className="mt-1 text-xs text-slate-500">Eliminado: {shipment.deletedAt ? new Date(shipment.deletedAt).toLocaleString() : "sin fecha"} · Actor: {shipment.deletedByType || "no indicado"} {shipment.deletedById ? `#${shipment.deletedById}` : ""}</p>{shipment.deleteReason && <p className="text-xs text-slate-600">Motivo: {shipment.deleteReason}</p>}</div>
+              <Button size="sm" variant="outline" disabled={restoreMutation.isPending} onClick={() => restoreMutation.mutate({ shipmentId: shipment.id })}><RotateCcw className="mr-2 h-3.5 w-3.5" /> Restaurar</Button>
+            </div>)}
+          </div>}
+        </Card>
+
         {/* Update Status Modal */}
         <UpdateShipmentModal
           open={showUpdateForm && Boolean(selectedShipmentId)}
           onClose={closeUpdateForm}
-          onSubmit={updateForm.handleSubmit(handleUpdateStatus)}
+          onSubmit={updateForm.handleSubmit(handleUpdateStatus as any)}
           isSubmitting={updateMutation.isPending}
           paymentStatus={updateForm.watch("paymentStatus")}
           registerPaymentStatus={(name) => updateForm.register(name)}
@@ -1846,7 +1903,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                <div className="border-t pt-4 grid grid-cols-2 gap-3">
+                <div className="border-t pt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Ruta</label>
                     <select
@@ -1857,6 +1914,25 @@ export default function AdminDashboard() {
                       <option value="Torino - Lima">Torino - Lima</option>
                     </select>
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Modalidad de entrega</label>
+                    <select {...updateForm.register("deliveryMode")} className="w-full p-2 bg-white border-2 border-slate-200 rounded-md text-sm font-medium focus:border-primary">
+                      <option value="agencia">Entrega en agencia</option>
+                      <option value="remoto">Envío remoto: firma electrónica</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Peso (kg)</label>
+                    <Input type="number" min="0.1" step="0.1" {...updateForm.register("weightKg", { valueAsNumber: true })} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Tarifa</label>
+                    <select {...updateForm.register("pricingMode")} className="w-full p-2 bg-white border-2 border-slate-200 rounded-md text-sm font-medium focus:border-primary">
+                      <option value="estandar">Estándar: 13,50 €/kg</option>
+                      <option value="manual">Precio manual</option>
+                    </select>
+                  </div>
+                  {updateForm.watch("pricingMode") === "manual" && <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Precio manual (EUR)</label><Input type="number" min="0" step="0.01" {...updateForm.register("manualPriceEur")} placeholder="Ej.: 25.00" /></div>}
                 </div>
 
                 <div className="border-t pt-4">

@@ -125,6 +125,11 @@ export const shipmentSignatures = mysqlTable("shipment_signatures", {
   status: mysqlEnum("status", ["pending", "signed"]).default("pending").notNull(),
   signerName: varchar("signerName", { length: 255 }),
   signerDni: varchar("signerDni", { length: 20 }),
+  signerEmail: varchar("signerEmail", { length: 320 }),
+  signerPhone: varchar("signerPhone", { length: 32 }),
+  consentTextVersion: varchar("consentTextVersion", { length: 64 }),
+  consentAcceptedAt: timestamp("consentAcceptedAt"),
+  evidenceHash: varchar("evidenceHash", { length: 128 }),
   signatureStrokes: longtext("signatureStrokes"),
   requestedAt: timestamp("requestedAt").defaultNow().notNull(),
   signedAt: timestamp("signedAt"),
@@ -169,9 +174,14 @@ export const shipments = mysqlTable("shipments", {
   route: varchar("route", { length: 100 }).default("Lima - Torino").notNull(),
   originAddress: text("originAddress"),
   destinationAddress: text("destinationAddress"),
+  deliveryMode: mysqlEnum("deliveryMode", ["agencia", "remoto"]).default("agencia").notNull(),
   documentItems: longtext("documentItems"), // JSON con documentos adicionales y sus recargos/manuales
   contentChecklist: longtext("contentChecklist"), // JSON con la lista de contenido verificado
   notes: text("notes"),
+  deletedAt: timestamp("deletedAt"),
+  deletedByType: mysqlEnum("deletedByType", ["admin", "account", "system"]),
+  deletedById: int("deletedById"),
+  deleteReason: text("deleteReason"),
   
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -179,3 +189,39 @@ export const shipments = mysqlTable("shipments", {
 
 export type Shipment = typeof shipments.$inferSelect;
 export type InsertShipment = typeof shipments.$inferInsert;
+
+/** Historial append-only de cambios y snapshots para restauración y trazabilidad. */
+export const shipmentAuditLogs = mysqlTable("shipment_audit_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  shipmentId: int("shipmentId").notNull(),
+  action: mysqlEnum("action", ["created", "updated", "deleted", "restored", "price_updated", "signature_requested", "signature_completed"]).notNull(),
+  actorType: mysqlEnum("actorType", ["admin", "account", "public", "system"]).notNull(),
+  actorId: int("actorId"),
+  actorLabel: varchar("actorLabel", { length: 255 }),
+  reason: text("reason"),
+  snapshot: longtext("snapshot"),
+  metadata: longtext("metadata"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, table => ({
+  shipmentIdx: index("shipment_audit_logs_shipment_idx").on(table.shipmentId),
+  actionIdx: index("shipment_audit_logs_action_idx").on(table.action, table.createdAt),
+}));
+export type ShipmentAuditLog = typeof shipmentAuditLogs.$inferSelect;
+export type InsertShipmentAuditLog = typeof shipmentAuditLogs.$inferInsert;
+
+/** Eventos de interacción sin contenido de formularios ni datos personales sensibles. */
+export const interactionEvents = mysqlTable("interaction_events", {
+  id: int("id").autoincrement().primaryKey(),
+  actorType: mysqlEnum("actorType", ["anonymous", "account", "admin", "system"]).notNull(),
+  actorId: int("actorId"),
+  sessionKeyHash: varchar("sessionKeyHash", { length: 128 }),
+  eventName: varchar("eventName", { length: 100 }).notNull(),
+  surface: varchar("surface", { length: 100 }).notNull(),
+  metadata: longtext("metadata"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, table => ({
+  eventIdx: index("interaction_events_event_idx").on(table.eventName, table.createdAt),
+  actorIdx: index("interaction_events_actor_idx").on(table.actorType, table.actorId),
+}));
+export type InteractionEvent = typeof interactionEvents.$inferSelect;
+export type InsertInteractionEvent = typeof interactionEvents.$inferInsert;

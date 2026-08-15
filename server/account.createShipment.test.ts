@@ -10,6 +10,7 @@ describe("account.createMyShipment persistence policy", () => {
       docType: "simple",
       sheetCount: 1,
       route: "Torino - Lima",
+      contentChecklist: ["Documento principal"],
     });
     const args = buildClientShipmentPersistenceArgs(input, "1234567890", "DOC-2026-ABCDE", "Documento Simple (1 hoja): 45 EUR.", 42);
 

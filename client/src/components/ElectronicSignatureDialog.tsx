@@ -12,7 +12,7 @@ type ElectronicSignatureDialogProps = {
   isSubmitting: boolean;
   errorMessage?: string;
   onClose: () => void;
-  onSubmit: (input: { signerName: string; signerDni?: string; signatureStrokes: string }) => void;
+  onSubmit: (input: { signerName: string; signerDni?: string; signerEmail?: string; signerPhone?: string; signatureStrokes: string }) => void;
 };
 
 function getCanvasPoint(event: React.PointerEvent<HTMLCanvasElement>, canvas: HTMLCanvasElement): SignaturePoint {
@@ -39,6 +39,8 @@ export default function ElectronicSignatureDialog({
   const [activeStroke, setActiveStroke] = useState<SignatureStroke | null>(null);
   const [signerName, setSignerName] = useState("");
   const [signerDni, setSignerDni] = useState("");
+  const [signerEmail, setSignerEmail] = useState("");
+  const [signerPhone, setSignerPhone] = useState("");
   const [accepted, setAccepted] = useState(false);
 
   useEffect(() => {
@@ -68,6 +70,8 @@ export default function ElectronicSignatureDialog({
     setActiveStroke(null);
     setSignerName("");
     setSignerDni("");
+    setSignerEmail("");
+    setSignerPhone("");
     setAccepted(false);
   }, [open]);
 
@@ -110,7 +114,7 @@ export default function ElectronicSignatureDialog({
     } catch {
       return;
     }
-    onSubmit({ signerName: signerName.trim(), signerDni: signerDni.trim() || undefined, signatureStrokes });
+    onSubmit({ signerName: signerName.trim(), signerDni: signerDni.trim() || undefined, signerEmail: signerEmail.trim() || undefined, signerPhone: signerPhone.trim() || undefined, signatureStrokes });
   };
 
   const expiryLabel = expiresAt ? new Date(expiresAt).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" }) : "30 minutos";
@@ -136,6 +140,14 @@ export default function ElectronicSignatureDialog({
             <div>
               <label htmlFor="signature-signer-dni" className="mb-2 block text-sm font-semibold text-slate-700">DNI o documento (opcional)</label>
               <Input id="signature-signer-dni" value={signerDni} onChange={event => setSignerDni(event.target.value.replace(/[^0-9A-Za-z-]/g, ""))} placeholder="Documento de identidad" autoComplete="off" />
+            </div>
+            <div>
+              <label htmlFor="signature-signer-email" className="mb-2 block text-sm font-semibold text-slate-700">Correo del firmante (opcional)</label>
+              <Input id="signature-signer-email" type="email" value={signerEmail} onChange={event => setSignerEmail(event.target.value)} placeholder="correo@ejemplo.com" autoComplete="email" />
+            </div>
+            <div>
+              <label htmlFor="signature-signer-phone" className="mb-2 block text-sm font-semibold text-slate-700">Teléfono del firmante (opcional)</label>
+              <Input id="signature-signer-phone" value={signerPhone} onChange={event => setSignerPhone(event.target.value)} placeholder="+51 970 188 447" autoComplete="tel" />
             </div>
           </div>
 
@@ -164,7 +176,7 @@ export default function ElectronicSignatureDialog({
 
           <label className="flex items-start gap-3 rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm text-slate-700">
             <input type="checkbox" checked={accepted} onChange={event => setAccepted(event.target.checked)} className="mt-1 h-4 w-4 accent-[#0B2B5E]" />
-            <span>Confirmo que soy la persona que firma este envío y autorizo que esta firma electrónica quede incorporada al recibo de la orden indicada.</span>
+            <span>Confirmo que soy la persona que firma este envío y autorizo incorporar la firma al recibo de la orden indicada. Se conservarán la versión del consentimiento, la fecha, el token de sesión y una huella criptográfica de la evidencia para su verificación posterior.</span>
           </label>
 
           {errorMessage && <p className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800" role="alert">{errorMessage}</p>}

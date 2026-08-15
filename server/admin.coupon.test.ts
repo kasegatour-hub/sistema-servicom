@@ -115,6 +115,7 @@ describe("admin coupons", () => {
       paymentStatus: "Falta cancelar",
       route: "Lima - Torino",
       couponCode: " servi25-redes ",
+      contentChecklist: ["Documento principal"],
     });
 
     expect(result.finalPriceEur).toBe(37.5);

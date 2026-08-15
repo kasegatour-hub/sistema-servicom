@@ -79,6 +79,7 @@ describe("admin.createShipment", () => {
       manualPriceEur: "40",
       paymentStatus: "Pagado",
       route: "Lima - Torino",
+      contentChecklist: ["Paquete sellado"],
     });
 
     expect(result.code).toMatch(/^ENC-\d{4}-[A-Z0-9]{5}$/);
@@ -106,6 +107,7 @@ describe("admin.createShipment", () => {
       weightKg: 2,
       paymentStatus: "Falta cancelar",
       route: "Lima - Torino",
+      contentChecklist: ["Paquete sellado"],
     })).rejects.toThrow(/desactivadas temporalmente/i);
 
     expect(dbMocks.createShipment).not.toHaveBeenCalled();
