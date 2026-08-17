@@ -320,3 +320,9 @@
 - [x] Obtener la firma electrónica más reciente al reimprimir y mostrarla en todos los recibos posteriores
 - [x] Añadir pruebas de correo de recuperación, prefijos telefónicos, ingresos y reimpresión firmada
 - [x] Ejecutar suite completa, compilación, verificación responsive y guardar checkpoint
+
+## Trazabilidad administrativa de eliminaciones y cambios
+- [x] Mostrar exclusivamente al Master Admin qué usuario eliminó cada envío de la papelera
+- [x] Mostrar al Master Admin el historial de cambios relevantes con actor, fecha y detalle
+- [x] Mantener sin cambios los permisos actuales de recuperación para Master Admin y Registradores
+- [x] Añadir pruebas de permisos y trazabilidad, ejecutar suite, compilar y publicar

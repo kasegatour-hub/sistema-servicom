@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, gte, isNotNull, isNull, like, or } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, like, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { createHash } from "node:crypto";
 import { InsertUser, users, shipments, shipmentSignatures, shipmentAuditLogs, interactionEvents, admins, localAccounts, verificationCodes, clients, discountCoupons, shipmentRoutePolicies } from "../drizzle/schema";
@@ -366,6 +366,38 @@ export async function getShipmentAuditLogs(shipmentId: number) {
   const db = await getDb();
   if (!db) return [];
   return await db.select().from(shipmentAuditLogs).where(eq(shipmentAuditLogs.shipmentId, shipmentId)).orderBy(desc(shipmentAuditLogs.createdAt));
+}
+
+export type ShipmentAuditActorRecord = {
+  actorType: "admin" | "account" | "public" | "system";
+  actorId?: number | null;
+  actorLabel?: string | null;
+};
+
+/** Resuelve identidades legibles en servidor; la información solo debe exponerse mediante procedimientos autorizados. */
+export async function attachShipmentAuditActorLabels<T extends ShipmentAuditActorRecord>(records: T[]): Promise<Array<T & { actorDisplayName: string }>> {
+  const db = await getDb();
+  if (!db || records.length === 0) {
+    return records.map(record => ({ ...record, actorDisplayName: record.actorLabel || record.actorType }));
+  }
+
+  const adminIds = Array.from(new Set(records.filter(record => record.actorType === "admin" && record.actorId).map(record => record.actorId!)));
+  const accountIds = Array.from(new Set(records.filter(record => record.actorType === "account" && record.actorId).map(record => record.actorId!)));
+  const [adminRows, accountRows] = await Promise.all([
+    adminIds.length ? db.select({ id: admins.id, name: admins.name, email: admins.email, role: admins.role }).from(admins).where(inArray(admins.id, adminIds)) : Promise.resolve([]),
+    accountIds.length ? db.select({ id: localAccounts.id, name: localAccounts.name, lastName: localAccounts.lastName, email: localAccounts.email }).from(localAccounts).where(inArray(localAccounts.id, accountIds)) : Promise.resolve([]),
+  ]);
+  const adminLabels = new Map(adminRows.map(admin => [admin.id, `${admin.name} (${admin.email})`])) ;
+  const accountLabels = new Map(accountRows.map(account => [account.id, `${[account.name, account.lastName].filter(Boolean).join(" ") || "Cliente"} (${account.email})`]));
+
+  return records.map(record => {
+    const actorDisplayName = record.actorType === "admin"
+      ? adminLabels.get(record.actorId ?? -1) || record.actorLabel || "Administrador no disponible"
+      : record.actorType === "account"
+        ? accountLabels.get(record.actorId ?? -1) || record.actorLabel || "Cliente no disponible"
+        : record.actorLabel || (record.actorType === "public" ? "Firmante remoto" : "Sistema");
+    return { ...record, actorDisplayName };
+  });
 }
 
 export async function recordInteractionEvent(input: {

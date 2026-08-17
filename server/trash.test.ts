@@ -5,6 +5,8 @@ const dbMocks = vi.hoisted(() => ({
   getDeletedShipments: vi.fn(),
   restoreShipment: vi.fn(),
   deleteShipment: vi.fn(),
+  getShipmentAuditLogs: vi.fn(),
+  attachShipmentAuditActorLabels: vi.fn(),
   recordInteractionEvent: vi.fn(),
 }));
 
@@ -60,5 +62,16 @@ describe("shipment trash and restoration", () => {
     await expect(caller.admin.deleteShipment({ id: 42, reason: "Eliminación accidental" })).resolves.toMatchObject({ success: true });
     expect(dbMocks.deleteShipment).toHaveBeenCalledWith(42, expect.objectContaining({ actorType: "admin", actorId: 9 }), "Eliminación accidental");
     expect(dbMocks.recordInteractionEvent).toHaveBeenCalledWith(expect.objectContaining({ eventName: "trash_deleted" }));
+  });
+
+  it("only allows the Master Admin to see the resolved actor history", async () => {
+    dbMocks.getShipmentAuditLogs.mockResolvedValue([{ id: 7, shipmentId: 42, action: "deleted", actorType: "admin", actorId: 9, actorLabel: "registrador", createdAt: new Date("2026-08-17T12:00:00.000Z") }]);
+    dbMocks.attachShipmentAuditActorLabels.mockResolvedValue([{ id: 7, shipmentId: 42, action: "deleted", actorType: "admin", actorId: 9, actorDisplayName: "Operador Lima (operador@servicom.pe)", createdAt: new Date("2026-08-17T12:00:00.000Z") }]);
+
+    const master = appRouter.createCaller(adminContext("superadmin", 1));
+    await expect(master.admin.shipmentAudit({ shipmentId: 42 })).resolves.toEqual([expect.objectContaining({ actorDisplayName: "Operador Lima (operador@servicom.pe)" })]);
+
+    const registrador = appRouter.createCaller(adminContext("registrador", 9));
+    await expect(registrador.admin.shipmentAudit({ shipmentId: 42 })).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });

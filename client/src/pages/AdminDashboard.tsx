@@ -260,6 +260,7 @@ export default function AdminDashboard() {
   const [showCalculator, setShowCalculator] = useState(false);
   const [calculatorExpression, setCalculatorExpression] = useState("");
   const [calculatorResult, setCalculatorResult] = useState("");
+  const [auditShipmentId, setAuditShipmentId] = useState<number | null>(null);
   const pageSize = 10;
   const printQrRef = useRef<HTMLCanvasElement>(null);
   const utils = trpc.useUtils();
@@ -270,6 +271,10 @@ export default function AdminDashboard() {
   const { data: limaTorinoPolicy, refetch: refetchLimaTorinoPolicy } = trpc.admin.getLimaTorinoEncomiendaPolicy.useQuery(undefined, { enabled: isLoggedIn && !admin?.reauthRequired });
   const { data: shipments, isLoading: loadingShipments, refetch: refetchShipments } = trpc.admin.getAllShipments.useQuery(undefined, { enabled: isLoggedIn && !admin?.reauthRequired });
   const { data: deletedShipments = [], refetch: refetchDeletedShipments } = trpc.admin.listDeletedShipments.useQuery(undefined, { enabled: isLoggedIn && !admin?.reauthRequired });
+  const { data: shipmentAudit = [], isFetching: isLoadingShipmentAudit } = trpc.admin.shipmentAudit.useQuery(
+    { shipmentId: auditShipmentId || 0 },
+    { enabled: isLoggedIn && admin?.role === "superadmin" && !admin?.reauthRequired && Boolean(auditShipmentId) },
+  );
   const { data: adminInsights } = trpc.analytics.adminInsights.useQuery(undefined, { enabled: isLoggedIn && !admin?.reauthRequired });
   const { data: adminUsers, refetch: refetchAdminUsers } = trpc.admin.listAdmins.useQuery(undefined, { enabled: isLoggedIn && admin?.role === "superadmin" && !admin?.reauthRequired });
   const { data: senderClientResults = [], isFetching: isSearchingSender } = trpc.admin.searchClients.useQuery(
@@ -1857,6 +1862,7 @@ export default function AdminDashboard() {
                           >
                             Eliminar
                           </Button>
+                          {admin?.role === "superadmin" && <Button onClick={() => setAuditShipmentId(shipment.id)} size="sm" variant="outline" className="border-slate-400 text-slate-700 hover:bg-slate-100">Historial</Button>}
                         </div>
                       </TableCell>
                       <TableCell className="hidden xl:table-cell font-medium">{shipment.orderNumber}</TableCell>
@@ -1889,11 +1895,16 @@ export default function AdminDashboard() {
           </div>
           {deletedShipments.length === 0 ? <p className="mt-4 text-sm text-slate-500">No hay envíos en la papelera visible para esta cuenta.</p> : <div className="mt-4 space-y-2">
             {deletedShipments.map((shipment: any) => <div key={shipment.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-              <div><div className="flex flex-wrap items-center gap-2"><strong className="text-sm text-[#0B2B5E]">{shipment.shipmentType === "encomienda" ? "Encomienda" : "Documento"} · Orden {shipment.orderNumber}</strong><span className="rounded bg-white px-2 py-0.5 text-xs text-slate-500">{shipment.code}</span></div><p className="mt-1 text-xs text-slate-500">Eliminado: {shipment.deletedAt ? new Date(shipment.deletedAt).toLocaleString() : "sin fecha"} · Actor: {shipment.deletedByType || "no indicado"} {shipment.deletedById ? `#${shipment.deletedById}` : ""}</p>{shipment.deleteReason && <p className="text-xs text-slate-600">Motivo: {shipment.deleteReason}</p>}</div>
-              <Button size="sm" variant="outline" disabled={restoreMutation.isPending} onClick={() => restoreMutation.mutate({ shipmentId: shipment.id })}><RotateCcw className="mr-2 h-3.5 w-3.5" /> Restaurar</Button>
+              <div><div className="flex flex-wrap items-center gap-2"><strong className="text-sm text-[#0B2B5E]">{shipment.shipmentType === "encomienda" ? "Encomienda" : "Documento"} · Orden {shipment.orderNumber}</strong><span className="rounded bg-white px-2 py-0.5 text-xs text-slate-500">{shipment.code}</span></div><p className="mt-1 text-xs text-slate-500">Eliminado: {shipment.deletedAt ? new Date(shipment.deletedAt).toLocaleString() : "sin fecha"}</p>{admin?.role === "superadmin" && <p className="mt-1 text-xs font-medium text-[#0B2B5E]">Eliminado por: {shipment.deletedByDisplayName || "No indicado"}</p>}{shipment.deleteReason && <p className="text-xs text-slate-600">Motivo: {shipment.deleteReason}</p>}</div>
+              <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" disabled={restoreMutation.isPending} onClick={() => restoreMutation.mutate({ shipmentId: shipment.id })}><RotateCcw className="mr-2 h-3.5 w-3.5" /> Restaurar</Button>{admin?.role === "superadmin" && <Button size="sm" variant="outline" onClick={() => setAuditShipmentId(shipment.id)}>Historial</Button>}</div>
             </div>)}
           </div>}
         </Card>
+
+        {admin?.role === "superadmin" && auditShipmentId && <Card className="mt-6 border-0 p-6 shadow-md" aria-label="Historial administrativo del envío">
+          <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-lg font-bold text-[#0B2B5E]">Historial de cambios del envío</h2><p className="mt-1 text-xs text-slate-500">Visible únicamente para el Master Admin. Incluye quién eliminó, actualizó, restauró o completó una firma.</p></div><Button size="sm" variant="outline" onClick={() => setAuditShipmentId(null)}>Cerrar historial</Button></div>
+          {isLoadingShipmentAudit ? <p className="mt-4 text-sm text-slate-500">Cargando historial…</p> : shipmentAudit.length === 0 ? <p className="mt-4 text-sm text-slate-500">No hay registros de auditoría disponibles para este envío.</p> : <ol className="mt-4 space-y-3">{shipmentAudit.map((entry: any) => <li key={entry.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3"><p className="text-sm font-semibold text-[#0B2B5E]">{({ created: "Registro creado", updated: "Datos o estado actualizado", deleted: "Envío eliminado", restored: "Envío restaurado", price_updated: "Precio actualizado", signature_requested: "Firma solicitada", signature_completed: "Firma completada" } as Record<string, string>)[entry.action] || entry.action}</p><p className="mt-1 text-xs text-slate-600">Realizado por: <strong>{entry.actorDisplayName || "No indicado"}</strong> · {entry.createdAt ? new Date(entry.createdAt).toLocaleString() : "sin fecha"}</p>{entry.reason && <p className="mt-1 text-xs text-slate-600">Motivo: {entry.reason}</p>}</li>)}</ol>}
+        </Card>}
 
         {/* Update Status Modal */}
         <UpdateShipmentModal

@@ -7,7 +7,7 @@ function buildTrackingPath(orderNumber: string, code: string): string {
   return `/?order=${encodeURIComponent(order)}&code=${encodeURIComponent(normalizedCode)}`;
 }
 import { publicProcedure, router } from "./_core/trpc";
-import { createDiscountCoupon, createShipment, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAllShipments, getDeletedShipments, getDiscountCouponByCode, getShipmentAuditLogs, getShipmentById, getShipmentRoutePolicy, incrementDiscountCouponRedemption, isEncomiendaEnabledForRoute, listDiscountCoupons, recordInteractionEvent, recordShipmentAudit, restoreShipment, searchClients, setEncomiendaAvailabilityForRoute, updateDiscountCoupon, updateShipmentStatus } from "./db";
+import { attachShipmentAuditActorLabels, createDiscountCoupon, createShipment, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAllShipments, getDeletedShipments, getDiscountCouponByCode, getShipmentAuditLogs, getShipmentById, getShipmentRoutePolicy, incrementDiscountCouponRedemption, isEncomiendaEnabledForRoute, listDiscountCoupons, recordInteractionEvent, recordShipmentAudit, restoreShipment, searchClients, setEncomiendaAvailabilityForRoute, updateDiscountCoupon, updateShipmentStatus } from "./db";
 import { hashPassword, verifyPassword } from "./localAuth";
 import { AdminSessionPayload, clearAdminSession, getAdminSession, setAdminSession } from "./adminSession";
 import { admins } from "../drizzle/schema";
@@ -269,7 +269,11 @@ export const adminRouter = router({
         ? deleted
         : deleted.filter(shipment => shipment.deletedByType === "admin" && shipment.deletedById === ctx.adminSession.adminId);
       await recordInteractionEvent({ actorType: "admin", actorId: ctx.adminSession.adminId, eventName: "trash_viewed", surface: "admin", metadata: { count: visible.length } });
-      return visible.map(shipment => ({ ...shipment, events: JSON.parse(shipment.events) }));
+      const labeledActors = await attachShipmentAuditActorLabels(visible.map(shipment => ({
+        actorType: shipment.deletedByType === "account" ? "account" : shipment.deletedByType === "admin" ? "admin" : "system",
+        actorId: shipment.deletedById,
+      })));
+      return visible.map((shipment, index) => ({ ...shipment, events: JSON.parse(shipment.events), deletedByDisplayName: labeledActors[index]?.actorDisplayName || "No indicado" }));
     }),
 
   restoreShipment: adminProcedure
@@ -289,7 +293,13 @@ export const adminRouter = router({
 
   shipmentAudit: adminProcedure
     .input(z.object({ shipmentId: z.number() }))
-    .query(async ({ input }) => getShipmentAuditLogs(input.shipmentId)),
+    .query(async ({ input, ctx }) => {
+      if (ctx.adminSession.role !== "superadmin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Solo el Master Admin puede consultar quién realizó cambios en un envío." });
+      }
+      const logs = await getShipmentAuditLogs(input.shipmentId);
+      return attachShipmentAuditActorLabels(logs);
+    }),
 
   searchClients: adminProcedure
     .input(z.object({ query: z.string().trim().min(2), limit: z.number().int().min(1).max(20).default(8) }))
