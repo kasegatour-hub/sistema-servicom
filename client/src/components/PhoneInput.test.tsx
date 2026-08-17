@@ -48,4 +48,17 @@ describe("PhoneInput", () => {
     expect(screen.getByPlaceholderText("Buscar país o código...")).toBeTruthy();
     expect(screen.getByRole("button", { name: /Italia/ })).toBeTruthy();
   });
+
+  it("rejects a Peru-length number when Italy is selected and accepts the required Italian length", async () => {
+    const user = userEvent.setup();
+    render(<PhoneInput value="" onChange={() => undefined} />);
+    await user.click(screen.getByRole("button", { name: /Seleccionar país/ }));
+    await user.click(screen.getByRole("button", { name: /Italia/ }));
+    const input = screen.getByRole("textbox", { name: "Número de teléfono" });
+
+    await user.type(input, "389766372");
+    expect(screen.getByRole("alert").textContent).toContain("+39 debe tener 10 dígitos locales");
+    await user.type(input, "3");
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
 });

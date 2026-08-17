@@ -38,6 +38,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/trpc", () => ({
   trpc: {
+    useUtils: () => ({ shipment: { search: { fetch: vi.fn() } } }),
     admin: {
       me: { useQuery: () => ({ data: null, isLoading: false, refetch: mocks.refetchAdminSession }) },
       getAllShipments: { useQuery: () => ({ data: [], isLoading: false, refetch: mocks.refetchShipments }) },

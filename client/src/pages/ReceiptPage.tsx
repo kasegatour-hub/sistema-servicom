@@ -61,6 +61,11 @@ export default function ReceiptPage() {
       setSignatureError(completeError?.message || "No se pudo guardar la firma electrónica.");
     }
   };
+  const handlePrintReceipt = async () => {
+    if (!shipment) return;
+    const refreshed = await refetchShipment();
+    await printUserShipmentReceipt(refreshed.data || shipment);
+  };
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-[#eef6fb] to-white px-4 py-8 text-[#0B2B5E]">
@@ -140,7 +145,7 @@ export default function ReceiptPage() {
                   <p className="font-semibold">Recibo listo para imprimir</p>
                   <p className="text-sm text-slate-600">Incluye el código QR, la declaración jurada y el ticket recortable de la sede de entrega.</p>
                 </div>
-                <Button type="button" onClick={() => printUserShipmentReceipt(shipment)} className="bg-[#0B2B5E] text-white hover:bg-[#123d78]">
+                <Button type="button" onClick={handlePrintReceipt} className="bg-[#0B2B5E] text-white hover:bg-[#123d78]">
                   <Printer className="mr-2 h-4 w-4" aria-hidden="true" /> Imprimir recibo
                 </Button>
               </div>

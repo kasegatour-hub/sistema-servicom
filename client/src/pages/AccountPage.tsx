@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 import { ArrowLeft, CheckCircle2, Download, Eye, EyeOff, KeyRound, Lock, LogOut, Mail, Package, Plus, Printer, RotateCcw, Search, Trash2, User, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import { DocumentCatalogSelector } from "@/components/DocumentCatalogSelector";
 import { formatPhoneNumber } from "@/lib/phoneFormatting";
 import { CatalogDocumentItem, catalogDocumentsToChecklist } from "@/lib/documentCatalog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { summarizeRevenue } from "@shared/revenueSummary";
 
 const brandLogo = "/manus-storage/servicom_logo_final_e7ce35aa.png";
 
@@ -87,6 +88,16 @@ export default function AccountPage() {
   };
 
   const utils = trpc.useUtils();
+  const handlePrintReceipt = async () => {
+    if (!receiptShipment) return;
+    try {
+      const freshShipment = await utils.shipment.search.fetch({ orderNumber: String(receiptShipment.orderNumber), code: String(receiptShipment.code) });
+      await printUserShipmentReceipt(freshShipment || receiptShipment);
+    } catch {
+      await printUserShipmentReceipt(receiptShipment);
+      toast.info("El recibo se imprimió con la última información disponible en pantalla.");
+    }
+  };
   const { data: me, isLoading: meLoading } = trpc.account.me.useQuery();
 
   // Sincronizar datos de perfil cuando la sesión local ya esté disponible.
@@ -101,6 +112,7 @@ export default function AccountPage() {
   const { data: myShipments, refetch: refetchShipments } = trpc.account.myShipments.useQuery(undefined, {
     enabled: !!me && !me.reauthRequired,
   });
+  const clientRevenue = useMemo(() => summarizeRevenue(myShipments), [myShipments]);
   const { data: myDeletedShipments, refetch: refetchDeletedShipments } = trpc.account.myDeletedShipments.useQuery(undefined, {
     enabled: !!me && !me.reauthRequired,
   });
@@ -312,7 +324,7 @@ export default function AccountPage() {
                 </div>
                 <div className="flex justify-end gap-3 pt-4 border-t">
                   <Button type="button" variant="outline" onClick={() => setReceiptShipment(null)}>Cerrar</Button>
-                  <Button onClick={() => printUserShipmentReceipt(receiptShipment)} className="bg-[#0B2B5E] text-white hover:bg-[#123d78]">
+                  <Button onClick={handlePrintReceipt} className="bg-[#0B2B5E] text-white hover:bg-[#123d78]">
                     <Printer className="mr-2 h-4 w-4" /> Imprimir Recibo Ahora
                   </Button>
                 </div>
@@ -414,6 +426,14 @@ export default function AccountPage() {
               </Button>
             </form>
             <p className="mt-3 text-xs text-slate-500">También puedes recuperar la contraseña desde la pantalla de inicio de sesión mediante un código enviado por correo electrónico.</p>
+          </Card>
+
+          <Card className="border-0 p-6 shadow-md">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div><h2 className="text-lg font-bold text-[#0B2B5E]">Resumen de pagos</h2><p className="mt-1 text-xs text-slate-500">Solo se contabilizan tus envíos marcados como pagados.</p></div>
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-right"><p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Pagado confirmado</p><p className="text-2xl font-extrabold text-emerald-800">{clientRevenue.confirmedEur.toLocaleString("es-PE", { style: "currency", currency: "EUR" })}</p></div>
+            </div>
+            <details className="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3"><summary className="cursor-pointer text-sm font-semibold text-[#0B2B5E]">Ver detalle de mis pagos</summary><div className="mt-3 grid grid-cols-2 gap-3 text-sm md:grid-cols-4"><div><span className="block text-xs text-slate-500">Envíos pagados</span><strong>{clientRevenue.paidCount}</strong></div><div><span className="block text-xs text-slate-500">Pendiente</span><strong>{clientRevenue.pendingEur.toLocaleString("es-PE", { style: "currency", currency: "EUR" })}</strong></div><div><span className="block text-xs text-slate-500">Registros pendientes</span><strong>{clientRevenue.pendingCount}</strong></div><div><span className="block text-xs text-slate-500">Total de envíos</span><strong>{clientRevenue.totalCount}</strong></div></div></details>
           </Card>
 
           {myInsights && (

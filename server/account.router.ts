@@ -33,9 +33,12 @@ import {
 } from "./localAuth";
 import { AccountSessionPayload, clearAccountSession, getAccountSession, setAccountSession } from "./localSession";
 import { dniSchema, optionalDniSchema, optionalPersonNameSchema, personNameSchema } from "./inputValidation";
+import { isValidInternationalPhone } from "../shared/phoneValidation";
 
 const passwordSchema = z.string().min(8, "La contraseña debe tener al menos 8 caracteres.");
 const emailSchema = z.string().email("Correo electrónico inválido.");
+const optionalInternationalPhoneSchema = z.string().trim().optional().refine(value => !value || isValidInternationalPhone(value), "El número no coincide con la cantidad de dígitos del país seleccionado.");
+const internationalPhoneSchema = z.string().trim().min(1, "Teléfono requerido").refine(isValidInternationalPhone, "El número no coincide con la cantidad de dígitos del país seleccionado.");
 export const passwordResetChannelSchema = z.literal("email");
 
 export const ACCOUNT_REAUTH_REQUIRED_MESSAGE = "Por seguridad, vuelve a escribir tu contraseña para continuar.";
@@ -59,11 +62,11 @@ export const clientShipmentInputSchema = z.object({
   senderName: optionalPersonNameSchema,
   senderLastName: optionalPersonNameSchema,
   senderDni: optionalDniSchema,
-  senderPhone: z.string().optional(),
+  senderPhone: optionalInternationalPhoneSchema,
   recipientName: optionalPersonNameSchema,
   recipientLastName: optionalPersonNameSchema,
   recipientDni: optionalDniSchema,
-  recipientPhone: z.string().optional(),
+  recipientPhone: optionalInternationalPhoneSchema,
   notes: z.string().optional(),
   contentChecklist: z.array(z.string().trim().min(1).max(160)).max(24).min(1, "La lista de cosas enviadas es obligatoria."),
   deliveryMode: z.literal("remoto").default("remoto"),
@@ -117,7 +120,7 @@ export const accountRouter = router({
   register: publicProcedure
     .input(z.object({
       email: emailSchema,
-      phone: z.string().min(8).optional(),
+      phone: optionalInternationalPhoneSchema,
       name: personNameSchema,
       lastName: personNameSchema,
       dni: dniSchema,
@@ -220,15 +223,16 @@ export const accountRouter = router({
       name: personNameSchema,
       lastName: personNameSchema,
       dni: dniSchema,
-      phone: z.string().min(8, "Teléfono requerido"),
+      phone: internationalPhoneSchema,
     }))
     .mutation(async ({ input, ctx }) => {
       const session = await requireFreshAccountSession(ctx.req, "actualizar tu perfil");
-      const account = await updateLocalAccountProfile(session.accountId, input.name, input.lastName, input.dni, input.phone);
+      const phone = normalizePhone(input.phone);
+      const account = await updateLocalAccountProfile(session.accountId, input.name, input.lastName, input.dni, phone);
       if (!account) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Cuenta no encontrada." });
       }
-      await upsertClient({ name: input.name, lastName: input.lastName, dni: input.dni, phone: input.phone, email: account.email });
+      await upsertClient({ name: input.name, lastName: input.lastName, dni: input.dni, phone, email: account.email });
       return { success: true, account };
     }),
 

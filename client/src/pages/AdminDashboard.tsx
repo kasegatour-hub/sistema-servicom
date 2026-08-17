@@ -31,7 +31,8 @@ import { buildReceiptPriceHtml } from "@/lib/receiptPrice";
 import { closeUpdateModal } from "@/lib/updateModal";
 import { UpdateShipmentModal } from "@/components/UpdateShipmentModal";
 import { evaluateScientificExpression } from "@/lib/scientificCalculator";
-import { buildReceiptDownloadFilename } from "@/lib/userReceipt";
+import { buildElectronicSignatureHtml, buildReceiptDownloadFilename } from "@/lib/userReceipt";
+import { summarizeRevenue } from "@shared/revenueSummary";
 
 function renderQrCode(canvas: HTMLCanvasElement | null, trackingUrl: string, width: number) {
   if (!canvas) return;
@@ -261,6 +262,7 @@ export default function AdminDashboard() {
   const [calculatorResult, setCalculatorResult] = useState("");
   const pageSize = 10;
   const printQrRef = useRef<HTMLCanvasElement>(null);
+  const utils = trpc.useUtils();
 
   // Queries
   const { data: currentAdminSession, isLoading: loadingAdminSession, refetch: refetchAdminSession } = trpc.admin.me.useQuery();
@@ -289,6 +291,7 @@ export default function AdminDashboard() {
   const visibleCoupons = orderedCoupons.slice((couponCurrentPage - 1) * couponPageSize, couponCurrentPage * couponPageSize);
   const couponFirstItem = orderedCoupons.length === 0 ? 0 : (couponCurrentPage - 1) * couponPageSize + 1;
   const couponLastItem = Math.min(couponCurrentPage * couponPageSize, orderedCoupons.length);
+  const adminRevenue = useMemo(() => summarizeRevenue(shipments), [shipments]);
 
   useEffect(() => setCouponCurrentPage(1), [couponSortOrder, coupons.length]);
   useEffect(() => setCouponCurrentPage(page => Math.min(Math.max(1, page), couponTotalPages)), [couponTotalPages]);
@@ -653,6 +656,13 @@ export default function AdminDashboard() {
 
   const printReceipt = async () => {
     if (!printShipment) return;
+    let latestSignature = printShipment.signature;
+    try {
+      const freshShipment = await utils.shipment.search.fetch({ orderNumber: String(printShipment.orderNumber), code: String(printShipment.code) });
+      latestSignature = freshShipment?.signature ?? latestSignature;
+    } catch {
+      // Se mantiene la información disponible si la consulta pública no está temporalmente accesible.
+    }
     const receiptUrl = new URL('/recibo', window.location.origin);
     receiptUrl.searchParams.set('order', String(printShipment.orderNumber));
     receiptUrl.searchParams.set('code', String(printShipment.code));
@@ -839,6 +849,7 @@ export default function AdminDashboard() {
               <strong>Firma del Remitente</strong><br>
               DNI/Pasaporte N° ${printShipment.senderDni || '__________'}<br>
               <span style="font-size: 8px;">(Firmar sobre la línea de microimpresión)</span>
+              <div style="margin-top:12px; text-align:left;">${buildElectronicSignatureHtml(latestSignature, `${printShipment.senderName || ""} ${printShipment.senderLastName || ""}`.trim(), printShipment.senderDni || "")}</div>
             </div>
             <div style="width: 30%; text-align: center;">
               <div class="fingerprint-box"></div>
@@ -1107,6 +1118,11 @@ export default function AdminDashboard() {
             </form>
           </Card>
         )}
+
+        <Card className="mb-8 border-0 p-6 shadow-lg">
+          <div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-xl font-semibold text-gray-900">Ingresos confirmados</h2><p className="mt-1 text-sm text-slate-500">Solo incluye envíos marcados como pagados.</p></div><div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-right"><p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Total ingresado</p><p className="text-2xl font-extrabold text-emerald-800">{adminRevenue.confirmedEur.toLocaleString("es-PE", { style: "currency", currency: "EUR" })}</p></div></div>
+          <details className="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3"><summary className="cursor-pointer text-sm font-semibold text-[#0B2B5E]">Ver desglose de ingresos</summary><div className="mt-3 grid grid-cols-2 gap-3 text-sm md:grid-cols-5"><div><span className="block text-xs text-slate-500">Envíos pagados</span><strong>{adminRevenue.paidCount}</strong></div><div><span className="block text-xs text-slate-500">Pendiente</span><strong>{adminRevenue.pendingEur.toLocaleString("es-PE", { style: "currency", currency: "EUR" })}</strong></div><div><span className="block text-xs text-slate-500">Documentos pagados</span><strong>{adminRevenue.documentsEur.toLocaleString("es-PE", { style: "currency", currency: "EUR" })}</strong></div><div><span className="block text-xs text-slate-500">Encomiendas pagadas</span><strong>{adminRevenue.parcelsEur.toLocaleString("es-PE", { style: "currency", currency: "EUR" })}</strong></div><div><span className="block text-xs text-slate-500">Registros pendientes</span><strong>{adminRevenue.pendingCount}</strong></div></div></details>
+        </Card>
 
         {/* Coupon Management Section */}
         <Card className="mb-8 border-0 p-6 shadow-lg">

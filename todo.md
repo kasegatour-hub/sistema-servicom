@@ -311,3 +311,12 @@
 - [x] Ordenar cupones por Recientes (descendentes) y Antiguos (ascendente)
 - [x] Añadir pruebas de visibilidad, paginación y ordenamiento de cupones
 - [x] Ejecutar suite completa, compilación, verificación responsive y guardar checkpoint
+
+## Seguridad, ingresos, teléfonos y reimpresión solicitados
+- [x] Confirmar cambio y recuperación de contraseña mediante código enviado por correo compatible con proveedores comunes
+- [x] Validar el número local conforme al prefijo de país seleccionado y rechazar longitudes incompatibles
+- [x] Calcular ingresos relevantes con base en pagos confirmados y exponerlos con permisos adecuados
+- [x] Mostrar el resumen de ingresos de forma progresiva, dejando métricas secundarias en un panel desplegable visible
+- [x] Obtener la firma electrónica más reciente al reimprimir y mostrarla en todos los recibos posteriores
+- [x] Añadir pruebas de correo de recuperación, prefijos telefónicos, ingresos y reimpresión firmada
+- [x] Ejecutar suite completa, compilación, verificación responsive y guardar checkpoint

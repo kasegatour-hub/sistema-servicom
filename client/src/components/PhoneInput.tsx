@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { COUNTRY_CODES, formatLocalPhoneInput, formatPhoneNumber, splitPhoneNumber } from "@/lib/phoneFormatting";
+import { getPhoneValidationError, PHONE_LENGTH_RULES } from "@shared/phoneValidation";
 
 interface PhoneInputProps {
   value: string;
@@ -54,6 +55,8 @@ export function PhoneInput({ value, onChange, placeholder = "970 188 447", requi
   const filteredCountries = COUNTRY_CODES.filter(country =>
     country.name.toLowerCase().includes(searchQuery.toLowerCase()) || country.code.includes(searchQuery),
   );
+  const phoneRule = PHONE_LENGTH_RULES.find(rule => rule.countryCode === selectedCountry.code);
+  const phoneError = phoneNumber.trim() ? getPhoneValidationError(`${selectedCountry.code} ${phoneNumber}`) : null;
 
   return (
     <div className={`relative flex items-center gap-2 ${className}`} ref={dropdownRef}>
@@ -100,18 +103,26 @@ export function PhoneInput({ value, onChange, placeholder = "970 188 447", requi
         </div>
       )}
 
-      <Input
-        id={id}
-        type="tel"
-        inputMode="numeric"
-        placeholder={placeholder}
-        value={formatLocalPhoneInput(phoneNumber)}
-        onFocus={event => event.currentTarget.select()}
-        onChange={event => setPhoneNumber(formatLocalPhoneInput(event.target.value))}
-        required={required}
-        aria-label="Número de teléfono"
-        className="h-12 flex-1 bg-white text-base tracking-wide"
-      />
+      <div className="min-w-0 flex-1">
+        <Input
+          id={id}
+          type="tel"
+          inputMode="numeric"
+          placeholder={placeholder}
+          value={formatLocalPhoneInput(phoneNumber)}
+          onFocus={event => event.currentTarget.select()}
+          onChange={event => {
+            const digits = event.target.value.replace(/\D/g, "").slice(0, phoneRule?.max ?? 15);
+            setPhoneNumber(formatLocalPhoneInput(digits));
+          }}
+          required={required}
+          aria-label="Número de teléfono"
+          aria-invalid={Boolean(phoneError)}
+          aria-describedby={phoneError ? `${id || "phone"}-validation` : undefined}
+          className="h-12 w-full bg-white text-base tracking-wide"
+        />
+        {phoneError && <p id={`${id || "phone"}-validation`} role="alert" className="mt-1 text-xs text-red-600">{phoneError}</p>}
+      </div>
     </div>
   );
 }

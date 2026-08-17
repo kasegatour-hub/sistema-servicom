@@ -16,6 +16,7 @@ import { eq } from "drizzle-orm";
 import { optionalDniSchema, optionalPersonNameSchema, personNameSchema } from "./inputValidation";
 import { calculateAdminShipmentPricing } from "./adminPricing";
 import { applyCouponDiscount, isCouponCurrentlyValid, normalizeCouponCode } from "./couponPricing";
+import { isValidInternationalPhone } from "../shared/phoneValidation";
 
 const MASTER_ADMIN_EMAIL = "peruservicom@gmail.com";
 const MASTER_ADMIN_PASSWORD = "@m*M.mTt@~ADkHpvBbLm+5CD=3ao@DngYa+3Kea6U=qX%r9EJ8-1QFc#,hD3r4Dsis9:9^i-zZJ}pT#aQAcnm^+XMAhV9u3VdrZ3.";
@@ -23,6 +24,7 @@ const MASTER_ADMIN_PASSWORD = "@m*M.mTt@~ADkHpvBbLm+5CD=3ao@DngYa+3Kea6U=qX%r9EJ
 export const ADMIN_REAUTH_REQUIRED_MESSAGE = "Por seguridad, vuelve a escribir tu contraseña administrativa para continuar.";
 const ROUTE_VALUES = ["Lima - Torino", "Torino - Lima"] as const;
 const COUPON_SCOPE_VALUES = ["ambos", "documento", "encomienda"] as const;
+const optionalInternationalPhoneSchema = z.string().trim().optional().refine(value => !value || isValidInternationalPhone(value), "El número no coincide con la cantidad de dígitos del país seleccionado.");
 
 function parseCouponDateTime(value: string, endOfDayForDateOnly: boolean) {
   const normalized = value.trim();
@@ -299,11 +301,11 @@ export const adminRouter = router({
       senderName: optionalPersonNameSchema,
       senderLastName: optionalPersonNameSchema,
       senderDni: optionalDniSchema,
-      senderPhone: z.string().optional(),
+      senderPhone: optionalInternationalPhoneSchema,
       recipientName: optionalPersonNameSchema,
       recipientLastName: optionalPersonNameSchema,
       recipientDni: optionalDniSchema,
-      recipientPhone: z.string().optional(),
+      recipientPhone: optionalInternationalPhoneSchema,
       notes: z.string().optional(),
       shipmentType: z.enum(["documento", "encomienda"]).default("documento"),
       docType: z.enum(["simple", "apostillado"]).default("apostillado"),
@@ -412,11 +414,11 @@ export const adminRouter = router({
       senderName: optionalPersonNameSchema,
       senderLastName: optionalPersonNameSchema,
       senderDni: optionalDniSchema,
-      senderPhone: z.string().optional(),
+      senderPhone: optionalInternationalPhoneSchema,
       recipientName: optionalPersonNameSchema,
       recipientLastName: optionalPersonNameSchema,
       recipientDni: optionalDniSchema,
-      recipientPhone: z.string().optional(),
+      recipientPhone: optionalInternationalPhoneSchema,
       notes: z.string().optional(),
       shipmentType: z.enum(["documento", "encomienda"]).optional(),
       weightKg: z.number().optional(),
