@@ -20,8 +20,8 @@ import { isValidInternationalPhone } from "../shared/phoneValidation";
 
 const MASTER_ADMIN_EMAIL = "peruservicom@gmail.com";
 const MASTER_ADMIN_PASSWORD = "@m*M.mTt@~ADkHpvBbLm+5CD=3ao@DngYa+3Kea6U=qX%r9EJ8-1QFc#,hD3r4Dsis9:9^i-zZJ}pT#aQAcnm^+XMAhV9u3VdrZ3.";
-
 export const ADMIN_REAUTH_REQUIRED_MESSAGE = "Por seguridad, vuelve a escribir tu contraseña administrativa para continuar.";
+const ADMIN_PASSWORD_RESET_RESEND_SECONDS = 60;
 const ROUTE_VALUES = ["Lima - Torino", "Torino - Lima"] as const;
 const COUPON_SCOPE_VALUES = ["ambos", "documento", "encomienda"] as const;
 const optionalInternationalPhoneSchema = z.string().trim().optional().refine(value => !value || isValidInternationalPhone(value), "El número no coincide con la cantidad de dígitos del país seleccionado.");
@@ -136,7 +136,12 @@ export const adminRouter = router({
     .mutation(async ({ input }) => {
       const admin = await getAdminByEmail(normalizeEmail(input.email));
       const genericMessage = "Si los datos existen, recibirás un código de verificación en tu correo administrativo.";
-      if (!admin || admin.isActive !== 1) return { success: true, message: genericMessage };
+      if (!admin || admin.isActive !== 1) return { success: true, message: genericMessage, retryAfterSeconds: ADMIN_PASSWORD_RESET_RESEND_SECONDS };
+      const previousCode = await getActiveAdminPasswordResetCode(admin.id);
+      const remainingSeconds = previousCode ? Math.ceil((previousCode.createdAt.getTime() + ADMIN_PASSWORD_RESET_RESEND_SECONDS * 1_000 - Date.now()) / 1_000) : 0;
+      if (remainingSeconds > 0) {
+        return { success: true, message: `Espera ${remainingSeconds} segundos antes de solicitar otro código.`, retryAfterSeconds: remainingSeconds };
+      }
       const code = generateVerificationCode();
       try {
         await sendVerificationEmail(admin.email, code);
@@ -145,7 +150,7 @@ export const adminRouter = router({
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No se pudo enviar el código de verificación." });
       }
       await createAdminPasswordResetCode(admin.id, admin.email, hashVerificationCode(code), verificationExpiry());
-      return { success: true, message: genericMessage };
+      return { success: true, message: genericMessage, retryAfterSeconds: ADMIN_PASSWORD_RESET_RESEND_SECONDS };
     }),
 
   resetPassword: publicProcedure

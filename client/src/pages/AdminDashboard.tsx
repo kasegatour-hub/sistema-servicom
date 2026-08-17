@@ -265,6 +265,7 @@ export default function AdminDashboard() {
   const [adminRecoveryEmail, setAdminRecoveryEmail] = useState("");
   const [adminRecoveryCode, setAdminRecoveryCode] = useState("");
   const [adminRecoveryPassword, setAdminRecoveryPassword] = useState("");
+  const [adminRecoveryResendSeconds, setAdminRecoveryResendSeconds] = useState(0);
   const pageSize = 10;
   const printQrRef = useRef<HTMLCanvasElement>(null);
   const utils = trpc.useUtils();
@@ -345,6 +346,7 @@ export default function AdminDashboard() {
   const requestAdminPasswordResetMutation = trpc.admin.requestPasswordReset.useMutation({
     onSuccess: result => {
       toast.success(result.message);
+      setAdminRecoveryResendSeconds(result.retryAfterSeconds ?? 60);
       setAdminAuthMode("reset");
     },
     onError: error => toast.error(error.message),
@@ -482,6 +484,12 @@ export default function AdminDashboard() {
     event.preventDefault();
     resetAdminPasswordMutation.mutate({ email: adminRecoveryEmail, code: adminRecoveryCode, newPassword: adminRecoveryPassword });
   };
+
+  useEffect(() => {
+    if (adminRecoveryResendSeconds <= 0) return;
+    const timer = window.setTimeout(() => setAdminRecoveryResendSeconds(value => Math.max(0, value - 1)), 1_000);
+    return () => window.clearTimeout(timer);
+  }, [adminRecoveryResendSeconds]);
 
   const handleCreateAdmin = async (data: CreateAdminForm) => {
     try {
@@ -1060,7 +1068,7 @@ export default function AdminDashboard() {
             <div className="rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-sm text-primary">Enviaremos un código de seis dígitos al correo administrativo registrado. El código vence en 10 minutos.</div>
             {adminAuthMode === "reset" && <><div><label htmlFor="admin-recovery-code" className="mb-2 block text-sm font-medium text-gray-700">Código de 6 dígitos</label><Input id="admin-recovery-code" value={adminRecoveryCode} onChange={event => setAdminRecoveryCode(event.target.value.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" pattern="[0-9]{6}" maxLength={6} className="border-2 tracking-[0.35em] focus:border-primary" required /></div><div><label htmlFor="admin-recovery-password" className="mb-2 block text-sm font-medium text-gray-700">Nueva contraseña</label><Input id="admin-recovery-password" type="password" value={adminRecoveryPassword} onChange={event => setAdminRecoveryPassword(event.target.value)} minLength={8} autoComplete="new-password" className="border-2 focus:border-primary" required /><p className="mt-1 text-xs text-slate-500">Usa al menos 8 caracteres.</p></div></>}
             <Button type="submit" disabled={requestAdminPasswordResetMutation.isPending || resetAdminPasswordMutation.isPending} className="w-full bg-primary text-white hover:bg-primary/90">{adminAuthMode === "request" ? (requestAdminPasswordResetMutation.isPending ? "Enviando código..." : "Enviar código") : (resetAdminPasswordMutation.isPending ? "Actualizando..." : "Restablecer contraseña")}</Button>
-            <div className="flex justify-center gap-3 text-sm"><button type="button" onClick={() => setAdminAuthMode("login")} className="font-semibold text-primary hover:underline">Volver a iniciar sesión</button>{adminAuthMode === "request" && <button type="button" onClick={() => setAdminAuthMode("reset")} className="font-semibold text-primary hover:underline">Ya tengo un código</button>}</div>
+            <div className="flex flex-col items-center gap-3 text-sm"><button type="button" onClick={() => setAdminAuthMode("login")} className="font-semibold text-primary hover:underline">Volver a iniciar sesión</button>{adminAuthMode === "reset" && <button type="button" disabled={adminRecoveryResendSeconds > 0 || requestAdminPasswordResetMutation.isPending} onClick={() => requestAdminPasswordResetMutation.mutate({ email: adminRecoveryEmail })} className="font-semibold text-primary hover:underline disabled:cursor-not-allowed disabled:text-slate-400 disabled:no-underline">{adminRecoveryResendSeconds > 0 ? `Reenviar código en ${adminRecoveryResendSeconds}s` : "Reenviar código"}</button>}</div>
           </form>}
         </Card>
       </div>

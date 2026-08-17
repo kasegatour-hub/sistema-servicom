@@ -41,6 +41,15 @@ describe("admin password recovery", () => {
     expect(dbMocks.createAdminPasswordResetCode).toHaveBeenCalledWith(admin.id, admin.email, expect.any(String), expect.any(Date));
   });
 
+  it("applies a short wait before sending another administrative recovery code", async () => {
+    dbMocks.getAdminByEmail.mockResolvedValue(admin);
+    dbMocks.getActiveAdminPasswordResetCode.mockResolvedValue({ id: 8, adminId: admin.id, destination: admin.email, createdAt: new Date() });
+    const result = await appRouter.createCaller(createPublicContext()).admin.requestPasswordReset({ email: admin.email });
+    expect(result.retryAfterSeconds).toBeGreaterThan(0);
+    expect(emailMocks.sendVerificationEmail).not.toHaveBeenCalled();
+    expect(dbMocks.createAdminPasswordResetCode).not.toHaveBeenCalled();
+  });
+
   it("updates an administrative password only after a valid unexpired code", async () => {
     dbMocks.getAdminByEmail.mockResolvedValue(admin);
     dbMocks.getActiveAdminPasswordResetCode.mockResolvedValue({ id: 9, adminId: admin.id, destination: admin.email, codeHash: hashVerificationCode("123456"), expiresAt: new Date(Date.now() + 60_000), attempts: 0 });

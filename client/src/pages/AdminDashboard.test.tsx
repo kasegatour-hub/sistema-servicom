@@ -64,7 +64,7 @@ vi.mock("@/lib/trpc", () => ({
       deactivateCoupon: { useMutation: () => mocks.deactivateCoupon },
       setLimaTorinoEncomiendasEnabled: { useMutation: () => mocks.setLimaTorinoEncomiendasEnabled },
       changeMyPassword: { useMutation: () => mocks.changeMyPassword },
-      requestPasswordReset: { useMutation: () => mocks.requestPasswordReset },
+      requestPasswordReset: { useMutation: (options?: { onSuccess?: (result: { message: string; retryAfterSeconds: number }) => void }) => ({ ...mocks.requestPasswordReset, mutate: (input: { email: string }) => { mocks.requestPasswordReset.mutate(input); options?.onSuccess?.({ message: "Código enviado", retryAfterSeconds: 60 }); } }) },
       resetPassword: { useMutation: () => mocks.resetPassword },
       reauthenticate: { useMutation: () => mocks.reauthenticate },
     },
@@ -108,6 +108,9 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.change(screen.getByLabelText("Correo administrativo"), { target: { value: "admin@servicom.pe" } });
     fireEvent.click(screen.getByRole("button", { name: "Enviar código" }));
     expect(mocks.requestPasswordReset.mutate).toHaveBeenCalledWith({ email: "admin@servicom.pe" });
+    expect(screen.getByLabelText("Código de 6 dígitos")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Reenviar código en 60s" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Ya tengo un código" })).toBeNull();
   });
 
   it("shows coupon management for an authenticated operator", async () => {

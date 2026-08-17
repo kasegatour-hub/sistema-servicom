@@ -332,3 +332,15 @@
 - [x] Verificar el código temporal y establecer una nueva contraseña administrativa segura
 - [x] Añadir «¿Olvidaste tu contraseña?» y el formulario de restablecimiento a la pantalla de acceso Admin
 - [x] Mantener el cambio de contraseña de sesión y añadir pruebas, compilación y publicación
+
+## Diagnóstico de entrega de códigos de recuperación administrativa
+- [x] Verificar que la solicitud administrativa crea el código y alcanza el servicio SMTP
+- [x] Identificar la configuración o error que impide recibir el correo de Servicom
+- [x] Corregir la entrega cuando sea posible o solicitar únicamente los datos SMTP necesarios
+- [x] Verificar el resultado sin modificar contraseñas de cuentas existentes
+
+## Corrección de entrega y reenvío de recuperación administrativa
+- [x] Reproducir y registrar de forma segura el error real de envío del código administrativo
+- [x] Corregir la entrega del correo de recuperación y mantener el código vigente tras el envío
+- [x] Añadir «Reenviar código» con una cuenta regresiva visible y límite de solicitud
+- [x] Añadir pruebas, verificar el flujo, compilar y publicar
