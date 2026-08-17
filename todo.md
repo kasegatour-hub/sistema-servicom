@@ -349,3 +349,9 @@
 - [x] Actualizar el correo Master Admin de peruservicom@gmail.com a yeslygian2030@gmail.com en aplicación y base de datos
 - [x] Asegurar que inicio de sesión, cambio y recuperación de contraseña usen el correo maestro corregido
 - [x] Añadir pruebas de identidad administrativa, ejecutar la suite, compilar y publicar
+
+## Restablecimiento directo del Master Admin
+- [x] Confirmar la cuenta superadmin correcta antes de actualizar la contraseña proporcionada por el usuario
+- [x] Guardar la nueva contraseña con hash seguro y revocar códigos de recuperación pendientes
+- [x] Verificar que el inicio de sesión funcione con yeslygian2030@gmail.com y aclarar el correo correcto en la interfaz
+- [x] Ejecutar pruebas, compilar y publicar la corrección
