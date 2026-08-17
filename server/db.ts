@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, like, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { createHash } from "node:crypto";
-import { InsertUser, users, shipments, shipmentSignatures, shipmentAuditLogs, interactionEvents, admins, localAccounts, verificationCodes, clients, discountCoupons, shipmentRoutePolicies } from "../drizzle/schema";
+import { InsertUser, users, shipments, shipmentSignatures, shipmentAuditLogs, interactionEvents, admins, localAccounts, verificationCodes, adminPasswordResetCodes, clients, discountCoupons, shipmentRoutePolicies } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { buildShipmentClientDirectoryRecords, type ClientDirectoryRecord, type ShipmentClientDirectoryInput } from "./clientDirectory";
 
@@ -483,6 +483,41 @@ export async function incrementVerificationAttempts(id: number) {
   const code = await db.select().from(verificationCodes).where(eq(verificationCodes.id, id)).limit(1);
   if (!code[0]) return undefined;
   return db.update(verificationCodes).set({ attempts: code[0].attempts + 1 }).where(eq(verificationCodes.id, id));
+}
+
+export async function createAdminPasswordResetCode(adminId: number, destination: string, codeHash: string, expiresAt: Date) {
+  const db = await getDb();
+  if (!db) return undefined;
+  await db.insert(adminPasswordResetCodes).values({ adminId, destination, codeHash, expiresAt });
+  const result = await db.select().from(adminPasswordResetCodes).where(eq(adminPasswordResetCodes.adminId, adminId)).orderBy(desc(adminPasswordResetCodes.createdAt)).limit(1);
+  return result[0];
+}
+
+export async function getActiveAdminPasswordResetCode(adminId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(adminPasswordResetCodes).where(and(eq(adminPasswordResetCodes.adminId, adminId), isNull(adminPasswordResetCodes.consumedAt))).orderBy(desc(adminPasswordResetCodes.createdAt)).limit(1);
+  return result[0];
+}
+
+export async function consumeAdminPasswordResetCode(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  return db.update(adminPasswordResetCodes).set({ consumedAt: new Date() }).where(eq(adminPasswordResetCodes.id, id));
+}
+
+export async function incrementAdminPasswordResetAttempts(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(adminPasswordResetCodes).where(eq(adminPasswordResetCodes.id, id)).limit(1);
+  if (!result[0]) return undefined;
+  return db.update(adminPasswordResetCodes).set({ attempts: result[0].attempts + 1 }).where(eq(adminPasswordResetCodes.id, id));
+}
+
+export async function updateAdminPassword(id: number, password: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  return db.update(admins).set({ password, updatedAt: new Date() }).where(eq(admins.id, id));
 }
 
 export async function createDiscountCoupon(input: {

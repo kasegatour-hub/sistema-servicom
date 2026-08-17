@@ -23,6 +23,8 @@ const mocks = vi.hoisted(() => ({
   limaTorinoPolicy: { data: { route: "Lima - Torino", encomiendasEnabled: true, updatedAt: null }, refetch: vi.fn() },
   setLimaTorinoEncomiendasEnabled: { isPending: false, mutateAsync: vi.fn().mockResolvedValue({ success: true, enabled: false }) },
   changeMyPassword: { isPending: false, mutate: vi.fn() },
+  requestPasswordReset: { isPending: false, mutate: vi.fn() },
+  resetPassword: { isPending: false, mutate: vi.fn() },
   reauthenticate: { isPending: false, mutate: vi.fn() },
   refetchAdminSession: vi.fn().mockResolvedValue({ data: null }),
   refetchShipments: vi.fn(),
@@ -62,6 +64,8 @@ vi.mock("@/lib/trpc", () => ({
       deactivateCoupon: { useMutation: () => mocks.deactivateCoupon },
       setLimaTorinoEncomiendasEnabled: { useMutation: () => mocks.setLimaTorinoEncomiendasEnabled },
       changeMyPassword: { useMutation: () => mocks.changeMyPassword },
+      requestPasswordReset: { useMutation: () => mocks.requestPasswordReset },
+      resetPassword: { useMutation: () => mocks.resetPassword },
       reauthenticate: { useMutation: () => mocks.reauthenticate },
     },
     analytics: {
@@ -95,6 +99,15 @@ describe("AdminDashboard Nueva Encomienda", () => {
     expect(screen.getByRole("heading", { name: "Actualizar contraseña administrativa" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
     expect(screen.queryByRole("heading", { name: "Actualizar contraseña administrativa" })).toBeNull();
+  });
+
+  it("offers administrative password recovery by the registered email", () => {
+    render(<AdminDashboard />);
+    fireEvent.click(screen.getByRole("button", { name: "¿Olvidaste tu contraseña?" }));
+    expect(screen.getByRole("heading", { name: "Recuperar acceso administrativo" })).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Correo administrativo"), { target: { value: "admin@servicom.pe" } });
+    fireEvent.click(screen.getByRole("button", { name: "Enviar código" }));
+    expect(mocks.requestPasswordReset.mutate).toHaveBeenCalledWith({ email: "admin@servicom.pe" });
   });
 
   it("shows coupon management for an authenticated operator", async () => {

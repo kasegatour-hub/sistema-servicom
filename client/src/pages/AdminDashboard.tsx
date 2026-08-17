@@ -261,6 +261,10 @@ export default function AdminDashboard() {
   const [calculatorExpression, setCalculatorExpression] = useState("");
   const [calculatorResult, setCalculatorResult] = useState("");
   const [auditShipmentId, setAuditShipmentId] = useState<number | null>(null);
+  const [adminAuthMode, setAdminAuthMode] = useState<"login" | "request" | "reset">("login");
+  const [adminRecoveryEmail, setAdminRecoveryEmail] = useState("");
+  const [adminRecoveryCode, setAdminRecoveryCode] = useState("");
+  const [adminRecoveryPassword, setAdminRecoveryPassword] = useState("");
   const pageSize = 10;
   const printQrRef = useRef<HTMLCanvasElement>(null);
   const utils = trpc.useUtils();
@@ -335,6 +339,23 @@ export default function AdminDashboard() {
       setAdminNewPassword("");
       setAdminPasswordConfirmation("");
       setShowPasswordForm(false);
+    },
+    onError: error => toast.error(error.message),
+  });
+  const requestAdminPasswordResetMutation = trpc.admin.requestPasswordReset.useMutation({
+    onSuccess: result => {
+      toast.success(result.message);
+      setAdminAuthMode("reset");
+    },
+    onError: error => toast.error(error.message),
+  });
+  const resetAdminPasswordMutation = trpc.admin.resetPassword.useMutation({
+    onSuccess: result => {
+      toast.success(result.message);
+      loginForm.setValue("email", adminRecoveryEmail.trim().toLowerCase());
+      setAdminRecoveryCode("");
+      setAdminRecoveryPassword("");
+      setAdminAuthMode("login");
     },
     onError: error => toast.error(error.message),
   });
@@ -450,6 +471,16 @@ export default function AdminDashboard() {
     } catch (error: any) {
       toast.error(error.message || "Error al iniciar sesión");
     }
+  };
+
+  const handleAdminRecoveryRequest = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    requestAdminPasswordResetMutation.mutate({ email: adminRecoveryEmail });
+  };
+
+  const handleAdminPasswordReset = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    resetAdminPasswordMutation.mutate({ email: adminRecoveryEmail, code: adminRecoveryCode, newPassword: adminRecoveryPassword });
   };
 
   const handleCreateAdmin = async (data: CreateAdminForm) => {
@@ -976,10 +1007,10 @@ export default function AdminDashboard() {
           </div>
           <div className="flex items-center justify-center mb-6">
             <Lock className="w-8 h-8 text-primary mr-3" />
-            <h1 className="text-2xl font-bold text-primary">Admin Servicom Internacional</h1>
+            <h1 className="text-2xl font-bold text-primary">{adminAuthMode === "login" ? "Admin Servicom Internacional" : "Recuperar acceso administrativo"}</h1>
           </div>
 
-          <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-4" autoComplete="off">
+          <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-4" autoComplete="off" hidden={adminAuthMode !== "login"}>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
               <Input
@@ -1022,7 +1053,15 @@ export default function AdminDashboard() {
                 "Iniciar Sesión"
               )}
             </Button>
+            <div className="text-center"><button type="button" onClick={() => { setAdminRecoveryEmail(loginForm.getValues("email") || ""); setAdminAuthMode("request"); }} className="text-sm font-semibold text-primary hover:underline">¿Olvidaste tu contraseña?</button></div>
           </form>
+          {adminAuthMode !== "login" && <form onSubmit={adminAuthMode === "request" ? handleAdminRecoveryRequest : handleAdminPasswordReset} className="space-y-4" autoComplete="off">
+            <div><label htmlFor="admin-recovery-email" className="mb-2 block text-sm font-medium text-gray-700">Correo administrativo</label><Input id="admin-recovery-email" type="email" placeholder="Ingresa tu correo administrativo" value={adminRecoveryEmail} onChange={event => setAdminRecoveryEmail(event.target.value)} className="border-2 focus:border-primary" autoComplete="email" required /></div>
+            <div className="rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-sm text-primary">Enviaremos un código de seis dígitos al correo administrativo registrado. El código vence en 10 minutos.</div>
+            {adminAuthMode === "reset" && <><div><label htmlFor="admin-recovery-code" className="mb-2 block text-sm font-medium text-gray-700">Código de 6 dígitos</label><Input id="admin-recovery-code" value={adminRecoveryCode} onChange={event => setAdminRecoveryCode(event.target.value.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" pattern="[0-9]{6}" maxLength={6} className="border-2 tracking-[0.35em] focus:border-primary" required /></div><div><label htmlFor="admin-recovery-password" className="mb-2 block text-sm font-medium text-gray-700">Nueva contraseña</label><Input id="admin-recovery-password" type="password" value={adminRecoveryPassword} onChange={event => setAdminRecoveryPassword(event.target.value)} minLength={8} autoComplete="new-password" className="border-2 focus:border-primary" required /><p className="mt-1 text-xs text-slate-500">Usa al menos 8 caracteres.</p></div></>}
+            <Button type="submit" disabled={requestAdminPasswordResetMutation.isPending || resetAdminPasswordMutation.isPending} className="w-full bg-primary text-white hover:bg-primary/90">{adminAuthMode === "request" ? (requestAdminPasswordResetMutation.isPending ? "Enviando código..." : "Enviar código") : (resetAdminPasswordMutation.isPending ? "Actualizando..." : "Restablecer contraseña")}</Button>
+            <div className="flex justify-center gap-3 text-sm"><button type="button" onClick={() => setAdminAuthMode("login")} className="font-semibold text-primary hover:underline">Volver a iniciar sesión</button>{adminAuthMode === "request" && <button type="button" onClick={() => setAdminAuthMode("reset")} className="font-semibold text-primary hover:underline">Ya tengo un código</button>}</div>
+          </form>}
         </Card>
       </div>
     );

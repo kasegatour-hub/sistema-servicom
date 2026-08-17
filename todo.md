@@ -326,3 +326,9 @@
 - [x] Mostrar al Master Admin el historial de cambios relevantes con actor, fecha y detalle
 - [x] Mantener sin cambios los permisos actuales de recuperación para Master Admin y Registradores
 - [x] Añadir pruebas de permisos y trazabilidad, ejecutar suite, compilar y publicar
+
+## Recuperación de contraseña para cuentas administrativas
+- [x] Permitir a administradores y registradores solicitar un código de recuperación por el correo registrado
+- [x] Verificar el código temporal y establecer una nueva contraseña administrativa segura
+- [x] Añadir «¿Olvidaste tu contraseña?» y el formulario de restablecimiento a la pantalla de acceso Admin
+- [x] Mantener el cambio de contraseña de sesión y añadir pruebas, compilación y publicación

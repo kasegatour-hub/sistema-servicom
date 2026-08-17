@@ -8,10 +8,10 @@ function buildTrackingPath(orderNumber: string, code: string): string {
 }
 import { publicProcedure, router } from "./_core/trpc";
 import { attachShipmentAuditActorLabels, createDiscountCoupon, createShipment, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAllShipments, getDeletedShipments, getDiscountCouponByCode, getShipmentAuditLogs, getShipmentById, getShipmentRoutePolicy, incrementDiscountCouponRedemption, isEncomiendaEnabledForRoute, listDiscountCoupons, recordInteractionEvent, recordShipmentAudit, restoreShipment, searchClients, setEncomiendaAvailabilityForRoute, updateDiscountCoupon, updateShipmentStatus } from "./db";
-import { hashPassword, verifyPassword } from "./localAuth";
+import { generateVerificationCode, hashPassword, hashVerificationCode, normalizeEmail, sendVerificationEmail, verificationExpiry, verifyPassword } from "./localAuth";
 import { AdminSessionPayload, clearAdminSession, getAdminSession, setAdminSession } from "./adminSession";
 import { admins } from "../drizzle/schema";
-import { getDb } from "./db";
+import { consumeAdminPasswordResetCode, createAdminPasswordResetCode, getActiveAdminPasswordResetCode, getDb, incrementAdminPasswordResetAttempts, updateAdminPassword } from "./db";
 import { eq } from "drizzle-orm";
 import { optionalDniSchema, optionalPersonNameSchema, personNameSchema } from "./inputValidation";
 import { calculateAdminShipmentPricing } from "./adminPricing";
@@ -91,7 +91,9 @@ export const adminRouter = router({
       if (email === MASTER_ADMIN_EMAIL) {
         const db = await getDb();
         const [masterRecord] = db ? await db.select().from(admins).where(eq(admins.id, 1)).limit(1) : [];
-        const validMasterPassword = receivedPassword === MASTER_ADMIN_PASSWORD || Boolean(masterRecord?.password.startsWith("scrypt$") && await verifyPassword(receivedPassword, masterRecord.password));
+        const validMasterPassword = masterRecord?.password.startsWith("scrypt$")
+          ? await verifyPassword(receivedPassword, masterRecord.password)
+          : receivedPassword === MASTER_ADMIN_PASSWORD;
         if (!validMasterPassword) {
           throw new TRPCError({ code: "UNAUTHORIZED", message: "Credenciales inválidas" });
         }
@@ -129,6 +131,41 @@ export const adminRouter = router({
     return { success: true };
   }),
 
+  requestPasswordReset: publicProcedure
+    .input(z.object({ email: z.string().email() }))
+    .mutation(async ({ input }) => {
+      const admin = await getAdminByEmail(normalizeEmail(input.email));
+      const genericMessage = "Si los datos existen, recibirás un código de verificación en tu correo administrativo.";
+      if (!admin || admin.isActive !== 1) return { success: true, message: genericMessage };
+      const code = generateVerificationCode();
+      try {
+        await sendVerificationEmail(admin.email, code);
+      } catch (error) {
+        console.error("[Admin] Verification delivery failed", error);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No se pudo enviar el código de verificación." });
+      }
+      await createAdminPasswordResetCode(admin.id, admin.email, hashVerificationCode(code), verificationExpiry());
+      return { success: true, message: genericMessage };
+    }),
+
+  resetPassword: publicProcedure
+    .input(z.object({ email: z.string().email(), code: z.string().regex(/^\d{6}$/, "El código debe tener 6 dígitos."), newPassword: z.string().min(8, "La nueva contraseña debe tener al menos 8 caracteres.") }))
+    .mutation(async ({ input }) => {
+      const admin = await getAdminByEmail(normalizeEmail(input.email));
+      if (!admin || admin.isActive !== 1) throw new TRPCError({ code: "BAD_REQUEST", message: "El código no es válido o ya venció." });
+      const verification = await getActiveAdminPasswordResetCode(admin.id);
+      if (!verification || verification.expiresAt.getTime() < Date.now() || verification.attempts >= 5 || verification.destination !== admin.email) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "El código no es válido o ya venció." });
+      }
+      if (hashVerificationCode(input.code) !== verification.codeHash) {
+        await incrementAdminPasswordResetAttempts(verification.id);
+        throw new TRPCError({ code: "BAD_REQUEST", message: "El código no es válido o ya venció." });
+      }
+      await updateAdminPassword(admin.id, await hashPassword(input.newPassword));
+      await consumeAdminPasswordResetCode(verification.id);
+      return { success: true, message: "Contraseña administrativa actualizada correctamente." };
+    }),
+
   reauthenticate: staleAdminSessionProcedure
     .input(z.object({ password: z.string().min(1) }))
     .mutation(async ({ input, ctx }) => {
@@ -136,11 +173,9 @@ export const adminRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database error" });
       const [admin] = await db.select().from(admins).where(eq(admins.id, ctx.adminSession.adminId)).limit(1);
       const isMasterSession = ctx.adminSession.adminId === 1 && ctx.adminSession.role === "superadmin";
-      const validPassword = isMasterSession && input.password === MASTER_ADMIN_PASSWORD
-        ? true
-        : Boolean(admin && admin.isActive === 1 && (admin.password.startsWith("scrypt$")
-          ? await verifyPassword(input.password, admin.password)
-          : admin.password === input.password));
+      const validPassword = Boolean(admin && admin.isActive === 1 && (admin.password.startsWith("scrypt$")
+        ? await verifyPassword(input.password, admin.password)
+        : isMasterSession ? input.password === MASTER_ADMIN_PASSWORD : admin.password === input.password));
       if (!admin || admin.isActive !== 1 || !validPassword) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "La contraseña actual no es correcta." });
       }
@@ -164,11 +199,9 @@ export const adminRouter = router({
       if (!admin || admin.isActive !== 1 || !emailMatches) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "El correo no coincide con la cuenta administrativa activa." });
       }
-      const validPassword = isMasterSession && input.currentPassword === MASTER_ADMIN_PASSWORD
-        ? true
-        : admin.password.startsWith("scrypt$")
-          ? await verifyPassword(input.currentPassword, admin.password)
-          : admin.password === input.currentPassword;
+      const validPassword = admin.password.startsWith("scrypt$")
+        ? await verifyPassword(input.currentPassword, admin.password)
+        : isMasterSession ? input.currentPassword === MASTER_ADMIN_PASSWORD : admin.password === input.currentPassword;
       if (!validPassword) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "La contraseña actual no es correcta." });
       }

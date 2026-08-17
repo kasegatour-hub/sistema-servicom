@@ -73,6 +73,22 @@ export const verificationCodes = mysqlTable("verification_codes", {
 export type VerificationCode = typeof verificationCodes.$inferSelect;
 export type InsertVerificationCode = typeof verificationCodes.$inferInsert;
 
+/** Códigos de recuperación exclusivos de cuentas administrativas; no comparten el espacio de los clientes. */
+export const adminPasswordResetCodes = mysqlTable("admin_password_reset_codes", {
+  id: int("id").autoincrement().primaryKey(),
+  adminId: int("adminId").notNull(),
+  destination: varchar("destination", { length: 320 }).notNull(),
+  codeHash: varchar("codeHash", { length: 255 }).notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  consumedAt: timestamp("consumedAt"),
+  attempts: int("attempts").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, table => ({
+  adminIdx: index("admin_password_reset_codes_admin_idx").on(table.adminId, table.createdAt),
+}));
+export type AdminPasswordResetCode = typeof adminPasswordResetCodes.$inferSelect;
+export type InsertAdminPasswordResetCode = typeof adminPasswordResetCodes.$inferInsert;
+
 export const admins = mysqlTable("admins", {
   id: int("id").autoincrement().primaryKey(),
   email: varchar("email", { length: 320 }).notNull().unique(),
