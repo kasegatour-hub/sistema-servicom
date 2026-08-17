@@ -120,6 +120,13 @@
       "when": 1787000637083,
       "tag": "0016_peaceful_amazoness",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "5",
+      "when": 1787010821912,
+      "tag": "0017_mighty_onslaught",
+      "breakpoints": true
     }
   ]
 }

@@ -326,6 +326,7 @@ export default function AdminDashboard() {
   const createMutation = trpc.admin.createShipment.useMutation();
   const updateMutation = trpc.admin.updateStatus.useMutation();
   const deleteMutation = trpc.admin.deleteShipment.useMutation();
+  const setShipmentRegistradorVisibilityMutation = trpc.admin.setShipmentRegistradorVisibility.useMutation();
   const restoreMutation = trpc.admin.restoreShipment.useMutation({
     onSuccess: async () => { toast.success("Envío restaurado correctamente."); await refetchDeletedShipments(); await refetchShipments(); },
     onError: error => toast.error(error.message),
@@ -568,6 +569,17 @@ export default function AdminDashboard() {
       refetchAdminUsers();
     } catch (error: any) {
       toast.error(error.message || "No se pudo desactivar el Registrador");
+    }
+  };
+
+  const handleToggleRegistradorVisibility = async (shipment: { id: number; hiddenFromRegistradoresAt?: string | Date | null }) => {
+    const hidden = !shipment.hiddenFromRegistradoresAt;
+    try {
+      await setShipmentRegistradorVisibilityMutation.mutateAsync({ shipmentId: shipment.id, hidden });
+      toast.success(hidden ? "Envío oculto para Registradores. El cliente y el rastreo público mantienen el acceso." : "Envío visible nuevamente para Registradores.");
+      await refetchShipments();
+    } catch (error: any) {
+      toast.error(error.message || "No se pudo actualizar la visibilidad operativa del envío.");
     }
   };
 
@@ -1837,7 +1849,7 @@ export default function AdminDashboard() {
                 </TableHeader>
                 <TableBody>
                   {visibleShipments.map((shipment: any) => (
-                    <TableRow key={shipment.id}>
+                    <TableRow key={shipment.id} className={shipment.hiddenFromRegistradoresAt ? "bg-violet-50/60" : undefined}>
                       <TableCell className="max-w-[280px] whitespace-normal font-semibold text-slate-900">{shipment.recipientName ? `${shipment.recipientName} ${shipment.recipientLastName || ''}` : 'Destinatario no especificado'}</TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-1.5 items-start">
@@ -1853,6 +1865,7 @@ export default function AdminDashboard() {
                           <span className={`px-2 py-0.5 rounded text-xs font-semibold ${getPaymentStatusUi(shipment.paymentStatus).badgeClass}`}>
                             {getPaymentStatusUi(shipment.paymentStatus).label}
                           </span>
+                          {admin?.role === "superadmin" && shipment.hiddenFromRegistradoresAt && <span className="rounded bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-800">Oculto a Registradores</span>}
                         </div>
                       </TableCell>
                       <TableCell className="whitespace-nowrap">{new Date(shipment.createdAt).toLocaleDateString()}</TableCell>
@@ -1909,6 +1922,7 @@ export default function AdminDashboard() {
                           >
                             Eliminar
                           </Button>
+                          {admin?.role === "superadmin" && <Button onClick={() => handleToggleRegistradorVisibility(shipment)} size="sm" variant="outline" className="border-violet-300 text-violet-800 hover:bg-violet-50" disabled={setShipmentRegistradorVisibilityMutation.isPending}>{shipment.hiddenFromRegistradoresAt ? "Mostrar a Registradores" : "Ocultar a Registradores"}</Button>}
                           {admin?.role === "superadmin" && <Button onClick={() => setAuditShipmentId(shipment.id)} size="sm" variant="outline" className="border-slate-400 text-slate-700 hover:bg-slate-100">Historial</Button>}
                         </div>
                       </TableCell>
@@ -1950,7 +1964,7 @@ export default function AdminDashboard() {
 
         {admin?.role === "superadmin" && auditShipmentId && <Card className="mt-6 border-0 p-6 shadow-md" aria-label="Historial administrativo del envío">
           <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-lg font-bold text-[#0B2B5E]">Historial de cambios del envío</h2><p className="mt-1 text-xs text-slate-500">Visible únicamente para el Master Admin. Incluye quién eliminó, actualizó, restauró o completó una firma.</p></div><Button size="sm" variant="outline" onClick={() => setAuditShipmentId(null)}>Cerrar historial</Button></div>
-          {isLoadingShipmentAudit ? <p className="mt-4 text-sm text-slate-500">Cargando historial…</p> : shipmentAudit.length === 0 ? <p className="mt-4 text-sm text-slate-500">No hay registros de auditoría disponibles para este envío.</p> : <ol className="mt-4 space-y-3">{shipmentAudit.map((entry: any) => <li key={entry.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3"><p className="text-sm font-semibold text-[#0B2B5E]">{({ created: "Registro creado", updated: "Datos o estado actualizado", deleted: "Envío eliminado", restored: "Envío restaurado", price_updated: "Precio actualizado", signature_requested: "Firma solicitada", signature_completed: "Firma completada" } as Record<string, string>)[entry.action] || entry.action}</p><p className="mt-1 text-xs text-slate-600">Realizado por: <strong>{entry.actorDisplayName || "No indicado"}</strong> · {entry.createdAt ? new Date(entry.createdAt).toLocaleString() : "sin fecha"}</p>{entry.reason && <p className="mt-1 text-xs text-slate-600">Motivo: {entry.reason}</p>}</li>)}</ol>}
+          {isLoadingShipmentAudit ? <p className="mt-4 text-sm text-slate-500">Cargando historial…</p> : shipmentAudit.length === 0 ? <p className="mt-4 text-sm text-slate-500">No hay registros de auditoría disponibles para este envío.</p> : <ol className="mt-4 space-y-3">{shipmentAudit.map((entry: any) => <li key={entry.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3"><p className="text-sm font-semibold text-[#0B2B5E]">{({ created: "Registro creado", updated: "Datos o estado actualizado", deleted: "Envío eliminado", restored: "Envío restaurado", price_updated: "Precio actualizado", signature_requested: "Firma solicitada", signature_completed: "Firma completada", hidden_from_registradores: "Envío oculto para Registradores", shown_to_registradores: "Envío mostrado a Registradores" } as Record<string, string>)[entry.action] || entry.action}</p><p className="mt-1 text-xs text-slate-600">Realizado por: <strong>{entry.actorDisplayName || "No indicado"}</strong> · {entry.createdAt ? new Date(entry.createdAt).toLocaleString() : "sin fecha"}</p>{entry.reason && <p className="mt-1 text-xs text-slate-600">Motivo: {entry.reason}</p>}</li>)}</ol>}
         </Card>}
 
         {/* Update Status Modal */}

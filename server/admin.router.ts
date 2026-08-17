@@ -7,7 +7,7 @@ function buildTrackingPath(orderNumber: string, code: string): string {
   return `/?order=${encodeURIComponent(order)}&code=${encodeURIComponent(normalizedCode)}`;
 }
 import { publicProcedure, router } from "./_core/trpc";
-import { attachShipmentAuditActorLabels, createDiscountCoupon, createShipment, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAllShipments, getDeletedShipments, getDiscountCouponByCode, getShipmentAuditLogs, getShipmentById, getShipmentRoutePolicy, incrementDiscountCouponRedemption, isEncomiendaEnabledForRoute, listDiscountCoupons, recordInteractionEvent, recordShipmentAudit, restoreShipment, searchClients, setEncomiendaAvailabilityForRoute, updateDiscountCoupon, updateShipmentStatus } from "./db";
+import { attachShipmentAuditActorLabels, createDiscountCoupon, createShipment, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAllShipments, getDeletedShipments, getDiscountCouponByCode, getShipmentAuditLogs, getShipmentById, getShipmentRoutePolicy, incrementDiscountCouponRedemption, isEncomiendaEnabledForRoute, listDiscountCoupons, recordInteractionEvent, recordShipmentAudit, restoreShipment, searchClients, setEncomiendaAvailabilityForRoute, setShipmentRegistradorVisibility, updateDiscountCoupon, updateShipmentStatus } from "./db";
 import { generateVerificationCode, hashPassword, hashVerificationCode, normalizeEmail, sendVerificationEmail, verificationExpiry, verifyPassword } from "./localAuth";
 import { AdminSessionPayload, clearAdminSession, getAdminSession, setAdminSession } from "./adminSession";
 import { admins } from "../drizzle/schema";
@@ -291,8 +291,8 @@ export const adminRouter = router({
 
   getAllShipments: adminProcedure
     .input(z.object({ shipmentType: z.enum(["documento", "encomienda"]).optional() }).optional())
-    .query(async ({ input }) => {
-      const shipments = await getAllShipments(input?.shipmentType);
+    .query(async ({ input, ctx }) => {
+      const shipments = await getAllShipments(input?.shipmentType, { excludeHiddenForRegistradores: ctx.adminSession.role !== "superadmin" });
       return shipments.map(s => ({
         ...s,
         events: JSON.parse(s.events),
@@ -337,6 +337,19 @@ export const adminRouter = router({
       }
       const logs = await getShipmentAuditLogs(input.shipmentId);
       return attachShipmentAuditActorLabels(logs);
+    }),
+
+  setShipmentRegistradorVisibility: masterAdminProcedure
+    .input(z.object({ shipmentId: z.number().int().positive(), hidden: z.boolean(), reason: z.string().trim().max(500).optional() }))
+    .mutation(async ({ input, ctx }) => {
+      const updated = await setShipmentRegistradorVisibility(
+        input.shipmentId,
+        input.hidden,
+        { actorType: "admin", actorId: ctx.adminSession.adminId, actorLabel: "superadmin" },
+        input.reason,
+      );
+      if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "El envío no existe, está eliminado o no pudo actualizarse." });
+      return { success: true, hidden: input.hidden };
     }),
 
   searchClients: adminProcedure
@@ -481,6 +494,9 @@ export const adminRouter = router({
     .mutation(async ({ input, ctx }) => {
       const currentShipment = await getShipmentById(input.shipmentId);
       if (!currentShipment) throw new TRPCError({ code: "NOT_FOUND", message: "Envío no encontrado o eliminado." });
+      if (ctx.adminSession.role !== "superadmin" && currentShipment.hiddenFromRegistradoresAt) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Envío no encontrado." });
+      }
       const effectiveType = input.shipmentType ?? currentShipment.shipmentType;
       const isParcel = effectiveType === "encomienda";
       const effectiveWeight = input.weightKg ?? Number(currentShipment.weightKg ?? 1);
@@ -533,6 +549,10 @@ export const adminRouter = router({
   deleteShipment: adminProcedure
     .input(z.object({ id: z.number(), reason: z.string().trim().max(500).optional() }))
     .mutation(async ({ input, ctx }) => {
+      const shipment = await getShipmentById(input.id);
+      if (!shipment || (ctx.adminSession.role !== "superadmin" && shipment.hiddenFromRegistradoresAt)) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "El envío no existe o no está disponible." });
+      }
       const result = await deleteShipment(input.id, { actorType: "admin", actorId: ctx.adminSession.adminId, actorLabel: ctx.adminSession.role }, input.reason || "Eliminación solicitada por el operador");
       if (!result) {
         throw new TRPCError({

@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   createShipment: { isPending: false, mutateAsync: vi.fn() },
   updateStatus: { isPending: false, mutateAsync: vi.fn() },
   deleteShipment: { isPending: false, mutateAsync: vi.fn() },
+  setShipmentRegistradorVisibility: { isPending: false, mutateAsync: vi.fn() },
   restoreShipment: { isPending: false, mutate: vi.fn() },
   createAdmin: { isPending: false, mutateAsync: vi.fn() },
   deleteAdmin: { isPending: false, mutateAsync: vi.fn() },
@@ -30,6 +31,7 @@ const mocks = vi.hoisted(() => ({
   refetchShipments: vi.fn(),
   refetchAdminUsers: vi.fn(),
   refetchCoupons: vi.fn(),
+  shipments: [] as any[],
   searchClients: {
     useQuery: (input: { query?: string }) => ({
       data: input.query?.trim() ? [{ id: 21, name: "Ana", lastName: "Pérez", dni: "71234567", phone: "+51 970188447", email: null }] : [],
@@ -43,7 +45,7 @@ vi.mock("@/lib/trpc", () => ({
     useUtils: () => ({ shipment: { search: { fetch: vi.fn() } } }),
     admin: {
       me: { useQuery: () => ({ data: null, isLoading: false, refetch: mocks.refetchAdminSession }) },
-      getAllShipments: { useQuery: () => ({ data: [], isLoading: false, refetch: mocks.refetchShipments }) },
+      getAllShipments: { useQuery: () => ({ data: mocks.shipments, isLoading: false, refetch: mocks.refetchShipments }) },
       listDeletedShipments: { useQuery: () => ({ data: [], isLoading: false, refetch: vi.fn() }) },
       shipmentAudit: { useQuery: () => ({ data: [], isFetching: false }) },
       listAdmins: { useQuery: () => ({ data: [], isLoading: false, refetch: mocks.refetchAdminUsers }) },
@@ -55,6 +57,7 @@ vi.mock("@/lib/trpc", () => ({
       createShipment: { useMutation: () => mocks.createShipment },
       updateStatus: { useMutation: () => mocks.updateStatus },
       deleteShipment: { useMutation: () => mocks.deleteShipment },
+      setShipmentRegistradorVisibility: { useMutation: () => mocks.setShipmentRegistradorVisibility },
       restoreShipment: { useMutation: () => mocks.restoreShipment },
       createAdmin: { useMutation: () => mocks.createAdmin },
       deleteAdmin: { useMutation: () => mocks.deleteAdmin },
@@ -81,6 +84,7 @@ afterEach(() => cleanup());
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.listCoupons.data = [];
+  mocks.shipments = [];
   mocks.login.mutateAsync.mockResolvedValue({ id: 1, email: "admin@servicom.pe", name: "Operador", role: "registrador" });
 });
 
@@ -126,6 +130,18 @@ describe("AdminDashboard Nueva Encomienda", () => {
     expect(screen.getByText("Aplica a")).toBeTruthy();
     expect(screen.getByText("Válido desde")).toBeTruthy();
     expect(screen.getByText("Válido hasta")).toBeTruthy();
+  });
+
+  it("shows the reversible hiding action only to the Master Admin", async () => {
+    mocks.shipments = [{ id: 42, shipmentType: "documento", recipientName: "Giselle", recipientLastName: "García", status: "En agencia", paymentStatus: "Falta cancelar", createdAt: new Date("2026-08-17T10:00:00.000Z"), orderNumber: "6352627659", code: "DOC-2026-XPF2A", events: [], hiddenFromRegistradoresAt: null }];
+    mocks.login.mutateAsync.mockResolvedValue({ id: 1, email: "admin@servicom.pe", name: "Master", role: "superadmin" });
+    render(<AdminDashboard />);
+    fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
+    fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Ocultar a Registradores" })).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "Ocultar a Registradores" }));
+    await waitFor(() => expect(mocks.setShipmentRegistradorVisibility.mutateAsync).toHaveBeenCalledWith({ shipmentId: 42, hidden: true }));
   });
 
   it("hides, orders and paginates promotional coupons five at a time", async () => {

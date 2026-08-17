@@ -5,6 +5,9 @@ const dbMocks = vi.hoisted(() => ({
   getDeletedShipments: vi.fn(),
   restoreShipment: vi.fn(),
   deleteShipment: vi.fn(),
+  getShipmentById: vi.fn(),
+  getAllShipments: vi.fn(),
+  setShipmentRegistradorVisibility: vi.fn(),
   getShipmentAuditLogs: vi.fn(),
   attachShipmentAuditActorLabels: vi.fn(),
   recordInteractionEvent: vi.fn(),
@@ -56,12 +59,20 @@ describe("shipment trash and restoration", () => {
   });
 
   it("moves a shipment to the reversible trash and records the action", async () => {
+    dbMocks.getShipmentById.mockResolvedValue({ id: 42, hiddenFromRegistradoresAt: null });
     dbMocks.deleteShipment.mockResolvedValue(true);
     const caller = appRouter.createCaller(adminContext("registrador", 9));
 
     await expect(caller.admin.deleteShipment({ id: 42, reason: "Eliminación accidental" })).resolves.toMatchObject({ success: true });
     expect(dbMocks.deleteShipment).toHaveBeenCalledWith(42, expect.objectContaining({ actorType: "admin", actorId: 9 }), "Eliminación accidental");
     expect(dbMocks.recordInteractionEvent).toHaveBeenCalledWith(expect.objectContaining({ eventName: "trash_deleted" }));
+  });
+
+  it("prevents a Registrador from deleting a shipment hidden by the Master Admin", async () => {
+    dbMocks.getShipmentById.mockResolvedValue({ id: 42, hiddenFromRegistradoresAt: new Date("2026-08-17T12:00:00.000Z") });
+    const registrador = appRouter.createCaller(adminContext("registrador", 9));
+    await expect(registrador.admin.deleteShipment({ id: 42 })).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(dbMocks.deleteShipment).not.toHaveBeenCalled();
   });
 
   it("only allows the Master Admin to see the resolved actor history", async () => {
@@ -73,5 +84,26 @@ describe("shipment trash and restoration", () => {
 
     const registrador = appRouter.createCaller(adminContext("registrador", 9));
     await expect(registrador.admin.shipmentAudit({ shipmentId: 42 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("allows only the Master Admin to hide or show an active shipment for Registradores", async () => {
+    dbMocks.setShipmentRegistradorVisibility.mockResolvedValue(true);
+    const master = appRouter.createCaller(adminContext("superadmin", 1));
+    await expect(master.admin.setShipmentRegistradorVisibility({ shipmentId: 42, hidden: true })).resolves.toEqual({ success: true, hidden: true });
+    expect(dbMocks.setShipmentRegistradorVisibility).toHaveBeenCalledWith(42, true, expect.objectContaining({ actorType: "admin", actorId: 1, actorLabel: "superadmin" }), undefined);
+
+    const registrador = appRouter.createCaller(adminContext("registrador", 9));
+    await expect(registrador.admin.setShipmentRegistradorVisibility({ shipmentId: 42, hidden: false })).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("filters hidden shipments only from the Registrador list", async () => {
+    dbMocks.getAllShipments.mockResolvedValue([]);
+    const registrador = appRouter.createCaller(adminContext("registrador", 9));
+    await registrador.admin.getAllShipments();
+    expect(dbMocks.getAllShipments).toHaveBeenLastCalledWith(undefined, { excludeHiddenForRegistradores: true });
+
+    const master = appRouter.createCaller(adminContext("superadmin", 1));
+    await master.admin.getAllShipments();
+    expect(dbMocks.getAllShipments).toHaveBeenLastCalledWith(undefined, { excludeHiddenForRegistradores: false });
   });
 });

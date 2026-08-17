@@ -198,6 +198,9 @@ export const shipments = mysqlTable("shipments", {
   deletedByType: mysqlEnum("deletedByType", ["admin", "account", "system"]),
   deletedById: int("deletedById"),
   deleteReason: text("deleteReason"),
+  hiddenFromRegistradoresAt: timestamp("hiddenFromRegistradoresAt"),
+  hiddenFromRegistradoresByAdminId: int("hiddenFromRegistradoresByAdminId"),
+  hideFromRegistradoresReason: text("hideFromRegistradoresReason"),
   
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -210,7 +213,7 @@ export type InsertShipment = typeof shipments.$inferInsert;
 export const shipmentAuditLogs = mysqlTable("shipment_audit_logs", {
   id: int("id").autoincrement().primaryKey(),
   shipmentId: int("shipmentId").notNull(),
-  action: mysqlEnum("action", ["created", "updated", "deleted", "restored", "price_updated", "signature_requested", "signature_completed"]).notNull(),
+  action: mysqlEnum("action", ["created", "updated", "deleted", "restored", "price_updated", "signature_requested", "signature_completed", "hidden_from_registradores", "shown_to_registradores"]).notNull(),
   actorType: mysqlEnum("actorType", ["admin", "account", "public", "system"]).notNull(),
   actorId: int("actorId"),
   actorLabel: varchar("actorLabel", { length: 255 }),

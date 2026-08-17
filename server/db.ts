@@ -341,7 +341,7 @@ export type ShipmentAuditActor = {
 
 export async function recordShipmentAudit(input: {
   shipmentId: number;
-  action: "created" | "updated" | "deleted" | "restored" | "price_updated" | "signature_requested" | "signature_completed";
+  action: "created" | "updated" | "deleted" | "restored" | "price_updated" | "signature_requested" | "signature_completed" | "hidden_from_registradores" | "shown_to_registradores";
   actor: ShipmentAuditActor;
   reason?: string | null;
   snapshot?: unknown;
@@ -619,17 +619,17 @@ export async function setEncomiendaAvailabilityForRoute(route: string, encomiend
   return true;
 }
 
-export async function getAllShipments(shipmentType?: "documento" | "encomienda") {
+export async function getAllShipments(shipmentType?: "documento" | "encomienda", options?: { excludeHiddenForRegistradores?: boolean }) {
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot get shipments: database not available");
     return [];
   }
 
-  const activeCondition = shipmentType
-    ? and(eq(shipments.shipmentType, shipmentType), isNull(shipments.deletedAt))
-    : isNull(shipments.deletedAt);
-  return await db.select().from(shipments).where(activeCondition);
+  const conditions = [isNull(shipments.deletedAt)];
+  if (shipmentType) conditions.push(eq(shipments.shipmentType, shipmentType));
+  if (options?.excludeHiddenForRegistradores) conditions.push(isNull(shipments.hiddenFromRegistradoresAt));
+  return await db.select().from(shipments).where(and(...conditions));
 }
 
 export async function getDeletedShipments(shipmentType?: "documento" | "encomienda") {
@@ -880,5 +880,28 @@ export async function restoreShipment(id: number, actor: ShipmentAuditActor = { 
     updatedAt: new Date(),
   }).where(eq(shipments.id, id));
   await recordShipmentAudit({ shipmentId: id, action: "restored", actor, snapshot: shipment });
+  return true;
+}
+
+/** Oculta un envío solo de las listas operativas de Registradores; no afecta al cliente, rastreo público ni papelera. */
+export async function setShipmentRegistradorVisibility(id: number, hidden: boolean, actor: ShipmentAuditActor, reason?: string | null) {
+  const db = await getDb();
+  if (!db) return false;
+  const shipment = await getShipmentRecordById(id);
+  if (!shipment || shipment.deletedAt) return false;
+  await db.update(shipments).set({
+    hiddenFromRegistradoresAt: hidden ? new Date() : null,
+    hiddenFromRegistradoresByAdminId: hidden ? actor.actorId ?? null : null,
+    hideFromRegistradoresReason: hidden ? reason?.trim() || null : null,
+    updatedAt: new Date(),
+  }).where(eq(shipments.id, id));
+  await recordShipmentAudit({
+    shipmentId: id,
+    action: hidden ? "hidden_from_registradores" : "shown_to_registradores",
+    actor,
+    reason: hidden ? reason?.trim() || null : null,
+    snapshot: shipment,
+    metadata: { hiddenFromRegistradores: hidden },
+  });
   return true;
 }

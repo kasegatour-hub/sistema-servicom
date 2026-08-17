@@ -366,3 +366,15 @@
 - [x] Retirar el texto visible que expone el correo Master Admin en acceso y recuperación
 - [x] Mantener intacto el funcionamiento del inicio de sesión y recuperación
 - [x] Ejecutar pruebas, compilar y publicar la corrección visual
+
+## Guía replicable para Kasega Tour EIRL
+- [x] Documentar arquitectura, flujos y modelo de datos del sistema de rastreo actual
+- [x] Parametrizar en Markdown la marca Kasega Tour EIRL, RUC 20615004708 y sede de Torino indicada
+- [x] Incluir instrucciones de despliegue, seguridad, secretos y lista de verificación de réplica
+- [x] Revisar y entregar el archivo Markdown descargable
+
+## Ocultación operativa de envíos para Registradores
+- [x] Añadir marca reversible de ocultación sin eliminar el envío ni afectar al cliente
+- [x] Limitar ocultar/mostrar exclusivamente al Master Admin y registrar la acción en auditoría
+- [x] Filtrar los envíos ocultos de las vistas de Registrador, manteniéndolos visibles para Master Admin, cliente y rastreo público
+- [x] Añadir control de ocultar/mostrar, pruebas de permisos y publicar la mejora
