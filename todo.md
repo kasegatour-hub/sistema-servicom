@@ -355,3 +355,9 @@
 - [x] Guardar la nueva contraseña con hash seguro y revocar códigos de recuperación pendientes
 - [x] Verificar que el inicio de sesión funcione con yeslygian2030@gmail.com y aclarar el correo correcto en la interfaz
 - [x] Ejecutar pruebas, compilar y publicar la corrección
+
+## Reasignación confirmada del correo Master Admin
+- [x] Cambiar la cuenta superadmin a peruservicom@gmail.com según la confirmación del usuario
+- [x] Enviar los códigos de recuperación administrativa al correo Master Admin confirmado
+- [x] Mantener el cambio de contraseña dentro de sesión y actualizar la orientación de la interfaz
+- [x] Ejecutar pruebas, compilar y publicar la reasignación

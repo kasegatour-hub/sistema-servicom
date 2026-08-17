@@ -18,7 +18,7 @@ import { calculateAdminShipmentPricing } from "./adminPricing";
 import { applyCouponDiscount, isCouponCurrentlyValid, normalizeCouponCode } from "./couponPricing";
 import { isValidInternationalPhone } from "../shared/phoneValidation";
 
-const MASTER_ADMIN_EMAIL = "yeslygian2030@gmail.com";
+const MASTER_ADMIN_EMAIL = "peruservicom@gmail.com";
 const MASTER_ADMIN_PASSWORD = "@m*M.mTt@~ADkHpvBbLm+5CD=3ao@DngYa+3Kea6U=qX%r9EJ8-1QFc#,hD3r4Dsis9:9^i-zZJ}pT#aQAcnm^+XMAhV9u3VdrZ3.";
 export const ADMIN_REAUTH_REQUIRED_MESSAGE = "Por seguridad, vuelve a escribir tu contraseña administrativa para continuar.";
 const ADMIN_PASSWORD_RESET_RESEND_SECONDS = 60;
