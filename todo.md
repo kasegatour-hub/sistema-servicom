@@ -361,3 +361,8 @@
 - [x] Enviar los códigos de recuperación administrativa al correo Master Admin confirmado
 - [x] Mantener el cambio de contraseña dentro de sesión y actualizar la orientación de la interfaz
 - [x] Ejecutar pruebas, compilar y publicar la reasignación
+
+## Privacidad del correo Master Admin en interfaz
+- [x] Retirar el texto visible que expone el correo Master Admin en acceso y recuperación
+- [x] Mantener intacto el funcionamiento del inicio de sesión y recuperación
+- [x] Ejecutar pruebas, compilar y publicar la corrección visual

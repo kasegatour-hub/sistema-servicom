@@ -88,7 +88,7 @@ describe("AdminDashboard Nueva Encomienda", () => {
   it("shows escape links and the administrative password form", async () => {
     render(<AdminDashboard />);
     expect(screen.getByRole("link", { name: /Volver al inicio/ }).getAttribute("href")).toBe("/");
-    expect(screen.getByText("peruservicom@gmail.com")).toBeTruthy();
+    expect(screen.queryByText("peruservicom@gmail.com")).toBeNull();
 
     fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
     fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
