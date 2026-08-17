@@ -34,7 +34,7 @@ describe("admin.login", () => {
 
     await expect(
       caller.admin.login({
-        email: "peruservicom@gmail.com",
+        email: "yeslygian2030@gmail.com",
         password: "wrongpassword",
       }),
     ).rejects.toMatchObject({

@@ -344,3 +344,8 @@
 - [x] Corregir la entrega del correo de recuperación y mantener el código vigente tras el envío
 - [x] Añadir «Reenviar código» con una cuenta regresiva visible y límite de solicitud
 - [x] Añadir pruebas, verificar el flujo, compilar y publicar
+
+## Corrección de identidad del Master Admin
+- [x] Actualizar el correo Master Admin de peruservicom@gmail.com a yeslygian2030@gmail.com en aplicación y base de datos
+- [x] Asegurar que inicio de sesión, cambio y recuperación de contraseña usen el correo maestro corregido
+- [x] Añadir pruebas de identidad administrativa, ejecutar la suite, compilar y publicar
