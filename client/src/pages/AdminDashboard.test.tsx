@@ -16,7 +16,7 @@ const mocks = vi.hoisted(() => ({
   createAdmin: { isPending: false, mutateAsync: vi.fn() },
   deleteAdmin: { isPending: false, mutateAsync: vi.fn() },
   deactivateAdmin: { isPending: false, mutateAsync: vi.fn() },
-  listCoupons: { data: [], refetch: vi.fn() },
+  listCoupons: { data: [] as any[], refetch: vi.fn() },
   createCoupon: { isPending: false, mutateAsync: vi.fn().mockResolvedValue({ code: "SERVI25-TEST", discountPercent: 25 }) },
   updateCoupon: { isPending: false, mutateAsync: vi.fn() },
   deactivateCoupon: { isPending: false, mutateAsync: vi.fn() },
@@ -74,6 +74,7 @@ afterEach(() => cleanup());
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.listCoupons.data = [];
   mocks.login.mutateAsync.mockResolvedValue({ id: 1, email: "admin@servicom.pe", name: "Operador", role: "registrador" });
 });
 
@@ -106,6 +107,41 @@ describe("AdminDashboard Nueva Encomienda", () => {
     expect(screen.getByText("Aplica a")).toBeTruthy();
     expect(screen.getByText("Válido desde")).toBeTruthy();
     expect(screen.getByText("Válido hasta")).toBeTruthy();
+  });
+
+  it("hides, orders and paginates promotional coupons five at a time", async () => {
+    mocks.listCoupons.data = Array.from({ length: 7 }, (_, index) => {
+      const number = index + 1;
+      return {
+        id: number,
+        code: `CUPON-${number}`,
+        discountPercent: "25",
+        appliesTo: "ambos",
+        startsAt: new Date(`2026-08-0${number}T10:00:00.000Z`),
+        endsAt: new Date(`2026-09-0${number}T10:00:00.000Z`),
+        createdAt: new Date(`2026-08-0${number}T09:00:00.000Z`),
+        redeemedCount: 0,
+        isActive: 1,
+      };
+    });
+    render(<AdminDashboard />);
+    fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
+    fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
+
+    await waitFor(() => expect(screen.getByText("CUPON-7")).toBeTruthy());
+    expect(screen.getByText("Mostrando 1–5 de 7 cupones")).toBeTruthy();
+    expect(screen.queryByText("CUPON-1")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
+    expect(screen.getByText("CUPON-1")).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText("Orden de cupones"), { target: { value: "asc" } });
+    expect(screen.getByText("CUPON-1")).toBeTruthy();
+    expect(screen.queryByText("CUPON-7")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Ocultar cupones" }));
+    expect(screen.getByRole("button", { name: "Mostrar cupones" })).toBeTruthy();
+    expect(screen.queryByText("CUPON-1")).toBeNull();
   });
 
   it("opens each creation type directly without a redundant selector", async () => {

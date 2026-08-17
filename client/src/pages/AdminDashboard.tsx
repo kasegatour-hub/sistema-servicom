@@ -240,6 +240,9 @@ export default function AdminDashboard() {
   const [showUserForm, setShowUserForm] = useState(false);
   const [showCouponForm, setShowCouponForm] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<any>(null);
+  const [showCoupons, setShowCoupons] = useState(true);
+  const [couponSortOrder, setCouponSortOrder] = useState<"asc" | "desc">("desc");
+  const [couponCurrentPage, setCouponCurrentPage] = useState(1);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [adminPasswordEmail, setAdminPasswordEmail] = useState("");
   const [adminCurrentPassword, setAdminCurrentPassword] = useState("");
@@ -275,6 +278,20 @@ export default function AdminDashboard() {
     { query: recipientClientQuery.trim(), limit: 8 },
     { enabled: isLoggedIn && !admin?.reauthRequired && showCreateForm && recipientClientQuery.trim().length >= 2 },
   );
+  const couponPageSize = 5;
+  const orderedCoupons = useMemo(() => [...(coupons as any[])].sort((left, right) => {
+    const leftDate = new Date(left.createdAt || left.updatedAt || left.startsAt || 0).getTime();
+    const rightDate = new Date(right.createdAt || right.updatedAt || right.startsAt || 0).getTime();
+    const difference = (Number.isFinite(leftDate) ? leftDate : 0) - (Number.isFinite(rightDate) ? rightDate : 0);
+    return couponSortOrder === "desc" ? -difference : difference;
+  }), [coupons, couponSortOrder]);
+  const couponTotalPages = Math.max(1, Math.ceil(orderedCoupons.length / couponPageSize));
+  const visibleCoupons = orderedCoupons.slice((couponCurrentPage - 1) * couponPageSize, couponCurrentPage * couponPageSize);
+  const couponFirstItem = orderedCoupons.length === 0 ? 0 : (couponCurrentPage - 1) * couponPageSize + 1;
+  const couponLastItem = Math.min(couponCurrentPage * couponPageSize, orderedCoupons.length);
+
+  useEffect(() => setCouponCurrentPage(1), [couponSortOrder, coupons.length]);
+  useEffect(() => setCouponCurrentPage(page => Math.min(Math.max(1, page), couponTotalPages)), [couponTotalPages]);
 
   // Mutations
   const loginMutation = trpc.admin.login.useMutation();
@@ -1098,7 +1115,20 @@ export default function AdminDashboard() {
               <h2 className="text-xl font-semibold text-gray-900">Cupones promocionales</h2>
               <p className="mt-1 text-sm text-slate-500">Configura porcentaje, tipo de envío y vigencia exacta con fecha y hora.</p>
             </div>
-            <Button type="button" variant="outline" onClick={() => setShowCouponForm(value => !value)}>{showCouponForm ? "Cerrar" : "Nuevo cupón"}</Button>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" aria-expanded={showCoupons} onClick={() => setShowCoupons(value => !value)}>{showCoupons ? "Ocultar cupones" : "Mostrar cupones"}</Button>
+              <Button type="button" variant="outline" onClick={() => { setShowCoupons(true); setShowCouponForm(value => !value); }}>{showCouponForm ? "Cerrar" : "Nuevo cupón"}</Button>
+            </div>
+          </div>
+          {showCoupons && <>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2">
+            <p className="text-sm text-slate-600"><strong>{orderedCoupons.length}</strong> cupón(es) · mostrando 5 por página</p>
+            <label className="flex items-center gap-2 text-sm font-medium text-slate-700">Ordenar
+              <select aria-label="Orden de cupones" value={couponSortOrder} onChange={event => setCouponSortOrder(event.target.value as "asc" | "desc")} className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm">
+                <option value="desc">Recientes (descendentes)</option>
+                <option value="asc">Antiguos (ascendente)</option>
+              </select>
+            </label>
           </div>
           {showCouponForm && (
             <form onSubmit={couponForm.handleSubmit(handleCreateCoupon)} className="mt-5 grid grid-cols-1 gap-4 rounded-xl border border-amber-200 bg-amber-50 p-4 md:grid-cols-5">
@@ -1146,7 +1176,7 @@ export default function AdminDashboard() {
             <table className="min-w-[860px] w-full text-sm">
               <thead className="bg-slate-50 text-left text-slate-600"><tr><th className="px-4 py-3">Código</th><th className="px-4 py-3">Descuento</th><th className="px-4 py-3">Ámbito</th><th className="px-4 py-3">Vigencia</th><th className="px-4 py-3">Canjes</th><th className="px-4 py-3">Estado</th><th className="px-4 py-3">Acciones</th></tr></thead>
               <tbody>
-                {(coupons as any[]).length > 0 ? (coupons as any[]).map((coupon: any) => (
+                {orderedCoupons.length > 0 ? visibleCoupons.map((coupon: any) => (
                   <tr key={coupon.id} className="border-t">
                     <td className="px-4 py-3 font-mono font-semibold text-[#0B2B5E]">{coupon.code}</td>
                     <td className="px-4 py-3 font-bold text-[#F28C00]">{Number(coupon.discountPercent).toFixed(0)}%</td>
@@ -1160,6 +1190,11 @@ export default function AdminDashboard() {
               </tbody>
             </table>
           </div>
+          {orderedCoupons.length > 0 && <div className="flex flex-col gap-3 border-x border-b border-slate-200 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-slate-600">Mostrando {couponFirstItem}–{couponLastItem} de {orderedCoupons.length} cupones</p>
+            <div className="flex items-center gap-2"><Button type="button" variant="outline" size="sm" disabled={couponCurrentPage === 1} onClick={() => setCouponCurrentPage(page => Math.max(1, page - 1))}>Anterior</Button><span className="min-w-20 text-center text-sm font-medium text-slate-700">Página {couponCurrentPage} de {couponTotalPages}</span><Button type="button" variant="outline" size="sm" disabled={couponCurrentPage >= couponTotalPages} onClick={() => setCouponCurrentPage(page => Math.min(couponTotalPages, page + 1))}>Siguiente</Button></div>
+          </div>}
+          </>}
         </Card>
 
         {/* Create Shipment Section */}

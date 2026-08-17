@@ -304,3 +304,10 @@
 - [x] Permitir registrar otros documentos simples con cantidad ajustable y conservar el detalle en el checklist del envío
 - [x] Añadir pruebas de catálogo, cantidades, tratamientos, detalle persistido y nombre de descarga
 - [x] Ejecutar suite completa, compilación, verificación responsive y guardar checkpoint
+
+## Visibilidad y navegación de cupones solicitadas
+- [x] Añadir un botón para ocultar o mostrar la sección de cupones promocionales
+- [x] Paginar los cupones de cinco en cinco y mostrar el intervalo visible
+- [x] Ordenar cupones por Recientes (descendentes) y Antiguos (ascendente)
+- [x] Añadir pruebas de visibilidad, paginación y ordenamiento de cupones
+- [x] Ejecutar suite completa, compilación, verificación responsive y guardar checkpoint
