@@ -17,7 +17,9 @@ import QRCode from "qrcode";
 import { buildTrackingUrl, TRACKING_QR_OPTIONS } from "@/lib/tracking";
 import { PhoneInput } from "@/components/PhoneInput";
 import { QuantityStepper } from "@/components/QuantityStepper";
+import { DocumentCatalogSelector } from "@/components/DocumentCatalogSelector";
 import { formatPhoneNumber } from "@/lib/phoneFormatting";
+import { CatalogDocumentItem, catalogDocumentsToChecklist } from "@/lib/documentCatalog";
 import { digitsOnly, isDigitsOnly, isTextOnly, textOnly } from "@/lib/inputValidation";
 import { getPaymentStatusUi } from "@/lib/paymentStatus";
 import { getPaymentPrintPresentation } from "@/lib/paymentPrint";
@@ -29,6 +31,7 @@ import { buildReceiptPriceHtml } from "@/lib/receiptPrice";
 import { closeUpdateModal } from "@/lib/updateModal";
 import { UpdateShipmentModal } from "@/components/UpdateShipmentModal";
 import { evaluateScientificExpression } from "@/lib/scientificCalculator";
+import { buildReceiptDownloadFilename } from "@/lib/userReceipt";
 
 function renderQrCode(canvas: HTMLCanvasElement | null, trackingUrl: string, width: number) {
   if (!canvas) return;
@@ -249,6 +252,7 @@ export default function AdminDashboard() {
   const [recipientClientQuery, setRecipientClientQuery] = useState("");
   const [additionalDocumentItems, setAdditionalDocumentItems] = useState<Array<{ docType: "simple" | "apostillado"; sheetCount: number; manualPriceEur: string }>>([]);
   const [contentChecklist, setContentChecklist] = useState<string[]>([]);
+  const [catalogDocuments, setCatalogDocuments] = useState<CatalogDocumentItem[]>([]);
   const [showCalculator, setShowCalculator] = useState(false);
   const [calculatorExpression, setCalculatorExpression] = useState("");
   const [calculatorResult, setCalculatorResult] = useState("");
@@ -540,7 +544,9 @@ export default function AdminDashboard() {
 
   const handleCreateShipment = async (data: any) => {
     try {
-      const normalizedChecklist = contentChecklist.map(item => item.trim()).filter(Boolean);
+      const normalizedChecklist = data.shipmentType === "documento"
+        ? catalogDocumentsToChecklist(catalogDocuments)
+        : contentChecklist.map(item => item.trim()).filter(Boolean);
       if (normalizedChecklist.length === 0) {
         toast.error("Agrega al menos un elemento a la lista de cosas enviadas.");
         return;
@@ -555,6 +561,7 @@ export default function AdminDashboard() {
       setRecipientClientQuery("");
       setAdditionalDocumentItems([]);
       setContentChecklist([]);
+      setCatalogDocuments([]);
       createForm.reset({
         status: "En agencia",
         senderName: "",
@@ -638,6 +645,12 @@ export default function AdminDashboard() {
       const brandLogo = new URL('/manus-storage/servicom_logo_final_e7ce35aa.png', window.location.origin).href;
       const today = new Date().toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' });
       const receiptShipmentLabel = printShipment.shipmentType === 'encomienda' ? 'ENCOMIENDA' : 'DOCUMENTO';
+      const downloadFilename = buildReceiptDownloadFilename({
+        recipientName: printShipment.recipientName,
+        recipientLastName: printShipment.recipientLastName,
+        orderNumber: printShipment.orderNumber,
+        shipmentType: printShipment.shipmentType,
+      });
       const routePresentation = getRoutePresentation(printShipment.route);
       const paymentPrint = getPaymentPrintPresentation(printShipment.paymentStatus);
       const paymentIsPaid = paymentPrint.isPaid;
@@ -660,7 +673,7 @@ export default function AdminDashboard() {
         <!DOCTYPE html>
         <html>
         <head>
-          <title>INFORMACIÓN DE ENVÍO DE ${receiptShipmentLabel} - Servicom Internacional</title>
+          <title>${downloadFilename}</title>
           <style>
             @media print {
               ${buildAdminReceiptPrintStyles()}
@@ -1506,21 +1519,25 @@ export default function AdminDashboard() {
                 />
               </div>
 
-              <div className="border-t pt-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Checklist de contenido</label>
-                    <p className="mt-1 text-xs text-slate-500">Registro verificable de los artículos o documentos entregados, separado de las notas.</p>
+              {selectedShipmentType === "documento" ? (
+                <div className="border-t pt-4"><DocumentCatalogSelector value={catalogDocuments} onChange={setCatalogDocuments} idPrefix="admin-document" /></div>
+              ) : (
+                <div className="border-t pt-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Checklist de contenido</label>
+                      <p className="mt-1 text-xs text-slate-500">Registro verificable de los artículos entregados, separado de las notas.</p>
+                    </div>
+                    <Button type="button" size="sm" variant="outline" onClick={() => setContentChecklist(items => [...items, ""])}><Plus className="mr-1 h-4 w-4" /> Añadir ítem</Button>
                   </div>
-                  <Button type="button" size="sm" variant="outline" onClick={() => setContentChecklist(items => [...items, ""])}><Plus className="mr-1 h-4 w-4" /> Añadir ítem</Button>
+                  {contentChecklist.length > 0 && <div className="mt-3 space-y-2">
+                    {contentChecklist.map((item, index) => <div key={`content-check-${index}`} className="flex gap-2">
+                      <Input aria-label={`Ítem de checklist ${index + 1}`} value={item} maxLength={160} onChange={(event) => setContentChecklist(items => items.map((current, itemIndex) => itemIndex === index ? event.target.value : current))} placeholder="Ej. Paquete sellado" />
+                      <Button type="button" size="sm" variant="outline" onClick={() => setContentChecklist(items => items.filter((_, itemIndex) => itemIndex !== index))} className="shrink-0 border-red-200 text-red-700 hover:bg-red-50">Quitar</Button>
+                    </div>)}
+                  </div>}
                 </div>
-                {contentChecklist.length > 0 && <div className="mt-3 space-y-2">
-                  {contentChecklist.map((item, index) => <div key={`content-check-${index}`} className="flex gap-2">
-                    <Input aria-label={`Ítem de checklist ${index + 1}`} value={item} maxLength={160} onChange={(event) => setContentChecklist(items => items.map((current, itemIndex) => itemIndex === index ? event.target.value : current))} placeholder="Ej. 1 documento apostillado" />
-                    <Button type="button" size="sm" variant="outline" onClick={() => setContentChecklist(items => items.filter((_, itemIndex) => itemIndex !== index))} className="shrink-0 border-red-200 text-red-700 hover:bg-red-50">Quitar</Button>
-                  </div>)}
-                </div>}
-              </div>
+              )}
 
               <div className="flex gap-2">
                 <Button

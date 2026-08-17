@@ -4,6 +4,7 @@ import {
   buildReceiptRouteSummaryHtml,
   buildReceiptTicketHtml,
   buildReceiptPrintStyles,
+  buildReceiptDownloadFilename,
   buildReceiptUrl,
   buildElectronicSignatureHtml,
   getPaymentStatusPresentation,
@@ -33,6 +34,15 @@ describe("receipt window helpers", () => {
     expect(buildReceiptUrl("https://servicominternacional.manus.space", "7664444504", "DOC-2026-H2NQU")).toBe(
       "https://servicominternacional.manus.space/recibo?order=7664444504&code=DOC-2026-H2NQU",
     );
+  });
+
+  it("uses the recipient name and order in the automatic download filename", () => {
+    expect(buildReceiptDownloadFilename({
+      recipientName: "María José",
+      recipientLastName: "Díaz Ojitos",
+      orderNumber: "3289150504",
+      shipmentType: "documento",
+    })).toBe("recibo-documento-maria-jose-diaz-ojitos-orden-3289150504");
   });
 
   it("includes the complete delivery ticket and anti-split rule in the final receipt output", () => {
@@ -125,6 +135,7 @@ describe("receipt window helpers", () => {
     await printUserShipmentReceipt({
       orderNumber: "8844027727",
       code: "ENC-2026-75ZRD",
+      shipmentType: "encomienda",
       route: "Torino - Lima",
       senderName: "Luis",
       senderLastName: "Mendoza",
@@ -137,6 +148,7 @@ describe("receipt window helpers", () => {
     });
 
     const finalHtml = writes.at(-1) ?? "";
+    expect(finalHtml).toContain("<title>recibo-encomienda-jorge-paredes-orden-8844027727</title>");
     expect(finalHtml).toContain("República Italiana");
     expect(finalHtml).toContain("Decreto del Presidente de la República N° 309");
     expect(finalHtml).toContain("Guardia di Finanza");

@@ -160,8 +160,7 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
         await waitFor(() => expect(screen.getByRole("button", { name: "Nuevo documento" })).toBeTruthy());
     fireEvent.click(screen.getByRole("button", { name: "Nuevo documento" }));
-    fireEvent.click(screen.getByRole("button", { name: "Añadir ítem" }));
-    fireEvent.change(screen.getByRole("textbox", { name: "Ítem de checklist 1" }), { target: { value: "Documento principal" } });
+    fireEvent.click(screen.getByLabelText("Acta de nacimiento"));
     fireEvent.click(screen.getByRole("button", { name: "Crear Documento" }));
     await waitFor(() => expect(mocks.createShipment.mutateAsync).toHaveBeenCalledTimes(1));
     expect(mocks.createShipment.mutateAsync.mock.calls[0][0]).toMatchObject({
@@ -170,6 +169,7 @@ describe("AdminDashboard Nueva Encomienda", () => {
       sheetCount: 1,
       weightKg: 1,
       manualPriceEur: "",
+      contentChecklist: ["1 × Acta de nacimiento"],
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Nueva encomienda" }));

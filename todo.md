@@ -295,3 +295,12 @@
 - [x] Permitir actualizar peso, tarifa estándar o precio manual desde Actualizar Estado de Encomienda
 - [x] Añadir pruebas de papelera, restauración, auditoría, analítica, validaciones, firma y actualización de precios
 - [x] Ejecutar suite completa, compilación, verificación responsive y guardar checkpoint
+
+## Catálogo documental y descargas solicitados
+- [x] Nombrar el archivo descargado del recibo con la persona destinataria y datos seguros de la orden
+- [x] Añadir un catálogo de documentos frecuentes con selección mediante checklist y cantidad inicial de uno
+- [x] Permitir aumentar o disminuir la cantidad de cada documento mediante controles grandes de más y menos
+- [x] Permitir marcar tratamientos documentales como traducido, apostillado y documento simple por ítem
+- [x] Permitir registrar otros documentos simples con cantidad ajustable y conservar el detalle en el checklist del envío
+- [x] Añadir pruebas de catálogo, cantidades, tratamientos, detalle persistido y nombre de descarga
+- [x] Ejecutar suite completa, compilación, verificación responsive y guardar checkpoint

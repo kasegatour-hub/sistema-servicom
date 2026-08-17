@@ -51,5 +51,7 @@ describe("AccountPage client labels", () => {
     expect(routeSelect).toBeTruthy();
     expect(screen.getByRole("option", { name: "Lima – Torino" })).toBeTruthy();
     expect(screen.getByRole("option", { name: "Torino – Lima" })).toBeTruthy();
+    expect(screen.getByText(/Lista de documentos/)).toBeTruthy();
+    expect(screen.getByLabelText("Acta de nacimiento")).toBeTruthy();
   });
 });

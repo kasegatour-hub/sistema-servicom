@@ -15,7 +15,9 @@ import { getPaymentStatusUi } from "@/lib/paymentStatus";
 import { getRoutePresentation } from "@/lib/routeDetails";
 import { PhoneInput } from "@/components/PhoneInput";
 import { QuantityStepper } from "@/components/QuantityStepper";
+import { DocumentCatalogSelector } from "@/components/DocumentCatalogSelector";
 import { formatPhoneNumber } from "@/lib/phoneFormatting";
+import { CatalogDocumentItem, catalogDocumentsToChecklist } from "@/lib/documentCatalog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const brandLogo = "/manus-storage/servicom_logo_final_e7ce35aa.png";
@@ -64,7 +66,7 @@ export default function AccountPage() {
   const [recipientDni, setRecipientDni] = useState("");
   const [recipientPhone, setRecipientPhone] = useState("+51 ");
   const [notes, setNotes] = useState("");
-  const [contentChecklist, setContentChecklist] = useState<string[]>([""]);
+  const [catalogDocuments, setCatalogDocuments] = useState<CatalogDocumentItem[]>([]);
   const [identityErrors, setIdentityErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -176,7 +178,7 @@ export default function AccountPage() {
       setShowNewShipment(false);
       setDocumentCount(1);
       setNotes("");
-      setContentChecklist([""]);
+      setCatalogDocuments([]);
       setReceiptShipment(result.shipment);
       refetchShipments();
     },
@@ -439,7 +441,7 @@ export default function AccountPage() {
             {showNewShipment && (
               <form onSubmit={(e) => {
                 e.preventDefault();
-                const normalizedChecklist = contentChecklist.map(item => item.trim()).filter(Boolean);
+                const normalizedChecklist = catalogDocumentsToChecklist(catalogDocuments);
                 if (normalizedChecklist.length === 0) {
                   toast.error("Agrega al menos un elemento a la lista de cosas enviadas.");
                   return;
@@ -523,18 +525,8 @@ export default function AccountPage() {
                       <PhoneInput value={recipientPhone} onChange={setRecipientPhone} placeholder="987654321" required />
                     </div>
                   </div>
-                  <div className="md:col-span-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
-                    <Label>Lista de cosas enviadas <span className="text-red-600">*</span></Label>
-                    <p className="mt-1 text-xs text-slate-600">Indica qué contiene el envío. Este campo es obligatorio; las notas son opcionales.</p>
-                    <div className="mt-2 space-y-2">
-                      {contentChecklist.map((item, index) => (
-                        <div key={index} className="flex gap-2">
-                          <Input value={item} onChange={e => setContentChecklist(items => items.map((current, itemIndex) => itemIndex === index ? e.target.value : current))} placeholder={`Elemento ${index + 1}`} className="bg-white" maxLength={160} required={index === 0} />
-                          <Button type="button" variant="outline" size="icon" aria-label={`Quitar elemento ${index + 1}`} onClick={() => setContentChecklist(items => items.length === 1 ? [""] : items.filter((_, itemIndex) => itemIndex !== index))}><Trash2 className="h-4 w-4" /></Button>
-                        </div>
-                      ))}
-                    </div>
-                    <Button type="button" variant="outline" className="mt-2" onClick={() => setContentChecklist(items => [...items, ""])}><Plus className="mr-2 h-4 w-4" /> Añadir elemento</Button>
+                  <div className="md:col-span-2">
+                    <DocumentCatalogSelector value={catalogDocuments} onChange={setCatalogDocuments} idPrefix="account-document" />
                   </div>
                   <div className="md:col-span-2">
                     <Label>Notas (opcional)</Label>
