@@ -412,3 +412,8 @@
 - [x] Mostrar controles Pagado y No cancelado al crear documentos o encomiendas como Registrador o Master Admin
 - [x] Mantener el estado automático pendiente para registros creados por clientes
 - [x] Añadir pruebas, compilar, verificar y publicar las correcciones
+
+## Corrección del nombre de descarga de comprobantes
+- [x] Asegurar que el PDF se guarde con destinatario y número de orden, no como «descarga»
+- [x] Cubrir la descarga desde comprobantes de cliente, administración y la página pública
+- [x] Añadir pruebas, compilar, verificar y publicar la corrección

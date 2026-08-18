@@ -118,6 +118,7 @@ describe("receipt window helpers", () => {
     const documentRef = {
       readyState: "complete",
       images: [],
+      title: "",
       open: vi.fn(),
       write: vi.fn((html: string) => writes.push(html)),
       close: vi.fn(),
@@ -149,6 +150,7 @@ describe("receipt window helpers", () => {
 
     const finalHtml = writes.at(-1) ?? "";
     expect(finalHtml).toContain("<title>recibo-encomienda-jorge-paredes-orden-8844027727</title>");
+    expect(documentRef.title).toBe("recibo-encomienda-jorge-paredes-orden-8844027727");
     expect(finalHtml).toContain("República Italiana");
     expect(finalHtml).toContain("Decreto del Presidente de la República N° 309");
     expect(finalHtml).toContain("Guardia di Finanza");

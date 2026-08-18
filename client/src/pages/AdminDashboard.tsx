@@ -923,6 +923,8 @@ export default function AdminDashboard() {
       `;
       printWindow.document.write(html);
       printWindow.document.close();
+      // Refuerza el nombre sugerido por el diálogo «Guardar como PDF».
+      printWindow.document.title = downloadFilename;
       
       // Esperar el logo antes de generar el QR e imprimir.
       await Promise.all(Array.from(printWindow.document.images).map((image) => {

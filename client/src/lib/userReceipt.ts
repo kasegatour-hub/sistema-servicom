@@ -225,6 +225,8 @@ ${buildReceiptPrintStyles()}*{box-sizing:border-box}body{font-family:Arial,Helve
     printWindow.document.open();
     printWindow.document.write(html);
     printWindow.document.close();
+    // Chrome y Edge toman document.title como sugerencia al guardar la impresión en PDF.
+    printWindow.document.title = downloadFilename;
     await waitForImages(printWindow.document);
     await new Promise((resolve) => setTimeout(resolve, 150));
     printWindow.focus();

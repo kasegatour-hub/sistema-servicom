@@ -1,10 +1,10 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { AlertCircle, ArrowLeft, CheckCircle2, PenLine, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { trpc } from "@/lib/trpc";
-import { printUserShipmentReceipt } from "@/lib/userReceipt";
+import { buildReceiptDownloadFilename, printUserShipmentReceipt } from "@/lib/userReceipt";
 import { getPaymentStatusUi } from "@/lib/paymentStatus";
 import { getReceiptPricePresentation } from "@/lib/receiptPrice";
 import { formatPhoneNumber } from "@/lib/phoneFormatting";
@@ -33,6 +33,16 @@ export default function ReceiptPage() {
   const paymentUi = shipment ? getPaymentStatusUi(shipment.paymentStatus) : getPaymentStatusUi(undefined);
   const priceUi = shipment ? getReceiptPricePresentation(shipment) : null;
   const routePresentation = getRoutePresentation(shipment?.route);
+
+  useEffect(() => {
+    if (!shipment) return;
+    document.title = buildReceiptDownloadFilename({
+      recipientName: shipment.recipientName,
+      recipientLastName: shipment.recipientLastName,
+      orderNumber: shipment.orderNumber,
+      shipmentType: shipment.shipmentType,
+    });
+  }, [shipment]);
 
   const handleRequestSignature = async () => {
     setSignatureError("");

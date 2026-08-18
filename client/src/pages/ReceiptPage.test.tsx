@@ -37,6 +37,7 @@ vi.mock("@/lib/trpc", () => ({
 }));
 
 vi.mock("@/lib/userReceipt", () => ({
+  buildReceiptDownloadFilename: ({ recipientName, recipientLastName, orderNumber, shipmentType }: any) => `recibo-${shipmentType === "encomienda" ? "encomienda" : "documento"}-${String(recipientName || "destinatario").toLowerCase()}-${String(recipientLastName || "").toLowerCase() || "sin-apellido"}-orden-${orderNumber || "sin-orden"}`,
   printUserShipmentReceipt: vi.fn(),
 }));
 
@@ -59,6 +60,7 @@ describe("ReceiptPage", () => {
     expect(screen.getByText(/TORINO, ITALIA · Corso Peschiera/)).toBeTruthy();
     expect(screen.getByText(/Corso Peschiera, 162A/)).toBeTruthy();
     expect(screen.getByRole("button", { name: /Imprimir recibo/ })).toBeTruthy();
+    expect(document.title).toBe("recibo-documento-marco-rossi-orden-3520992723");
     const signButton = screen.getByRole("button", { name: /Firmar electrónicamente/ });
     expect(signButton).toBeTruthy();
     fireEvent.click(signButton);
