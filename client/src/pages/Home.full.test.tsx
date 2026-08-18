@@ -9,6 +9,7 @@ const trackedShipment = {
   code: "CA06721WB",
   status: "Entregado",
   paymentStatus: "Pagado",
+  shipmentType: "documento",
   events: [],
   createdAt: new Date("2026-08-12T12:00:00Z"),
   updatedAt: new Date("2026-08-12T12:00:00Z"),
@@ -38,7 +39,11 @@ vi.mock("@/components/ShipmentTimeline", () => ({
 
 import Home from "./Home";
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  delete (trackedShipment as { route?: string }).route;
+  (trackedShipment as { shipmentType: string }).shipmentType = "documento";
+});
 
 describe("Home public page", () => {
   it("renders Ubícanos with both office cards and all visible contact details", () => {
@@ -48,7 +53,7 @@ describe("Home public page", () => {
     expect(screen.getByRole("heading", { name: "Jr. de la Unión 518" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Corso Peschiera" })).toBeTruthy();
     expect(screen.getByText(/Jr\. de la Unión Nro\. 518 Int\. S101/)).toBeTruthy();
-    expect(screen.getByText(/Corso Peschiera, 162A/)).toBeTruthy();
+    expect(screen.getAllByText(/Corso Peschiera, 162A/).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Lunes a sábado, de 10:00 a. m. a 8:30 p. m.")).toBeTruthy();
     expect(screen.getByText("Lunes a sábado, de 9:00 a. m. a 8:30 p. m.")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Teléfono fijo 01 390 7269" })).toBeTruthy();
@@ -66,7 +71,20 @@ describe("Home public page", () => {
 
     expect(await screen.findByText("Estado de Pago")).toBeTruthy();
     expect(screen.getByText("Pagado")).toBeTruthy();
+    expect(screen.getByText("Lima - Torino")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Recojo en Torino, Italia" })).toBeTruthy();
+    expect(screen.getAllByText(/Corso Peschiera, 162A, Zona Piazza Sabotino/).length).toBeGreaterThanOrEqual(2);
     const receiptLink = screen.getByRole("link", { name: /Abrir recibo y firmar/ });
     expect((receiptLink as HTMLAnchorElement).getAttribute("href")).toBe("/recibo?order=3520992723&code=CA06721WB");
+  });
+
+  it("shows the Lima pickup office for an encomienda that travels from Torino to Lima", () => {
+    (trackedShipment as { route?: string }).route = "Torino - Lima";
+    (trackedShipment as { shipmentType: string }).shipmentType = "encomienda";
+    render(<Home />);
+
+    expect(screen.getByText("Torino - Lima")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Recojo en Lima, Perú" })).toBeTruthy();
+    expect(screen.getAllByText(/Jr\. de la Unión Nro\. 518 Int\. S101/).length).toBeGreaterThanOrEqual(2);
   });
 });

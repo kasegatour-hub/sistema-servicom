@@ -14,6 +14,7 @@ import QRCode from "qrcode";
 import { buildTrackingPath, buildTrackingUrl, TRACKING_QR_OPTIONS, normalizeTrackingValue } from "@/lib/tracking";
 import { getPaymentStatusUi } from "@/lib/paymentStatus";
 import { formatPhoneNumber } from "@/lib/phoneFormatting";
+import { getRoutePresentation } from "@/lib/routeDetails";
 
 const searchSchema = z.object({
   orderNumber: z.string().min(1, "Número de orden requerido"),
@@ -70,6 +71,7 @@ interface ShipmentData {
   createdAt: Date;
   updatedAt: Date;
   paymentStatus?: string | null;
+  route?: string | null;
 }
 
 export function LocationsSection() {
@@ -136,6 +138,7 @@ export default function Home() {
   const [scannerOpen, setScannerOpen] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [searchParams, setSearchParams] = useState<SearchFormData | null>(null);
+  const pickupRoute = shipmentData ? getRoutePresentation(shipmentData.route) : null;
 
   // Load search params from URL on mount
   useEffect(() => {
@@ -374,6 +377,26 @@ export default function Home() {
                 </div>
               </div>
             </Card>
+
+            {pickupRoute && <Card aria-label="Ruta y sede de recojo" className="border-0 bg-gradient-to-r from-amber-50 to-white p-4 shadow-lg ring-1 ring-amber-200 md:p-6">
+              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                <div className="flex gap-3">
+                  <div className="rounded-full bg-amber-100 p-2 text-[#F28C00]" aria-hidden="true"><MapPin className="h-5 w-5" /></div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[#A85F00]">Ruta del envío</p>
+                    <h3 className="mt-1 text-xl font-bold text-[#0B2B5E]">{pickupRoute.route}</h3>
+                    <p className="mt-1 text-sm text-slate-700">Origen: <strong>{pickupRoute.originLabel}</strong> · Destino: <strong>{pickupRoute.destinationLabel}</strong></p>
+                  </div>
+                </div>
+                <div className="rounded-lg border border-amber-200 bg-white p-4 md:max-w-md">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[#A85F00]">Sede de recojo</p>
+                  <h4 className="mt-1 text-lg font-bold text-[#0B2B5E]">Recojo en {pickupRoute.destinationLabel}</h4>
+                  <p className="mt-2 text-sm font-semibold text-slate-800">{pickupRoute.destination.officeLabel}</p>
+                  <p className="mt-1 text-sm leading-6 text-slate-700">{pickupRoute.destination.address}</p>
+                  <p className="mt-2 text-xs text-slate-600">Contacto: {pickupRoute.destination.phone}</p>
+                </div>
+              </div>
+            </Card>}
 
             {/* Sender and recipient */}
             {(shipmentData.senderName || shipmentData.recipientName) && (

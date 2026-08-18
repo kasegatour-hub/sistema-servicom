@@ -400,3 +400,9 @@
 - [x] Mantener disponibles y visibles los documentos ya seleccionados durante la búsqueda
 - [x] Añadir pruebas de búsqueda fuzzy, resultados vacíos y selección
 - [x] Compilar, verificar y publicar la mejora
+
+## Ruta y dirección de recojo obligatorias en rastreo
+- [x] Mostrar la ruta Lima–Torino o Torino–Lima de cada envío en el resultado público
+- [x] Mostrar la sede y dirección completa de recojo según el destino del envío
+- [x] Cubrir documentos y encomiendas para ambas rutas con pruebas
+- [x] Compilar, verificar y publicar la mejora
