@@ -451,3 +451,9 @@
 - [x] Encapsular la analítica de interacción para mostrarla solo al abrir su área de trabajo
 - [x] Añadir gráficos de tendencia para identificar envíos más y menos frecuentes por tipo, ruta y estado
 - [x] Añadir pruebas, compilación y publicación
+
+## Buscadores orientativos y coincidencias difusas
+- [x] Aumentar la altura del buscador de registros y explicar los criterios admitidos
+- [x] Mostrar resultados progresivos al buscar por orden, código, DNI, nombre o apellido
+- [x] Aplicar coincidencias difusas en el selector de remitentes y destinatarios guardados
+- [x] Añadir pruebas, verificación responsive, compilación y publicación

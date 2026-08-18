@@ -38,6 +38,7 @@ import { GeneralFeedbackDialog } from "@/components/GeneralFeedbackDialog";
 import { IdentityDocumentField } from "@/components/IdentityDocumentField";
 import { ShipmentTrendCharts } from "@/components/ShipmentTrendCharts";
 import { normalizeIdentityDocument, type IdentityDocumentType } from "@shared/identityDocuments";
+import { getFuzzySearchScore } from "@shared/fuzzySearch";
 
 type AdminWorkspace = "resumen" | "registros" | "crear" | "cupones" | "papelera" | "usuarios" | "analitica";
 
@@ -87,11 +88,13 @@ function ClientLookup({
         <Input
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          placeholder="Buscar por nombre o DNI"
+          placeholder="Ej. Sánchez Arias, Sanches o 71234567"
           aria-label={label}
-          className="border-2 pl-9 focus:border-primary"
+          aria-describedby={`${label.replace(/\s+/g, "-").toLowerCase()}-search-help`}
+          className="h-12 border-2 pl-9 text-base focus:border-primary"
         />
       </div>
+      <p id={`${label.replace(/\s+/g, "-").toLowerCase()}-search-help`} role="status" className="mt-1 text-xs text-slate-600">Busca por DNI, nombre o apellido. Escribe al menos 2 caracteres; se aceptan tildes omitidas y pequeños errores.</p>
       {shouldShow && (
         <div className="absolute left-0 right-0 top-full z-30 mt-1 overflow-hidden rounded-md border border-slate-200 bg-white shadow-lg">
           {isLoading ? (
@@ -998,17 +1001,13 @@ export default function AdminDashboard() {
     let list = [...shipments].filter((shipment) => shipmentView === 'documento'
       ? shipment.shipmentType !== 'encomienda'
       : shipment.shipmentType === 'encomienda');
-    if (searchTerm.trim()) {
-      const q = searchTerm.trim().toLowerCase();
-      list = list.filter(s => 
-        (s.orderNumber && String(s.orderNumber).toLowerCase().includes(q)) ||
-        (s.code && String(s.code).toLowerCase().includes(q)) ||
-        (s.senderDni && String(s.senderDni).toLowerCase().includes(q)) ||
-        (s.recipientDni && String(s.recipientDni).toLowerCase().includes(q)) ||
-        (s.senderName && String(s.senderName).toLowerCase().includes(q)) ||
-        (s.recipientName && String(s.recipientName).toLowerCase().includes(q))
-      );
-    }
+    const searchQuery = searchTerm.trim();
+    const relevanceByShipmentId = new Map<number, number>();
+    if (searchQuery) list = list.filter((shipment: any) => {
+      const score = getFuzzySearchScore(searchQuery, [shipment.orderNumber, shipment.code, shipment.senderDni, shipment.recipientDni, shipment.senderName, shipment.senderLastName, shipment.recipientName, shipment.recipientLastName].filter(Boolean).join(" "));
+      relevanceByShipmentId.set(shipment.id, score);
+      return score > 0;
+    });
     if (paymentFilter !== "all") {
       list = list.filter(shipment => paymentFilter === "paid" ? shipment.paymentStatus === "Pagado" : shipment.paymentStatus !== "Pagado");
     }
@@ -1016,6 +1015,8 @@ export default function AdminDashboard() {
       list = list.filter(shipment => shipment.status === logisticsFilter);
     }
     return list.sort((a, b) => {
+      const relevanceDifference = searchQuery ? (relevanceByShipmentId.get(b.id) || 0) - (relevanceByShipmentId.get(a.id) || 0) : 0;
+      if (relevanceDifference) return relevanceDifference;
       const dateA = new Date(a.createdAt).getTime();
       const dateB = new Date(b.createdAt).getTime();
       return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
@@ -1867,12 +1868,16 @@ export default function AdminDashboard() {
             </div>
             <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
               <div className="relative flex-1 md:w-64">
+                <Search className="pointer-events-none absolute left-3 top-6 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
                 <Input
-                  placeholder="Buscar por DNI, orden o código..."
+                  aria-label="Buscar registros"
+                  aria-describedby="admin-shipment-search-help"
+                  placeholder="Orden, código, DNI, nombre o apellido"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="bg-white"
+                  className="h-12 bg-white pl-9 text-base"
                 />
+                <p id="admin-shipment-search-help" role="status" className="mt-1 text-xs leading-4 text-slate-600">Busca por orden, código, DNI, nombre o apellido. Se muestran coincidencias similares aunque falten tildes o haya errores menores.</p>
               </div>
               <Button
                 onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}

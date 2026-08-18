@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { InsertUser, users, shipments, shipmentSignatures, shipmentAuditLogs, shipmentFeedback, platformFeedback, interactionEvents, admins, localAccounts, verificationCodes, adminPasswordResetCodes, clients, discountCoupons, shipmentRoutePolicies } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { buildShipmentClientDirectoryRecords, type ClientDirectoryRecord, type ShipmentClientDirectoryInput } from "./clientDirectory";
+import { rankFuzzyMatches } from "../shared/fuzzySearch";
 
 // Normalizar números de orden y códigos: remover espacios y convertir a mayúsculas
 function normalizeOrderCode(value: string): string {
@@ -256,11 +257,9 @@ export async function searchClients(query: string, limit = 8) {
   const db = await getDb();
   const normalizedQuery = query.trim();
   if (!db || normalizedQuery.length < 2) return [];
-  const pattern = `%${normalizedQuery}%`;
-  return db.select().from(clients)
-    .where(or(like(clients.dni, pattern), like(clients.name, pattern), like(clients.lastName, pattern)))
-    .orderBy(asc(clients.lastName), asc(clients.name))
-    .limit(Math.min(Math.max(limit, 1), 20));
+  const candidates = await db.select().from(clients).limit(500);
+  return rankFuzzyMatches(candidates, normalizedQuery, client => `${client.dni || ""} ${client.name} ${client.lastName}`)
+    .slice(0, Math.min(Math.max(limit, 1), 20));
 }
 
 export async function upsertClient(record: ClientDirectoryRecord) {

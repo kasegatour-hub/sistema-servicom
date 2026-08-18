@@ -52,6 +52,19 @@ describe("AccountPage client labels", () => {
     expect(screen.queryByRole("button", { name: /Registrar Nueva Encomienda/ })).toBeNull();
   });
 
+  it("explica la búsqueda de envíos y acepta coincidencias difusas del destinatario", () => {
+    accountMocks.shipments = [
+      { id: 1, orderNumber: "3520992723", code: "DOC-SAN", recipientName: "Lucía", recipientLastName: "Sánchez", recipientDni: "71234567", recipientPhone: "+51 970188447", status: "En agencia", paymentStatus: "Falta cancelar", registeredByLabel: "Cliente", createdAt: new Date("2026-08-17T10:00:00.000Z") },
+      { id: 2, orderNumber: "3520992724", code: "DOC-RAM", recipientName: "María", recipientLastName: "Ramos", recipientDni: "71234568", recipientPhone: "+51 970188447", status: "En agencia", paymentStatus: "Falta cancelar", registeredByLabel: "Cliente", createdAt: new Date("2026-08-16T10:00:00.000Z") },
+    ];
+    render(<AccountPage />);
+    const search = screen.getByRole("textbox", { name: "Buscar mis envíos" });
+    expect(screen.getByText(/Se aceptan coincidencias parecidas, sin tildes y con pequeños errores/)).toBeTruthy();
+    fireEvent.change(search, { target: { value: "sanches" } });
+    expect(screen.getByText(/Lucía Sánchez/)).toBeTruthy();
+    expect(screen.queryByText(/María Ramos/)).toBeNull();
+  });
+
   it("shows the two shipment route options when the client starts a document registration", async () => {
     render(<AccountPage />);
     fireEvent.click(screen.getByRole("button", { name: /Registrar Nuevo Documento/ }));

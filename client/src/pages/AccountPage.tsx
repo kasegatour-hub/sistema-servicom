@@ -26,6 +26,7 @@ import { GeneralFeedbackDialog } from "@/components/GeneralFeedbackDialog";
 import { IdentityDocumentField } from "@/components/IdentityDocumentField";
 import { ShipmentTrendCharts } from "@/components/ShipmentTrendCharts";
 import type { IdentityDocumentType } from "@shared/identityDocuments";
+import { getFuzzySearchScore } from "@shared/fuzzySearch";
 
 const brandLogo = "/manus-storage/servicom_logo_final_e7ce35aa.png";
 
@@ -142,21 +143,22 @@ export default function AccountPage() {
   const { data: myInsights } = trpc.analytics.myInsights.useQuery(undefined, { enabled: !!me && !me.reauthRequired && clientWorkspace === "analitica" });
   const clientPageSize = 6;
   const filteredClientShipments = useMemo(() => {
-    const query = clientSearchTerm.trim().toLowerCase();
+    const query = clientSearchTerm.trim();
+    const relevanceByShipmentId = new Map<number, number>();
     return [...(myShipments || [])].filter((shipment: any) => {
-      const textMatches = !query || [shipment.orderNumber, shipment.code, shipment.recipientName, shipment.recipientLastName, shipment.recipientDni]
-        .some(value => String(value || "").toLowerCase().includes(query));
+      const relevance = getFuzzySearchScore(query, [shipment.orderNumber, shipment.code, shipment.recipientName, shipment.recipientLastName, shipment.recipientDni].filter(Boolean).join(" "));
+      relevanceByShipmentId.set(shipment.id, relevance);
+      const textMatches = !query || relevance > 0;
       const paymentMatches = clientPaymentFilter === "all" || (clientPaymentFilter === "paid" ? shipment.paymentStatus === "Pagado" : shipment.paymentStatus !== "Pagado");
       const statusMatches = clientStatusFilter === "all" || shipment.status === clientStatusFilter;
       return textMatches && paymentMatches && statusMatches;
-    }).sort((left: any, right: any) => new Date(right.createdAt || 0).getTime() - new Date(left.createdAt || 0).getTime());
+    }).sort((left: any, right: any) => (query ? (relevanceByShipmentId.get(right.id) || 0) - (relevanceByShipmentId.get(left.id) || 0) : 0) || new Date(right.createdAt || 0).getTime() - new Date(left.createdAt || 0).getTime());
   }, [myShipments, clientSearchTerm, clientPaymentFilter, clientStatusFilter]);
   const clientPagination = paginateItems(filteredClientShipments, clientCurrentPage, clientPageSize);
   const filteredClientTrash = useMemo(() => {
-    const query = clientTrashSearchTerm.trim().toLowerCase();
+    const query = clientTrashSearchTerm.trim();
     return [...(myDeletedShipments || [])].filter((shipment: any) => {
-      const textMatches = !query || [shipment.orderNumber, shipment.code, shipment.recipientName, shipment.recipientLastName, shipment.recipientDni]
-        .some(value => String(value || "").toLowerCase().includes(query));
+      const textMatches = !query || getFuzzySearchScore(query, [shipment.orderNumber, shipment.code, shipment.recipientName, shipment.recipientLastName, shipment.recipientDni].filter(Boolean).join(" ")) > 0;
       const paymentMatches = clientTrashPaymentFilter === "all" || (clientTrashPaymentFilter === "paid" ? shipment.paymentStatus === "Pagado" : shipment.paymentStatus !== "Pagado");
       const statusMatches = clientTrashStatusFilter === "all" || shipment.status === clientTrashStatusFilter;
       return textMatches && paymentMatches && statusMatches;
@@ -627,7 +629,7 @@ export default function AccountPage() {
             )}
 
             {clientWorkspace === "envios" && <div className="mb-4 grid grid-cols-1 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 md:grid-cols-4">
-              <Input aria-label="Buscar mis envíos" value={clientSearchTerm} onChange={(event) => setClientSearchTerm(event.target.value)} placeholder="Buscar orden, código, destinatario o DNI" className="bg-white md:col-span-2" />
+              <div className="relative md:col-span-2"><Search className="pointer-events-none absolute left-3 top-6 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" /><Input aria-label="Buscar mis envíos" aria-describedby="client-shipment-search-help" value={clientSearchTerm} onChange={(event) => setClientSearchTerm(event.target.value)} placeholder="Orden, código, destinatario o DNI" className="h-12 bg-white pl-9 text-base" /><p id="client-shipment-search-help" role="status" className="mt-1 text-xs leading-4 text-slate-600">Busca por orden, código, DNI, nombre o apellido del destinatario. Se aceptan coincidencias parecidas, sin tildes y con pequeños errores.</p></div>
               <select aria-label="Filtro de pago de mis envíos" value={clientPaymentFilter} onChange={(event) => setClientPaymentFilter(event.target.value as "all" | "paid" | "unpaid")} className="h-10 rounded-md border border-slate-300 bg-white px-2 text-sm"><option value="all">Todos los pagos</option><option value="paid">Pagados</option><option value="unpaid">No pagados</option></select>
               <select aria-label="Filtro de estado de mis envíos" value={clientStatusFilter} onChange={(event) => setClientStatusFilter(event.target.value)} className="h-10 rounded-md border border-slate-300 bg-white px-2 text-sm"><option value="all">Todos los estados</option><option value="Por entregar en agencia">Por entregar en agencia</option><option value="En agencia">En agencia</option><option value="En tránsito">En tránsito</option><option value="En destino">En destino</option></select>
             </div>}

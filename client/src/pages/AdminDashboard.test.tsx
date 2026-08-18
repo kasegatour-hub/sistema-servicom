@@ -112,6 +112,22 @@ describe("AdminDashboard Nueva Encomienda", () => {
     expect(screen.queryByRole("heading", { name: "Actualizar contraseña administrativa" })).toBeNull();
   });
 
+  it("explica cómo buscar registros y conserva coincidencias difusas", async () => {
+    mocks.shipments = [
+      { id: 51, shipmentType: "documento", senderName: "Sánchez", senderLastName: "Arias", recipientName: "Luisa", recipientLastName: "Ramos", status: "En agencia", paymentStatus: "Falta cancelar", createdAt: new Date("2026-08-17T10:00:00.000Z"), orderNumber: "6352627659", code: "DOC-SAN" },
+      { id: 52, shipmentType: "documento", senderName: "María", senderLastName: "Ramos", recipientName: "Ana", recipientLastName: "López", status: "En agencia", paymentStatus: "Falta cancelar", createdAt: new Date("2026-08-16T10:00:00.000Z"), orderNumber: "6352627660", code: "DOC-RAM" },
+    ];
+    render(<AdminDashboard />);
+    fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
+    fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
+    const search = await screen.findByRole("textbox", { name: "Buscar registros" });
+    expect(screen.getByText(/Busca por orden, código, DNI, nombre o apellido/)).toBeTruthy();
+    fireEvent.change(search, { target: { value: "sanches ar" } });
+    expect(screen.getByText("Luisa Ramos")).toBeTruthy();
+    expect(screen.queryByText("Ana López")).toBeNull();
+  });
+
   it("offers administrative password recovery by the registered email", () => {
     render(<AdminDashboard />);
     fireEvent.click(screen.getByRole("button", { name: "¿Olvidaste tu contraseña?" }));
