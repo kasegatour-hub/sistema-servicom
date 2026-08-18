@@ -20,6 +20,7 @@ import { formatPhoneNumber } from "@/lib/phoneFormatting";
 import { CatalogDocumentItem, catalogDocumentsToChecklist } from "@/lib/documentCatalog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { summarizeRevenue } from "@shared/revenueSummary";
+import { DocumentPricePreview } from "@/components/DocumentPricePreview";
 
 const brandLogo = "/manus-storage/servicom_logo_final_e7ce35aa.png";
 
@@ -517,10 +518,9 @@ export default function AccountPage() {
                     min={1}
                     max={docType === "simple" ? 8 : 10}
                     onChange={setSheetCount}
-                    description={docType === "simple"
-                      ? (sheetCount <= 4 ? "Tarifa: 45 € (máx. 8 hojas)" : "Tarifa calculada (máx. 8 hojas)")
-                      : (sheetCount <= 5 ? "Tarifa: 50 € (máx. 10 hojas)" : "Tarifa: 60 € (máx. 10 hojas)")}
+                    description={docType === "simple" ? "Máximo 8 hojas por registro." : "Máximo 10 hojas por registro."}
                   />
+                  <DocumentPricePreview docType={docType} sheetCount={sheetCount} />
                   <div>
                     <Label>Destinatario - Nombres</Label>
                     <Input value={recipientName} onChange={e => updateTextValue("recipientName", e.target.value, setRecipientName, "El nombre")} placeholder="Ej: María" autoComplete="given-name" required className="mt-1 bg-white" />

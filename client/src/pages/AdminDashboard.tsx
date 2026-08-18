@@ -33,6 +33,7 @@ import { UpdateShipmentModal } from "@/components/UpdateShipmentModal";
 import { evaluateScientificExpression } from "@/lib/scientificCalculator";
 import { buildElectronicSignatureHtml, buildReceiptDownloadFilename } from "@/lib/userReceipt";
 import { summarizeRevenue } from "@shared/revenueSummary";
+import { DocumentPricePreview } from "@/components/DocumentPricePreview";
 
 function renderQrCode(canvas: HTMLCanvasElement | null, trackingUrl: string, width: number) {
   if (!canvas) return;
@@ -1439,9 +1440,7 @@ export default function AdminDashboard() {
                       onChange={(nextValue) => createForm.setValue("sheetCount", nextValue, { shouldValidate: true, shouldDirty: true })}
                       description={createForm.watch("docType") === "simple" ? "Máximo 8 hojas por registro." : "Máximo 10 hojas por registro."}
                     />
-                    <div className="flex items-end rounded-md bg-white p-3 text-sm text-slate-700 ring-1 ring-slate-200">
-                      La tarifa se calcula automáticamente según el tipo y número de hojas.
-                    </div>
+                    <DocumentPricePreview docType={selectedDocType} sheetCount={Number(createForm.watch("sheetCount")) || 1} additionalTotalEur={additionalDocumentAutoTotal} manualPriceEur={createForm.watch("manualPriceEur")} />
                   </div>
                   <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50/60 p-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">

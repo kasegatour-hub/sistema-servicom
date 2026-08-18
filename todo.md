@@ -378,3 +378,19 @@
 - [x] Limitar ocultar/mostrar exclusivamente al Master Admin y registrar la acción en auditoría
 - [x] Filtrar los envíos ocultos de las vistas de Registrador, manteniéndolos visibles para Master Admin, cliente y rastreo público
 - [x] Añadir control de ocultar/mostrar, pruebas de permisos y publicar la mejora
+
+## Corrección de vista previa WebSocket
+- [x] Inspeccionar el error de conexión HMR/WebSocket de la vista previa
+- [x] Reiniciar o corregir el servicio de desarrollo sin afectar datos de producción
+- [x] Verificar que la página cargue sin el error de consola y comunicar la actualización
+
+## Transcripción de mensajes del usuario
+- [x] Recopilar todos los mensajes de requisitos disponibles en el historial del proyecto
+- [x] Redactar un Markdown cronológico preservando el contenido y ocultando secretos de acceso
+- [x] Revisar y entregar el archivo Markdown descargable
+
+## Precio documental visible en tiempo real
+- [x] Calcular el importe de documentos de forma reactiva al cambiar cantidad y tipo de hoja
+- [x] Mostrar tarifa base, recargo por hojas adicionales y total estimado antes de guardar
+- [x] Mantener límites de hojas y precio manual, con pruebas de interfaz y cálculo
+- [x] Compilar, verificar visualmente y publicar la mejora
