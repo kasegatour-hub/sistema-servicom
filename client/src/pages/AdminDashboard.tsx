@@ -34,7 +34,7 @@ import { evaluateScientificExpression } from "@/lib/scientificCalculator";
 import { buildElectronicSignatureHtml, buildReceiptDownloadFilename } from "@/lib/userReceipt";
 import { summarizeRevenue } from "@shared/revenueSummary";
 import { DocumentPricePreview } from "@/components/DocumentPricePreview";
-import { ShipmentFeedbackDialog } from "@/components/ShipmentFeedbackDialog";
+import { GeneralFeedbackDialog } from "@/components/GeneralFeedbackDialog";
 
 type AdminWorkspace = "resumen" | "registros" | "crear" | "cupones" | "papelera" | "usuarios";
 
@@ -257,7 +257,7 @@ export default function AdminDashboard() {
   const [reauthPassword, setReauthPassword] = useState("");
   const [showReauthPassword, setShowReauthPassword] = useState(false);
   const [printShipment, setPrintShipment] = useState<any>(null);
-  const [feedbackShipment, setFeedbackShipment] = useState<any>(null);
+  const [showGeneralFeedback, setShowGeneralFeedback] = useState(false);
   const [senderClientQuery, setSenderClientQuery] = useState("");
   const [recipientClientQuery, setRecipientClientQuery] = useState("");
   const [additionalDocumentItems, setAdditionalDocumentItems] = useState<Array<{ docType: "simple" | "apostillado"; sheetCount: number; manualPriceEur: string }>>([]);
@@ -1159,6 +1159,7 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2 md:gap-4">
             <a href="/" className="rounded-md border border-white/70 px-3 py-2 text-sm font-semibold text-white transition hover:bg-white/20">Inicio</a>
+            <Button type="button" onClick={() => setShowGeneralFeedback(true)} variant="outline" className="border-white text-white hover:bg-white/20"><MessageSquare className="mr-2 h-4 w-4" /> Comentarios</Button>
             <div className="text-right">
               <span className="block text-sm">{admin?.name}</span>
               <span className="block text-xs opacity-80">{admin?.role === "superadmin" ? "Master Admin" : "Registrador"}</span>
@@ -1990,7 +1991,6 @@ export default function AdminDashboard() {
                             <Printer className="w-4 h-4 mr-1" />
                             Imprimir
                           </Button>
-                          <Button onClick={() => setFeedbackShipment(shipment)} size="sm" variant="outline" className="border-sky-300 text-sky-800 hover:bg-sky-50"><MessageSquare className="mr-1 h-4 w-4" /> Comentarios</Button>
                           <Button
                             onClick={() => handleDeleteShipment(shipment.id)}
                             size="sm"
@@ -2260,7 +2260,7 @@ export default function AdminDashboard() {
             </Card>
           </div>
         )}
-        <ShipmentFeedbackDialog shipment={feedbackShipment} open={Boolean(feedbackShipment)} onOpenChange={(open) => { if (!open) setFeedbackShipment(null); }} />
+        <GeneralFeedbackDialog open={showGeneralFeedback} onOpenChange={setShowGeneralFeedback} />
       </main>
     </div>
   );

@@ -134,6 +134,13 @@
       "when": 1787069564863,
       "tag": "0018_far_dagger",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "5",
+      "when": 1787073175287,
+      "tag": "0019_famous_frank_castle",
+      "breakpoints": true
     }
   ]
 }

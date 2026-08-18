@@ -246,7 +246,7 @@ describe("AdminDashboard Nueva Encomienda", () => {
     expect(screen.getByText("Mostrando 1–1 de 1 eliminados")).toBeTruthy();
   });
 
-  it("shows the registration author and opens shipment feedback for an operator", async () => {
+  it("shows the registration author and opens the general comments channel for an operator", async () => {
     mocks.shipments = [{ id: 70, shipmentType: "documento", recipientName: "Giselle", recipientLastName: "García", status: "En agencia", paymentStatus: "Pagado", registeredByLabel: "Operador Servicom", createdAt: new Date("2026-08-18T10:00:00.000Z"), orderNumber: "6352627659", code: "DOC-2026-XPF2A", events: [] }];
     render(<AdminDashboard />);
     fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
@@ -255,7 +255,7 @@ describe("AdminDashboard Nueva Encomienda", () => {
 
     await waitFor(() => expect(screen.getByText("Operador Servicom")).toBeTruthy());
     fireEvent.click(screen.getByRole("button", { name: "Comentarios" }));
-    expect(screen.getByRole("heading", { name: "Retroalimentación del envío" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Enviar comentarios" })).toBeTruthy();
     expect(screen.getByLabelText("Adjuntar evidencia multimedia")).toBeTruthy();
   });
 

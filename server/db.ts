@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, like, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { createHash } from "node:crypto";
-import { InsertUser, users, shipments, shipmentSignatures, shipmentAuditLogs, shipmentFeedback, interactionEvents, admins, localAccounts, verificationCodes, adminPasswordResetCodes, clients, discountCoupons, shipmentRoutePolicies } from "../drizzle/schema";
+import { InsertUser, users, shipments, shipmentSignatures, shipmentAuditLogs, shipmentFeedback, platformFeedback, interactionEvents, admins, localAccounts, verificationCodes, adminPasswordResetCodes, clients, discountCoupons, shipmentRoutePolicies } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { buildShipmentClientDirectoryRecords, type ClientDirectoryRecord, type ShipmentClientDirectoryInput } from "./clientDirectory";
 
@@ -409,6 +409,37 @@ export async function createShipmentFeedback(input: {
     metadata: { hasAttachment: Boolean(input.attachment), attachmentMimeType: input.attachment?.mimeType ?? null },
   });
   return result;
+}
+
+export async function listPlatformFeedback(actor: { type: "admin" | "account"; id: number; canReviewAll: boolean }) {
+  const db = await getDb();
+  if (!db) return [];
+  const condition = actor.canReviewAll ? undefined : and(eq(platformFeedback.authorType, actor.type), eq(platformFeedback.authorId, actor.id));
+  return condition
+    ? db.select().from(platformFeedback).where(condition).orderBy(desc(platformFeedback.createdAt))
+    : db.select().from(platformFeedback).orderBy(desc(platformFeedback.createdAt));
+}
+
+export async function createPlatformFeedback(input: {
+  authorType: "admin" | "account";
+  authorId: number;
+  authorLabel: string;
+  message: string;
+  attachment?: { key: string; url: string; name: string; mimeType: string; sizeBytes: number } | null;
+}) {
+  const db = await getDb();
+  if (!db) return undefined;
+  return db.insert(platformFeedback).values({
+    authorType: input.authorType,
+    authorId: input.authorId,
+    authorLabel: input.authorLabel,
+    message: input.message,
+    attachmentKey: input.attachment?.key ?? null,
+    attachmentUrl: input.attachment?.url ?? null,
+    attachmentName: input.attachment?.name ?? null,
+    attachmentMimeType: input.attachment?.mimeType ?? null,
+    attachmentSizeBytes: input.attachment?.sizeBytes ?? null,
+  });
 }
 
 export type ShipmentAuditActorRecord = {

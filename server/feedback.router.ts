@@ -2,13 +2,12 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { getAccountSession } from "./localSession";
 import { getAdminSession } from "./adminSession";
-import { createShipmentFeedback, getShipmentById, listShipmentFeedback } from "./db";
+import { createPlatformFeedback, listPlatformFeedback } from "./db";
 import { publicProcedure, router } from "./_core/trpc";
 import { storagePut } from "./storage";
 import { validateFeedbackAttachment } from "./feedbackMedia";
 
 const feedbackInput = z.object({
-  shipmentId: z.number().int().positive(),
   message: z.string().trim().min(1, "Escribe tu retroalimentación.").max(2000),
   attachment: z.object({
     name: z.string().trim().min(1).max(255),
@@ -17,38 +16,35 @@ const feedbackInput = z.object({
   }).optional(),
 });
 
-async function resolveFeedbackAccess(req: Parameters<typeof getAdminSession>[0], shipmentId: number) {
+function resolveFeedbackAuthor(req: Parameters<typeof getAdminSession>[0]) {
   const adminSession = getAdminSession(req);
   const accountSession = getAccountSession(req);
-  const shipment = await getShipmentById(shipmentId);
-  if (!shipment) throw new TRPCError({ code: "NOT_FOUND", message: "El envío no está disponible." });
   if (adminSession && !adminSession.reauthRequired) {
-    if (adminSession.role !== "superadmin" && shipment.hiddenFromRegistradoresAt) throw new TRPCError({ code: "FORBIDDEN", message: "Este envío está oculto para tu cuenta." });
-    return { shipment, author: { type: "admin" as const, id: adminSession.adminId, label: adminSession.role === "superadmin" ? "Master Admin" : "Registrador" } };
+    return { type: "admin" as const, id: adminSession.adminId, label: adminSession.role === "superadmin" ? "Master Admin" : "Registrador", canReviewAll: adminSession.role === "superadmin" };
   }
-  if (accountSession && !accountSession.reauthRequired && shipment.accountId === accountSession.accountId) {
-    return { shipment, author: { type: "account" as const, id: accountSession.accountId, label: "Cliente" } };
+  if (accountSession && !accountSession.reauthRequired) {
+    return { type: "account" as const, id: accountSession.accountId, label: "Cliente", canReviewAll: false };
   }
-  throw new TRPCError({ code: "FORBIDDEN", message: "No tienes permiso para consultar la retroalimentación de este envío." });
+  throw new TRPCError({ code: "UNAUTHORIZED", message: "Inicia sesión para enviar o consultar comentarios." });
 }
 
 export const feedbackRouter = router({
-  list: publicProcedure.input(z.object({ shipmentId: z.number().int().positive() })).query(async ({ input, ctx }) => {
-    await resolveFeedbackAccess(ctx.req, input.shipmentId);
-    return listShipmentFeedback(input.shipmentId);
+  list: publicProcedure.query(async ({ ctx }) => {
+    const author = resolveFeedbackAuthor(ctx.req);
+    return listPlatformFeedback(author);
   }),
   create: publicProcedure.input(feedbackInput).mutation(async ({ input, ctx }) => {
-    const { shipment, author } = await resolveFeedbackAccess(ctx.req, input.shipmentId);
+    const author = resolveFeedbackAuthor(ctx.req);
     let attachment: { key: string; url: string; name: string; mimeType: string; sizeBytes: number } | null = null;
     if (input.attachment) {
       let validated;
       try { validated = validateFeedbackAttachment(input.attachment); } catch (error: any) {
         throw new TRPCError({ code: "BAD_REQUEST", message: error.message || "El adjunto no es válido." });
       }
-      const saved = await storagePut(`shipment-feedback/${shipment.id}/${author.type}-${author.id}/${Date.now()}-${validated.safeName}`, validated.bytes, input.attachment.mimeType);
+      const saved = await storagePut(`platform-feedback/${author.type}-${author.id}/${Date.now()}-${validated.safeName}`, validated.bytes, input.attachment.mimeType);
       attachment = { ...saved, name: validated.safeName, mimeType: input.attachment.mimeType, sizeBytes: validated.sizeBytes };
     }
-    const result = await createShipmentFeedback({ shipmentId: shipment.id, authorType: author.type, authorId: author.id, authorLabel: author.label, message: input.message, attachment });
+    const result = await createPlatformFeedback({ authorType: author.type, authorId: author.id, authorLabel: author.label, message: input.message, attachment });
     if (!result) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No se pudo guardar la retroalimentación." });
     return { success: true };
   }),

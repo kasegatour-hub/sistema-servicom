@@ -233,6 +233,26 @@ export const shipmentFeedback = mysqlTable("shipment_feedback", {
 export type ShipmentFeedback = typeof shipmentFeedback.$inferSelect;
 export type InsertShipmentFeedback = typeof shipmentFeedback.$inferInsert;
 
+/** Canal general de comentarios de la plataforma, independiente de cualquier envío. */
+export const platformFeedback = mysqlTable("platform_feedback", {
+  id: int("id").autoincrement().primaryKey(),
+  authorType: mysqlEnum("authorType", ["admin", "account"]).notNull(),
+  authorId: int("authorId").notNull(),
+  authorLabel: varchar("authorLabel", { length: 255 }).notNull(),
+  message: text("message").notNull(),
+  attachmentKey: varchar("attachmentKey", { length: 512 }),
+  attachmentUrl: varchar("attachmentUrl", { length: 512 }),
+  attachmentName: varchar("attachmentName", { length: 255 }),
+  attachmentMimeType: varchar("attachmentMimeType", { length: 128 }),
+  attachmentSizeBytes: int("attachmentSizeBytes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, table => ({
+  authorIdx: index("platform_feedback_author_idx").on(table.authorType, table.authorId),
+  createdIdx: index("platform_feedback_created_idx").on(table.createdAt),
+}));
+export type PlatformFeedback = typeof platformFeedback.$inferSelect;
+export type InsertPlatformFeedback = typeof platformFeedback.$inferInsert;
+
 /** Historial append-only de cambios y snapshots para restauración y trazabilidad. */
 export const shipmentAuditLogs = mysqlTable("shipment_audit_logs", {
   id: int("id").autoincrement().primaryKey(),

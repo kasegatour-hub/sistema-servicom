@@ -93,6 +93,9 @@ describe("AccountPage client labels", () => {
 
     expect(screen.getByText("Mostrando 1–6 de 7 envíos")).toBeTruthy();
     expect(screen.getAllByText("Cliente").length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: "Comentarios" }));
+    expect(screen.getByRole("heading", { name: "Enviar comentarios" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Cerrar" }));
     expect(screen.queryByText("Cliente 1 Prueba")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Papelera (7)" }));
     expect(screen.getByRole("button", { name: "Abrir papelera (7)" })).toBeTruthy();

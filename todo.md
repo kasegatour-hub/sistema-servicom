@@ -431,3 +431,10 @@
 - [x] Guardar los adjuntos en almacenamiento de objetos y mostrar la evidencia de forma segura
 - [x] Registrar y mostrar quién creó cada documento o encomienda
 - [x] Añadir migración, pruebas, verificación de permisos, compilación y publicación
+
+## Canal general de comentarios
+- [x] Reemplazar la retroalimentación asociada a cada envío por un canal general independiente
+- [x] Añadir un acceso principal «Enviar comentarios» para Cliente, Registrador y Master Admin
+- [x] Mantener texto y adjuntos de imagen, audio o video en el canal general
+- [x] Retirar los botones de comentarios de los registros individuales sin borrar los datos ya almacenados
+- [x] Añadir migración, pruebas por rol, compilación y publicación

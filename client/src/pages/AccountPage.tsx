@@ -22,7 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { summarizeRevenue } from "@shared/revenueSummary";
 import { DocumentPricePreview } from "@/components/DocumentPricePreview";
 import { paginateItems } from "@/lib/pagination";
-import { ShipmentFeedbackDialog } from "@/components/ShipmentFeedbackDialog";
+import { GeneralFeedbackDialog } from "@/components/GeneralFeedbackDialog";
 
 const brandLogo = "/manus-storage/servicom_logo_final_e7ce35aa.png";
 
@@ -46,7 +46,7 @@ export default function AccountPage() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showAccountNewPassword, setShowAccountNewPassword] = useState(false);
   const [receiptShipment, setReceiptShipment] = useState<any>(null);
-  const [feedbackShipment, setFeedbackShipment] = useState<any>(null);
+  const [showGeneralFeedback, setShowGeneralFeedback] = useState(false);
   const [reauthPassword, setReauthPassword] = useState("");
   const [showReauthPassword, setShowReauthPassword] = useState(false);
 
@@ -292,6 +292,9 @@ export default function AccountPage() {
               <Link href="/" className="rounded bg-white/10 px-3 py-1.5 text-sm font-medium transition hover:bg-white/20">
                 Ir a Rastreo Público
               </Link>
+              <Button onClick={() => setShowGeneralFeedback(true)} variant="outline" className="border-white/30 bg-transparent text-white hover:bg-white/20">
+                <MessageSquare className="mr-2 h-4 w-4" /> Comentarios
+              </Button>
               <Button onClick={() => logoutMutation.mutate()} variant="outline" className="border-white/30 bg-transparent text-white hover:bg-white/20">
                 <LogOut className="mr-2 h-4 w-4" /> Salir
               </Button>
@@ -376,7 +379,7 @@ export default function AccountPage() {
               </DialogContent>
             </Dialog>
           )}
-          <ShipmentFeedbackDialog shipment={feedbackShipment} open={Boolean(feedbackShipment)} onOpenChange={(open) => { if (!open) setFeedbackShipment(null); }} />
+          <GeneralFeedbackDialog open={showGeneralFeedback} onOpenChange={setShowGeneralFeedback} />
 
           <Card className="border-0 p-4 shadow-sm" aria-label="Áreas de mi cuenta">
             <div className="flex flex-wrap items-center gap-2">
@@ -659,7 +662,6 @@ export default function AccountPage() {
                         <Button size="sm" className="bg-[#0B2B5E] text-white hover:bg-[#123d78]"><Search className="mr-2 h-3.5 w-3.5" /> Rastrear envío</Button>
                       </Link>
                       <Button size="sm" variant="outline" onClick={() => setReceiptShipment(shipment)} className="border-[#F28C00] text-[#0B2B5E] hover:bg-orange-50"><Download className="mr-2 h-3.5 w-3.5" /> Ver recibo</Button>
-                      <Button size="sm" variant="outline" onClick={() => setFeedbackShipment(shipment)} className="border-sky-300 text-sky-800 hover:bg-sky-50"><MessageSquare className="mr-2 h-3.5 w-3.5" /> Retroalimentación</Button>
                       <Button size="sm" variant="outline" disabled={deleteMyShipmentMutation.isPending} onClick={() => { if (window.confirm("El envío se moverá a la papelera y podrás restaurarlo.")) deleteMyShipmentMutation.mutate({ shipmentId: shipment.id }); }} className="border-red-200 text-red-700 hover:bg-red-50"><Trash2 className="mr-2 h-3.5 w-3.5" /> Eliminar</Button>
                     </div>
                   </div>
