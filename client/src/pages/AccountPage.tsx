@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { buildTrackingUrl, TRACKING_QR_OPTIONS, normalizeTrackingValue } from "@/lib/tracking";
 import { printUserShipmentReceipt } from "@/lib/userReceipt";
-import { digitsOnly, isDigitsOnly, isTextOnly, textOnly } from "@/lib/inputValidation";
+import { DNI_MAX_LENGTH, digitsOnly, dniDigitsOnly, isDigitsOnly, isTextOnly, isValidDni, textOnly } from "@/lib/inputValidation";
 import { getPaymentStatusUi } from "@/lib/paymentStatus";
 import { getRoutePresentation } from "@/lib/routeDetails";
 import { PhoneInput } from "@/components/PhoneInput";
@@ -84,8 +84,9 @@ export default function AccountPage() {
 
   const updateDigitsValue = (field: string, rawValue: string, setter: (value: string) => void) => {
     if (rawValue && !isDigitsOnly(rawValue)) setIdentityErrors(previous => ({ ...previous, [field]: "El DNI solo puede contener números." }));
+    else if (digitsOnly(rawValue).length > DNI_MAX_LENGTH) setIdentityErrors(previous => ({ ...previous, [field]: "El DNI no puede tener más de 8 dígitos." }));
     else setIdentityErrors(previous => ({ ...previous, [field]: "" }));
-    setter(digitsOnly(rawValue));
+    setter(dniDigitsOnly(rawValue));
   };
 
   const utils = trpc.useUtils();
@@ -167,7 +168,7 @@ export default function AccountPage() {
     const nextErrors: Record<string, string> = {};
     if (!profileName.trim() || !isTextOnly(profileName)) nextErrors.profileName = "El nombre solo puede contener letras y espacios.";
     if (!profileLastName.trim() || !isTextOnly(profileLastName)) nextErrors.profileLastName = "El apellido solo puede contener letras y espacios.";
-    if (!profileDni.trim() || !isDigitsOnly(profileDni)) nextErrors.profileDni = "El DNI solo puede contener números.";
+    if (!profileDni.trim() || !isValidDni(profileDni)) nextErrors.profileDni = "El DNI debe contener solo números y no puede superar 8 dígitos.";
     if (Object.keys(nextErrors).length > 0) {
       setIdentityErrors(previous => ({ ...previous, ...nextErrors }));
       toast.error("Revisa los datos personales antes de guardar.");
@@ -381,8 +382,8 @@ export default function AccountPage() {
                 </div>
                 <div>
                   <Label>DNI</Label>
-                  <Input value={profileDni} onChange={e => updateDigitsValue("profileDni", e.target.value, setProfileDni)} placeholder="Ej: 71234567" inputMode="numeric" pattern="[0-9]*" required className="mt-1" />
-                  <p className="mt-1 text-xs text-slate-500">Solo números.</p>
+                  <Input value={profileDni} onChange={e => updateDigitsValue("profileDni", e.target.value, setProfileDni)} placeholder="Ej: 71234567" inputMode="numeric" pattern="[0-9]*" maxLength={DNI_MAX_LENGTH} required className="mt-1" />
+                  <p className="mt-1 text-xs text-slate-500">Solo números, máximo 8 dígitos.</p>
                   {identityErrors.profileDni && <p className="text-xs text-red-600">{identityErrors.profileDni}</p>}
                 </div>
                 <div>
@@ -535,8 +536,8 @@ export default function AccountPage() {
                   </div>
                   <div>
                     <Label>Destinatario - DNI</Label>
-                    <Input value={recipientDni} onChange={e => updateDigitsValue("recipientDni", e.target.value, setRecipientDni)} placeholder="Ej: 41234567" inputMode="numeric" pattern="[0-9]*" required className="mt-1 bg-white" />
-                    <p className="mt-1 text-xs text-slate-500">Solo números.</p>
+                    <Input value={recipientDni} onChange={e => updateDigitsValue("recipientDni", e.target.value, setRecipientDni)} placeholder="Ej: 41234567" inputMode="numeric" pattern="[0-9]*" maxLength={DNI_MAX_LENGTH} required className="mt-1 bg-white" />
+                    <p className="mt-1 text-xs text-slate-500">Solo números, máximo 8 dígitos.</p>
                     {identityErrors.recipientDni && <p className="text-xs text-red-600">{identityErrors.recipientDni}</p>}
                   </div>
                   <div>
@@ -673,8 +674,8 @@ export default function AccountPage() {
                 </div>
                 <div>
                   <Label htmlFor="register-dni">DNI</Label>
-                  <Input id="register-dni" value={registerDni} onChange={event => updateDigitsValue("registerDni", event.target.value, setRegisterDni)} inputMode="numeric" pattern="[0-9]*" className="mt-2" minLength={8} required />
-                  <p className="mt-1 text-xs text-slate-500">Solo números; mínimo 8 dígitos.</p>
+                  <Input id="register-dni" value={registerDni} onChange={event => updateDigitsValue("registerDni", event.target.value, setRegisterDni)} inputMode="numeric" pattern="[0-9]*" className="mt-2" minLength={DNI_MAX_LENGTH} maxLength={DNI_MAX_LENGTH} required />
+                  <p className="mt-1 text-xs text-slate-500">Solo números; exactamente 8 dígitos.</p>
                   {identityErrors.registerDni && <p className="text-xs text-red-600">{identityErrors.registerDni}</p>}
                 </div>
                   <div>

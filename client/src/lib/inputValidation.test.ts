@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { digitsOnly, isDigitsOnly, isTextOnly, textOnly } from "./inputValidation";
+import { DNI_MAX_LENGTH, digitsOnly, dniDigitsOnly, isDigitsOnly, isTextOnly, isValidDni, textOnly } from "./inputValidation";
 
 describe("client identity input validation", () => {
   it("detects invalid text before the sanitized value is stored", () => {
@@ -19,5 +19,12 @@ describe("client identity input validation", () => {
     expect(isDigitsOnly(" 71234567 ")).toBe(true);
     expect(isTextOnly("   ")).toBe(true);
     expect(isDigitsOnly("   ")).toBe(true);
+  });
+
+  it("caps DNI values at eight digits", () => {
+    expect(DNI_MAX_LENGTH).toBe(8);
+    expect(dniDigitsOnly("1234567890")).toBe("12345678");
+    expect(isValidDni("12345678")).toBe(true);
+    expect(isValidDni("123456789")).toBe(false);
   });
 });

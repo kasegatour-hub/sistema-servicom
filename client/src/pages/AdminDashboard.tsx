@@ -20,7 +20,7 @@ import { QuantityStepper } from "@/components/QuantityStepper";
 import { DocumentCatalogSelector } from "@/components/DocumentCatalogSelector";
 import { formatPhoneNumber } from "@/lib/phoneFormatting";
 import { CatalogDocumentItem, catalogDocumentsToChecklist } from "@/lib/documentCatalog";
-import { digitsOnly, isDigitsOnly, isTextOnly, textOnly } from "@/lib/inputValidation";
+import { DNI_MAX_LENGTH, dniDigitsOnly, isDigitsOnly, isTextOnly, textOnly } from "@/lib/inputValidation";
 import { getPaymentStatusUi } from "@/lib/paymentStatus";
 import { getPaymentPrintPresentation } from "@/lib/paymentPrint";
 import { paginateItems } from "@/lib/pagination";
@@ -123,11 +123,11 @@ export const textRegisterOptions = (form: any, field: string, label: string) => 
 });
 
 export const digitsRegisterOptions = (form: any, field: string) => ({
-  setValueAs: digitsOnly,
+  setValueAs: dniDigitsOnly,
   onChange: (event: any) => {
     const rawValue = String(event.target.value ?? "");
     const isValidRawValue = !rawValue.trim() || isDigitsOnly(rawValue);
-    const sanitizedValue = digitsOnly(rawValue);
+    const sanitizedValue = dniDigitsOnly(rawValue);
     event.target.value = sanitizedValue;
     if (!isValidRawValue) form.setError(field, { type: "pattern", message: "El DNI solo puede contener números." });
     else setTimeout(() => form.clearErrors(field), 0);
@@ -167,7 +167,7 @@ const optionalTextField = z.union([
 ]).optional();
 const optionalDniField = z.union([
   z.literal(""),
-  z.string().trim().regex(/^\d+$/, "El DNI solo puede contener números."),
+  z.string().trim().regex(/^\d{1,8}$/, "El DNI solo puede contener números y no puede superar 8 dígitos."),
 ]).optional();
 
 const createShipmentSchema = z.object({
@@ -423,7 +423,7 @@ export default function AdminDashboard() {
   const fillShipmentPerson = (prefix: "sender" | "recipient", client: ClientLookupRecord) => {
     createForm.setValue(`${prefix}Name`, client.name, { shouldDirty: true });
     createForm.setValue(`${prefix}LastName`, client.lastName, { shouldDirty: true });
-    createForm.setValue(`${prefix}Dni`, client.dni || "", { shouldDirty: true });
+    createForm.setValue(`${prefix}Dni`, dniDigitsOnly(client.dni || ""), { shouldDirty: true });
     createForm.setValue(`${prefix}Phone`, client.phone || "", { shouldDirty: true });
     if (prefix === "sender") setSenderClientQuery(`${client.name} ${client.lastName}`);
     else setRecipientClientQuery(`${client.name} ${client.lastName}`);
@@ -1389,6 +1389,18 @@ export default function AdminDashboard() {
                   </div>
 
                   <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Estado de Pago</label>
+                    <Select value={createForm.watch("paymentStatus") || "Falta cancelar"} onValueChange={(value) => createForm.setValue("paymentStatus", value as "Pagado" | "Falta cancelar", { shouldValidate: true, shouldDirty: true })}>
+                      <SelectTrigger aria-label="Estado de Pago" className="border-2 focus:border-primary"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Pagado">Pagado</SelectItem>
+                        <SelectItem value="Falta cancelar">No cancelado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="mt-1 text-xs text-slate-500">Define si el envío se registra como pagado o pendiente de pago.</p>
+                  </div>
+
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Precio manual en EUR (opcional)</label>
                     <Input
                       type="number"
@@ -1545,10 +1557,11 @@ export default function AdminDashboard() {
                       placeholder="DNI"
                       inputMode="numeric"
                       pattern="[0-9]*"
+                      maxLength={DNI_MAX_LENGTH}
                       {...createForm.register("senderDni", digitsRegisterOptions(createForm, "senderDni"))}
                       className="border-2 focus:border-primary"
                     />
-                    <p className="mt-1 text-xs text-gray-500">Solo números.</p>
+                    <p className="mt-1 text-xs text-gray-500">Solo números, máximo 8 dígitos.</p>
                     {createForm.formState.errors.senderDni?.message && <p className="text-xs text-red-600">{String(createForm.formState.errors.senderDni.message)}</p>}
                   </div>
                   <div>
@@ -1605,10 +1618,11 @@ export default function AdminDashboard() {
                       placeholder="DNI"
                       inputMode="numeric"
                       pattern="[0-9]*"
+                      maxLength={DNI_MAX_LENGTH}
                       {...createForm.register("recipientDni", digitsRegisterOptions(createForm, "recipientDni"))}
                       className="border-2 focus:border-primary"
                     />
-                    <p className="mt-1 text-xs text-gray-500">Solo números.</p>
+                    <p className="mt-1 text-xs text-gray-500">Solo números, máximo 8 dígitos.</p>
                     {createForm.formState.errors.recipientDni?.message && <p className="text-xs text-red-600">{String(createForm.formState.errors.recipientDni.message)}</p>}
                   </div>
                   <div>
@@ -2011,8 +2025,8 @@ export default function AdminDashboard() {
                     <Input placeholder="Apellido" inputMode="text" {...updateForm.register("senderLastName", textRegisterOptions(updateForm, "senderLastName", "El apellido"))} />
                     <p className="text-xs text-gray-500">Solo letras y espacios.</p>
                     {updateForm.formState.errors.senderLastName?.message && <p className="text-xs text-red-600">{String(updateForm.formState.errors.senderLastName.message)}</p>}
-                    <Input placeholder="DNI" inputMode="numeric" pattern="[0-9]*" {...updateForm.register("senderDni", digitsRegisterOptions(updateForm, "senderDni"))} />
-                    <p className="text-xs text-gray-500">Solo números.</p>
+                    <Input placeholder="DNI" inputMode="numeric" pattern="[0-9]*" maxLength={DNI_MAX_LENGTH} {...updateForm.register("senderDni", digitsRegisterOptions(updateForm, "senderDni"))} />
+                    <p className="text-xs text-gray-500">Solo números, máximo 8 dígitos.</p>
                     {updateForm.formState.errors.senderDni?.message && <p className="text-xs text-red-600">{String(updateForm.formState.errors.senderDni.message)}</p>}
                     <PhoneInput
                       value={updateForm.watch("senderPhone") || ""}
@@ -2031,8 +2045,8 @@ export default function AdminDashboard() {
                     <Input placeholder="Apellido" inputMode="text" {...updateForm.register("recipientLastName", textRegisterOptions(updateForm, "recipientLastName", "El apellido"))} />
                     <p className="text-xs text-gray-500">Solo letras y espacios.</p>
                     {updateForm.formState.errors.recipientLastName?.message && <p className="text-xs text-red-600">{String(updateForm.formState.errors.recipientLastName.message)}</p>}
-                    <Input placeholder="DNI" inputMode="numeric" pattern="[0-9]*" {...updateForm.register("recipientDni", digitsRegisterOptions(updateForm, "recipientDni"))} />
-                    <p className="text-xs text-gray-500">Solo números.</p>
+                    <Input placeholder="DNI" inputMode="numeric" pattern="[0-9]*" maxLength={DNI_MAX_LENGTH} {...updateForm.register("recipientDni", digitsRegisterOptions(updateForm, "recipientDni"))} />
+                    <p className="text-xs text-gray-500">Solo números, máximo 8 dígitos.</p>
                     {updateForm.formState.errors.recipientDni?.message && <p className="text-xs text-red-600">{String(updateForm.formState.errors.recipientDni.message)}</p>}
                     <PhoneInput
                       value={updateForm.watch("recipientPhone") || ""}

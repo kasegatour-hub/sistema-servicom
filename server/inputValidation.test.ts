@@ -15,6 +15,7 @@ describe("input validation", () => {
   it("accepts numeric DNI values and rejects letters", () => {
     expect(dniSchema.parse("71234567")).toBe("71234567");
     expect(() => dniSchema.parse("7123456A")).toThrow("El DNI solo puede contener números");
+    expect(() => dniSchema.parse("712345678")).toThrow("El DNI no puede tener más de 8 dígitos");
   });
 
   it("trims valid optional identity values before persistence", () => {
@@ -27,5 +28,6 @@ describe("input validation", () => {
     expect(optionalDniSchema.parse("")).toBe("");
     expect(() => optionalPersonNameSchema.parse("Nombre3")).toThrow("Solo se permiten letras y espacios");
     expect(() => optionalDniSchema.parse("1234ABCD")).toThrow("El DNI solo puede contener números");
+    expect(() => optionalDniSchema.parse("123456789")).toThrow("no puede superar 8 dígitos");
   });
 });

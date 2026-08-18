@@ -232,6 +232,8 @@ describe("AdminDashboard Nueva Encomienda", () => {
         await waitFor(() => expect(screen.getByRole("button", { name: "Nuevo documento" })).toBeTruthy());
     fireEvent.click(screen.getByRole("button", { name: "Nuevo documento" }));
     fireEvent.click(screen.getByLabelText("Acta de nacimiento"));
+    fireEvent.click(screen.getByRole("combobox", { name: "Estado de Pago" }));
+    fireEvent.click(screen.getByRole("option", { name: "Pagado" }));
     fireEvent.click(screen.getByRole("button", { name: "Crear Documento" }));
     await waitFor(() => expect(mocks.createShipment.mutateAsync).toHaveBeenCalledTimes(1));
     expect(mocks.createShipment.mutateAsync.mock.calls[0][0]).toMatchObject({
@@ -240,6 +242,7 @@ describe("AdminDashboard Nueva Encomienda", () => {
       sheetCount: 1,
       weightKg: 1,
       manualPriceEur: "",
+      paymentStatus: "Pagado",
       contentChecklist: ["1 × Acta de nacimiento"],
     });
 
@@ -256,6 +259,23 @@ describe("AdminDashboard Nueva Encomienda", () => {
       weightKg: 2.5,
       manualPriceEur: "40",
     });
+  });
+
+  it("limits administrative DNI input to eight digits and displays the payment selector", async () => {
+    render(<AdminDashboard />);
+    fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
+    fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Nuevo documento" })).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "Nuevo documento" }));
+
+    const senderDni = screen.getAllByPlaceholderText("DNI")[0] as HTMLInputElement;
+    fireEvent.change(senderDni, { target: { value: "1234567890" } });
+
+    expect(senderDni.value).toBe("12345678");
+    expect(senderDni.maxLength).toBe(8);
+    expect(screen.getByRole("combobox", { name: "Estado de Pago" })).toBeTruthy();
+    expect(screen.getByText("Define si el envío se registra como pagado o pendiente de pago.")).toBeTruthy();
   });
 
   it("separa las vistas de documentos y encomiendas en pestañas", async () => {

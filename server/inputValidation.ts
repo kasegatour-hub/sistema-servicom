@@ -8,6 +8,7 @@ export const personNameSchema = z.string()
 export const dniSchema = z.string()
   .trim()
   .min(8, "El DNI debe tener al menos 8 dígitos.")
+  .max(8, "El DNI no puede tener más de 8 dígitos.")
   .regex(/^\d+$/, "El DNI solo puede contener números.");
 
 export const optionalPersonNameSchema = z.string()
@@ -17,5 +18,5 @@ export const optionalPersonNameSchema = z.string()
 
 export const optionalDniSchema = z.string()
   .trim()
-  .refine(value => value === "" || /^\d+$/.test(value), "El DNI solo puede contener números.")
+  .refine(value => value === "" || /^\d{1,8}$/.test(value), "El DNI solo puede contener números y no puede superar 8 dígitos.")
   .optional();

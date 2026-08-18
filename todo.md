@@ -406,3 +406,9 @@
 - [x] Mostrar la sede y dirección completa de recojo según el destino del envío
 - [x] Cubrir documentos y encomiendas para ambas rutas con pruebas
 - [x] Compilar, verificar y publicar la mejora
+
+## Corrección de DNI y estado de pago en registros administrativos
+- [x] Limitar los DNI de remitente y destinatario a ocho dígitos en interfaz y servidor
+- [x] Mostrar controles Pagado y No cancelado al crear documentos o encomiendas como Registrador o Master Admin
+- [x] Mantener el estado automático pendiente para registros creados por clientes
+- [x] Añadir pruebas, compilar, verificar y publicar las correcciones
