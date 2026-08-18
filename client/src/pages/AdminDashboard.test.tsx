@@ -32,6 +32,7 @@ const mocks = vi.hoisted(() => ({
   refetchAdminUsers: vi.fn(),
   refetchCoupons: vi.fn(),
   shipments: [] as any[],
+  deletedShipments: [] as any[],
   searchClients: {
     useQuery: (input: { query?: string }) => ({
       data: input.query?.trim() ? [{ id: 21, name: "Ana", lastName: "Pérez", dni: "71234567", phone: "+51 970188447", email: null }] : [],
@@ -46,7 +47,7 @@ vi.mock("@/lib/trpc", () => ({
     admin: {
       me: { useQuery: () => ({ data: null, isLoading: false, refetch: mocks.refetchAdminSession }) },
       getAllShipments: { useQuery: () => ({ data: mocks.shipments, isLoading: false, refetch: mocks.refetchShipments }) },
-      listDeletedShipments: { useQuery: () => ({ data: [], isLoading: false, refetch: vi.fn() }) },
+      listDeletedShipments: { useQuery: () => ({ data: mocks.deletedShipments, isLoading: false, refetch: vi.fn() }) },
       shipmentAudit: { useQuery: () => ({ data: [], isFetching: false }) },
       listAdmins: { useQuery: () => ({ data: [], isLoading: false, refetch: mocks.refetchAdminUsers }) },
       listCoupons: { useQuery: () => ({ data: mocks.listCoupons.data, isLoading: false, refetch: mocks.refetchCoupons }) },
@@ -85,6 +86,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.listCoupons.data = [];
   mocks.shipments = [];
+  mocks.deletedShipments = [];
   mocks.login.mutateAsync.mockResolvedValue({ id: 1, email: "admin@servicom.pe", name: "Operador", role: "registrador" });
 });
 
@@ -124,6 +126,7 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
     fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
     await waitFor(() => expect(screen.getByRole("heading", { name: "Cupones promocionales" })).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "Cupones" }));
     fireEvent.click(screen.getByRole("button", { name: "Nuevo cupón" }));
     expect(screen.getByRole("button", { name: "Generar cupón" })).toBeTruthy();
     expect(screen.getByText("Descuento (%)")).toBeTruthy();
@@ -164,6 +167,10 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
     fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
 
+    await waitFor(() => expect(screen.getByRole("button", { name: "Cupones" })).toBeTruthy());
+    expect(screen.queryByText("CUPON-7")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Cupones" }));
+    fireEvent.click(screen.getByRole("button", { name: "Mostrar cupones" }));
     await waitFor(() => expect(screen.getByText("CUPON-7")).toBeTruthy());
     expect(screen.getByText("Mostrando 1–5 de 7 cupones")).toBeTruthy();
     expect(screen.queryByText("CUPON-1")).toBeNull();
@@ -177,6 +184,62 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.click(screen.getByRole("button", { name: "Ocultar cupones" }));
     expect(screen.getByRole("button", { name: "Mostrar cupones" })).toBeTruthy();
     expect(screen.queryByText("CUPON-1")).toBeNull();
+  });
+
+  it("paginates active records six at a time and filters by payment and logistics state", async () => {
+    mocks.shipments = Array.from({ length: 7 }, (_, index) => ({
+      id: index + 1,
+      shipmentType: "documento",
+      recipientName: `Cliente ${index + 1}`,
+      recipientLastName: "Prueba",
+      recipientDni: `7000000${index}`,
+      status: index === 6 ? "En destino" : "En agencia",
+      paymentStatus: index % 2 === 0 ? "Pagado" : "Falta cancelar",
+      createdAt: new Date(`2026-08-${String(index + 1).padStart(2, "0")}T10:00:00.000Z`),
+      orderNumber: `35209927${index}`,
+      code: `DOC-${index}`,
+      events: [],
+    }));
+    render(<AdminDashboard />);
+    fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
+    fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
+
+    await waitFor(() => expect(screen.getByText("Mostrando 1–6 de 7 envíos")).toBeTruthy());
+    expect(screen.getByText("Cliente 7 Prueba")).toBeTruthy();
+    expect(screen.queryByText("Cliente 1 Prueba")).toBeNull();
+    fireEvent.change(screen.getByLabelText("Filtro de pago"), { target: { value: "paid" } });
+    expect(screen.getByText("Cliente 7 Prueba")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Filtro de estado del envío"), { target: { value: "En destino" } });
+    expect(screen.getByText("Cliente 7 Prueba")).toBeTruthy();
+    expect(screen.queryByText("Cliente 5 Prueba")).toBeNull();
+  });
+
+  it("keeps the trash encapsulated and paginates filtered deleted records", async () => {
+    mocks.deletedShipments = Array.from({ length: 7 }, (_, index) => ({
+      id: index + 1,
+      shipmentType: index % 2 === 0 ? "documento" : "encomienda",
+      recipientName: `Eliminado ${index + 1}`,
+      recipientLastName: "Prueba",
+      recipientDni: `6000000${index}`,
+      status: "En agencia",
+      paymentStatus: index % 2 === 0 ? "Pagado" : "Falta cancelar",
+      deletedAt: new Date(`2026-08-${String(index + 1).padStart(2, "0")}T10:00:00.000Z`),
+      orderNumber: `45209927${index}`,
+      code: `DEL-${index}`,
+    }));
+    render(<AdminDashboard />);
+    fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
+    fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Papelera (7)" })).toBeTruthy());
+    expect(screen.getByLabelText("Buscar en papelera").closest("[data-slot='card']")?.getAttribute("class")).toContain("hidden");
+    fireEvent.click(screen.getByRole("button", { name: "Papelera (7)" }));
+    expect(screen.getByLabelText("Buscar en papelera")).toBeTruthy();
+    expect(screen.getByText("Mostrando 1–6 de 7 eliminados")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Buscar en papelera"), { target: { value: "452099270" } });
+    expect(screen.getByText("Mostrando 1–1 de 1 eliminados")).toBeTruthy();
   });
 
   it("opens each creation type directly without a redundant selector", async () => {

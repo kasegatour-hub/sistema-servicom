@@ -35,6 +35,8 @@ import { buildElectronicSignatureHtml, buildReceiptDownloadFilename } from "@/li
 import { summarizeRevenue } from "@shared/revenueSummary";
 import { DocumentPricePreview } from "@/components/DocumentPricePreview";
 
+type AdminWorkspace = "resumen" | "registros" | "crear" | "cupones" | "papelera" | "usuarios";
+
 function renderQrCode(canvas: HTMLCanvasElement | null, trackingUrl: string, width: number) {
   if (!canvas) return;
   try {
@@ -234,6 +236,7 @@ export default function AdminDashboard() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [admin, setAdmin] = useState<any>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [adminWorkspace, setAdminWorkspace] = useState<AdminWorkspace>("registros");
   const [selectedShipmentId, setSelectedShipmentId] = useState<number | null>(null);
   const [showUpdateForm, setShowUpdateForm] = useState(false);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -242,7 +245,7 @@ export default function AdminDashboard() {
   const [showUserForm, setShowUserForm] = useState(false);
   const [showCouponForm, setShowCouponForm] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<any>(null);
-  const [showCoupons, setShowCoupons] = useState(true);
+  const [showCoupons, setShowCoupons] = useState(false);
   const [couponSortOrder, setCouponSortOrder] = useState<"asc" | "desc">("desc");
   const [couponCurrentPage, setCouponCurrentPage] = useState(1);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -267,7 +270,15 @@ export default function AdminDashboard() {
   const [adminRecoveryCode, setAdminRecoveryCode] = useState("");
   const [adminRecoveryPassword, setAdminRecoveryPassword] = useState("");
   const [adminRecoveryResendSeconds, setAdminRecoveryResendSeconds] = useState(0);
-  const pageSize = 10;
+  const [paymentFilter, setPaymentFilter] = useState<"all" | "paid" | "unpaid">("all");
+  const [logisticsFilter, setLogisticsFilter] = useState("all");
+  const [deletedSearchTerm, setDeletedSearchTerm] = useState("");
+  const [deletedPaymentFilter, setDeletedPaymentFilter] = useState<"all" | "paid" | "unpaid">("all");
+  const [deletedLogisticsFilter, setDeletedLogisticsFilter] = useState("all");
+  const [deletedTypeFilter, setDeletedTypeFilter] = useState<"all" | "documento" | "encomienda">("all");
+  const [deletedCurrentPage, setDeletedCurrentPage] = useState(1);
+  const pageSize = 6;
+  const deletedPageSize = 6;
   const printQrRef = useRef<HTMLCanvasElement>(null);
   const utils = trpc.useUtils();
 
@@ -304,8 +315,23 @@ export default function AdminDashboard() {
   const couponLastItem = Math.min(couponCurrentPage * couponPageSize, orderedCoupons.length);
   const adminRevenue = useMemo(() => summarizeRevenue(shipments), [shipments]);
 
+  const filteredDeletedShipments = useMemo(() => {
+    const query = deletedSearchTerm.trim().toLowerCase();
+    return [...(deletedShipments as any[])].filter((shipment) => {
+      const textMatches = !query || [shipment.orderNumber, shipment.code, shipment.senderName, shipment.senderLastName, shipment.senderDni, shipment.recipientName, shipment.recipientLastName, shipment.recipientDni]
+        .some(value => String(value || "").toLowerCase().includes(query));
+      const paymentMatches = deletedPaymentFilter === "all" || (deletedPaymentFilter === "paid" ? shipment.paymentStatus === "Pagado" : shipment.paymentStatus !== "Pagado");
+      const logisticsMatches = deletedLogisticsFilter === "all" || shipment.status === deletedLogisticsFilter;
+      const typeMatches = deletedTypeFilter === "all" || (deletedTypeFilter === "encomienda" ? shipment.shipmentType === "encomienda" : shipment.shipmentType !== "encomienda");
+      return textMatches && paymentMatches && logisticsMatches && typeMatches;
+    }).sort((left, right) => new Date(right.deletedAt || 0).getTime() - new Date(left.deletedAt || 0).getTime());
+  }, [deletedShipments, deletedSearchTerm, deletedPaymentFilter, deletedLogisticsFilter, deletedTypeFilter]);
+  const deletedPagination = paginateItems(filteredDeletedShipments, deletedCurrentPage, deletedPageSize);
+
   useEffect(() => setCouponCurrentPage(1), [couponSortOrder, coupons.length]);
   useEffect(() => setCouponCurrentPage(page => Math.min(Math.max(1, page), couponTotalPages)), [couponTotalPages]);
+  useEffect(() => setDeletedCurrentPage(1), [deletedSearchTerm, deletedPaymentFilter, deletedLogisticsFilter, deletedTypeFilter]);
+  useEffect(() => setDeletedCurrentPage(page => Math.min(page, deletedPagination.totalPages)), [deletedPagination.totalPages]);
 
   // Mutations
   const loginMutation = trpc.admin.login.useMutation();
@@ -590,6 +616,7 @@ export default function AdminDashboard() {
       createForm.setValue("route", "Torino - Lima", { shouldDirty: true });
       toast.message("Lima - Torino está restringida para encomiendas; se seleccionó Torino - Lima.");
     }
+    setAdminWorkspace("crear");
     setShowCreateForm(true);
   };
 
@@ -967,16 +994,22 @@ export default function AdminDashboard() {
         (s.recipientName && String(s.recipientName).toLowerCase().includes(q))
       );
     }
+    if (paymentFilter !== "all") {
+      list = list.filter(shipment => paymentFilter === "paid" ? shipment.paymentStatus === "Pagado" : shipment.paymentStatus !== "Pagado");
+    }
+    if (logisticsFilter !== "all") {
+      list = list.filter(shipment => shipment.status === logisticsFilter);
+    }
     return list.sort((a, b) => {
       const dateA = new Date(a.createdAt).getTime();
       const dateB = new Date(b.createdAt).getTime();
       return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
     });
-  }, [shipments, shipmentView, sortOrder, searchTerm]);
+  }, [shipments, shipmentView, sortOrder, searchTerm, paymentFilter, logisticsFilter]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, shipmentView, sortOrder]);
+  }, [searchTerm, shipmentView, sortOrder, paymentFilter, logisticsFilter]);
 
   const pagination = paginateItems(sortedShipments, currentPage, pageSize);
   const totalPages = pagination.totalPages;
@@ -1152,6 +1185,21 @@ export default function AdminDashboard() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-8">
+        <Card className="mb-6 border-0 p-4 shadow-sm" aria-label="Áreas de trabajo">
+          <div className="flex flex-wrap items-center gap-2">
+            {([
+              ["registros", "Ver registros"],
+              ["crear", "Registrar envío"],
+              ["cupones", "Cupones"],
+              ["papelera", `Papelera (${deletedShipments.length})`],
+              ["resumen", "Resumen"],
+              ...(admin?.role === "superadmin" ? [["usuarios", "Registradores"]] : []),
+            ] as Array<[AdminWorkspace, string]>).map(([workspace, label]) => (
+              <Button key={workspace} type="button" size="sm" variant={adminWorkspace === workspace ? "default" : "outline"} onClick={() => setAdminWorkspace(workspace)} className={adminWorkspace === workspace ? "bg-primary text-white" : "border-slate-300 text-slate-700"}>{label}</Button>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-slate-500">Abre solo el área que necesitas para mantener el trabajo operativo limpio y enfocado.</p>
+        </Card>
         {showPasswordForm && (
           <Card className="mb-8 border-0 p-6 shadow-lg">
             <div className="mb-4 flex items-start justify-between gap-4">
@@ -1186,13 +1234,13 @@ export default function AdminDashboard() {
           </Card>
         )}
 
-        <Card className="mb-8 border-0 p-6 shadow-lg">
+        <Card className={`mb-8 border-0 p-6 shadow-lg ${adminWorkspace === "resumen" ? "" : "hidden"}`}>
           <div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-xl font-semibold text-gray-900">Ingresos confirmados</h2><p className="mt-1 text-sm text-slate-500">Solo incluye envíos marcados como pagados.</p></div><div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-right"><p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Total ingresado</p><p className="text-2xl font-extrabold text-emerald-800">{adminRevenue.confirmedEur.toLocaleString("es-PE", { style: "currency", currency: "EUR" })}</p></div></div>
           <details className="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3"><summary className="cursor-pointer text-sm font-semibold text-[#0B2B5E]">Ver desglose de ingresos</summary><div className="mt-3 grid grid-cols-2 gap-3 text-sm md:grid-cols-5"><div><span className="block text-xs text-slate-500">Envíos pagados</span><strong>{adminRevenue.paidCount}</strong></div><div><span className="block text-xs text-slate-500">Pendiente</span><strong>{adminRevenue.pendingEur.toLocaleString("es-PE", { style: "currency", currency: "EUR" })}</strong></div><div><span className="block text-xs text-slate-500">Documentos pagados</span><strong>{adminRevenue.documentsEur.toLocaleString("es-PE", { style: "currency", currency: "EUR" })}</strong></div><div><span className="block text-xs text-slate-500">Encomiendas pagadas</span><strong>{adminRevenue.parcelsEur.toLocaleString("es-PE", { style: "currency", currency: "EUR" })}</strong></div><div><span className="block text-xs text-slate-500">Registros pendientes</span><strong>{adminRevenue.pendingCount}</strong></div></div></details>
         </Card>
 
         {/* Coupon Management Section */}
-        <Card className="mb-8 border-0 p-6 shadow-lg">
+        <Card className={`mb-8 border-0 p-6 shadow-lg ${adminWorkspace === "cupones" ? "" : "hidden"}`}>
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <h2 className="text-xl font-semibold text-gray-900">Cupones promocionales</h2>
@@ -1281,7 +1329,7 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Create Shipment Section */}
-        <Card className="p-6 mb-8 shadow-lg border-0">
+        <Card className={`mb-8 border-0 p-6 shadow-lg ${adminWorkspace === "crear" ? "" : "hidden"}`}>
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-xl font-semibold text-gray-900">Crear nuevo registro</h2>
@@ -1696,7 +1744,7 @@ export default function AdminDashboard() {
           )}
         </Card>
 
-        {admin?.role === "superadmin" && (
+        {adminWorkspace === "usuarios" && admin?.role === "superadmin" && (
           <Card className="p-6 mb-8 shadow-lg border-0">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
@@ -1789,7 +1837,7 @@ export default function AdminDashboard() {
         )}
 
         {/* Shipments Table */}
-        <Card className="p-6 shadow-lg border-0">
+        <Card className={`border-0 p-6 shadow-lg ${adminWorkspace === "registros" ? "" : "hidden"}`}>
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
             <div className="flex flex-wrap items-center gap-3">
               <h2 className="text-xl font-semibold text-gray-900">{shipmentView === 'documento' ? 'Documentos Registrados' : 'Encomiendas Registradas'}</h2>
@@ -1830,6 +1878,18 @@ export default function AdminDashboard() {
               >
                 {sortOrder === 'asc' ? '↑ Antiguos (ascendente)' : '↓ Recientes (descendentes)'}
               </Button>
+              <select aria-label="Filtro de pago" value={paymentFilter} onChange={(event) => setPaymentFilter(event.target.value as "all" | "paid" | "unpaid")} className="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-700">
+                <option value="all">Todos los pagos</option>
+                <option value="paid">Pagados</option>
+                <option value="unpaid">No pagados</option>
+              </select>
+              <select aria-label="Filtro de estado del envío" value={logisticsFilter} onChange={(event) => setLogisticsFilter(event.target.value)} className="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-700">
+                <option value="all">Todos los estados</option>
+                <option value="Por entregar en agencia">Por entregar en agencia</option>
+                <option value="En agencia">En agencia</option>
+                <option value="En tránsito">En tránsito</option>
+                <option value="En destino">En destino</option>
+              </select>
               <Button
                 onClick={async () => {
                   await refetchShipments();
@@ -1961,7 +2021,7 @@ export default function AdminDashboard() {
           )}
         </Card>
 
-        <Card className="mt-6 border-0 p-6 shadow-md">
+        <Card className={`mt-0 border-0 p-6 shadow-md ${adminWorkspace === "papelera" ? "" : "hidden"}`}>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="flex items-center gap-2 text-lg font-bold text-[#0B2B5E]"><Trash2 className="h-5 w-5 text-slate-500" /> Papelera y recuperación</h2>
@@ -1969,11 +2029,19 @@ export default function AdminDashboard() {
             </div>
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{deletedShipments.length} eliminado(s)</span>
           </div>
-          {deletedShipments.length === 0 ? <p className="mt-4 text-sm text-slate-500">No hay envíos en la papelera visible para esta cuenta.</p> : <div className="mt-4 space-y-2">
-            {deletedShipments.map((shipment: any) => <div key={shipment.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+          <div className="mt-4 grid grid-cols-1 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 md:grid-cols-4">
+            <Input aria-label="Buscar en papelera" value={deletedSearchTerm} onChange={(event) => setDeletedSearchTerm(event.target.value)} placeholder="Buscar orden, código, nombre o DNI" className="bg-white md:col-span-2" />
+            <select aria-label="Filtro de pago en papelera" value={deletedPaymentFilter} onChange={(event) => setDeletedPaymentFilter(event.target.value as "all" | "paid" | "unpaid")} className="h-10 rounded-md border border-slate-300 bg-white px-2 text-sm"><option value="all">Todos los pagos</option><option value="paid">Pagados</option><option value="unpaid">No pagados</option></select>
+            <select aria-label="Filtro de tipo en papelera" value={deletedTypeFilter} onChange={(event) => setDeletedTypeFilter(event.target.value as "all" | "documento" | "encomienda")} className="h-10 rounded-md border border-slate-300 bg-white px-2 text-sm"><option value="all">Documentos y encomiendas</option><option value="documento">Documentos</option><option value="encomienda">Encomiendas</option></select>
+            <select aria-label="Filtro de estado en papelera" value={deletedLogisticsFilter} onChange={(event) => setDeletedLogisticsFilter(event.target.value)} className="h-10 rounded-md border border-slate-300 bg-white px-2 text-sm md:col-span-2"><option value="all">Todos los estados</option><option value="Por entregar en agencia">Por entregar en agencia</option><option value="En agencia">En agencia</option><option value="En tránsito">En tránsito</option><option value="En destino">En destino</option><option value="Entregado">Entregado</option></select>
+            <p className="self-center text-sm text-slate-600 md:col-span-2">{filteredDeletedShipments.length} resultado(s) · 6 por página</p>
+          </div>
+          {filteredDeletedShipments.length === 0 ? <p className="mt-4 text-sm text-slate-500">No hay envíos eliminados que coincidan con los filtros seleccionados.</p> : <div className="mt-4 space-y-2">
+            {deletedPagination.items.map((shipment: any) => <div key={shipment.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
               <div><div className="flex flex-wrap items-center gap-2"><strong className="text-sm text-[#0B2B5E]">{shipment.shipmentType === "encomienda" ? "Encomienda" : "Documento"} · Orden {shipment.orderNumber}</strong><span className="rounded bg-white px-2 py-0.5 text-xs text-slate-500">{shipment.code}</span></div><p className="mt-1 text-xs text-slate-500">Eliminado: {shipment.deletedAt ? new Date(shipment.deletedAt).toLocaleString() : "sin fecha"}</p>{admin?.role === "superadmin" && <p className="mt-1 text-xs font-medium text-[#0B2B5E]">Eliminado por: {shipment.deletedByDisplayName || "No indicado"}</p>}{shipment.deleteReason && <p className="text-xs text-slate-600">Motivo: {shipment.deleteReason}</p>}</div>
               <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" disabled={restoreMutation.isPending} onClick={() => restoreMutation.mutate({ shipmentId: shipment.id })}><RotateCcw className="mr-2 h-3.5 w-3.5" /> Restaurar</Button>{admin?.role === "superadmin" && <Button size="sm" variant="outline" onClick={() => setAuditShipmentId(shipment.id)}>Historial</Button>}</div>
             </div>)}
+            <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 sm:flex-row sm:items-center sm:justify-between"><p className="text-sm text-slate-600">Mostrando {filteredDeletedShipments.length === 0 ? 0 : (deletedPagination.currentPage - 1) * deletedPageSize + 1}–{Math.min(deletedPagination.currentPage * deletedPageSize, filteredDeletedShipments.length)} de {filteredDeletedShipments.length} eliminados</p><div className="flex items-center gap-2"><Button type="button" size="sm" variant="outline" disabled={deletedPagination.currentPage === 1} onClick={() => setDeletedCurrentPage(page => Math.max(1, page - 1))}>Anterior</Button><span className="min-w-20 text-center text-sm font-medium">Página {deletedPagination.currentPage} de {deletedPagination.totalPages}</span><Button type="button" size="sm" variant="outline" disabled={deletedPagination.currentPage >= deletedPagination.totalPages} onClick={() => setDeletedCurrentPage(page => Math.min(deletedPagination.totalPages, page + 1))}>Siguiente</Button></div></div>
           </div>}
         </Card>
 

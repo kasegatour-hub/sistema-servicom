@@ -417,3 +417,10 @@
 - [x] Asegurar que el PDF se guarde con destinatario y número de orden, no como «descarga»
 - [x] Cubrir la descarga desde comprobantes de cliente, administración y la página pública
 - [x] Añadir pruebas, compilar, verificar y publicar la corrección
+
+## Paneles operativos más limpios
+- [x] Mantener los cupones promocionales ocultos por defecto y expandibles bajo demanda
+- [x] Reorganizar el panel para que los formularios y los listados operativos se abran por acción, sin obligar a desplazarse innecesariamente
+- [x] Paginar los envíos activos de seis en seis y mostrar filtros por estado de pago y estado logístico
+- [x] Encapsular la papelera en un control expandible, con búsqueda, filtros y paginación de seis elementos
+- [x] Añadir pruebas, verificación responsive, compilación y publicación

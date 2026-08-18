@@ -21,10 +21,12 @@ import { CatalogDocumentItem, catalogDocumentsToChecklist } from "@/lib/document
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { summarizeRevenue } from "@shared/revenueSummary";
 import { DocumentPricePreview } from "@/components/DocumentPricePreview";
+import { paginateItems } from "@/lib/pagination";
 
 const brandLogo = "/manus-storage/servicom_logo_final_e7ce35aa.png";
 
 type AccountMode = "login" | "register" | "request" | "reset";
+type ClientWorkspace = "envios" | "registrar" | "papelera" | "perfil" | "seguridad" | "resumen";
 
 export default function AccountPage() {
   const [mode, setMode] = useState<AccountMode>("login");
@@ -55,6 +57,16 @@ export default function AccountPage() {
 
   // Registro de encomienda por usuario
   const [showNewShipment, setShowNewShipment] = useState(false);
+  const [clientWorkspace, setClientWorkspace] = useState<ClientWorkspace>("envios");
+  const [clientSearchTerm, setClientSearchTerm] = useState("");
+  const [clientPaymentFilter, setClientPaymentFilter] = useState<"all" | "paid" | "unpaid">("all");
+  const [clientStatusFilter, setClientStatusFilter] = useState("all");
+  const [clientCurrentPage, setClientCurrentPage] = useState(1);
+  const [showClientTrash, setShowClientTrash] = useState(false);
+  const [clientTrashSearchTerm, setClientTrashSearchTerm] = useState("");
+  const [clientTrashPaymentFilter, setClientTrashPaymentFilter] = useState<"all" | "paid" | "unpaid">("all");
+  const [clientTrashStatusFilter, setClientTrashStatusFilter] = useState("all");
+  const [clientTrashCurrentPage, setClientTrashCurrentPage] = useState(1);
   const [documentCount, setDocumentCount] = useState(1);
   const [docType, setDocType] = useState<"simple" | "apostillado">("simple");
   const [shipmentRoute, setShipmentRoute] = useState<"Lima - Torino" | "Torino - Lima">("Lima - Torino");
@@ -119,6 +131,34 @@ export default function AccountPage() {
     enabled: !!me && !me.reauthRequired,
   });
   const { data: myInsights } = trpc.analytics.myInsights.useQuery(undefined, { enabled: !!me && !me.reauthRequired });
+  const clientPageSize = 6;
+  const filteredClientShipments = useMemo(() => {
+    const query = clientSearchTerm.trim().toLowerCase();
+    return [...(myShipments || [])].filter((shipment: any) => {
+      const textMatches = !query || [shipment.orderNumber, shipment.code, shipment.recipientName, shipment.recipientLastName, shipment.recipientDni]
+        .some(value => String(value || "").toLowerCase().includes(query));
+      const paymentMatches = clientPaymentFilter === "all" || (clientPaymentFilter === "paid" ? shipment.paymentStatus === "Pagado" : shipment.paymentStatus !== "Pagado");
+      const statusMatches = clientStatusFilter === "all" || shipment.status === clientStatusFilter;
+      return textMatches && paymentMatches && statusMatches;
+    }).sort((left: any, right: any) => new Date(right.createdAt || 0).getTime() - new Date(left.createdAt || 0).getTime());
+  }, [myShipments, clientSearchTerm, clientPaymentFilter, clientStatusFilter]);
+  const clientPagination = paginateItems(filteredClientShipments, clientCurrentPage, clientPageSize);
+  const filteredClientTrash = useMemo(() => {
+    const query = clientTrashSearchTerm.trim().toLowerCase();
+    return [...(myDeletedShipments || [])].filter((shipment: any) => {
+      const textMatches = !query || [shipment.orderNumber, shipment.code, shipment.recipientName, shipment.recipientLastName, shipment.recipientDni]
+        .some(value => String(value || "").toLowerCase().includes(query));
+      const paymentMatches = clientTrashPaymentFilter === "all" || (clientTrashPaymentFilter === "paid" ? shipment.paymentStatus === "Pagado" : shipment.paymentStatus !== "Pagado");
+      const statusMatches = clientTrashStatusFilter === "all" || shipment.status === clientTrashStatusFilter;
+      return textMatches && paymentMatches && statusMatches;
+    }).sort((left: any, right: any) => new Date(right.deletedAt || 0).getTime() - new Date(left.deletedAt || 0).getTime());
+  }, [myDeletedShipments, clientTrashSearchTerm, clientTrashPaymentFilter, clientTrashStatusFilter]);
+  const clientTrashPagination = paginateItems(filteredClientTrash, clientTrashCurrentPage, clientPageSize);
+
+  useEffect(() => setClientCurrentPage(1), [clientSearchTerm, clientPaymentFilter, clientStatusFilter]);
+  useEffect(() => setClientCurrentPage(page => Math.min(page, clientPagination.totalPages)), [clientPagination.totalPages]);
+  useEffect(() => setClientTrashCurrentPage(1), [clientTrashSearchTerm, clientTrashPaymentFilter, clientTrashStatusFilter]);
+  useEffect(() => setClientTrashCurrentPage(page => Math.min(page, clientTrashPagination.totalPages)), [clientTrashPagination.totalPages]);
 
   const registerMutation = trpc.account.register.useMutation({
     onSuccess: async () => {
@@ -190,6 +230,7 @@ export default function AccountPage() {
     onSuccess: result => {
       toast.success("Envío registrado. Tu recibo está disponible.");
       setShowNewShipment(false);
+      setClientWorkspace("envios");
       setDocumentCount(1);
       setNotes("");
       setCatalogDocuments([]);
@@ -334,8 +375,22 @@ export default function AccountPage() {
             </Dialog>
           )}
 
+          <Card className="border-0 p-4 shadow-sm" aria-label="Áreas de mi cuenta">
+            <div className="flex flex-wrap items-center gap-2">
+              {([
+                ["envios", "Mis envíos"],
+                ["registrar", "Registrar documento"],
+                ["papelera", `Papelera (${myDeletedShipments?.length || 0})`],
+                ["perfil", "Mi perfil"],
+                ["seguridad", "Seguridad"],
+                ["resumen", "Resumen"],
+              ] as Array<[ClientWorkspace, string]>).map(([workspace, label]) => <Button key={workspace} type="button" size="sm" variant={clientWorkspace === workspace ? "default" : "outline"} onClick={() => { setClientWorkspace(workspace); if (workspace === "registrar") setShowNewShipment(true); }} className={clientWorkspace === workspace ? "bg-[#0B2B5E] text-white" : "border-slate-300 text-slate-700"}>{label}</Button>)}
+            </div>
+            <p className="mt-2 text-xs text-slate-500">Elige la tarea que necesitas para trabajar con menos desplazamiento en pantalla.</p>
+          </Card>
+
           {/* Datos Personales */}
-          <Card className="p-6 shadow-md border-0">
+          <Card className={`border-0 p-6 shadow-md ${clientWorkspace === "perfil" ? "" : "hidden"}`}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-bold text-[#0B2B5E] flex items-center gap-2">
                 <User className="h-5 w-5 text-[#F28C00]" /> Perfil del Usuario
@@ -401,7 +456,7 @@ export default function AccountPage() {
           </Card>
 
           {/* Cambio de contraseña */}
-          <Card className="p-6 shadow-md border-0">
+          <Card className={`border-0 p-6 shadow-md ${clientWorkspace === "seguridad" ? "" : "hidden"}`}>
             <h2 className="text-lg font-bold text-[#0B2B5E] mb-4 flex items-center gap-2">
               <KeyRound className="h-5 w-5 text-[#F28C00]" /> Seguridad de la cuenta
             </h2>
@@ -430,7 +485,7 @@ export default function AccountPage() {
             <p className="mt-3 text-xs text-slate-500">También puedes recuperar la contraseña desde la pantalla de inicio de sesión mediante un código enviado por correo electrónico.</p>
           </Card>
 
-          <Card className="border-0 p-6 shadow-md">
+          <Card className={`border-0 p-6 shadow-md ${clientWorkspace === "resumen" ? "" : "hidden"}`}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div><h2 className="text-lg font-bold text-[#0B2B5E]">Resumen de pagos</h2><p className="mt-1 text-xs text-slate-500">Solo se contabilizan tus envíos marcados como pagados.</p></div>
               <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-right"><p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Pagado confirmado</p><p className="text-2xl font-extrabold text-emerald-800">{clientRevenue.confirmedEur.toLocaleString("es-PE", { style: "currency", currency: "EUR" })}</p></div>
@@ -438,7 +493,7 @@ export default function AccountPage() {
             <details className="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3"><summary className="cursor-pointer text-sm font-semibold text-[#0B2B5E]">Ver detalle de mis pagos</summary><div className="mt-3 grid grid-cols-2 gap-3 text-sm md:grid-cols-4"><div><span className="block text-xs text-slate-500">Envíos pagados</span><strong>{clientRevenue.paidCount}</strong></div><div><span className="block text-xs text-slate-500">Pendiente</span><strong>{clientRevenue.pendingEur.toLocaleString("es-PE", { style: "currency", currency: "EUR" })}</strong></div><div><span className="block text-xs text-slate-500">Registros pendientes</span><strong>{clientRevenue.pendingCount}</strong></div><div><span className="block text-xs text-slate-500">Total de envíos</span><strong>{clientRevenue.totalCount}</strong></div></div></details>
           </Card>
 
-          {myInsights && (
+          {myInsights && clientWorkspace === "resumen" && (
             <Card className="border-0 p-6 shadow-md">
               <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-bold text-[#0B2B5E]">Resumen de uso</h2><p className="mt-1 text-xs text-slate-500">Análisis estadístico de tus acciones en los últimos {myInsights.windowDays} días; no analiza el contenido de tus documentos.</p></div><span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-bold text-[#0B2B5E]">Puntaje {myInsights.engagementScore}/100</span></div>
               <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4"><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Interacciones</p><strong>{myInsights.totalEvents}</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Sesiones</p><strong>{myInsights.uniqueSessions}</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Continuidad</p><strong>{Math.round(myInsights.completionRate * 100)}%</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Actividad atípica</p><strong>{myInsights.anomalyScore}/100</strong></div></div>
@@ -447,20 +502,20 @@ export default function AccountPage() {
           )}
 
           {/* Mis Envíos y Registro */}
-          <Card className="p-6 shadow-md border-0">
-            <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
+          <Card className={`border-0 p-6 shadow-md ${["envios", "registrar", "papelera"].includes(clientWorkspace) ? "" : "hidden"}`}>
+            {clientWorkspace !== "papelera" && <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
               <div>
                 <h2 className="text-lg font-bold text-[#0B2B5E] flex items-center gap-2">
                   <Package className="h-5 w-5 text-[#F28C00]" /> Mis Envíos Registrados
                 </h2>
                 <p className="text-xs text-slate-500">Registra envíos de documentos o consulta el estado actual de tus registros.</p>
               </div>
-              <Button onClick={() => setShowNewShipment(!showNewShipment)} className="bg-[#F28C00] text-white hover:bg-[#d67900]">
+              <Button onClick={() => { setClientWorkspace("registrar"); setShowNewShipment(value => !value); }} className="bg-[#F28C00] text-white hover:bg-[#d67900]">
                 <Plus className="mr-2 h-4 w-4" /> Registrar Nuevo Documento
               </Button>
-            </div>
+            </div>}
 
-            {showNewShipment && (
+            {clientWorkspace === "registrar" && showNewShipment && (
               <form onSubmit={(e) => {
                 e.preventDefault();
                 const normalizedChecklist = catalogDocumentsToChecklist(catalogDocuments);
@@ -563,7 +618,13 @@ export default function AccountPage() {
               </form>
             )}
 
-            {!myShipments || myShipments.length === 0 ? (
+            {clientWorkspace === "envios" && <div className="mb-4 grid grid-cols-1 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 md:grid-cols-4">
+              <Input aria-label="Buscar mis envíos" value={clientSearchTerm} onChange={(event) => setClientSearchTerm(event.target.value)} placeholder="Buscar orden, código, destinatario o DNI" className="bg-white md:col-span-2" />
+              <select aria-label="Filtro de pago de mis envíos" value={clientPaymentFilter} onChange={(event) => setClientPaymentFilter(event.target.value as "all" | "paid" | "unpaid")} className="h-10 rounded-md border border-slate-300 bg-white px-2 text-sm"><option value="all">Todos los pagos</option><option value="paid">Pagados</option><option value="unpaid">No pagados</option></select>
+              <select aria-label="Filtro de estado de mis envíos" value={clientStatusFilter} onChange={(event) => setClientStatusFilter(event.target.value)} className="h-10 rounded-md border border-slate-300 bg-white px-2 text-sm"><option value="all">Todos los estados</option><option value="Por entregar en agencia">Por entregar en agencia</option><option value="En agencia">En agencia</option><option value="En tránsito">En tránsito</option><option value="En destino">En destino</option></select>
+            </div>}
+
+            {clientWorkspace === "envios" && (!myShipments || myShipments.length === 0 ? (
               <div className="text-center py-12 text-slate-500">
                 <Package className="h-12 w-12 mx-auto text-slate-300 mb-2" />
                 <p>No tienes envíos registrados aún.</p>
@@ -571,7 +632,7 @@ export default function AccountPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {myShipments.map((shipment) => (
+                {clientPagination.items.map((shipment: any) => (
                   <div key={shipment.id} className="border border-slate-200 rounded-xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white shadow-sm">
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
@@ -598,17 +659,14 @@ export default function AccountPage() {
                     </div>
                   </div>
                 ))}
+                <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"><p className="text-sm text-slate-600">Mostrando {filteredClientShipments.length === 0 ? 0 : (clientPagination.currentPage - 1) * clientPageSize + 1}–{Math.min(clientPagination.currentPage * clientPageSize, filteredClientShipments.length)} de {filteredClientShipments.length} envíos</p><div className="flex items-center gap-2"><Button type="button" size="sm" variant="outline" disabled={clientPagination.currentPage === 1} onClick={() => setClientCurrentPage(page => Math.max(1, page - 1))}>Anterior</Button><span className="min-w-20 text-center text-sm font-medium">Página {clientPagination.currentPage} de {clientPagination.totalPages}</span><Button type="button" size="sm" variant="outline" disabled={clientPagination.currentPage >= clientPagination.totalPages} onClick={() => setClientCurrentPage(page => Math.min(clientPagination.totalPages, page + 1))}>Siguiente</Button></div></div>
               </div>
-            )}
-            {myDeletedShipments && myDeletedShipments.length > 0 && (
-              <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <div className="flex items-center gap-2"><Trash2 className="h-5 w-5 text-slate-500" /><h3 className="font-bold text-[#0B2B5E]">Papelera y recuperación</h3></div>
-                <p className="mt-1 text-xs text-slate-500">Los envíos eliminados se conservan con su historial y pueden restaurarse.</p>
-                <div className="mt-3 space-y-2">
-                  {myDeletedShipments.map(shipment => <div key={shipment.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-white p-3"><div><strong className="text-sm text-[#0B2B5E]">Orden {shipment.orderNumber}</strong><p className="text-xs text-slate-500">Eliminado el {shipment.deletedAt ? new Date(shipment.deletedAt).toLocaleString() : "fecha no disponible"}</p></div><Button size="sm" variant="outline" disabled={restoreMyShipmentMutation.isPending} onClick={() => restoreMyShipmentMutation.mutate({ shipmentId: shipment.id })}><RotateCcw className="mr-2 h-3.5 w-3.5" /> Restaurar</Button></div>)}
-                </div>
-              </div>
-            )}
+            ))}
+            {clientWorkspace === "papelera" && <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2"><Trash2 className="h-5 w-5 text-slate-500" /><h3 className="font-bold text-[#0B2B5E]">Papelera y recuperación</h3></div><Button type="button" size="sm" variant="outline" onClick={() => setShowClientTrash(value => !value)} aria-expanded={showClientTrash}>{showClientTrash ? "Cerrar papelera" : `Abrir papelera (${myDeletedShipments?.length || 0})`}</Button></div>
+              <p className="mt-1 text-xs text-slate-500">Los envíos eliminados se conservan y pueden restaurarse. La lista permanece cerrada hasta que la abras.</p>
+              {showClientTrash && <><div className="mt-4 grid grid-cols-1 gap-2 rounded-lg border border-slate-200 bg-white p-3 md:grid-cols-3"><Input aria-label="Buscar en mi papelera" value={clientTrashSearchTerm} onChange={(event) => setClientTrashSearchTerm(event.target.value)} placeholder="Buscar orden, código, destinatario o DNI" className="md:col-span-2" /><select aria-label="Filtro de pago de mi papelera" value={clientTrashPaymentFilter} onChange={(event) => setClientTrashPaymentFilter(event.target.value as "all" | "paid" | "unpaid")} className="h-10 rounded-md border border-slate-300 bg-white px-2 text-sm"><option value="all">Todos los pagos</option><option value="paid">Pagados</option><option value="unpaid">No pagados</option></select><select aria-label="Filtro de estado de mi papelera" value={clientTrashStatusFilter} onChange={(event) => setClientTrashStatusFilter(event.target.value)} className="h-10 rounded-md border border-slate-300 bg-white px-2 text-sm"><option value="all">Todos los estados</option><option value="Por entregar en agencia">Por entregar en agencia</option><option value="En agencia">En agencia</option><option value="En tránsito">En tránsito</option><option value="En destino">En destino</option><option value="Entregado">Entregado</option></select></div>{filteredClientTrash.length === 0 ? <p className="mt-4 text-sm text-slate-500">No hay envíos eliminados que coincidan con los filtros.</p> : <div className="mt-3 space-y-2">{clientTrashPagination.items.map((shipment: any) => <div key={shipment.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-white p-3"><div><strong className="text-sm text-[#0B2B5E]">Orden {shipment.orderNumber}</strong><p className="text-xs text-slate-500">Eliminado el {shipment.deletedAt ? new Date(shipment.deletedAt).toLocaleString() : "fecha no disponible"}</p></div><Button size="sm" variant="outline" disabled={restoreMyShipmentMutation.isPending} onClick={() => restoreMyShipmentMutation.mutate({ shipmentId: shipment.id })}><RotateCcw className="mr-2 h-3.5 w-3.5" /> Restaurar</Button></div>)}<div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 sm:flex-row sm:items-center sm:justify-between"><p className="text-sm text-slate-600">Mostrando {filteredClientTrash.length === 0 ? 0 : (clientTrashPagination.currentPage - 1) * clientPageSize + 1}–{Math.min(clientTrashPagination.currentPage * clientPageSize, filteredClientTrash.length)} de {filteredClientTrash.length} eliminados</p><div className="flex items-center gap-2"><Button type="button" size="sm" variant="outline" disabled={clientTrashPagination.currentPage === 1} onClick={() => setClientTrashCurrentPage(page => Math.max(1, page - 1))}>Anterior</Button><span className="min-w-20 text-center text-sm font-medium">Página {clientTrashPagination.currentPage} de {clientTrashPagination.totalPages}</span><Button type="button" size="sm" variant="outline" disabled={clientTrashPagination.currentPage >= clientTrashPagination.totalPages} onClick={() => setClientTrashCurrentPage(page => Math.min(clientTrashPagination.totalPages, page + 1))}>Siguiente</Button></div></div></div>}</>}
+            </div>}
           </Card>
         </main>
       </div>
