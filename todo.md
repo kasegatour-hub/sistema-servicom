@@ -444,3 +444,10 @@
 - [x] Aplicar límites de longitud y caracteres específicos para cada tipo de documento en interfaz y servidor
 - [x] Conservar el tipo documental junto al número de identificación en los envíos nuevos
 - [x] Añadir migración, pruebas por rol, compilación y publicación
+
+## Acceso recordado y analítica de tendencias
+- [x] Añadir «Recordar este dispositivo» para Cliente, Registrador y Master Admin sin guardar contraseñas en el navegador
+- [x] Permitir volver a entrar rápidamente mientras la sesión recordada siga vigente y revocarla al cerrar sesión
+- [x] Encapsular la analítica de interacción para mostrarla solo al abrir su área de trabajo
+- [x] Añadir gráficos de tendencia para identificar envíos más y menos frecuentes por tipo, ruta y estado
+- [x] Añadir pruebas, compilación y publicación

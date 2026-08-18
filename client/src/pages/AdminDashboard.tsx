@@ -36,9 +36,10 @@ import { summarizeRevenue } from "@shared/revenueSummary";
 import { DocumentPricePreview } from "@/components/DocumentPricePreview";
 import { GeneralFeedbackDialog } from "@/components/GeneralFeedbackDialog";
 import { IdentityDocumentField } from "@/components/IdentityDocumentField";
+import { ShipmentTrendCharts } from "@/components/ShipmentTrendCharts";
 import { normalizeIdentityDocument, type IdentityDocumentType } from "@shared/identityDocuments";
 
-type AdminWorkspace = "resumen" | "registros" | "crear" | "cupones" | "papelera" | "usuarios";
+type AdminWorkspace = "resumen" | "registros" | "crear" | "cupones" | "papelera" | "usuarios" | "analitica";
 
 function renderQrCode(canvas: HTMLCanvasElement | null, trackingUrl: string, width: number) {
   if (!canvas) return;
@@ -143,6 +144,7 @@ export const digitsRegisterOptions = (form: any, field: string) => ({
 const loginSchema = z.object({
   email: z.string().email("Email inválido"),
   password: z.string().min(1, "Contraseña requerida"),
+  rememberDevice: z.boolean().default(false),
 });
 
 const createAdminSchema = z.object({
@@ -299,7 +301,7 @@ export default function AdminDashboard() {
     { shipmentId: auditShipmentId || 0 },
     { enabled: isLoggedIn && admin?.role === "superadmin" && !admin?.reauthRequired && Boolean(auditShipmentId) },
   );
-  const { data: adminInsights } = trpc.analytics.adminInsights.useQuery(undefined, { enabled: isLoggedIn && !admin?.reauthRequired });
+  const { data: adminInsights } = trpc.analytics.adminInsights.useQuery(undefined, { enabled: isLoggedIn && !admin?.reauthRequired && adminWorkspace === "analitica" });
   const { data: adminUsers, refetch: refetchAdminUsers } = trpc.admin.listAdmins.useQuery(undefined, { enabled: isLoggedIn && admin?.role === "superadmin" && !admin?.reauthRequired });
   const { data: senderClientResults = [], isFetching: isSearchingSender } = trpc.admin.searchClients.useQuery(
     { query: senderClientQuery.trim(), limit: 8 },
@@ -398,7 +400,7 @@ export default function AdminDashboard() {
   });
 
   // Forms
-  const loginForm = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
+  const loginForm = useForm<LoginForm>({ resolver: zodResolver(loginSchema) as any, defaultValues: { email: "", password: "", rememberDevice: false } });
   const couponForm = useForm<CouponForm>({
     resolver: zodResolver(couponFormSchema),
     defaultValues: { code: "", discountPercent: 25, appliesTo: "ambos", startsAt: getCouponDateTimeLocalValue(new Date()), endsAt: getCouponDateTimeLocalValue(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)) },
@@ -1108,6 +1110,8 @@ export default function AdminDashboard() {
               )}
             </div>
 
+            <label className="flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700"><input type="checkbox" {...loginForm.register("rememberDevice")} className="mt-0.5 h-4 w-4 accent-primary" /><span><strong>Recordar este dispositivo</strong><br /><span className="text-xs text-slate-500">Mantiene una sesión firmada para entrar más rápido. No guarda la contraseña y se revoca al cerrar sesión.</span></span></label>
+
             <Button
               type="submit"
               disabled={loginMutation.isPending}
@@ -1207,6 +1211,7 @@ export default function AdminDashboard() {
               ["cupones", "Cupones"],
               ["papelera", `Papelera (${deletedShipments.length})`],
               ["resumen", "Resumen"],
+              ["analitica", "Analítica"],
               ...(admin?.role === "superadmin" ? [["usuarios", "Registradores"]] : []),
             ] as Array<[AdminWorkspace, string]>).map(([workspace, label]) => (
               <Button key={workspace} type="button" size="sm" variant={adminWorkspace === workspace ? "default" : "outline"} onClick={() => setAdminWorkspace(workspace)} className={adminWorkspace === workspace ? "bg-primary text-white" : "border-slate-300 text-slate-700"}>{label}</Button>
@@ -1252,6 +1257,8 @@ export default function AdminDashboard() {
           <div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-xl font-semibold text-gray-900">Ingresos confirmados</h2><p className="mt-1 text-sm text-slate-500">Solo incluye envíos marcados como pagados.</p></div><div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-right"><p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Total ingresado</p><p className="text-2xl font-extrabold text-emerald-800">{adminRevenue.confirmedEur.toLocaleString("es-PE", { style: "currency", currency: "EUR" })}</p></div></div>
           <details className="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3"><summary className="cursor-pointer text-sm font-semibold text-[#0B2B5E]">Ver desglose de ingresos</summary><div className="mt-3 grid grid-cols-2 gap-3 text-sm md:grid-cols-5"><div><span className="block text-xs text-slate-500">Envíos pagados</span><strong>{adminRevenue.paidCount}</strong></div><div><span className="block text-xs text-slate-500">Pendiente</span><strong>{adminRevenue.pendingEur.toLocaleString("es-PE", { style: "currency", currency: "EUR" })}</strong></div><div><span className="block text-xs text-slate-500">Documentos pagados</span><strong>{adminRevenue.documentsEur.toLocaleString("es-PE", { style: "currency", currency: "EUR" })}</strong></div><div><span className="block text-xs text-slate-500">Encomiendas pagadas</span><strong>{adminRevenue.parcelsEur.toLocaleString("es-PE", { style: "currency", currency: "EUR" })}</strong></div><div><span className="block text-xs text-slate-500">Registros pendientes</span><strong>{adminRevenue.pendingCount}</strong></div></div></details>
         </Card>
+
+        {adminWorkspace === "analitica" && <Card className="mb-8 border-0 p-6 shadow-lg"><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-semibold text-gray-900">Analítica de interacción y tendencias</h2><p className="mt-1 text-sm text-slate-500">Esta área se abre solo al revisar la operación. No inspecciona nombres, documentos, teléfonos ni notas.</p></div>{adminInsights && <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-bold text-[#0B2B5E]">Puntaje {adminInsights.engagementScore}/100</span>}</div>{adminInsights && <><div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4"><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Interacciones</p><strong>{adminInsights.totalEvents}</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Sesiones</p><strong>{adminInsights.uniqueSessions}</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Continuidad</p><strong>{Math.round(adminInsights.completionRate * 100)}%</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Anomalía</p><strong>{adminInsights.anomalyScore}/100</strong></div></div><ul className="mt-4 space-y-1 text-sm text-slate-700">{adminInsights.insights.map((insight: string) => <li key={insight}>• {insight}</li>)}</ul></>}<div className="mt-6"><ShipmentTrendCharts shipments={shipments} /></div></Card>}
 
         {/* Coupon Management Section */}
         <Card className={`mb-8 border-0 p-6 shadow-lg ${adminWorkspace === "cupones" ? "" : "hidden"}`}>
@@ -1385,7 +1392,7 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {adminInsights && (
+          {adminInsights && adminWorkspace === "analitica" && (
             <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-semibold text-[#0B2B5E]">Analítica de interacción</h3><p className="mt-1 text-xs text-slate-500">Modelo estadístico explicable sobre eventos operativos; no inspecciona nombres, DNI, teléfonos ni contenido libre.</p></div><span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-bold text-[#0B2B5E]">Puntaje {adminInsights.engagementScore}/100</span></div>
               <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4"><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Interacciones</p><strong>{adminInsights.totalEvents}</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Sesiones</p><strong>{adminInsights.uniqueSessions}</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Continuidad</p><strong>{Math.round(adminInsights.completionRate * 100)}%</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Anomalía</p><strong>{adminInsights.anomalyScore}/100</strong></div></div>

@@ -5,6 +5,8 @@ import { getSessionCookieOptions } from "./_core/cookies";
 const COOKIE_NAME = "servicom_admin_session";
 const DEFAULT_SESSION_TTL_SECONDS = 60 * 60 * 12;
 const DEFAULT_REAUTH_INTERVAL_SECONDS = 60 * 30;
+const DEFAULT_REMEMBERED_SESSION_TTL_SECONDS = 60 * 60 * 24 * 30;
+const DEFAULT_REMEMBERED_REAUTH_INTERVAL_SECONDS = 60 * 60 * 24 * 30;
 
 export type AdminRole = "registrador" | "superadmin";
 export type AdminSessionPayload = {
@@ -13,6 +15,7 @@ export type AdminSessionPayload = {
   exp: number;
   iat: number;
   authTime: number;
+  remembered: boolean;
   reauthRequired: boolean;
 };
 
@@ -27,6 +30,14 @@ export function getAdminSessionTtlSeconds(): number {
 
 export function getAdminReauthIntervalSeconds(): number {
   return configuredSeconds("SERVICOM_ADMIN_REAUTH_INTERVAL_SECONDS", DEFAULT_REAUTH_INTERVAL_SECONDS);
+}
+
+export function getRememberedAdminSessionTtlSeconds(): number {
+  return configuredSeconds("SERVICOM_REMEMBERED_ADMIN_SESSION_TTL_SECONDS", DEFAULT_REMEMBERED_SESSION_TTL_SECONDS);
+}
+
+export function getRememberedAdminReauthIntervalSeconds(): number {
+  return configuredSeconds("SERVICOM_REMEMBERED_ADMIN_REAUTH_INTERVAL_SECONDS", DEFAULT_REMEMBERED_REAUTH_INTERVAL_SECONDS);
 }
 
 function readCookieHeader(header: string | undefined): string | undefined {
@@ -52,7 +63,7 @@ function sign(input: string): string {
   return createHmac("sha256", secret()).update(input).digest("base64url");
 }
 
-function createJwt(adminId: number, role: AdminRole, authTimeMs = Date.now()): string {
+function createJwt(adminId: number, role: AdminRole, remembered = false, authTimeMs = Date.now()): string {
   const issuedAt = Math.floor(authTimeMs / 1000);
   const header = encodePart({ alg: "HS256", typ: "JWT" });
   const payload = encodePart({
@@ -61,7 +72,8 @@ function createJwt(adminId: number, role: AdminRole, authTimeMs = Date.now()): s
     role,
     iat: issuedAt,
     auth_time: issuedAt,
-    exp: issuedAt + getAdminSessionTtlSeconds(),
+    remembered,
+    exp: issuedAt + (remembered ? getRememberedAdminSessionTtlSeconds() : getAdminSessionTtlSeconds()),
     typ: "servicom-admin",
   });
   const signingInput = `${header}.${payload}`;
@@ -87,6 +99,7 @@ function verifyJwt(token: string | undefined | null): AdminSessionPayload | null
     const exp = Number(payload.exp);
     const iat = Number(payload.iat);
     const authTime = Number(payload.auth_time);
+    const remembered = payload.remembered === true;
     const role = payload.role;
     if (header.alg !== "HS256" || header.typ !== "JWT" || payload.typ !== "servicom-admin") return null;
     if (!Number.isInteger(adminId) || adminId <= 0 || !Number.isFinite(exp) || exp <= now) return null;
@@ -98,15 +111,16 @@ function verifyJwt(token: string | undefined | null): AdminSessionPayload | null
       exp,
       iat,
       authTime,
-      reauthRequired: now - authTime >= getAdminReauthIntervalSeconds(),
+      remembered,
+      reauthRequired: now - authTime >= (remembered ? getRememberedAdminReauthIntervalSeconds() : getAdminReauthIntervalSeconds()),
     };
   } catch {
     return null;
   }
 }
 
-export function createAdminSession(adminId: number, role: AdminRole, authTimeMs = Date.now()): string {
-  return createJwt(adminId, role, authTimeMs);
+export function createAdminSession(adminId: number, role: AdminRole, remembered = false, authTimeMs = Date.now()): string {
+  return createJwt(adminId, role, remembered, authTimeMs);
 }
 
 export function getAdminSession(req: Request): AdminSessionPayload | null {
@@ -114,10 +128,10 @@ export function getAdminSession(req: Request): AdminSessionPayload | null {
   return verifyJwt(raw);
 }
 
-export function setAdminSession(req: Request, res: Response, adminId: number, role: AdminRole): void {
-  res.cookie(COOKIE_NAME, createAdminSession(adminId, role), {
+export function setAdminSession(req: Request, res: Response, adminId: number, role: AdminRole, remembered = false): void {
+  res.cookie(COOKIE_NAME, createAdminSession(adminId, role, remembered), {
     ...getSessionCookieOptions(req),
-    maxAge: getAdminSessionTtlSeconds() * 1000,
+    maxAge: (remembered ? getRememberedAdminSessionTtlSeconds() : getAdminSessionTtlSeconds()) * 1000,
   });
 }
 

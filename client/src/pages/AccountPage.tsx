@@ -24,12 +24,13 @@ import { DocumentPricePreview } from "@/components/DocumentPricePreview";
 import { paginateItems } from "@/lib/pagination";
 import { GeneralFeedbackDialog } from "@/components/GeneralFeedbackDialog";
 import { IdentityDocumentField } from "@/components/IdentityDocumentField";
+import { ShipmentTrendCharts } from "@/components/ShipmentTrendCharts";
 import type { IdentityDocumentType } from "@shared/identityDocuments";
 
 const brandLogo = "/manus-storage/servicom_logo_final_e7ce35aa.png";
 
 type AccountMode = "login" | "register" | "request" | "reset";
-type ClientWorkspace = "envios" | "registrar" | "papelera" | "perfil" | "seguridad" | "resumen";
+type ClientWorkspace = "envios" | "registrar" | "papelera" | "perfil" | "seguridad" | "resumen" | "analitica";
 
 export default function AccountPage() {
   const [mode, setMode] = useState<AccountMode>("login");
@@ -44,6 +45,7 @@ export default function AccountPage() {
   const [registerDni, setRegisterDni] = useState("");
   const [code, setCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberDevice, setRememberDevice] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showAccountNewPassword, setShowAccountNewPassword] = useState(false);
@@ -137,7 +139,7 @@ export default function AccountPage() {
   const { data: myDeletedShipments, refetch: refetchDeletedShipments } = trpc.account.myDeletedShipments.useQuery(undefined, {
     enabled: !!me && !me.reauthRequired,
   });
-  const { data: myInsights } = trpc.analytics.myInsights.useQuery(undefined, { enabled: !!me && !me.reauthRequired });
+  const { data: myInsights } = trpc.analytics.myInsights.useQuery(undefined, { enabled: !!me && !me.reauthRequired && clientWorkspace === "analitica" });
   const clientPageSize = 6;
   const filteredClientShipments = useMemo(() => {
     const query = clientSearchTerm.trim().toLowerCase();
@@ -395,6 +397,7 @@ export default function AccountPage() {
                 ["perfil", "Mi perfil"],
                 ["seguridad", "Seguridad"],
                 ["resumen", "Resumen"],
+                ["analitica", "Analítica"],
               ] as Array<[ClientWorkspace, string]>).map(([workspace, label]) => <Button key={workspace} type="button" size="sm" variant={clientWorkspace === workspace ? "default" : "outline"} onClick={() => { setClientWorkspace(workspace); if (workspace === "registrar") setShowNewShipment(true); }} className={clientWorkspace === workspace ? "bg-[#0B2B5E] text-white" : "border-slate-300 text-slate-700"}>{label}</Button>)}
             </div>
             <p className="mt-2 text-xs text-slate-500">Elige la tarea que necesitas para trabajar con menos desplazamiento en pantalla.</p>
@@ -501,11 +504,11 @@ export default function AccountPage() {
             <details className="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3"><summary className="cursor-pointer text-sm font-semibold text-[#0B2B5E]">Ver detalle de mis pagos</summary><div className="mt-3 grid grid-cols-2 gap-3 text-sm md:grid-cols-4"><div><span className="block text-xs text-slate-500">Envíos pagados</span><strong>{clientRevenue.paidCount}</strong></div><div><span className="block text-xs text-slate-500">Pendiente</span><strong>{clientRevenue.pendingEur.toLocaleString("es-PE", { style: "currency", currency: "EUR" })}</strong></div><div><span className="block text-xs text-slate-500">Registros pendientes</span><strong>{clientRevenue.pendingCount}</strong></div><div><span className="block text-xs text-slate-500">Total de envíos</span><strong>{clientRevenue.totalCount}</strong></div></div></details>
           </Card>
 
-          {myInsights && clientWorkspace === "resumen" && (
+          {clientWorkspace === "analitica" && (
             <Card className="border-0 p-6 shadow-md">
-              <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-bold text-[#0B2B5E]">Resumen de uso</h2><p className="mt-1 text-xs text-slate-500">Análisis estadístico de tus acciones en los últimos {myInsights.windowDays} días; no analiza el contenido de tus documentos.</p></div><span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-bold text-[#0B2B5E]">Puntaje {myInsights.engagementScore}/100</span></div>
-              <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4"><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Interacciones</p><strong>{myInsights.totalEvents}</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Sesiones</p><strong>{myInsights.uniqueSessions}</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Continuidad</p><strong>{Math.round(myInsights.completionRate * 100)}%</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Actividad atípica</p><strong>{myInsights.anomalyScore}/100</strong></div></div>
-              <ul className="mt-4 space-y-1 text-sm text-slate-700">{myInsights.insights.map((insight: string) => <li key={insight}>• {insight}</li>)}</ul>
+              <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-bold text-[#0B2B5E]">Analítica de interacción y tendencias</h2><p className="mt-1 text-xs text-slate-500">Esta área se abre solo cuando deseas revisar la operación. No analiza nombres, documentos, teléfonos ni notas.</p></div>{myInsights && <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-bold text-[#0B2B5E]">Puntaje {myInsights.engagementScore}/100</span>}</div>
+              {myInsights && <><div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4"><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Interacciones</p><strong>{myInsights.totalEvents}</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Sesiones</p><strong>{myInsights.uniqueSessions}</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Continuidad</p><strong>{Math.round(myInsights.completionRate * 100)}%</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Actividad atípica</p><strong>{myInsights.anomalyScore}/100</strong></div></div><ul className="mt-4 space-y-1 text-sm text-slate-700">{myInsights.insights.map((insight: string) => <li key={insight}>• {insight}</li>)}</ul></>}
+              <div className="mt-6"><ShipmentTrendCharts shipments={myShipments} /></div>
             </Card>
           )}
 
@@ -684,7 +687,7 @@ export default function AccountPage() {
     if (mode === "register") {
       registerMutation.mutate({ email, phone: phone || undefined, password, name: registerName, lastName: registerLastName, dni: registerDni });
     } else if (mode === "login") {
-      loginMutation.mutate({ email, password });
+      loginMutation.mutate({ email, password, rememberDevice });
     } else if (mode === "request") {
       requestMutation.mutate({ email, channel: "email" });
     } else {
@@ -762,6 +765,8 @@ export default function AccountPage() {
                 {mode === "register" && <p className="mt-1 text-xs text-slate-500">Usa al menos 8 caracteres.</p>}
               </div>
             )}
+
+            {mode === "login" && <label className="flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700"><input type="checkbox" checked={rememberDevice} onChange={event => setRememberDevice(event.target.checked)} className="mt-0.5 h-4 w-4 accent-[#0B2B5E]" /><span><strong>Recordar este dispositivo</strong><br /><span className="text-xs text-slate-500">Mantiene una sesión firmada para entrar más rápido. No guarda tu contraseña y puedes cerrarla cuando quieras.</span></span></label>}
 
             {(mode === "request" || mode === "reset") && (
               <div className="rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-sm text-[#0B2B5E]">

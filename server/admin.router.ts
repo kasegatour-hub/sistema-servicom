@@ -84,6 +84,7 @@ export const adminRouter = router({
     .input(z.object({
       email: z.string().email(),
       password: z.string(),
+      rememberDevice: z.boolean().default(false),
     }))
     .mutation(async ({ input, ctx }) => {
       const email = input.email.trim().toLowerCase();
@@ -97,7 +98,7 @@ export const adminRouter = router({
         if (!validMasterPassword) {
           throw new TRPCError({ code: "UNAUTHORIZED", message: "Credenciales inválidas" });
         }
-        setAdminSession(ctx.req, ctx.res, 1, "superadmin");
+        setAdminSession(ctx.req, ctx.res, 1, "superadmin", input.rememberDevice);
         return { id: 1, email: MASTER_ADMIN_EMAIL, name: "Master Admin Servicom", role: "superadmin" as const };
       }
 
@@ -122,7 +123,7 @@ export const adminRouter = router({
       }
 
       const role = admin.role === "superadmin" ? "superadmin" : "registrador";
-      setAdminSession(ctx.req, ctx.res, admin.id, role);
+      setAdminSession(ctx.req, ctx.res, admin.id, role, input.rememberDevice);
       return { id: admin.id, email: admin.email, name: admin.name, role };
     }),
 

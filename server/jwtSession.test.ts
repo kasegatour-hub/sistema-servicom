@@ -42,6 +42,15 @@ describe("JWT local sessions", () => {
     });
   });
 
+  it("keeps a remembered client device signed in for its extended reauthentication interval", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-14T01:00:00Z"));
+    vi.stubEnv("SERVICOM_REMEMBERED_ACCOUNT_REAUTH_INTERVAL_SECONDS", "600");
+    const token = createAccountSession(42, true);
+    vi.advanceTimersByTime(61_000);
+    expect(getAccountSession(requestWithCookie("servicom_account_session", token))).toMatchObject({ accountId: 42, remembered: true, reauthRequired: false });
+  });
+
   it("rejects an expired account JWT", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-14T01:00:00Z"));
@@ -50,6 +59,16 @@ describe("JWT local sessions", () => {
     vi.advanceTimersByTime(2_001);
 
     expect(getAccountSession(requestWithCookie("servicom_account_session", token))).toBeNull();
+  });
+
+  it("creates a remembered administrative session with a longer configured lifetime", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-14T01:00:00Z"));
+    vi.stubEnv("SERVICOM_REMEMBERED_ADMIN_SESSION_TTL_SECONDS", "120");
+    const token = createAdminSession(9, "registrador", true);
+    expect(getAdminSession(requestWithCookie("servicom_admin_session", token))).toMatchObject({ adminId: 9, role: "registrador", remembered: true, reauthRequired: false });
+    vi.advanceTimersByTime(121_000);
+    expect(getAdminSession(requestWithCookie("servicom_admin_session", token))).toBeNull();
   });
 
   it("preserves the administrative role and rejects tampering", () => {

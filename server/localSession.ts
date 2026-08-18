@@ -5,12 +5,14 @@ import { getSessionCookieOptions } from "./_core/cookies";
 const COOKIE_NAME = "servicom_account_session";
 const DEFAULT_SESSION_TTL_SECONDS = 60 * 60 * 24 * 30;
 const DEFAULT_REAUTH_INTERVAL_SECONDS = 60 * 30;
+const DEFAULT_REMEMBERED_REAUTH_INTERVAL_SECONDS = 60 * 60 * 24 * 30;
 
 export type AccountSessionPayload = {
   accountId: number;
   exp: number;
   iat: number;
   authTime: number;
+  remembered: boolean;
   reauthRequired: boolean;
 };
 
@@ -25,6 +27,10 @@ export function getAccountSessionTtlSeconds(): number {
 
 export function getAccountReauthIntervalSeconds(): number {
   return configuredSeconds("SERVICOM_ACCOUNT_REAUTH_INTERVAL_SECONDS", DEFAULT_REAUTH_INTERVAL_SECONDS);
+}
+
+export function getRememberedAccountReauthIntervalSeconds(): number {
+  return configuredSeconds("SERVICOM_REMEMBERED_ACCOUNT_REAUTH_INTERVAL_SECONDS", DEFAULT_REMEMBERED_REAUTH_INTERVAL_SECONDS);
 }
 
 function readCookieHeader(header: string | undefined, name: string): string | undefined {
@@ -50,7 +56,7 @@ function sign(input: string): string {
   return createHmac("sha256", secret()).update(input).digest("base64url");
 }
 
-function createJwt(accountId: number, authTimeMs = Date.now()): string {
+function createJwt(accountId: number, remembered = false, authTimeMs = Date.now()): string {
   const issuedAt = Math.floor(authTimeMs / 1000);
   const header = encodePart({ alg: "HS256", typ: "JWT" });
   const payload = encodePart({
@@ -58,6 +64,7 @@ function createJwt(accountId: number, authTimeMs = Date.now()): string {
     accountId,
     iat: issuedAt,
     auth_time: issuedAt,
+    remembered,
     exp: issuedAt + getAccountSessionTtlSeconds(),
     typ: "servicom-account",
   });
@@ -84,6 +91,7 @@ function verifyJwt(token: string | undefined | null): AccountSessionPayload | nu
     const exp = Number(payload.exp);
     const iat = Number(payload.iat);
     const authTime = Number(payload.auth_time);
+    const remembered = payload.remembered === true;
     if (header.alg !== "HS256" || header.typ !== "JWT" || payload.typ !== "servicom-account") return null;
     if (!Number.isInteger(accountId) || accountId <= 0 || !Number.isFinite(exp) || exp <= now) return null;
     if (!Number.isFinite(iat) || !Number.isFinite(authTime) || String(payload.sub) !== String(accountId)) return null;
@@ -92,15 +100,16 @@ function verifyJwt(token: string | undefined | null): AccountSessionPayload | nu
       exp,
       iat,
       authTime,
-      reauthRequired: now - authTime >= getAccountReauthIntervalSeconds(),
+      remembered,
+      reauthRequired: now - authTime >= (remembered ? getRememberedAccountReauthIntervalSeconds() : getAccountReauthIntervalSeconds()),
     };
   } catch {
     return null;
   }
 }
 
-export function createAccountSession(accountId: number, authTimeMs = Date.now()): string {
-  return createJwt(accountId, authTimeMs);
+export function createAccountSession(accountId: number, remembered = false, authTimeMs = Date.now()): string {
+  return createJwt(accountId, remembered, authTimeMs);
 }
 
 export function getAccountSession(req: Request): AccountSessionPayload | null {
@@ -108,8 +117,8 @@ export function getAccountSession(req: Request): AccountSessionPayload | null {
   return verifyJwt(raw);
 }
 
-export function setAccountSession(req: Request, res: Response, accountId: number): void {
-  res.cookie(COOKIE_NAME, createAccountSession(accountId), {
+export function setAccountSession(req: Request, res: Response, accountId: number, remembered = Boolean(res.locals?.servicomRememberDevice)): void {
+  res.cookie(COOKIE_NAME, createAccountSession(accountId, remembered), {
     ...getSessionCookieOptions(req),
     maxAge: getAccountSessionTtlSeconds() * 1000,
   });

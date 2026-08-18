@@ -170,13 +170,14 @@ export const accountRouter = router({
     }),
 
   login: publicProcedure
-    .input(z.object({ email: emailSchema, password: z.string().min(1) }))
+    .input(z.object({ email: emailSchema, password: z.string().min(1), rememberDevice: z.boolean().default(false) }))
     .mutation(async ({ input, ctx }) => {
       const account = await getLocalAccountByEmail(normalizeEmail(input.email));
       if (!account || !(await verifyPassword(input.password, account.passwordHash))) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Correo o contraseña inválidos." });
       }
 
+      ctx.res.locals.servicomRememberDevice = input.rememberDevice;
       setAccountSession(ctx.req, ctx.res, account.id);
       return {
         success: true,
