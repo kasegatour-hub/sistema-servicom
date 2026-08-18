@@ -84,7 +84,10 @@ vi.mock("@/lib/trpc", () => ({
 
 import AdminDashboard from "./AdminDashboard";
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  window.history.replaceState({}, "", "/admin");
+});
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -126,6 +129,18 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.change(search, { target: { value: "sanches ar" } });
     expect(screen.getByText("Luisa Ramos")).toBeTruthy();
     expect(screen.queryByText("Ana López")).toBeNull();
+  });
+
+  it("abre la actualización del envío al ingresar desde el QR de control de entrega", async () => {
+    mocks.shipments = [{ id: 88, shipmentType: "documento", senderName: "Mirian", senderLastName: "Astete", recipientName: "Miguel", recipientLastName: "Díaz Ojitos", status: "En destino", paymentStatus: "Pagado", createdAt: new Date("2026-08-17T10:00:00.000Z"), orderNumber: "3289150504", code: "07900824", events: [] }];
+    window.history.replaceState({}, "", "/admin?order=3289150504&code=07900824&open=update");
+    render(<AdminDashboard />);
+    fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
+    fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
+    await waitFor(() => expect(screen.getByRole("dialog")).toBeTruthy());
+    expect(screen.getByRole("heading", { name: "Actualizar Estado de Encomienda" })).toBeTruthy();
+    expect((screen.getByRole("combobox", { name: "Estado de Pago" }) as HTMLSelectElement).value).toBe("Pagado");
   });
 
   it("offers administrative password recovery by the registered email", () => {
@@ -314,6 +329,7 @@ describe("AdminDashboard Nueva Encomienda", () => {
     expect((screen.getAllByPlaceholderText("Nombre")[0] as HTMLInputElement).value).toBe("Ana");
     expect((screen.getAllByPlaceholderText("Apellido")[0] as HTMLInputElement).value).toBe("Pérez");
     expect((screen.getByLabelText("Documento de remitente - número de identificación") as HTMLInputElement).value).toBe("71234567");
+    expect(screen.queryByRole("button", { name: /Ana Pérez/ })).toBeNull();
   });
 
   it("submits document and parcel payloads through the administrative mutation", async () => {

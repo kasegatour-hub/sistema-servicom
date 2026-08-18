@@ -19,6 +19,16 @@ export function buildTrackingUrl(orderNumber: string, code: string, origin = win
   return new URL(buildTrackingPath(orderNumber, code), origin).toString();
 }
 
+export function buildShipmentManagementPath(orderNumber: string, code: string): string {
+  const order = normalizeTrackingValue(orderNumber);
+  const normalizedCode = normalizeTrackingValue(code);
+  return `/admin?order=${encodeURIComponent(order)}&code=${encodeURIComponent(normalizedCode)}&open=update`;
+}
+
+export function buildShipmentManagementUrl(orderNumber: string, code: string, origin = window.location.origin): string {
+  return new URL(buildShipmentManagementPath(orderNumber, code), origin).toString();
+}
+
 export const TRACKING_QR_OPTIONS = {
   margin: 2,
   errorCorrectionLevel: "M" as const,

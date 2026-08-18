@@ -18,6 +18,13 @@ describe("calculateAdminShipmentPricing", () => {
     expect(pricing.notes).toContain("tarifa manual");
   });
 
+  it("preserves an explicitly entered manual price for a document", () => {
+    const pricing = calculateAdminShipmentPricing({ shipmentType: "documento", manualPriceEur: "50" });
+
+    expect(pricing.totalEur).toBe(50);
+    expect(pricing.manualPrice).toBe(50);
+  });
+
   it("keeps the existing document tariffs", () => {
     expect(calculateAdminShipmentPricing({ shipmentType: "documento", docType: "simple", sheetCount: 4 }).totalEur).toBe(45);
     expect(calculateAdminShipmentPricing({ shipmentType: "documento", docType: "simple", sheetCount: 6 }).totalEur).toBe(49);

@@ -457,3 +457,9 @@
 - [x] Mostrar resultados progresivos al buscar por orden, código, DNI, nombre o apellido
 - [x] Aplicar coincidencias difusas en el selector de remitentes y destinatarios guardados
 - [x] Añadir pruebas, verificación responsive, compilación y publicación
+
+## Correcciones de autocompleción, control de entrega e ingresos
+- [x] Cerrar las sugerencias de remitente o destinatario al seleccionar una coincidencia
+- [x] Añadir un QR escaneable al control de entrega para abrir la actualización de estado autorizada
+- [x] Excluir de ingresos los envíos eliminados u ocultos y revisar el registro de pago señalado
+- [x] Añadir pruebas, verificación de comprobante, compilación y publicación

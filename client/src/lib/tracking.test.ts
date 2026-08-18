@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildTrackingPath, normalizeTrackingValue, SERVICOM_BRAND, TRACKING_QR_OPTIONS } from "./tracking";
+import { buildShipmentManagementPath, buildTrackingPath, normalizeTrackingValue, SERVICOM_BRAND, TRACKING_QR_OPTIONS } from "./tracking";
 
 describe("tracking QR helpers", () => {
   it("normalizes spaces and case before building the tracking path", () => {
@@ -14,5 +14,11 @@ describe("tracking QR helpers", () => {
       dark: SERVICOM_BRAND.navy,
       light: SERVICOM_BRAND.light,
     });
+  });
+
+  it("builds a management path that preserves normalized shipment identifiers", () => {
+    expect(buildShipmentManagementPath(" 352 099 2723 ", " ca06721wb ")).toBe(
+      "/admin?order=3520992723&code=CA06721WB&open=update",
+    );
   });
 });

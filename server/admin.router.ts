@@ -512,6 +512,10 @@ export const adminRouter = router({
       const isParcel = effectiveType === "encomienda";
       const effectiveWeight = input.weightKg ?? Number(currentShipment.weightKg ?? 1);
       const pricing = isParcel ? calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: effectiveWeight, manualPriceEur: input.pricingMode === "manual" ? input.manualPriceEur : null }) : null;
+      const manualDocumentPricing = !isParcel && input.pricingMode === "manual"
+        ? calculateAdminShipmentPricing({ shipmentType: "documento", manualPriceEur: input.manualPriceEur })
+        : null;
+      const updatedPricing = pricing || manualDocumentPricing;
       const result = await updateShipmentStatus(
         input.shipmentId,
         input.newStatus,
@@ -527,16 +531,16 @@ export const adminRouter = router({
         input.notes,
         input.shipmentType,
         input.weightKg,
-        pricing ? pricing.manualPrice : input.manualPriceEur,
+        updatedPricing ? updatedPricing.manualPrice : input.manualPriceEur,
         input.paymentStatus,
         input.route,
         input.originAddress,
         input.destinationAddress,
         undefined,
-        pricing ? pricing.totalEur : undefined,
-        pricing ? 0 : undefined,
-        pricing ? 0 : undefined,
-        pricing ? pricing.totalEur : undefined,
+        updatedPricing ? updatedPricing.totalEur : undefined,
+        updatedPricing ? 0 : undefined,
+        updatedPricing ? 0 : undefined,
+        updatedPricing ? updatedPricing.totalEur : undefined,
         input.deliveryMode,
       );
       if (!result) {
@@ -548,13 +552,13 @@ export const adminRouter = router({
       const updated = await getShipmentById(input.shipmentId);
       await recordShipmentAudit({
         shipmentId: input.shipmentId,
-        action: pricing ? "price_updated" : "updated",
+        action: updatedPricing ? "price_updated" : "updated",
         actor: { actorType: "admin", actorId: ctx.adminSession.adminId, actorLabel: ctx.adminSession.role },
         metadata: { newStatus: input.newStatus, pricingMode: input.pricingMode, deliveryMode: input.deliveryMode ?? null },
         snapshot: updated,
       });
-      await recordInteractionEvent({ actorType: "admin", actorId: ctx.adminSession.adminId, eventName: pricing ? "price_update_completed" : "shipment_update_completed", surface: "admin", metadata: { shipmentType: effectiveType, pricingMode: input.pricingMode } });
-      return { success: true, finalPriceEur: pricing?.totalEur ?? null };
+      await recordInteractionEvent({ actorType: "admin", actorId: ctx.adminSession.adminId, eventName: updatedPricing ? "price_update_completed" : "shipment_update_completed", surface: "admin", metadata: { shipmentType: effectiveType, pricingMode: input.pricingMode } });
+      return { success: true, finalPriceEur: updatedPricing?.totalEur ?? null };
     }),
 
   deleteShipment: adminProcedure

@@ -17,6 +17,7 @@ describe("administrative receipt ticket", () => {
       shipmentType: "documento",
       price: { basePriceEur: 50, finalPriceEur: 37.5, discountPercent: 25, discountAmountEur: 12.5 },
       route: "Lima - Torino",
+      managementUrl: "https://servicom.example/admin?order=3289150504&code=07900824&open=update",
     });
     const styles = buildAdminReceiptPrintStyles();
 
@@ -27,6 +28,8 @@ describe("administrative receipt ticket", () => {
     expect(html).toContain("REMITENTE:");
     expect(html).toContain("NOTAS:");
     expect(html).toContain("CHECKLIST:");
+    expect(html).toContain('id="deliveryControlQR"');
+    expect(html).toContain("ESCANEAR PARA GESTIONAR");
     expect(html).toContain("1 partida registral");
     expect(html).toContain("1 documento apostillado");
     expect(html).toContain("PRECIO FINAL");

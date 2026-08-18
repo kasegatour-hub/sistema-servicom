@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { Lock, LogOut, Plus, RefreshCw, Download, Printer, RotateCcw, Search, Trash2, MessageSquare } from "lucide-react";
 import QRCode from "qrcode";
-import { buildTrackingUrl, TRACKING_QR_OPTIONS } from "@/lib/tracking";
+import { buildShipmentManagementUrl, buildTrackingUrl, normalizeTrackingValue, TRACKING_QR_OPTIONS } from "@/lib/tracking";
 import { PhoneInput } from "@/components/PhoneInput";
 import { QuantityStepper } from "@/components/QuantityStepper";
 import { DocumentCatalogSelector } from "@/components/DocumentCatalogSelector";
@@ -79,6 +79,7 @@ function ClientLookup({
   isLoading: boolean;
   onSelect: (client: ClientLookupRecord) => void;
 }) {
+  const [isOpen, setIsOpen] = useState(false);
   const shouldShow = value.trim().length >= 2;
   return (
     <div className="relative">
@@ -87,7 +88,8 @@ function ClientLookup({
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
         <Input
           value={value}
-          onChange={(event) => onChange(event.target.value)}
+          onChange={(event) => { onChange(event.target.value); setIsOpen(true); }}
+          onFocus={() => shouldShow && setIsOpen(true)}
           placeholder="Ej. Sánchez Arias, Sanches o 71234567"
           aria-label={label}
           aria-describedby={`${label.replace(/\s+/g, "-").toLowerCase()}-search-help`}
@@ -95,7 +97,7 @@ function ClientLookup({
         />
       </div>
       <p id={`${label.replace(/\s+/g, "-").toLowerCase()}-search-help`} role="status" className="mt-1 text-xs text-slate-600">Busca por DNI, nombre o apellido. Escribe al menos 2 caracteres; se aceptan tildes omitidas y pequeños errores.</p>
-      {shouldShow && (
+      {shouldShow && isOpen && (
         <div className="absolute left-0 right-0 top-full z-30 mt-1 overflow-hidden rounded-md border border-slate-200 bg-white shadow-lg">
           {isLoading ? (
             <p className="p-3 text-xs text-slate-500">Buscando clientes...</p>
@@ -104,7 +106,7 @@ function ClientLookup({
               <button
                 type="button"
                 key={client.id}
-                onClick={() => onSelect(client)}
+                onClick={() => { onSelect(client); setIsOpen(false); }}
                 className="block w-full border-b border-slate-100 px-3 py-2 text-left last:border-b-0 hover:bg-blue-50 focus:bg-blue-50 focus:outline-none"
               >
                 <span className="block text-sm font-semibold text-[#0B2B5E]">{client.name} {client.lastName}</span>
@@ -227,6 +229,7 @@ const updateStatusSchema = z.object({
   recipientDni: optionalDocumentNumberField,
   recipientPhone: z.string().optional(),
   notes: z.string().optional(),
+  shipmentType: z.enum(["documento", "encomienda"]).optional(),
   paymentStatus: z.enum(["Pagado", "Falta cancelar"]).optional(),
   route: z.string().optional(),
   originAddress: z.string().optional(),
@@ -282,6 +285,7 @@ export default function AdminDashboard() {
   const [adminRecoveryCode, setAdminRecoveryCode] = useState("");
   const [adminRecoveryPassword, setAdminRecoveryPassword] = useState("");
   const [adminRecoveryResendSeconds, setAdminRecoveryResendSeconds] = useState(0);
+  const [consumedDeliveryQr, setConsumedDeliveryQr] = useState(false);
   const [paymentFilter, setPaymentFilter] = useState<"all" | "paid" | "unpaid">("all");
   const [logisticsFilter, setLogisticsFilter] = useState("all");
   const [deletedSearchTerm, setDeletedSearchTerm] = useState("");
@@ -496,6 +500,7 @@ export default function AdminDashboard() {
       recipientDni: '',
       recipientPhone: '',
       notes: '',
+      shipmentType: 'documento',
       paymentStatus: 'Falta cancelar',
       route: 'Lima - Torino',
       originAddress: '',
@@ -506,6 +511,53 @@ export default function AdminDashboard() {
       pricingMode: 'estandar',
     },
   });
+
+  const openShipmentUpdate = (shipment: any) => {
+    setSelectedShipmentId(shipment.id);
+    updateForm.reset({
+      shipmentId: shipment.id,
+      newStatus: shipment.status,
+      description: "",
+      senderName: shipment.senderName || "",
+      senderLastName: shipment.senderLastName || "",
+      senderDni: shipment.senderDni || "",
+      senderPhone: shipment.senderPhone || "",
+      recipientName: shipment.recipientName || "",
+      recipientLastName: shipment.recipientLastName || "",
+      recipientDni: shipment.recipientDni || "",
+      recipientPhone: shipment.recipientPhone || "",
+      notes: shipment.notes || "",
+      shipmentType: shipment.shipmentType || "documento",
+      paymentStatus: shipment.paymentStatus || "Falta cancelar",
+      route: shipment.route || "Lima - Torino",
+      originAddress: shipment.originAddress || "",
+      destinationAddress: shipment.destinationAddress || "",
+      weightKg: Number(shipment.weightKg || 1),
+      manualPriceEur: shipment.manualPriceEur || "",
+      deliveryMode: shipment.deliveryMode || "agencia",
+      pricingMode: "estandar",
+    });
+    setShowUpdateForm(true);
+  };
+
+  useEffect(() => {
+    if (consumedDeliveryQr || !isLoggedIn || !shipments || typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("open") !== "update") return;
+    const order = normalizeTrackingValue(params.get("order") || "");
+    const code = normalizeTrackingValue(params.get("code") || "");
+    if (!order || !code) return;
+    const shipment = shipments.find((row: any) => normalizeTrackingValue(String(row.orderNumber || "")) === order && normalizeTrackingValue(String(row.code || "")) === code);
+    setConsumedDeliveryQr(true);
+    if (!shipment) {
+      toast.error("No se encontró un envío activo para el código escaneado.");
+      return;
+    }
+    setAdminWorkspace("registros");
+    setShipmentView(shipment.shipmentType === "encomienda" ? "encomienda" : "documento");
+    setSearchTerm(String(shipment.orderNumber));
+    openShipmentUpdate(shipment);
+  }, [consumedDeliveryQr, isLoggedIn, shipments]);
 
   const handleLogin = async (data: LoginForm) => {
     try {
@@ -771,6 +823,7 @@ export default function AdminDashboard() {
     const printWindow = window.open(receiptUrl.href, '_blank', 'width=800,height=900');
     if (printWindow) {
       const trackingUrl = buildTrackingUrl(printShipment.orderNumber, printShipment.code);
+      const managementUrl = buildShipmentManagementUrl(printShipment.orderNumber, printShipment.code);
       const brandLogo = new URL('/manus-storage/servicom_logo_final_e7ce35aa.png', window.location.origin).href;
       const today = new Date().toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' });
       const receiptShipmentLabel = printShipment.shipmentType === 'encomienda' ? 'ENCOMIENDA' : 'DOCUMENTO';
@@ -925,6 +978,7 @@ export default function AdminDashboard() {
             price: printShipment,
             route: printShipment.route,
             limaTorinoEncomiendasEnabled,
+            managementUrl,
           })}
 
           <!-- PÁGINA 2: DECLARACIÓN JURADA -->
@@ -986,6 +1040,15 @@ export default function AdminDashboard() {
           width: 140,
           margin: 1,
           color: { dark: '#0B2B5E', light: '#ffffff' }
+        });
+      }
+      const deliveryControlCanvas = printWindow.document.getElementById('deliveryControlQR') as HTMLCanvasElement;
+      if (deliveryControlCanvas) {
+        await QRCode.toCanvas(deliveryControlCanvas, managementUrl, {
+          ...TRACKING_QR_OPTIONS,
+          width: 88,
+          margin: 1,
+          color: { dark: '#0B2B5E', light: '#ffffff' },
         });
       }
       await new Promise((resolve) => setTimeout(resolve, 150));
@@ -1255,8 +1318,9 @@ export default function AdminDashboard() {
         )}
 
         <Card className={`mb-8 border-0 p-6 shadow-lg ${adminWorkspace === "resumen" ? "" : "hidden"}`}>
-          <div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-xl font-semibold text-gray-900">Ingresos confirmados</h2><p className="mt-1 text-sm text-slate-500">Solo incluye envíos marcados como pagados.</p></div><div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-right"><p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Total ingresado</p><p className="text-2xl font-extrabold text-emerald-800">{adminRevenue.confirmedEur.toLocaleString("es-PE", { style: "currency", currency: "EUR" })}</p></div></div>
-          <details className="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3"><summary className="cursor-pointer text-sm font-semibold text-[#0B2B5E]">Ver desglose de ingresos</summary><div className="mt-3 grid grid-cols-2 gap-3 text-sm md:grid-cols-5"><div><span className="block text-xs text-slate-500">Envíos pagados</span><strong>{adminRevenue.paidCount}</strong></div><div><span className="block text-xs text-slate-500">Pendiente</span><strong>{adminRevenue.pendingEur.toLocaleString("es-PE", { style: "currency", currency: "EUR" })}</strong></div><div><span className="block text-xs text-slate-500">Documentos pagados</span><strong>{adminRevenue.documentsEur.toLocaleString("es-PE", { style: "currency", currency: "EUR" })}</strong></div><div><span className="block text-xs text-slate-500">Encomiendas pagadas</span><strong>{adminRevenue.parcelsEur.toLocaleString("es-PE", { style: "currency", currency: "EUR" })}</strong></div><div><span className="block text-xs text-slate-500">Registros pendientes</span><strong>{adminRevenue.pendingCount}</strong></div></div></details>
+          <div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-xl font-semibold text-gray-900">Ingresos confirmados</h2><p className="mt-1 text-sm text-slate-500">Solo incluye envíos activos, visibles y marcados como pagados.</p></div><div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-right"><p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Total ingresado</p><p className="text-2xl font-extrabold text-emerald-800">{adminRevenue.confirmedEur.toLocaleString("es-PE", { style: "currency", currency: "EUR" })}</p></div></div>
+          {adminRevenue.unpricedPaidCount > 0 && <p role="status" className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900"><strong>{adminRevenue.unpricedPaidCount} pago(s) confirmado(s) no tiene(n) precio registrado.</strong> No se suman al total hasta completar la tarifa manual desde «Actualizar».</p>}
+          <details className="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3"><summary className="cursor-pointer text-sm font-semibold text-[#0B2B5E]">Ver desglose de ingresos</summary><div className="mt-3 grid grid-cols-2 gap-3 text-sm md:grid-cols-6"><div><span className="block text-xs text-slate-500">Envíos pagados</span><strong>{adminRevenue.paidCount}</strong></div><div><span className="block text-xs text-slate-500">Pagados sin precio</span><strong>{adminRevenue.unpricedPaidCount}</strong></div><div><span className="block text-xs text-slate-500">Pendiente</span><strong>{adminRevenue.pendingEur.toLocaleString("es-PE", { style: "currency", currency: "EUR" })}</strong></div><div><span className="block text-xs text-slate-500">Documentos pagados</span><strong>{adminRevenue.documentsEur.toLocaleString("es-PE", { style: "currency", currency: "EUR" })}</strong></div><div><span className="block text-xs text-slate-500">Encomiendas pagadas</span><strong>{adminRevenue.parcelsEur.toLocaleString("es-PE", { style: "currency", currency: "EUR" })}</strong></div><div><span className="block text-xs text-slate-500">Registros pendientes</span><strong>{adminRevenue.pendingCount}</strong></div></div></details>
         </Card>
 
         {adminWorkspace === "analitica" && <Card className="mb-8 border-0 p-6 shadow-lg"><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-semibold text-gray-900">Analítica de interacción y tendencias</h2><p className="mt-1 text-sm text-slate-500">Esta área se abre solo al revisar la operación. No inspecciona nombres, documentos, teléfonos ni notas.</p></div>{adminInsights && <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-bold text-[#0B2B5E]">Puntaje {adminInsights.engagementScore}/100</span>}</div>{adminInsights && <><div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4"><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Interacciones</p><strong>{adminInsights.totalEvents}</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Sesiones</p><strong>{adminInsights.uniqueSessions}</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Continuidad</p><strong>{Math.round(adminInsights.completionRate * 100)}%</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Anomalía</p><strong>{adminInsights.anomalyScore}/100</strong></div></div><ul className="mt-4 space-y-1 text-sm text-slate-700">{adminInsights.insights.map((insight: string) => <li key={insight}>• {insight}</li>)}</ul></>}<div className="mt-6"><ShipmentTrendCharts shipments={shipments} /></div></Card>}
@@ -1955,32 +2019,7 @@ export default function AdminDashboard() {
                       <TableCell>
                         <div className="flex flex-wrap gap-2">
                           <Button
-                            onClick={() => {
-                              setSelectedShipmentId(shipment.id);
-                              updateForm.reset({
-                                shipmentId: shipment.id,
-                                newStatus: shipment.status,
-                                description: "",
-                                senderName: shipment.senderName || "",
-                                senderLastName: shipment.senderLastName || "",
-                                senderDni: shipment.senderDni || "",
-                                senderPhone: shipment.senderPhone || "",
-                                recipientName: shipment.recipientName || "",
-                                recipientLastName: shipment.recipientLastName || "",
-                                recipientDni: shipment.recipientDni || "",
-                                recipientPhone: shipment.recipientPhone || "",
-                                notes: shipment.notes || "",
-                                paymentStatus: shipment.paymentStatus || "Falta cancelar",
-                                route: shipment.route || "Lima - Torino",
-                                originAddress: shipment.originAddress || "",
-                                destinationAddress: shipment.destinationAddress || "",
-                                weightKg: Number(shipment.weightKg || 1),
-                                manualPriceEur: shipment.manualPriceEur || "",
-                                deliveryMode: shipment.deliveryMode || "agencia",
-                                pricingMode: "estandar",
-                              });
-                              setShowUpdateForm(true);
-                            }}
+                            onClick={() => openShipmentUpdate(shipment)}
                             size="sm"
                             variant="outline"
                             className="text-primary border-primary hover:bg-primary/5"
@@ -2068,6 +2107,7 @@ export default function AdminDashboard() {
           registerPaymentStatus={(name) => updateForm.register(name)}
         >
                 <input type="hidden" {...updateForm.register("shipmentId", { valueAsNumber: true })} />
+                <input type="hidden" {...updateForm.register("shipmentType")} />
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Nuevo Estado</label>
@@ -2159,11 +2199,11 @@ export default function AdminDashboard() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Tarifa</label>
                     <select {...updateForm.register("pricingMode")} className="w-full p-2 bg-white border-2 border-slate-200 rounded-md text-sm font-medium focus:border-primary">
-                      <option value="estandar">Estándar: 13,50 €/kg</option>
-                      <option value="manual">Precio manual</option>
+                      <option value="estandar">{updateForm.watch("shipmentType") === "encomienda" ? "Estándar: 13,50 €/kg" : "Mantener tarifa registrada"}</option>
+                      <option value="manual">Precio manual en EUR</option>
                     </select>
                   </div>
-                  {updateForm.watch("pricingMode") === "manual" && <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Precio manual (EUR)</label><Input type="number" min="0" step="0.01" {...updateForm.register("manualPriceEur")} placeholder="Ej.: 25.00" /></div>}
+                  {updateForm.watch("pricingMode") === "manual" && <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Precio manual (EUR)</label><Input type="number" min="0" step="0.01" {...updateForm.register("manualPriceEur")} placeholder="Ej.: 25.00" /><p className="mt-1 text-xs text-slate-500">Guarda una tarifa para que los pagos de este envío se contabilicen correctamente.</p></div>}
                 </div>
 
                 <div className="border-t pt-4">

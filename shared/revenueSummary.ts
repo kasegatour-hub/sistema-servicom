@@ -3,6 +3,8 @@ export type RevenueShipment = {
   basePriceEur?: string | number | null;
   paymentStatus?: string | null;
   shipmentType?: "documento" | "encomienda" | string | null;
+  deletedAt?: string | Date | null;
+  hiddenFromRegistradoresAt?: string | Date | null;
 };
 
 const money = (value: string | number | null | undefined) => {
@@ -11,21 +13,28 @@ const money = (value: string | number | null | undefined) => {
 };
 
 export function summarizeRevenue(shipments: RevenueShipment[] | null | undefined) {
-  const rows = shipments || [];
+  const rows = (shipments || []).filter(shipment => !shipment.deletedAt && !shipment.hiddenFromRegistradoresAt);
   let confirmedEur = 0;
   let pendingEur = 0;
   let paidCount = 0;
   let pendingCount = 0;
   let documentsEur = 0;
   let parcelsEur = 0;
+  let unpricedPaidCount = 0;
 
   for (const shipment of rows) {
-    const amount = money(shipment.finalPriceEur ?? shipment.basePriceEur);
+    const storedPrice = shipment.finalPriceEur ?? shipment.basePriceEur;
+    const hasStoredPrice = storedPrice !== null && storedPrice !== undefined && String(storedPrice).trim() !== "";
+    const amount = money(storedPrice);
     if (shipment.paymentStatus === "Pagado") {
-      confirmedEur += amount;
       paidCount += 1;
-      if (shipment.shipmentType === "encomienda") parcelsEur += amount;
-      else documentsEur += amount;
+      if (!hasStoredPrice) {
+        unpricedPaidCount += 1;
+      } else {
+        confirmedEur += amount;
+        if (shipment.shipmentType === "encomienda") parcelsEur += amount;
+        else documentsEur += amount;
+      }
     } else {
       pendingEur += amount;
       pendingCount += 1;
@@ -39,6 +48,7 @@ export function summarizeRevenue(shipments: RevenueShipment[] | null | undefined
     pendingCount,
     documentsEur: Math.round(documentsEur * 100) / 100,
     parcelsEur: Math.round(parcelsEur * 100) / 100,
+    unpricedPaidCount,
     totalCount: rows.length,
   };
 }
