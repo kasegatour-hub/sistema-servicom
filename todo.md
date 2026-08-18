@@ -394,3 +394,9 @@
 - [x] Mostrar tarifa base, recargo por hojas adicionales y total estimado antes de guardar
 - [x] Mantener límites de hojas y precio manual, con pruebas de interfaz y cálculo
 - [x] Compilar, verificar visualmente y publicar la mejora
+
+## Búsqueda fuzzy en catálogo de documentos
+- [x] Añadir búsqueda tolerante a tildes, coincidencias parciales y pequeños errores de escritura
+- [x] Mantener disponibles y visibles los documentos ya seleccionados durante la búsqueda
+- [x] Añadir pruebas de búsqueda fuzzy, resultados vacíos y selección
+- [x] Compilar, verificar y publicar la mejora

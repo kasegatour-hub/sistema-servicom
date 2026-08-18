@@ -33,4 +33,21 @@ describe("DocumentCatalogSelector", () => {
 
     expect((screen.getByLabelText("Nombre de otro documento simple") as HTMLInputElement).required).toBe(true);
   });
+
+  it("filters with fuzzy matching while retaining selected documents and explaining empty results", () => {
+    const onChange = vi.fn();
+    const { rerender } = render(<DocumentCatalogSelector value={[]} onChange={onChange} idPrefix="test-search" />);
+    const search = screen.getByRole("searchbox", { name: "Buscar documento" });
+
+    fireEvent.change(search, { target: { value: "matrimonoo" } });
+    expect(screen.getByLabelText("Acta negativa de inscripción de matrimonio")).toBeTruthy();
+    expect(screen.queryByLabelText("Acta de nacimiento")).toBeNull();
+
+    rerender(<DocumentCatalogSelector value={[{ id: "acta-nacimiento", quantity: 1, treatments: [] }]} onChange={onChange} idPrefix="test-search" />);
+    expect(screen.getByLabelText("Acta de nacimiento")).toBeTruthy();
+
+    fireEvent.change(search, { target: { value: "zzzzzz" } });
+    expect(screen.getByText(/No se encontraron documentos/)).toBeTruthy();
+    expect(screen.getByLabelText("Acta de nacimiento")).toBeTruthy();
+  });
 });

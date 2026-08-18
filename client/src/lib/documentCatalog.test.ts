@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { catalogDocumentsToChecklist, normalizeCatalogDocumentItems } from "./documentCatalog";
+import { catalogDocumentsToChecklist, matchesDocumentCatalogSearch, normalizeCatalogDocumentItems } from "./documentCatalog";
 
 describe("document catalog", () => {
   it("formats selected documents with an initial quantity and their treatments", () => {
@@ -20,5 +20,13 @@ describe("document catalog", () => {
     ])).toEqual([
       { id: "otro-simple", quantity: 2, treatments: ["simple"], customLabel: "Certificado consular" },
     ]);
+  });
+
+  it("matches document labels with partial, accent-insensitive and small typo searches", () => {
+    const label = "Acta negativa de inscripción de matrimonio";
+    expect(matchesDocumentCatalogSearch(label, "matrimonio")).toBe(true);
+    expect(matchesDocumentCatalogSearch(label, "inscripcion")).toBe(true);
+    expect(matchesDocumentCatalogSearch(label, "matrimonoo")).toBe(true);
+    expect(matchesDocumentCatalogSearch(label, "predios")).toBe(false);
   });
 });

@@ -8,6 +8,7 @@ import {
   DOCUMENT_TREATMENT_LABELS,
   DocumentTreatment,
   getDocumentCatalogLabel,
+  matchesDocumentCatalogSearch,
 } from "@/lib/documentCatalog";
 
 type DocumentCatalogSelectorProps = {
@@ -20,7 +21,11 @@ const catalogOptions = [...DOCUMENT_CATALOG, { id: "otro-simple", label: "Otro d
 const treatments = Object.entries(DOCUMENT_TREATMENT_LABELS) as Array<[DocumentTreatment, string]>;
 
 export function DocumentCatalogSelector({ value, onChange, idPrefix }: DocumentCatalogSelectorProps) {
+  const [search, setSearch] = React.useState("");
   const selectedItem = (id: string) => value.find(item => item.id === id);
+  const matchingOptions = catalogOptions.filter(option => matchesDocumentCatalogSearch(option.label, search));
+  const visibleOptions = catalogOptions.filter(option => Boolean(selectedItem(option.id)) || matchingOptions.some(match => match.id === option.id));
+  const hasNoSearchMatches = Boolean(search.trim()) && matchingOptions.length === 0;
 
   const selectDocument = (id: string, selected: boolean) => {
     if (!selected) {
@@ -38,8 +43,13 @@ export function DocumentCatalogSelector({ value, onChange, idPrefix }: DocumentC
     <fieldset className="rounded-xl border border-amber-200 bg-amber-50 p-4">
       <legend className="px-1 text-sm font-semibold text-[#0B2B5E]">Lista de documentos <span className="text-red-600">*</span></legend>
       <p className="mb-3 text-xs text-slate-600">Marca cada documento. Al seleccionarlo inicia en cantidad 1; usa los controles <strong>−</strong> y <strong>+</strong> para ajustarlo. Las notas son opcionales.</p>
+      <div className="mb-3">
+        <label htmlFor={`${idPrefix}-document-search`} className="sr-only">Buscar documento</label>
+        <Input id={`${idPrefix}-document-search`} type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar documento: ej. matrimonio, nacimento, predios…" className="bg-white" />
+        <p role="status" className="mt-1 text-xs text-slate-600">{search.trim() ? `${visibleOptions.length} resultado(s). Los documentos seleccionados se mantienen visibles.` : "Busca por nombre, palabras parciales, sin tildes o con pequeños errores."}</p>
+      </div>
       <div className="space-y-2">
-        {catalogOptions.map(option => {
+        {visibleOptions.map(option => {
           const item = selectedItem(option.id);
           const checkboxId = `${idPrefix}-${option.id}`;
           return (
@@ -102,6 +112,8 @@ export function DocumentCatalogSelector({ value, onChange, idPrefix }: DocumentC
             </div>
           );
         })}
+        {visibleOptions.length === 0 && <p className="rounded-lg border border-dashed border-slate-300 bg-white/70 p-4 text-center text-sm text-slate-600">No se encontraron documentos. Prueba con otra palabra o revisa la ortografía.</p>}
+        {hasNoSearchMatches && visibleOptions.length > 0 && <p className="rounded-lg border border-dashed border-slate-300 bg-white/70 p-4 text-center text-sm text-slate-600">No se encontraron documentos nuevos. Se mantienen visibles los que ya seleccionaste.</p>}
       </div>
     </fieldset>
   );
