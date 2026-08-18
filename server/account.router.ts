@@ -113,6 +113,7 @@ export function buildClientShipmentPersistenceArgs(
     null,
     JSON.stringify(input.contentChecklist),
     input.deliveryMode,
+    { type: "account" as const, id: accountId, label: "Cliente" },
   ] as const;
 }
 

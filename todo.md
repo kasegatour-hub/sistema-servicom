@@ -424,3 +424,10 @@
 - [x] Paginar los envíos activos de seis en seis y mostrar filtros por estado de pago y estado logístico
 - [x] Encapsular la papelera en un control expandible, con búsqueda, filtros y paginación de seis elementos
 - [x] Añadir pruebas, verificación responsive, compilación y publicación
+
+## Retroalimentación multimedia y autor de registro
+- [x] Permitir a Cliente, Registrador y Master Admin enviar retroalimentación textual sobre un envío
+- [x] Permitir adjuntar una imagen, video o audio con validaciones de tipo y tamaño
+- [x] Guardar los adjuntos en almacenamiento de objetos y mostrar la evidencia de forma segura
+- [x] Registrar y mostrar quién creó cada documento o encomienda
+- [x] Añadir migración, pruebas, verificación de permisos, compilación y publicación

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
-import { ArrowLeft, CheckCircle2, Download, Eye, EyeOff, KeyRound, Lock, LogOut, Mail, Package, Plus, Printer, RotateCcw, Search, Trash2, User, UserPlus } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Download, Eye, EyeOff, KeyRound, Lock, LogOut, Mail, MessageSquare, Package, Plus, Printer, RotateCcw, Search, Trash2, User, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { summarizeRevenue } from "@shared/revenueSummary";
 import { DocumentPricePreview } from "@/components/DocumentPricePreview";
 import { paginateItems } from "@/lib/pagination";
+import { ShipmentFeedbackDialog } from "@/components/ShipmentFeedbackDialog";
 
 const brandLogo = "/manus-storage/servicom_logo_final_e7ce35aa.png";
 
@@ -45,6 +46,7 @@ export default function AccountPage() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showAccountNewPassword, setShowAccountNewPassword] = useState(false);
   const [receiptShipment, setReceiptShipment] = useState<any>(null);
+  const [feedbackShipment, setFeedbackShipment] = useState<any>(null);
   const [reauthPassword, setReauthPassword] = useState("");
   const [showReauthPassword, setShowReauthPassword] = useState(false);
 
@@ -374,6 +376,7 @@ export default function AccountPage() {
               </DialogContent>
             </Dialog>
           )}
+          <ShipmentFeedbackDialog shipment={feedbackShipment} open={Boolean(feedbackShipment)} onOpenChange={(open) => { if (!open) setFeedbackShipment(null); }} />
 
           <Card className="border-0 p-4 shadow-sm" aria-label="Áreas de mi cuenta">
             <div className="flex flex-wrap items-center gap-2">
@@ -649,12 +652,14 @@ export default function AccountPage() {
                         <strong>Destinatario:</strong> {shipment.recipientName || "No especificado"} {shipment.recipientLastName || ""} ({formatPhoneNumber(shipment.recipientPhone) || "Sin teléfono"})
                       </p>
                       <p className="text-xs text-slate-400 mt-0.5">Registrado el {new Date(shipment.createdAt).toLocaleDateString()}</p>
+                      <p className="mt-0.5 text-xs text-slate-500"><strong>Registrado por:</strong> {shipment.registeredByLabel || "Registro anterior"}</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Link href={`/?order=${encodeURIComponent(shipment.orderNumber)}&code=${encodeURIComponent(shipment.code)}`}>
                         <Button size="sm" className="bg-[#0B2B5E] text-white hover:bg-[#123d78]"><Search className="mr-2 h-3.5 w-3.5" /> Rastrear envío</Button>
                       </Link>
                       <Button size="sm" variant="outline" onClick={() => setReceiptShipment(shipment)} className="border-[#F28C00] text-[#0B2B5E] hover:bg-orange-50"><Download className="mr-2 h-3.5 w-3.5" /> Ver recibo</Button>
+                      <Button size="sm" variant="outline" onClick={() => setFeedbackShipment(shipment)} className="border-sky-300 text-sky-800 hover:bg-sky-50"><MessageSquare className="mr-2 h-3.5 w-3.5" /> Retroalimentación</Button>
                       <Button size="sm" variant="outline" disabled={deleteMyShipmentMutation.isPending} onClick={() => { if (window.confirm("El envío se moverá a la papelera y podrás restaurarlo.")) deleteMyShipmentMutation.mutate({ shipmentId: shipment.id }); }} className="border-red-200 text-red-700 hover:bg-red-50"><Trash2 className="mr-2 h-3.5 w-3.5" /> Eliminar</Button>
                     </div>
                   </div>

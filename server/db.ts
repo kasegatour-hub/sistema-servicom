@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, like, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { createHash } from "node:crypto";
-import { InsertUser, users, shipments, shipmentSignatures, shipmentAuditLogs, interactionEvents, admins, localAccounts, verificationCodes, adminPasswordResetCodes, clients, discountCoupons, shipmentRoutePolicies } from "../drizzle/schema";
+import { InsertUser, users, shipments, shipmentSignatures, shipmentAuditLogs, shipmentFeedback, interactionEvents, admins, localAccounts, verificationCodes, adminPasswordResetCodes, clients, discountCoupons, shipmentRoutePolicies } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { buildShipmentClientDirectoryRecords, type ClientDirectoryRecord, type ShipmentClientDirectoryInput } from "./clientDirectory";
 
@@ -339,9 +339,15 @@ export type ShipmentAuditActor = {
   actorLabel?: string | null;
 };
 
+export type ShipmentRegistrationActor = {
+  type: "admin" | "account" | "system";
+  id?: number | null;
+  label: string;
+};
+
 export async function recordShipmentAudit(input: {
   shipmentId: number;
-  action: "created" | "updated" | "deleted" | "restored" | "price_updated" | "signature_requested" | "signature_completed" | "hidden_from_registradores" | "shown_to_registradores";
+  action: "created" | "updated" | "deleted" | "restored" | "price_updated" | "signature_requested" | "signature_completed" | "hidden_from_registradores" | "shown_to_registradores" | "feedback_added";
   actor: ShipmentAuditActor;
   reason?: string | null;
   snapshot?: unknown;
@@ -366,6 +372,43 @@ export async function getShipmentAuditLogs(shipmentId: number) {
   const db = await getDb();
   if (!db) return [];
   return await db.select().from(shipmentAuditLogs).where(eq(shipmentAuditLogs.shipmentId, shipmentId)).orderBy(desc(shipmentAuditLogs.createdAt));
+}
+
+export async function listShipmentFeedback(shipmentId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(shipmentFeedback).where(eq(shipmentFeedback.shipmentId, shipmentId)).orderBy(desc(shipmentFeedback.createdAt));
+}
+
+export async function createShipmentFeedback(input: {
+  shipmentId: number;
+  authorType: "admin" | "account";
+  authorId: number;
+  authorLabel: string;
+  message: string;
+  attachment?: { key: string; url: string; name: string; mimeType: string; sizeBytes: number } | null;
+}) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.insert(shipmentFeedback).values({
+    shipmentId: input.shipmentId,
+    authorType: input.authorType,
+    authorId: input.authorId,
+    authorLabel: input.authorLabel,
+    message: input.message,
+    attachmentKey: input.attachment?.key ?? null,
+    attachmentUrl: input.attachment?.url ?? null,
+    attachmentName: input.attachment?.name ?? null,
+    attachmentMimeType: input.attachment?.mimeType ?? null,
+    attachmentSizeBytes: input.attachment?.sizeBytes ?? null,
+  });
+  await recordShipmentAudit({
+    shipmentId: input.shipmentId,
+    action: "feedback_added",
+    actor: { actorType: input.authorType, actorId: input.authorId, actorLabel: input.authorLabel },
+    metadata: { hasAttachment: Boolean(input.attachment), attachmentMimeType: input.attachment?.mimeType ?? null },
+  });
+  return result;
 }
 
 export type ShipmentAuditActorRecord = {
@@ -670,6 +713,7 @@ export async function createShipment(
   documentItems?: string | null,
   contentChecklist?: string | null,
   deliveryMode?: "agencia" | "remoto",
+  registeredBy?: ShipmentRegistrationActor,
 ) {
   const db = await getDb();
   if (!db) {
@@ -719,6 +763,9 @@ export async function createShipment(
     documentItems: documentItems || null,
     contentChecklist: contentChecklist || null,
     deliveryMode: deliveryMode || "agencia",
+    registeredByType: registeredBy?.type || (accountId ? "account" : "system"),
+    registeredById: registeredBy?.id ?? accountId ?? null,
+    registeredByLabel: registeredBy?.label || (accountId ? "Cliente" : "Registro anterior"),
   });
 
   // El directorio de clientes no depende de la cuenta de acceso y no se elimina con ella.
@@ -736,7 +783,10 @@ export async function createShipment(
   const insertedId = Number((result as any)?.insertId ?? 0);
   if (insertedId > 0) {
     const createdShipment = await getShipmentRecordById(insertedId);
-    await recordShipmentAudit({ shipmentId: insertedId, action: "created", actor: { actorType: accountId ? "account" : "system", actorId: accountId ?? null }, snapshot: createdShipment });
+    const actor = registeredBy
+      ? { actorType: registeredBy.type === "system" ? "system" as const : registeredBy.type, actorId: registeredBy.id ?? null, actorLabel: registeredBy.label }
+      : { actorType: accountId ? "account" as const : "system" as const, actorId: accountId ?? null, actorLabel: accountId ? "Cliente" : "Sistema" };
+    await recordShipmentAudit({ shipmentId: insertedId, action: "created", actor, snapshot: createdShipment });
   }
 
   return result;

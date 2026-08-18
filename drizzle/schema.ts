@@ -201,6 +201,9 @@ export const shipments = mysqlTable("shipments", {
   hiddenFromRegistradoresAt: timestamp("hiddenFromRegistradoresAt"),
   hiddenFromRegistradoresByAdminId: int("hiddenFromRegistradoresByAdminId"),
   hideFromRegistradoresReason: text("hideFromRegistradoresReason"),
+  registeredByType: mysqlEnum("registeredByType", ["admin", "account", "system"]).default("system").notNull(),
+  registeredById: int("registeredById"),
+  registeredByLabel: varchar("registeredByLabel", { length: 255 }).default("Registro anterior").notNull(),
   
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -209,11 +212,32 @@ export const shipments = mysqlTable("shipments", {
 export type Shipment = typeof shipments.$inferSelect;
 export type InsertShipment = typeof shipments.$inferInsert;
 
+/** Retroalimentación con evidencia opcional, creada por un cliente o por el equipo operativo. */
+export const shipmentFeedback = mysqlTable("shipment_feedback", {
+  id: int("id").autoincrement().primaryKey(),
+  shipmentId: int("shipmentId").notNull(),
+  authorType: mysqlEnum("authorType", ["admin", "account"]).notNull(),
+  authorId: int("authorId").notNull(),
+  authorLabel: varchar("authorLabel", { length: 255 }).notNull(),
+  message: text("message").notNull(),
+  attachmentKey: varchar("attachmentKey", { length: 512 }),
+  attachmentUrl: varchar("attachmentUrl", { length: 512 }),
+  attachmentName: varchar("attachmentName", { length: 255 }),
+  attachmentMimeType: varchar("attachmentMimeType", { length: 128 }),
+  attachmentSizeBytes: int("attachmentSizeBytes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, table => ({
+  shipmentIdx: index("shipment_feedback_shipment_idx").on(table.shipmentId, table.createdAt),
+  authorIdx: index("shipment_feedback_author_idx").on(table.authorType, table.authorId),
+}));
+export type ShipmentFeedback = typeof shipmentFeedback.$inferSelect;
+export type InsertShipmentFeedback = typeof shipmentFeedback.$inferInsert;
+
 /** Historial append-only de cambios y snapshots para restauración y trazabilidad. */
 export const shipmentAuditLogs = mysqlTable("shipment_audit_logs", {
   id: int("id").autoincrement().primaryKey(),
   shipmentId: int("shipmentId").notNull(),
-  action: mysqlEnum("action", ["created", "updated", "deleted", "restored", "price_updated", "signature_requested", "signature_completed", "hidden_from_registradores", "shown_to_registradores"]).notNull(),
+  action: mysqlEnum("action", ["created", "updated", "deleted", "restored", "price_updated", "signature_requested", "signature_completed", "hidden_from_registradores", "shown_to_registradores", "feedback_added"]).notNull(),
   actorType: mysqlEnum("actorType", ["admin", "account", "public", "system"]).notNull(),
   actorId: int("actorId"),
   actorLabel: varchar("actorLabel", { length: 255 }),

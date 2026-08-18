@@ -413,6 +413,8 @@ export const adminRouter = router({
       const discount = applyCouponDiscount(pricing.totalEur, coupon);
       const calculatedNotes = `${pricing.notes}${coupon ? ` Cupón ${coupon.code}: descuento del ${discount.discountPercent}% (-${discount.discountAmountEur.toFixed(2)} EUR). Total final: ${discount.finalPriceEur.toFixed(2)} EUR.` : ""}`;
       const { shipmentType, weightKg, manualPrice } = pricing;
+      const db = await getDb();
+      const [creator] = db ? await db.select({ name: admins.name }).from(admins).where(eq(admins.id, ctx.adminSession.adminId)).limit(1) : [];
 
       const result = await createShipment(
         orderNumber,
@@ -443,6 +445,7 @@ export const adminRouter = router({
         input.shipmentType === "documento" && pricing.additionalDocuments.items.length ? JSON.stringify(pricing.additionalDocuments.items) : null,
         input.contentChecklist.length ? JSON.stringify(input.contentChecklist) : null,
         input.deliveryMode,
+        { type: "admin", id: ctx.adminSession.adminId, label: creator?.name || (ctx.adminSession.role === "superadmin" ? "Master Admin" : "Registrador") },
       );
       if (!result) {
         throw new TRPCError({

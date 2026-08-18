@@ -28,6 +28,10 @@ vi.mock("@/lib/trpc", () => ({
     analytics: {
       myInsights: { useQuery: () => ({ data: null }) },
     },
+    feedback: {
+      list: { useQuery: () => ({ data: [], isLoading: false, refetch: vi.fn() }) },
+      create: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
+    },
   },
 }));
 
@@ -71,6 +75,7 @@ describe("AccountPage client labels", () => {
       recipientPhone: "+51 970188447",
       status: index === 6 ? "En destino" : "En agencia",
       paymentStatus: index % 2 === 0 ? "Pagado" : "Falta cancelar",
+      registeredByLabel: "Cliente",
       createdAt: new Date(`2026-08-${String(index + 1).padStart(2, "0")}T10:00:00.000Z`),
     }));
     accountMocks.deletedShipments = Array.from({ length: 7 }, (_, index) => ({
@@ -87,6 +92,7 @@ describe("AccountPage client labels", () => {
     render(<AccountPage />);
 
     expect(screen.getByText("Mostrando 1–6 de 7 envíos")).toBeTruthy();
+    expect(screen.getAllByText("Cliente").length).toBeGreaterThan(0);
     expect(screen.queryByText("Cliente 1 Prueba")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Papelera (7)" }));
     expect(screen.getByRole("button", { name: "Abrir papelera (7)" })).toBeTruthy();

@@ -75,6 +75,10 @@ vi.mock("@/lib/trpc", () => ({
     analytics: {
       adminInsights: { useQuery: () => ({ data: null }) },
     },
+    feedback: {
+      list: { useQuery: () => ({ data: [], isLoading: false, refetch: vi.fn() }) },
+      create: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
+    },
   },
 }));
 
@@ -240,6 +244,19 @@ describe("AdminDashboard Nueva Encomienda", () => {
     expect(screen.getByText("Mostrando 1–6 de 7 eliminados")).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Buscar en papelera"), { target: { value: "452099270" } });
     expect(screen.getByText("Mostrando 1–1 de 1 eliminados")).toBeTruthy();
+  });
+
+  it("shows the registration author and opens shipment feedback for an operator", async () => {
+    mocks.shipments = [{ id: 70, shipmentType: "documento", recipientName: "Giselle", recipientLastName: "García", status: "En agencia", paymentStatus: "Pagado", registeredByLabel: "Operador Servicom", createdAt: new Date("2026-08-18T10:00:00.000Z"), orderNumber: "6352627659", code: "DOC-2026-XPF2A", events: [] }];
+    render(<AdminDashboard />);
+    fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
+    fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
+
+    await waitFor(() => expect(screen.getByText("Operador Servicom")).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "Comentarios" }));
+    expect(screen.getByRole("heading", { name: "Retroalimentación del envío" })).toBeTruthy();
+    expect(screen.getByLabelText("Adjuntar evidencia multimedia")).toBeTruthy();
   });
 
   it("opens each creation type directly without a redundant selector", async () => {

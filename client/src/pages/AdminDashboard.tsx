@@ -12,7 +12,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import { Lock, LogOut, Plus, RefreshCw, Download, Printer, RotateCcw, Search, Trash2 } from "lucide-react";
+import { Lock, LogOut, Plus, RefreshCw, Download, Printer, RotateCcw, Search, Trash2, MessageSquare } from "lucide-react";
 import QRCode from "qrcode";
 import { buildTrackingUrl, TRACKING_QR_OPTIONS } from "@/lib/tracking";
 import { PhoneInput } from "@/components/PhoneInput";
@@ -34,6 +34,7 @@ import { evaluateScientificExpression } from "@/lib/scientificCalculator";
 import { buildElectronicSignatureHtml, buildReceiptDownloadFilename } from "@/lib/userReceipt";
 import { summarizeRevenue } from "@shared/revenueSummary";
 import { DocumentPricePreview } from "@/components/DocumentPricePreview";
+import { ShipmentFeedbackDialog } from "@/components/ShipmentFeedbackDialog";
 
 type AdminWorkspace = "resumen" | "registros" | "crear" | "cupones" | "papelera" | "usuarios";
 
@@ -256,6 +257,7 @@ export default function AdminDashboard() {
   const [reauthPassword, setReauthPassword] = useState("");
   const [showReauthPassword, setShowReauthPassword] = useState(false);
   const [printShipment, setPrintShipment] = useState<any>(null);
+  const [feedbackShipment, setFeedbackShipment] = useState<any>(null);
   const [senderClientQuery, setSenderClientQuery] = useState("");
   const [recipientClientQuery, setRecipientClientQuery] = useState("");
   const [additionalDocumentItems, setAdditionalDocumentItems] = useState<Array<{ docType: "simple" | "apostillado"; sheetCount: number; manualPriceEur: string }>>([]);
@@ -1943,7 +1945,7 @@ export default function AdminDashboard() {
                           {admin?.role === "superadmin" && shipment.hiddenFromRegistradoresAt && <span className="rounded bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-800">Oculto a Registradores</span>}
                         </div>
                       </TableCell>
-                      <TableCell className="whitespace-nowrap">{new Date(shipment.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell className="whitespace-nowrap"><div>{new Date(shipment.createdAt).toLocaleDateString()}</div><p className="mt-1 whitespace-normal text-xs text-slate-500"><strong>Registrado por:</strong> {shipment.registeredByLabel || "Registro anterior"}</p></TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-2">
                           <Button
@@ -1988,6 +1990,7 @@ export default function AdminDashboard() {
                             <Printer className="w-4 h-4 mr-1" />
                             Imprimir
                           </Button>
+                          <Button onClick={() => setFeedbackShipment(shipment)} size="sm" variant="outline" className="border-sky-300 text-sky-800 hover:bg-sky-50"><MessageSquare className="mr-1 h-4 w-4" /> Comentarios</Button>
                           <Button
                             onClick={() => handleDeleteShipment(shipment.id)}
                             size="sm"
@@ -2047,7 +2050,7 @@ export default function AdminDashboard() {
 
         {admin?.role === "superadmin" && auditShipmentId && <Card className="mt-6 border-0 p-6 shadow-md" aria-label="Historial administrativo del envío">
           <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-lg font-bold text-[#0B2B5E]">Historial de cambios del envío</h2><p className="mt-1 text-xs text-slate-500">Visible únicamente para el Master Admin. Incluye quién eliminó, actualizó, restauró o completó una firma.</p></div><Button size="sm" variant="outline" onClick={() => setAuditShipmentId(null)}>Cerrar historial</Button></div>
-          {isLoadingShipmentAudit ? <p className="mt-4 text-sm text-slate-500">Cargando historial…</p> : shipmentAudit.length === 0 ? <p className="mt-4 text-sm text-slate-500">No hay registros de auditoría disponibles para este envío.</p> : <ol className="mt-4 space-y-3">{shipmentAudit.map((entry: any) => <li key={entry.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3"><p className="text-sm font-semibold text-[#0B2B5E]">{({ created: "Registro creado", updated: "Datos o estado actualizado", deleted: "Envío eliminado", restored: "Envío restaurado", price_updated: "Precio actualizado", signature_requested: "Firma solicitada", signature_completed: "Firma completada", hidden_from_registradores: "Envío oculto para Registradores", shown_to_registradores: "Envío mostrado a Registradores" } as Record<string, string>)[entry.action] || entry.action}</p><p className="mt-1 text-xs text-slate-600">Realizado por: <strong>{entry.actorDisplayName || "No indicado"}</strong> · {entry.createdAt ? new Date(entry.createdAt).toLocaleString() : "sin fecha"}</p>{entry.reason && <p className="mt-1 text-xs text-slate-600">Motivo: {entry.reason}</p>}</li>)}</ol>}
+          {isLoadingShipmentAudit ? <p className="mt-4 text-sm text-slate-500">Cargando historial…</p> : shipmentAudit.length === 0 ? <p className="mt-4 text-sm text-slate-500">No hay registros de auditoría disponibles para este envío.</p> : <ol className="mt-4 space-y-3">{shipmentAudit.map((entry: any) => <li key={entry.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3"><p className="text-sm font-semibold text-[#0B2B5E]">{({ created: "Registro creado", updated: "Datos o estado actualizado", deleted: "Envío eliminado", restored: "Envío restaurado", price_updated: "Precio actualizado", signature_requested: "Firma solicitada", signature_completed: "Firma completada", feedback_added: "Retroalimentación añadida", hidden_from_registradores: "Envío oculto para Registradores", shown_to_registradores: "Envío mostrado a Registradores" } as Record<string, string>)[entry.action] || entry.action}</p><p className="mt-1 text-xs text-slate-600">Realizado por: <strong>{entry.actorDisplayName || "No indicado"}</strong> · {entry.createdAt ? new Date(entry.createdAt).toLocaleString() : "sin fecha"}</p>{entry.reason && <p className="mt-1 text-xs text-slate-600">Motivo: {entry.reason}</p>}</li>)}</ol>}
         </Card>}
 
         {/* Update Status Modal */}
@@ -2257,6 +2260,7 @@ export default function AdminDashboard() {
             </Card>
           </div>
         )}
+        <ShipmentFeedbackDialog shipment={feedbackShipment} open={Boolean(feedbackShipment)} onOpenChange={(open) => { if (!open) setFeedbackShipment(null); }} />
       </main>
     </div>
   );

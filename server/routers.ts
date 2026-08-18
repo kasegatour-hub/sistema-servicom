@@ -9,6 +9,7 @@ import { createSignatureToken, isSignatureTokenExpired, signatureTokenMatches } 
 import { parseSignatureStrokes } from "../shared/signature";
 import { adminRouter } from "./admin.router";
 import { accountRouter } from "./account.router";
+import { feedbackRouter } from "./feedback.router";
 import { getAdminSession } from "./adminSession";
 import { getAccountSession } from "./localSession";
 import { deriveInteractionInsights } from "./analytics";
@@ -28,6 +29,7 @@ export const appRouter = router({
 
   admin: adminRouter,
   account: accountRouter,
+  feedback: feedbackRouter,
 
   analytics: router({
     track: publicProcedure
