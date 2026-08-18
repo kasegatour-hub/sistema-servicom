@@ -281,11 +281,11 @@ export async function upsertClient(record: ClientDirectoryRecord) {
       )).limit(1);
 
   if (existing[0]) {
-    await db.update(clients).set({ name, lastName, dni, phone, email, updatedAt: new Date() }).where(eq(clients.id, existing[0].id));
+    await db.update(clients).set({ name, lastName, dni, documentType: record.documentType || "dni_peru", phone, email, updatedAt: new Date() }).where(eq(clients.id, existing[0].id));
     return getClientById(existing[0].id);
   }
 
-  const inserted = await db.insert(clients).values({ name, lastName, dni, phone, email });
+  const inserted = await db.insert(clients).values({ name, lastName, dni, documentType: record.documentType || "dni_peru", phone, email });
   const insertedId = Number((inserted as { insertId?: number }).insertId);
   return insertedId ? getClientById(insertedId) : undefined;
 }
@@ -313,17 +313,17 @@ export async function getLocalAccountById(id: number) {
   return result[0];
 }
 
-export async function createLocalAccount(email: string, phone: string | null, passwordHash: string, name?: string, lastName?: string, dni?: string) {
+export async function createLocalAccount(email: string, phone: string | null, passwordHash: string, name?: string, lastName?: string, dni?: string, documentType: "dni_peru" | "pasaporte" | "carta_identita_italia" = "dni_peru") {
   const db = await getDb();
   if (!db) return undefined;
-  await db.insert(localAccounts).values({ email, phone, passwordHash, name, lastName, dni });
+  await db.insert(localAccounts).values({ email, phone, passwordHash, name, lastName, dni, documentType });
   return getLocalAccountByEmail(email);
 }
 
-export async function updateLocalAccountProfile(id: number, name: string, lastName: string, dni: string, phone: string) {
+export async function updateLocalAccountProfile(id: number, name: string, lastName: string, dni: string, phone: string, documentType: "dni_peru" | "pasaporte" | "carta_identita_italia" = "dni_peru") {
   const db = await getDb();
   if (!db) return undefined;
-  await db.update(localAccounts).set({ name, lastName, dni, phone, updatedAt: new Date() }).where(eq(localAccounts.id, id));
+  await db.update(localAccounts).set({ name, lastName, dni, phone, documentType, updatedAt: new Date() }).where(eq(localAccounts.id, id));
   return getLocalAccountById(id);
 }
 
@@ -745,6 +745,8 @@ export async function createShipment(
   contentChecklist?: string | null,
   deliveryMode?: "agencia" | "remoto",
   registeredBy?: ShipmentRegistrationActor,
+  senderDocumentType?: "dni_peru" | "pasaporte" | "carta_identita_italia",
+  recipientDocumentType?: "dni_peru" | "pasaporte" | "carta_identita_italia",
 ) {
   const db = await getDb();
   if (!db) {
@@ -773,10 +775,12 @@ export async function createShipment(
     senderName,
     senderLastName,
     senderDni,
+    senderDocumentType: senderDocumentType || "dni_peru",
     senderPhone,
     recipientName,
     recipientLastName,
     recipientDni,
+    recipientDocumentType: recipientDocumentType || "dni_peru",
     recipientPhone,
     notes,
     shipmentType: shipmentType || "documento",
@@ -804,10 +808,12 @@ export async function createShipment(
     senderName,
     senderLastName,
     senderDni,
+    senderDocumentType,
     senderPhone,
     recipientName,
     recipientLastName,
     recipientDni,
+    recipientDocumentType,
     recipientPhone,
   });
 

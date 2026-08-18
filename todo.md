@@ -438,3 +438,9 @@
 - [x] Mantener texto y adjuntos de imagen, audio o video en el canal general
 - [x] Retirar los botones de comentarios de los registros individuales sin borrar los datos ya almacenados
 - [x] Añadir migración, pruebas por rol, compilación y publicación
+
+## Tipos de identificación para remitente y destinatario
+- [x] Permitir elegir DNI peruano, pasaporte o carta d’identità italiana para remitente y destinatario
+- [x] Aplicar límites de longitud y caracteres específicos para cada tipo de documento en interfaz y servidor
+- [x] Conservar el tipo documental junto al número de identificación en los envíos nuevos
+- [x] Añadir migración, pruebas por rol, compilación y publicación

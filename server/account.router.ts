@@ -32,7 +32,7 @@ import {
   verificationExpiry,
 } from "./localAuth";
 import { AccountSessionPayload, clearAccountSession, getAccountSession, setAccountSession } from "./localSession";
-import { dniSchema, optionalDniSchema, optionalPersonNameSchema, personNameSchema } from "./inputValidation";
+import { identityDocumentNumberSchema, identityDocumentTypeSchema, isIdentityDocumentValid, identityDocumentValidationMessage, optionalIdentityDocumentNumberSchema, optionalPersonNameSchema, personNameSchema } from "./inputValidation";
 import { isValidInternationalPhone } from "../shared/phoneValidation";
 
 const passwordSchema = z.string().min(8, "La contraseña debe tener al menos 8 caracteres.");
@@ -61,11 +61,13 @@ export const CLIENT_PAYMENT_DEFAULTS = {
 export const clientShipmentInputSchema = z.object({
   senderName: optionalPersonNameSchema,
   senderLastName: optionalPersonNameSchema,
-  senderDni: optionalDniSchema,
+  senderDni: optionalIdentityDocumentNumberSchema,
+  senderDocumentType: identityDocumentTypeSchema.default("dni_peru"),
   senderPhone: optionalInternationalPhoneSchema,
   recipientName: optionalPersonNameSchema,
   recipientLastName: optionalPersonNameSchema,
-  recipientDni: optionalDniSchema,
+  recipientDni: optionalIdentityDocumentNumberSchema,
+  recipientDocumentType: identityDocumentTypeSchema.default("dni_peru"),
   recipientPhone: optionalInternationalPhoneSchema,
   notes: z.string().optional(),
   contentChecklist: z.array(z.string().trim().min(1).max(160)).max(24).min(1, "La lista de cosas enviadas es obligatoria."),
@@ -74,7 +76,10 @@ export const clientShipmentInputSchema = z.object({
   docType: z.enum(["simple", "apostillado"]).default("apostillado"),
   sheetCount: z.number().min(1).default(1),
   route: z.enum(["Lima - Torino", "Torino - Lima"]).default("Lima - Torino"),
-}).strict();
+}).strict().superRefine((input, ctx) => {
+  if (input.senderDni && !isIdentityDocumentValid(input.senderDni, input.senderDocumentType)) ctx.addIssue({ code: "custom", path: ["senderDni"], message: identityDocumentValidationMessage(input.senderDocumentType) });
+  if (input.recipientDni && !isIdentityDocumentValid(input.recipientDni, input.recipientDocumentType)) ctx.addIssue({ code: "custom", path: ["recipientDni"], message: identityDocumentValidationMessage(input.recipientDocumentType) });
+});
 
 export function buildClientShipmentPersistenceArgs(
   input: z.infer<typeof clientShipmentInputSchema>,
@@ -114,6 +119,8 @@ export function buildClientShipmentPersistenceArgs(
     JSON.stringify(input.contentChecklist),
     input.deliveryMode,
     { type: "account" as const, id: accountId, label: "Cliente" },
+    input.senderDocumentType,
+    input.recipientDocumentType,
   ] as const;
 }
 
@@ -124,8 +131,11 @@ export const accountRouter = router({
       phone: optionalInternationalPhoneSchema,
       name: personNameSchema,
       lastName: personNameSchema,
-      dni: dniSchema,
+      dni: identityDocumentNumberSchema,
+      documentType: identityDocumentTypeSchema.default("dni_peru"),
       password: passwordSchema,
+    }).superRefine((input, ctx) => {
+      if (!isIdentityDocumentValid(input.dni, input.documentType)) ctx.addIssue({ code: "custom", path: ["dni"], message: identityDocumentValidationMessage(input.documentType) });
     }))
     .mutation(async ({ input, ctx }) => {
       const email = normalizeEmail(input.email);
@@ -138,12 +148,12 @@ export const accountRouter = router({
         throw new TRPCError({ code: "CONFLICT", message: "Ya existe una cuenta con ese correo." });
       }
 
-      const account = await createLocalAccount(email, phone, await hashPassword(input.password), input.name, input.lastName, input.dni);
+      const account = await createLocalAccount(email, phone, await hashPassword(input.password), input.name, input.lastName, input.dni, input.documentType);
       if (!account) {
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No se pudo crear la cuenta." });
       }
 
-      await upsertClient({ name: input.name, lastName: input.lastName, dni: input.dni, phone, email });
+      await upsertClient({ name: input.name, lastName: input.lastName, dni: input.dni, documentType: input.documentType, phone, email });
       setAccountSession(ctx.req, ctx.res, account.id);
       return {
         success: true,
@@ -194,6 +204,7 @@ export const accountRouter = router({
       name: account.name,
       lastName: account.lastName,
       dni: account.dni,
+      documentType: account.documentType,
       createdAt: account.createdAt,
       reauthRequired: session.reauthRequired,
     };
@@ -223,17 +234,20 @@ export const accountRouter = router({
     .input(z.object({
       name: personNameSchema,
       lastName: personNameSchema,
-      dni: dniSchema,
+      dni: identityDocumentNumberSchema,
+      documentType: identityDocumentTypeSchema.default("dni_peru"),
       phone: internationalPhoneSchema,
+    }).superRefine((input, ctx) => {
+      if (!isIdentityDocumentValid(input.dni, input.documentType)) ctx.addIssue({ code: "custom", path: ["dni"], message: identityDocumentValidationMessage(input.documentType) });
     }))
     .mutation(async ({ input, ctx }) => {
       const session = await requireFreshAccountSession(ctx.req, "actualizar tu perfil");
       const phone = normalizePhone(input.phone);
-      const account = await updateLocalAccountProfile(session.accountId, input.name, input.lastName, input.dni, phone);
+      const account = await updateLocalAccountProfile(session.accountId, input.name, input.lastName, input.dni, phone, input.documentType);
       if (!account) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Cuenta no encontrada." });
       }
-      await upsertClient({ name: input.name, lastName: input.lastName, dni: input.dni, phone, email: account.email });
+      await upsertClient({ name: input.name, lastName: input.lastName, dni: input.dni, documentType: input.documentType, phone, email: account.email });
       return { success: true, account };
     }),
 

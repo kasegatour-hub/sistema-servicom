@@ -35,6 +35,8 @@ import { buildElectronicSignatureHtml, buildReceiptDownloadFilename } from "@/li
 import { summarizeRevenue } from "@shared/revenueSummary";
 import { DocumentPricePreview } from "@/components/DocumentPricePreview";
 import { GeneralFeedbackDialog } from "@/components/GeneralFeedbackDialog";
+import { IdentityDocumentField } from "@/components/IdentityDocumentField";
+import { normalizeIdentityDocument, type IdentityDocumentType } from "@shared/identityDocuments";
 
 type AdminWorkspace = "resumen" | "registros" | "crear" | "cupones" | "papelera" | "usuarios";
 
@@ -55,6 +57,7 @@ type ClientLookupRecord = {
   name: string;
   lastName: string;
   dni?: string | null;
+  documentType?: "dni_peru" | "pasaporte" | "carta_identita_italia" | null;
   phone?: string | null;
   email?: string | null;
 };
@@ -168,20 +171,22 @@ const optionalTextField = z.union([
   z.literal(""),
   z.string().trim().regex(/^[A-Za-z\u00C0-\u024F]+(?: +[A-Za-z\u00C0-\u024F]+)*$/, "Solo letras y espacios."),
 ]).optional();
-const optionalDniField = z.union([
+const optionalDocumentNumberField = z.union([
   z.literal(""),
-  z.string().trim().regex(/^\d{1,8}$/, "El DNI solo puede contener números y no puede superar 8 dígitos."),
+  z.string().trim().regex(/^[A-Za-z0-9]{1,9}$/, "El documento solo puede contener letras y números y no puede superar 9 caracteres."),
 ]).optional();
 
 const createShipmentSchema = z.object({
   status: z.enum(["Por entregar en agencia", "En agencia", "En tránsito", "En destino", "Entregado"]),
   senderName: optionalTextField,
   senderLastName: optionalTextField,
-  senderDni: optionalDniField,
+  senderDni: optionalDocumentNumberField,
+  senderDocumentType: z.enum(["dni_peru", "pasaporte", "carta_identita_italia"]).default("dni_peru"),
   senderPhone: z.string().optional(),
   recipientName: optionalTextField,
   recipientLastName: optionalTextField,
-  recipientDni: optionalDniField,
+  recipientDni: optionalDocumentNumberField,
+  recipientDocumentType: z.enum(["dni_peru", "pasaporte", "carta_identita_italia"]).default("dni_peru"),
   recipientPhone: z.string().optional(),
   notes: z.string().optional(),
   shipmentType: z.enum(["documento", "encomienda"]).default("documento"),
@@ -210,11 +215,11 @@ const updateStatusSchema = z.object({
   description: z.string().optional(),
   senderName: optionalTextField,
   senderLastName: optionalTextField,
-  senderDni: optionalDniField,
+  senderDni: optionalDocumentNumberField,
   senderPhone: z.string().optional(),
   recipientName: optionalTextField,
   recipientLastName: optionalTextField,
-  recipientDni: optionalDniField,
+  recipientDni: optionalDocumentNumberField,
   recipientPhone: z.string().optional(),
   notes: z.string().optional(),
   paymentStatus: z.enum(["Pagado", "Falta cancelar"]).optional(),
@@ -414,10 +419,12 @@ export default function AdminDashboard() {
       senderName: '',
       senderLastName: '',
       senderDni: '',
+      senderDocumentType: 'dni_peru',
       senderPhone: '',
       recipientName: '',
       recipientLastName: '',
       recipientDni: '',
+      recipientDocumentType: 'dni_peru',
       recipientPhone: '',
       notes: '',
       shipmentType: 'documento',
@@ -451,7 +458,9 @@ export default function AdminDashboard() {
   const fillShipmentPerson = (prefix: "sender" | "recipient", client: ClientLookupRecord) => {
     createForm.setValue(`${prefix}Name`, client.name, { shouldDirty: true });
     createForm.setValue(`${prefix}LastName`, client.lastName, { shouldDirty: true });
-    createForm.setValue(`${prefix}Dni`, dniDigitsOnly(client.dni || ""), { shouldDirty: true });
+    const documentType = (client.documentType || "dni_peru") as IdentityDocumentType;
+    createForm.setValue(`${prefix}DocumentType`, documentType, { shouldDirty: true });
+    createForm.setValue(`${prefix}Dni`, normalizeIdentityDocument(client.dni || "", documentType), { shouldDirty: true });
     createForm.setValue(`${prefix}Phone`, client.phone || "", { shouldDirty: true });
     if (prefix === "sender") setSenderClientQuery(`${client.name} ${client.lastName}`);
     else setRecipientClientQuery(`${client.name} ${client.lastName}`);
@@ -673,10 +682,12 @@ export default function AdminDashboard() {
         senderName: "",
         senderLastName: "",
         senderDni: "",
+        senderDocumentType: "dni_peru",
         senderPhone: "",
         recipientName: "",
         recipientLastName: "",
         recipientDni: "",
+        recipientDocumentType: "dni_peru",
         recipientPhone: "",
         notes: "",
         shipmentType: "documento",
@@ -1605,16 +1616,7 @@ export default function AdminDashboard() {
                     {createForm.formState.errors.senderLastName?.message && <p className="text-xs text-red-600">{String(createForm.formState.errors.senderLastName.message)}</p>}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">DNI</label>
-                    <Input
-                      placeholder="DNI"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      maxLength={DNI_MAX_LENGTH}
-                      {...createForm.register("senderDni", digitsRegisterOptions(createForm, "senderDni"))}
-                      className="border-2 focus:border-primary"
-                    />
-                    <p className="mt-1 text-xs text-gray-500">Solo números, máximo 8 dígitos.</p>
+                    <IdentityDocumentField id="admin-sender-document" label="Documento de remitente" documentType={(createForm.watch("senderDocumentType") || "dni_peru") as IdentityDocumentType} onDocumentTypeChange={(value) => createForm.setValue("senderDocumentType", value, { shouldDirty: true, shouldValidate: true })} value={createForm.watch("senderDni") || ""} onValueChange={(value) => createForm.setValue("senderDni", value, { shouldDirty: true, shouldValidate: true })} />
                     {createForm.formState.errors.senderDni?.message && <p className="text-xs text-red-600">{String(createForm.formState.errors.senderDni.message)}</p>}
                   </div>
                   <div>
@@ -1666,16 +1668,7 @@ export default function AdminDashboard() {
                     {createForm.formState.errors.recipientLastName?.message && <p className="text-xs text-red-600">{String(createForm.formState.errors.recipientLastName.message)}</p>}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">DNI</label>
-                    <Input
-                      placeholder="DNI"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      maxLength={DNI_MAX_LENGTH}
-                      {...createForm.register("recipientDni", digitsRegisterOptions(createForm, "recipientDni"))}
-                      className="border-2 focus:border-primary"
-                    />
-                    <p className="mt-1 text-xs text-gray-500">Solo números, máximo 8 dígitos.</p>
+                    <IdentityDocumentField id="admin-recipient-document" label="Documento de destinatario" documentType={(createForm.watch("recipientDocumentType") || "dni_peru") as IdentityDocumentType} onDocumentTypeChange={(value) => createForm.setValue("recipientDocumentType", value, { shouldDirty: true, shouldValidate: true })} value={createForm.watch("recipientDni") || ""} onValueChange={(value) => createForm.setValue("recipientDni", value, { shouldDirty: true, shouldValidate: true })} />
                     {createForm.formState.errors.recipientDni?.message && <p className="text-xs text-red-600">{String(createForm.formState.errors.recipientDni.message)}</p>}
                   </div>
                   <div>

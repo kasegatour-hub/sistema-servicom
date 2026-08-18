@@ -13,7 +13,7 @@ import { AdminSessionPayload, clearAdminSession, getAdminSession, setAdminSessio
 import { admins } from "../drizzle/schema";
 import { consumeAdminPasswordResetCode, createAdminPasswordResetCode, getActiveAdminPasswordResetCode, getDb, incrementAdminPasswordResetAttempts, updateAdminPassword } from "./db";
 import { eq } from "drizzle-orm";
-import { optionalDniSchema, optionalPersonNameSchema, personNameSchema } from "./inputValidation";
+import { identityDocumentTypeSchema, identityDocumentValidationMessage, isIdentityDocumentValid, optionalIdentityDocumentNumberSchema, optionalPersonNameSchema, personNameSchema } from "./inputValidation";
 import { calculateAdminShipmentPricing } from "./adminPricing";
 import { applyCouponDiscount, isCouponCurrentlyValid, normalizeCouponCode } from "./couponPricing";
 import { isValidInternationalPhone } from "../shared/phoneValidation";
@@ -361,11 +361,13 @@ export const adminRouter = router({
       status: z.enum(["Por entregar en agencia", "En agencia", "En tránsito", "En destino", "Entregado"]),
       senderName: optionalPersonNameSchema,
       senderLastName: optionalPersonNameSchema,
-      senderDni: optionalDniSchema,
+      senderDni: optionalIdentityDocumentNumberSchema,
+      senderDocumentType: identityDocumentTypeSchema.default("dni_peru"),
       senderPhone: optionalInternationalPhoneSchema,
       recipientName: optionalPersonNameSchema,
       recipientLastName: optionalPersonNameSchema,
-      recipientDni: optionalDniSchema,
+      recipientDni: optionalIdentityDocumentNumberSchema,
+      recipientDocumentType: identityDocumentTypeSchema.default("dni_peru"),
       recipientPhone: optionalInternationalPhoneSchema,
       notes: z.string().optional(),
       shipmentType: z.enum(["documento", "encomienda"]).default("documento"),
@@ -385,6 +387,9 @@ export const adminRouter = router({
       couponCode: z.string().trim().max(64).optional(),
       contentChecklist: z.array(z.string().trim().min(1).max(160)).max(24).min(1, "La lista de cosas enviadas es obligatoria."),
       deliveryMode: z.enum(["agencia", "remoto"]).default("agencia"),
+    }).superRefine((input, ctx) => {
+      if (input.senderDni && !isIdentityDocumentValid(input.senderDni, input.senderDocumentType)) ctx.addIssue({ code: "custom", path: ["senderDni"], message: identityDocumentValidationMessage(input.senderDocumentType) });
+      if (input.recipientDni && !isIdentityDocumentValid(input.recipientDni, input.recipientDocumentType)) ctx.addIssue({ code: "custom", path: ["recipientDni"], message: identityDocumentValidationMessage(input.recipientDocumentType) });
     }))
     .mutation(async ({ input, ctx }) => {
       if (input.shipmentType === "encomienda" && input.route === "Lima - Torino" && !await isEncomiendaEnabledForRoute(input.route)) {
@@ -446,6 +451,8 @@ export const adminRouter = router({
         input.contentChecklist.length ? JSON.stringify(input.contentChecklist) : null,
         input.deliveryMode,
         { type: "admin", id: ctx.adminSession.adminId, label: creator?.name || (ctx.adminSession.role === "superadmin" ? "Master Admin" : "Registrador") },
+        input.senderDocumentType,
+        input.recipientDocumentType,
       );
       if (!result) {
         throw new TRPCError({
@@ -477,11 +484,11 @@ export const adminRouter = router({
       description: z.string().optional(),
       senderName: optionalPersonNameSchema,
       senderLastName: optionalPersonNameSchema,
-      senderDni: optionalDniSchema,
+      senderDni: optionalIdentityDocumentNumberSchema,
       senderPhone: optionalInternationalPhoneSchema,
       recipientName: optionalPersonNameSchema,
       recipientLastName: optionalPersonNameSchema,
-      recipientDni: optionalDniSchema,
+      recipientDni: optionalIdentityDocumentNumberSchema,
       recipientPhone: optionalInternationalPhoneSchema,
       notes: z.string().optional(),
       shipmentType: z.enum(["documento", "encomienda"]).optional(),

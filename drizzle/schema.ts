@@ -34,6 +34,7 @@ export const localAccounts = mysqlTable("local_accounts", {
   name: varchar("name", { length: 255 }),
   lastName: varchar("lastName", { length: 255 }),
   dni: varchar("dni", { length: 20 }),
+  documentType: mysqlEnum("documentType", ["dni_peru", "pasaporte", "carta_identita_italia"]).default("dni_peru").notNull(),
   emailVerifiedAt: timestamp("emailVerifiedAt"),
   phoneVerifiedAt: timestamp("phoneVerifiedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -48,6 +49,7 @@ export const clients = mysqlTable("clients", {
   name: varchar("name", { length: 255 }).notNull(),
   lastName: varchar("lastName", { length: 255 }).notNull(),
   dni: varchar("dni", { length: 20 }),
+  documentType: mysqlEnum("documentType", ["dni_peru", "pasaporte", "carta_identita_italia"]).default("dni_peru").notNull(),
   phone: varchar("phone", { length: 32 }),
   email: varchar("email", { length: 320 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -169,12 +171,14 @@ export const shipments = mysqlTable("shipments", {
   senderName: varchar("senderName", { length: 255 }),
   senderLastName: varchar("senderLastName", { length: 255 }),
   senderDni: varchar("senderDni", { length: 20 }),
+  senderDocumentType: mysqlEnum("senderDocumentType", ["dni_peru", "pasaporte", "carta_identita_italia"]).default("dni_peru").notNull(),
   senderPhone: varchar("senderPhone", { length: 20 }),
   
   // Destinatario (Recipient)
   recipientName: varchar("recipientName", { length: 255 }),
   recipientLastName: varchar("recipientLastName", { length: 255 }),
   recipientDni: varchar("recipientDni", { length: 20 }),
+  recipientDocumentType: mysqlEnum("recipientDocumentType", ["dni_peru", "pasaporte", "carta_identita_italia"]).default("dni_peru").notNull(),
   recipientPhone: varchar("recipientPhone", { length: 20 }),
   
   // Tipo de envío, peso, tarifa y notas

@@ -23,6 +23,8 @@ import { summarizeRevenue } from "@shared/revenueSummary";
 import { DocumentPricePreview } from "@/components/DocumentPricePreview";
 import { paginateItems } from "@/lib/pagination";
 import { GeneralFeedbackDialog } from "@/components/GeneralFeedbackDialog";
+import { IdentityDocumentField } from "@/components/IdentityDocumentField";
+import type { IdentityDocumentType } from "@shared/identityDocuments";
 
 const brandLogo = "/manus-storage/servicom_logo_final_e7ce35aa.png";
 
@@ -54,6 +56,7 @@ export default function AccountPage() {
   const [profileName, setProfileName] = useState("");
   const [profileLastName, setProfileLastName] = useState("");
   const [profileDni, setProfileDni] = useState("");
+  const [profileDocumentType, setProfileDocumentType] = useState<IdentityDocumentType>("dni_peru");
   const [profilePhone, setProfilePhone] = useState("");
   const [isEditingProfile, setIsEditingProfile] = useState(false);
 
@@ -80,6 +83,7 @@ export default function AccountPage() {
   const [recipientName, setRecipientName] = useState("");
   const [recipientLastName, setRecipientLastName] = useState("");
   const [recipientDni, setRecipientDni] = useState("");
+  const [recipientDocumentType, setRecipientDocumentType] = useState<IdentityDocumentType>("dni_peru");
   const [recipientPhone, setRecipientPhone] = useState("+51 ");
   const [notes, setNotes] = useState("");
   const [catalogDocuments, setCatalogDocuments] = useState<CatalogDocumentItem[]>([]);
@@ -122,6 +126,7 @@ export default function AccountPage() {
     setProfileName(me.name || "");
     setProfileLastName(me.lastName || "");
     setProfileDni(me.dni || "");
+    setProfileDocumentType((me.documentType || "dni_peru") as IdentityDocumentType);
     setProfilePhone(me.phone || "");
   }, [me]);
 
@@ -216,7 +221,7 @@ export default function AccountPage() {
       toast.error("Revisa los datos personales antes de guardar.");
       return;
     }
-    updateProfileMutation.mutate({ name: profileName.trim().replace(/\s+/g, " "), lastName: profileLastName.trim().replace(/\s+/g, " "), dni: profileDni.trim(), phone: profilePhone.trim() });
+    updateProfileMutation.mutate({ name: profileName.trim().replace(/\s+/g, " "), lastName: profileLastName.trim().replace(/\s+/g, " "), dni: profileDni.trim(), documentType: profileDocumentType, phone: profilePhone.trim() });
   };
 
   const changePasswordMutation = trpc.account.changePassword.useMutation({
@@ -442,10 +447,7 @@ export default function AccountPage() {
                   {identityErrors.profileLastName && <p className="text-xs text-red-600">{identityErrors.profileLastName}</p>}
                 </div>
                 <div>
-                  <Label>DNI</Label>
-                  <Input value={profileDni} onChange={e => updateDigitsValue("profileDni", e.target.value, setProfileDni)} placeholder="Ej: 71234567" inputMode="numeric" pattern="[0-9]*" maxLength={DNI_MAX_LENGTH} required className="mt-1" />
-                  <p className="mt-1 text-xs text-slate-500">Solo números, máximo 8 dígitos.</p>
-                  {identityErrors.profileDni && <p className="text-xs text-red-600">{identityErrors.profileDni}</p>}
+                  <IdentityDocumentField id="profile-document" label="Documento de identidad" documentType={profileDocumentType} onDocumentTypeChange={setProfileDocumentType} value={profileDni} onValueChange={setProfileDni} required />
                 </div>
                 <div>
                   <Label>Teléfono Celular / WhatsApp</Label>
@@ -537,10 +539,12 @@ export default function AccountPage() {
                   senderName: profileName || senderName,
                   senderLastName: profileLastName || senderLastName,
                   senderDni: profileDni || senderDni,
+                  senderDocumentType: profileDocumentType,
                   senderPhone: profilePhone || senderPhone,
                   recipientName,
                   recipientLastName,
                   recipientDni,
+                  recipientDocumentType,
                   recipientPhone,
                   notes,
                   contentChecklist: normalizedChecklist,
@@ -595,12 +599,7 @@ export default function AccountPage() {
                     <p className="mt-1 text-xs text-slate-500">Solo letras y espacios.</p>
                     {identityErrors.recipientLastName && <p className="text-xs text-red-600">{identityErrors.recipientLastName}</p>}
                   </div>
-                  <div>
-                    <Label>Destinatario - DNI</Label>
-                    <Input value={recipientDni} onChange={e => updateDigitsValue("recipientDni", e.target.value, setRecipientDni)} placeholder="Ej: 41234567" inputMode="numeric" pattern="[0-9]*" maxLength={DNI_MAX_LENGTH} required className="mt-1 bg-white" />
-                    <p className="mt-1 text-xs text-slate-500">Solo números, máximo 8 dígitos.</p>
-                    {identityErrors.recipientDni && <p className="text-xs text-red-600">{identityErrors.recipientDni}</p>}
-                  </div>
+                  <IdentityDocumentField id="recipient-document" label="Destinatario - documento de identidad" documentType={recipientDocumentType} onDocumentTypeChange={setRecipientDocumentType} value={recipientDni} onValueChange={setRecipientDni} required />
                   <div>
                     <Label>Destinatario - Teléfono</Label>
                     <div className="mt-1">

@@ -297,7 +297,7 @@ describe("AdminDashboard Nueva Encomienda", () => {
 
     expect((screen.getAllByPlaceholderText("Nombre")[0] as HTMLInputElement).value).toBe("Ana");
     expect((screen.getAllByPlaceholderText("Apellido")[0] as HTMLInputElement).value).toBe("Pérez");
-    expect((screen.getAllByPlaceholderText("DNI")[0] as HTMLInputElement).value).toBe("71234567");
+    expect((screen.getByLabelText("Documento de remitente - número de identificación") as HTMLInputElement).value).toBe("71234567");
   });
 
   it("submits document and parcel payloads through the administrative mutation", async () => {
@@ -349,7 +349,7 @@ describe("AdminDashboard Nueva Encomienda", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "Nuevo documento" })).toBeTruthy());
     fireEvent.click(screen.getByRole("button", { name: "Nuevo documento" }));
 
-    const senderDni = screen.getAllByPlaceholderText("DNI")[0] as HTMLInputElement;
+    const senderDni = screen.getByLabelText("Documento de remitente - número de identificación") as HTMLInputElement;
     fireEvent.change(senderDni, { target: { value: "1234567890" } });
 
     expect(senderDni.value).toBe("12345678");
