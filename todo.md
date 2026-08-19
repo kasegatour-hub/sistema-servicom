@@ -623,3 +623,9 @@
 - [x] Mostrar coincidencias de lugar de nacimiento y nacionalidad mientras se escribe, sin pulsar la lupa
 - [x] Cerrar el menú de sugerencias al cambiar de campo, sin borrar ni invalidar el texto escrito
 - [x] Añadir pruebas, compilar y publicar la corrección
+
+## Creación y acceso visible a Cartas de invitación
+- [x] Diagnosticar y corregir el error que impide crear cartas y el tiempo excesivo de la operación
+- [x] Reparar Abrir y Descargar PDF para las cartas guardadas
+- [x] Reubicar el historial de cartas en una zona visible y fácil de identificar
+- [x] Renombrar la acción principal de Guardar a Crear carta y añadir pruebas, validación y publicación

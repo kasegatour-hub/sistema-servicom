@@ -10,6 +10,7 @@ const deletedLettersQuery = vi.hoisted(() => ({ data: [] as any[], isLoading: fa
 const peopleSearchQuery = vi.hoisted(() => ({ data: [] as any[], isFetching: false }));
 const deleteMutation = vi.hoisted(() => ({ isPending: false, mutate: vi.fn(), onSuccess: undefined as undefined | ((value: any) => void) }));
 const restoreMutation = vi.hoisted(() => ({ isPending: false, mutate: vi.fn(), onSuccess: undefined as undefined | ((value: any) => void) }));
+const invitationDocumentMocks = vi.hoisted(() => ({ download: vi.fn(), print: vi.fn() }));
 
 vi.mock("@/lib/trpc", () => ({
   trpc: {
@@ -23,6 +24,10 @@ vi.mock("@/lib/trpc", () => ({
       searchInvitationPeople: { useQuery: () => peopleSearchQuery },
     },
   },
+}));
+vi.mock("@/lib/invitationLetter", () => ({
+  downloadInvitationLetterPdf: invitationDocumentMocks.download,
+  printInvitationLetter: invitationDocumentMocks.print,
 }));
 
 import { InvitationLetterWorkspace } from "./InvitationLetterWorkspace";
@@ -86,29 +91,44 @@ describe("InvitationLetterWorkspace", () => {
     fireEvent.change(screen.getAllByLabelText("Número de teléfono")[0], { target: { value: "970188447" } });
     fillDate("invitation-arrival", "01/09/2026"); fillDate("invitation-departure", "30/09/2026");
 
-    fireEvent.click(screen.getByRole("button", { name: /Guardar carta/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Crear carta" }));
     await waitFor(() => expect(translationMutation.mutate).toHaveBeenCalledTimes(1));
     translationMutation.onSuccess?.({ inviter: { birthPlace: "LIMA", nationality: "PERUVIANA", residencePermit: "PERMESSO", address: "VIA MURIAGLIO 12", occupation: "COMMERCIANTE" }, invitee: { birthPlace: "LIMA", nationality: "PERUVIANA", address: "LIMA, PERÙ", occupation: "STUDENTESSA" }, relationship: "FAMILIARE", purpose: "TURISMO", city: "TORINO" });
     await waitFor(() => expect(saveMutation.mutate).toHaveBeenCalledTimes(1));
     const savedVariables = saveMutation.mutate.mock.calls[0][0];
     saveMutation.onSuccess?.({ id: 19 }, savedVariables);
 
-    await waitFor(() => expect((screen.getByRole("button", { name: /Descargar carta PDF/ }) as HTMLButtonElement).disabled).toBe(false));
-    expect((screen.getByRole("button", { name: /Imprimir carta/ }) as HTMLButtonElement).disabled).toBe(false);
-    expect(screen.getByRole("status").textContent).toMatch(/Carta guardada/);
+    await waitFor(() => expect(screen.getByRole("tab", { name: /Cartas generadas \(0\)/ })).toBeTruthy());
+    expect(screen.getByRole("status").textContent).toMatch(/Carta creada/);
   });
 
-  it("lists saved letters in pages of six and restores a saved record", () => {
+  it("muestra pestañas visibles, lista cartas por páginas y abre una carta en el formulario", () => {
     const recordData = { inviter: { firstName: "ANA", lastName: "ROSSI", birthDate: "1970-01-01", birthPlace: "LIMA", nationality: "PERUANA", identityCard: "AA12345BB", passport: "AB123456", residencePermit: "PERMISO", address: "VIA 1", occupation: "COMERCIANTE", phone: "+51 970 188 447", email: "" }, invitee: { firstName: "MARIA", lastName: "BIANCHI", birthDate: "1995-01-01", birthPlace: "LIMA", nationality: "PERUANA", identityCard: "AA12345BB", passport: "AB123456", residencePermit: "", address: "LIMA", occupation: "ESTUDIANTE", phone: "+51 908 722 617", email: "" }, relationship: "FAMILIAR", purpose: "TURISMO", arrivalDate: "2026-09-01", departureDate: "2026-09-30", city: "TORINO", date: "2026-08-19", financialSupport: true, healthInsurance: true, financialGuarantee: false, inviteeIdAttached: true, financialGuaranteeAttached: false };
     const italian = { inviter: { birthPlace: "LIMA", nationality: "PERUVIANA", residencePermit: "PERMESSO", address: "VIA 1", occupation: "COMMERCIANTE" }, invitee: { birthPlace: "LIMA", nationality: "PERUVIANA", address: "LIMA", occupation: "STUDENTESSA" }, relationship: "FAMILIARE", purpose: "TURISMO", city: "TORINO" };
     lettersQuery.data = Array.from({ length: 7 }, (_, index) => ({ id: index + 1, inviterName: "ANA", inviterLastName: "ROSSI", inviteeName: `INVITADO${index + 1}`, inviteeLastName: "BIANCHI", createdAt: new Date(2026, 7, index + 1), letterData: JSON.stringify(recordData), italianData: JSON.stringify(italian) }));
     render(<InvitationLetterWorkspace />);
+    expect(screen.getByRole("tab", { name: "Crear carta" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Crear carta" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: /Cartas generadas \(7\)/ }));
     expect(screen.getByText(/INVITADO7/)).toBeTruthy();
     expect(screen.queryByText(/INVITADO1/)).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
     expect(screen.getByText(/INVITADO1/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Abrir" }));
     expect((document.getElementById("invitante-firstName") as HTMLInputElement).value).toBe("ANA");
+    expect(screen.getByLabelText(/Buscar invitante guardado/)).toBeTruthy();
+  });
+
+  it("descarga una carta directamente desde el historial visible", async () => {
+    const data = { inviter: { firstName: "ANA", lastName: "ROSSI" }, invitee: { firstName: "MARÍA", lastName: "BIANCHI" } };
+    const italian = { inviter: {}, invitee: {} };
+    lettersQuery.data = [{ id: 11, inviterName: "ANA", inviterLastName: "ROSSI", inviteeName: "MARÍA", inviteeLastName: "BIANCHI", createdAt: new Date(2026, 7, 19), letterData: JSON.stringify(data), italianData: JSON.stringify(italian) }];
+    render(<InvitationLetterWorkspace />);
+
+    fireEvent.click(screen.getByRole("tab", { name: /Cartas generadas \(1\)/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Descargar carta de MARÍA BIANCHI/ }));
+
+    await waitFor(() => expect(invitationDocumentMocks.download).toHaveBeenCalledWith(expect.objectContaining(data), italian));
   });
 
   it("sends a letter to the reversible trash and restores it from the trash panel", () => {
@@ -116,6 +136,7 @@ describe("InvitationLetterWorkspace", () => {
     lettersQuery.data = [record];
     deletedLettersQuery.data = [{ ...record, deletedAt: new Date(2026, 7, 20), deletedByAdminId: 4, deletedByAdminLabel: "OPERADOR TORINO" }];
     render(<InvitationLetterWorkspace />);
+    fireEvent.click(screen.getByRole("tab", { name: /Cartas generadas \(1\)/ }));
 
     fireEvent.click(screen.getByRole("button", { name: /Enviar a papelera la carta de MARIA BIANCHI/ }));
     expect(deleteMutation.mutate).toHaveBeenCalledWith({ id: 23 });

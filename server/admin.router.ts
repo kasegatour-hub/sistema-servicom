@@ -49,9 +49,15 @@ const invitationPersonSchema = z.object({
   phone: z.string().trim().min(1).max(32),
   email: z.string().trim().max(320),
 });
-const invitationLetterDataSchema = z.object({
+export const invitationInviteeSchema = invitationPersonSchema.extend({
+  identityCard: z.string().trim().max(255),
+  residencePermit: z.string().trim().max(255),
+  phone: z.string().trim().max(32),
+  email: z.string().trim().max(320),
+});
+export const invitationLetterDataSchema = z.object({
   inviter: invitationPersonSchema,
-  invitee: invitationPersonSchema,
+  invitee: invitationInviteeSchema,
   relationship: z.string().trim().min(1).max(255),
   purpose: z.string().trim().min(1).max(255),
   arrivalDate: z.string().trim().min(1).max(32),
