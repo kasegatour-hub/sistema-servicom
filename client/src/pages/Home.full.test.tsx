@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
 const trackedShipment = {
   id: 1,
@@ -86,5 +86,13 @@ describe("Home public page", () => {
     expect(screen.getByText("Torino - Lima")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Recojo en Lima, Perú" })).toBeTruthy();
     expect(screen.getAllByText(/Jr\. de la Unión Nro\. 518 Int\. S101/).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("limpia orden y código de la URL antes de rastrear otro envío", async () => {
+    window.history.replaceState({}, "", "/?order=7482897927&code=DOC-2026-OHU3M");
+    render(<Home />);
+    fireEvent.click(await screen.findByRole("button", { name: "Buscar otro envío" }));
+    expect(window.location.pathname).toBe("/");
+    expect(window.location.search).toBe("");
   });
 });

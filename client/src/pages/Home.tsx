@@ -206,7 +206,7 @@ export default function Home() {
     setSearchParams({ orderNumber: normalizedOrder, code: normalizedCode });
     // Update URL with search params
     const newUrl = buildTrackingPath(normalizedOrder, normalizedCode);
-    window.history.pushState({}, '', newUrl);
+    window.history.replaceState({}, '', newUrl);
   };
 
   const handleQRScan = (scannedData: string) => {
@@ -219,9 +219,12 @@ export default function Home() {
       if (order && code) {
         const normalizedOrder = normalizeTrackingValue(order);
         const normalizedCode = normalizeTrackingValue(code);
+        setShipmentData(null);
+        setQrCodeUrl(null);
+        setSearchError(null);
         reset({ orderNumber: normalizedOrder, code: normalizedCode });
         setSearchParams({ orderNumber: normalizedOrder, code: normalizedCode });
-        window.history.pushState({}, "", buildTrackingPath(normalizedOrder, normalizedCode));
+        window.history.replaceState({}, "", buildTrackingPath(normalizedOrder, normalizedCode));
         setScannerOpen(false);
       }
     } catch (err) {
@@ -491,6 +494,7 @@ export default function Home() {
                   setShipmentData(null);
                   setQrCodeUrl(null);
                   setSearchError(null);
+                  window.history.replaceState({}, "", window.location.pathname);
                 }}
                 variant="outline"
                 className="border-2 border-primary text-primary hover:bg-primary/5"

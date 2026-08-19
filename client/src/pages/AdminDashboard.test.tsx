@@ -109,6 +109,7 @@ vi.mock("@/lib/userReceipt", async (importOriginal) => {
 vi.mock("@/lib/adminReceiptDocument", () => ({
   downloadAdminReceiptPdf: adminReceiptDocumentMocks.download,
   buildAdminReceiptDocument: adminReceiptDocumentMocks.build,
+  printAdminReceiptPdf: vi.fn().mockResolvedValue("recibo-prueba.pdf"),
 }));
 
 import AdminDashboard from "./AdminDashboard";

@@ -35,6 +35,7 @@ describe("downloadAdminReceiptPdf", () => {
     expect(addImageMock).toHaveBeenCalledTimes(2);
     expect(saveMock).toHaveBeenCalledWith("recibo-encomienda-alessandro-gallo-moretti-orden-8582224585.pdf");
     expect(textMock).toHaveBeenCalledWith("SERVICOM INTERNACIONAL", 37, 14);
+    expect(textMock).toHaveBeenCalledWith("POLÍTICAS:", expect.any(Number), expect.any(Number));
     expect(textMock).toHaveBeenCalledWith("DECLARACIÓN JURADA DE CONTENIDO", 105, 46, { align: "center" });
   });
 });

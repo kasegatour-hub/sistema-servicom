@@ -93,7 +93,7 @@ export async function buildAdminReceiptDocument(input: AdminReceiptDocumentInput
   return { filename, contentHtml, html: `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${escapeHtml(filename)}</title><style>${ADMIN_RECEIPT_SHARED_STYLES}</style></head><body>${contentHtml}</body></html>` };
 }
 
-export async function downloadAdminReceiptPdf(input: AdminReceiptDocumentInput): Promise<string> {
+export async function downloadAdminReceiptPdf(input: AdminReceiptDocumentInput, options?: { printWindow?: Window | null }): Promise<string> {
   const { shipment } = input;
   if (!shipment?.orderNumber || !shipment?.code) throw new Error("Faltan la orden o el código del envío.");
   const { jsPDF } = await import("jspdf");
@@ -169,7 +169,8 @@ export async function downloadAdminReceiptPdf(input: AdminReceiptDocumentInput):
   y = addSection("Contenido y precio", y + 4);
   const checklist = getChecklist(shipment);
   y = addRows([["Lista de cosas", checklist.length ? checklist.join(" · ") : "Sin ítems registrados"], ["Notas", String(shipment.notes || "Sin notas")], ["Precio final", `${Number(shipment.finalPriceEur ?? shipment.basePriceEur ?? 0).toFixed(2)} EUR`]], y);
-  if (y > 236) { pdf.addPage(); topBrand("Comprobante de envío · RUC 20615004708"); y = 40; }
+  // QR y políticas deben permanecer en la primera hoja, junto con el comprobante.
+  y = Math.min(y, 230);
   pdf.addImage(trackingQr, "PNG", left, y + 2, 35, 35);
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(9);
@@ -178,6 +179,17 @@ export async function downloadAdminReceiptPdf(input: AdminReceiptDocumentInput):
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(8);
   pdf.text(`Orden ${order} · Código ${code}`, left + 43, y + 22);
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(9);
+  pdf.text("POLÍTICAS:", left + 78, y + 8);
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(7.5);
+  pdf.text([
+    "• Retiro: hasta 48h posterior a llegada.",
+    "• Almacenaje diario superado el plazo.",
+    "• Abandono: después de 30 días.",
+    "• Prohibido envío de ilícitos.",
+  ], left + 78, y + 14);
 
   pdf.addPage();
   topBrand(`Control de entrega · ${route.route}`);
@@ -224,6 +236,28 @@ export async function downloadAdminReceiptPdf(input: AdminReceiptDocumentInput):
   pdf.setFontSize(8.5);
   pdf.text("Firma del remitente", left + 35, y + 6, { align: "center" });
   pdf.text("Firma y sello de agencia", right - 35, y + 6, { align: "center" });
-  pdf.save(filename);
+  if (options?.printWindow) {
+    const printWindow = options.printWindow;
+    printWindow.location.href = String(pdf.output("bloburl"));
+    window.setTimeout(() => {
+      if (!printWindow.closed) {
+        printWindow.focus();
+        printWindow.print();
+      }
+    }, 500);
+  } else {
+    pdf.save(filename);
+  }
   return filename;
+}
+
+export async function printAdminReceiptPdf(input: AdminReceiptDocumentInput): Promise<string> {
+  const printWindow = window.open("", "_blank", "width=900,height=900");
+  if (!printWindow) throw new Error("Permite las ventanas emergentes para imprimir el comprobante.");
+  try {
+    return await downloadAdminReceiptPdf(input, { printWindow });
+  } catch (error) {
+    printWindow.close();
+    throw error;
+  }
 }
