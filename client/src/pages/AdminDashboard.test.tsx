@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   updateStatus: { isPending: false, mutateAsync: vi.fn() },
   deleteShipment: { isPending: false, mutateAsync: vi.fn() },
   setShipmentRegistradorVisibility: { isPending: false, mutateAsync: vi.fn() },
+  reportPdfDownloadFailure: { isPending: false, mutate: vi.fn() },
   restoreShipment: { isPending: false, mutate: vi.fn() },
   createAdmin: { isPending: false, mutateAsync: vi.fn() },
   deleteAdmin: { isPending: false, mutateAsync: vi.fn() },
@@ -72,6 +73,7 @@ vi.mock("@/lib/trpc", () => ({
       updateStatus: { useMutation: () => mocks.updateStatus },
       deleteShipment: { useMutation: () => mocks.deleteShipment },
       setShipmentRegistradorVisibility: { useMutation: () => mocks.setShipmentRegistradorVisibility },
+      reportPdfDownloadFailure: { useMutation: () => mocks.reportPdfDownloadFailure },
       restoreShipment: { useMutation: () => mocks.restoreShipment },
       createAdmin: { useMutation: () => mocks.createAdmin },
       deleteAdmin: { useMutation: () => mocks.deleteAdmin },
@@ -281,6 +283,20 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "Descargar PDF" }).at(-1)!);
     await waitFor(() => expect(adminReceiptDocumentMocks.download).toHaveBeenCalledWith(expect.objectContaining({ shipment, origin: window.location.origin })));
     expect(screen.queryByText("Vista Previa de Recibo")).toBeNull();
+  });
+
+  it("reintenta automáticamente una descarga PDF administrativa que falla de forma transitoria", async () => {
+    const shipment = { id: 76, shipmentType: "documento", recipientName: "Luis", recipientLastName: "Mendoza", status: "En agencia", paymentStatus: "Pagado", createdAt: new Date("2026-08-18T10:00:00.000Z"), orderNumber: "8002224585", code: "DOC-2026-RETRY", events: [] };
+    mocks.shipments = [shipment];
+    adminReceiptDocumentMocks.download.mockRejectedValueOnce(new Error("Fallo temporal")).mockResolvedValueOnce("recibo-documento-luis-mendoza-orden-8002224585.pdf");
+    render(<AdminDashboard />);
+    fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
+    fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Descargar PDF" })).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "Descargar PDF" }));
+    await waitFor(() => expect(adminReceiptDocumentMocks.download).toHaveBeenCalledTimes(2));
+    expect(mocks.reportPdfDownloadFailure.mutate).not.toHaveBeenCalled();
   });
 
   it("hides, orders and paginates promotional coupons five at a time", async () => {

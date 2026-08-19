@@ -94,27 +94,136 @@ export async function buildAdminReceiptDocument(input: AdminReceiptDocumentInput
 }
 
 export async function downloadAdminReceiptPdf(input: AdminReceiptDocumentInput): Promise<string> {
-  const { filename, contentHtml } = await buildAdminReceiptDocument(input);
-  const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import("html2canvas"), import("jspdf")]);
-  const host = document.createElement("div");
-  host.style.cssText = "position:fixed;left:0;top:0;width:794px;background:#fff;z-index:-1;pointer-events:none";
-  host.innerHTML = `<style>${ADMIN_RECEIPT_SHARED_STYLES}</style>${contentHtml}`;
-  document.body.appendChild(host);
-  try {
-    await prepareReceiptImagesForCanvas(host);
-    const images = Array.from(host.querySelectorAll<HTMLImageElement>("img"));
-    await Promise.all(images.map((image) => image.complete ? Promise.resolve() : new Promise<void>((resolve) => { image.addEventListener("load", () => resolve(), { once: true }); image.addEventListener("error", () => resolve(), { once: true }); })));
-    const pages = Array.from(host.querySelectorAll<HTMLElement>(".receipt-page"));
-    const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
-    for (let index = 0; index < pages.length; index += 1) {
-      const canvas = await html2canvas(pages[index], { scale: 1.5, useCORS: true, allowTaint: false, backgroundColor: "#ffffff", logging: false });
-      if (!canvas.width || !canvas.height) throw new Error(`No se pudo renderizar la página ${index + 1} del comprobante.`);
-      if (index > 0) pdf.addPage();
-      pdf.addImage(canvas.toDataURL("image/jpeg", 0.94), "JPEG", 0, 0, 210, 297, undefined, "FAST");
-    }
-    pdf.save(`${filename}.pdf`);
-    return `${filename}.pdf`;
-  } finally {
-    host.remove();
-  }
+  const { shipment } = input;
+  if (!shipment?.orderNumber || !shipment?.code) throw new Error("Faltan la orden o el código del envío.");
+  const { jsPDF } = await import("jspdf");
+  const order = String(shipment.orderNumber);
+  const code = String(shipment.code);
+  const sender = `${shipment.senderName || ""} ${shipment.senderLastName || ""}`.trim() || "No especificado";
+  const recipient = `${shipment.recipientName || ""} ${shipment.recipientLastName || ""}`.trim() || "No especificado";
+  const route = getRoutePresentation(shipment.route);
+  const paymentLabel = shipment.paymentStatus === "Pagado" ? "Pagado" : shipment.paymentStatus === "Falta cancelar" ? "No cancelado" : "Sin marcar";
+  const shipmentLabel = shipment.shipmentType === "encomienda" ? "ENCOMIENDA" : "DOCUMENTO";
+  const filename = `${buildReceiptDownloadFilename({ recipientName: shipment.recipientName, recipientLastName: shipment.recipientLastName, recipientDisplayName: recipient, orderNumber: order, shipmentType: shipment.shipmentType })}.pdf`;
+  const [trackingQr, deliveryQr] = await Promise.all([
+    QRCode.toDataURL(buildTrackingUrl(order, code, input.origin), { ...TRACKING_QR_OPTIONS, width: 220, margin: 1, color: { dark: "#0B2B5E", light: "#ffffff" } }),
+    QRCode.toDataURL(buildShipmentDeliveryStatusUrl(order, code, input.origin), { ...TRACKING_QR_OPTIONS, width: 180, margin: 1, color: { dark: "#0B2B5E", light: "#ffffff" } }),
+  ]);
+  const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
+  const left = 16;
+  const right = 194;
+  const width = right - left;
+  const topBrand = (subtitle: string) => {
+    pdf.setFillColor(11, 43, 94);
+    pdf.rect(0, 0, 210, 28, "F");
+    pdf.setFillColor(242, 140, 0);
+    pdf.rect(left, 7, 16, 14, "F");
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(7.5);
+    pdf.text("SI", left + 8, 16, { align: "center" });
+    pdf.setFontSize(16);
+    pdf.text("SERVICOM INTERNACIONAL", left + 21, 14);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(8);
+    pdf.text(subtitle, left + 21, 20);
+    pdf.setTextColor(11, 43, 94);
+  };
+  const addSection = (title: string, y: number) => {
+    pdf.setFillColor(242, 140, 0);
+    pdf.rect(left, y - 4, 2.5, 7, "F");
+    pdf.setTextColor(11, 43, 94);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(10.5);
+    pdf.text(title.toUpperCase(), left + 5, y);
+    return y + 7;
+  };
+  const addRows = (rows: Array<[string, string]>, startY: number) => {
+    let y = startY;
+    rows.forEach(([label, value]) => {
+      const valueLines = pdf.splitTextToSize(value || "No especificado", 116);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(8.5);
+      pdf.setTextColor(51, 65, 85);
+      pdf.text(`${label}:`, left, y);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(15, 23, 42);
+      pdf.text(valueLines, left + 44, y);
+      y += Math.max(5.5, valueLines.length * 4.2 + 1);
+    });
+    return y;
+  };
+
+  topBrand("Comprobante de envío · RUC 20615004708");
+  let y = 39;
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(14);
+  pdf.text(`INFORMACIÓN DE ENVÍO DE ${shipmentLabel}`, left, y);
+  y += 10;
+  y = addSection("Ruta y comprobante", y);
+  y = addRows([["Ruta", route.route], ["Orden", order], ["Código", code], ["Estado", String(shipment.status || "No especificado")], ["Estado de pago", paymentLabel]], y);
+  y = addSection("Datos del remitente", y + 4);
+  y = addRows([["Remitente", sender], ["Documento", String(shipment.senderDni || "No especificado")], ["Celular", formatPhoneNumber(shipment.senderPhone) || "No especificado"]], y);
+  y = addSection("Datos del destinatario", y + 4);
+  y = addRows([["Destinatario", recipient], ["Documento", String(shipment.recipientDni || "No especificado")], ["Celular", formatPhoneNumber(shipment.recipientPhone) || "No especificado"], ["Sede de entrega", `${route.destinationPrintLabel} · ${route.destination.officeLabel}`], ["Dirección", route.destination.address]], y);
+  y = addSection("Contenido y precio", y + 4);
+  const checklist = getChecklist(shipment);
+  y = addRows([["Lista de cosas", checklist.length ? checklist.join(" · ") : "Sin ítems registrados"], ["Notas", String(shipment.notes || "Sin notas")], ["Precio final", `${Number(shipment.finalPriceEur ?? shipment.basePriceEur ?? 0).toFixed(2)} EUR`]], y);
+  if (y > 236) { pdf.addPage(); topBrand("Comprobante de envío · RUC 20615004708"); y = 40; }
+  pdf.addImage(trackingQr, "PNG", left, y + 2, 35, 35);
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(9);
+  pdf.setTextColor(11, 43, 94);
+  pdf.text("Escanea para rastrear el envío", left + 43, y + 15);
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(8);
+  pdf.text(`Orden ${order} · Código ${code}`, left + 43, y + 22);
+
+  pdf.addPage();
+  topBrand(`Control de entrega · ${route.route}`);
+  y = 40;
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(14);
+  pdf.text(`CONTROL DE ENTREGA — ${route.deliveryTitle}`, left, y);
+  y = addSection(`Información de envío de ${shipmentLabel}`, y + 12);
+  y = addRows([["Orden", order], ["Código", code], ["Ruta", route.route], ["Remitente", sender], ["Celular remitente", formatPhoneNumber(shipment.senderPhone) || "No especificado"], ["Destinatario", recipient], ["Celular destinatario", formatPhoneNumber(shipment.recipientPhone) || "No especificado"], ["Notas", String(shipment.notes || "Sin notas")], ["Precio final", `${Number(shipment.finalPriceEur ?? shipment.basePriceEur ?? 0).toFixed(2)} EUR`]], y);
+  pdf.addImage(deliveryQr, "PNG", right - 45, 208, 38, 38);
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(9);
+  pdf.text("QR para actualizar estado", right - 26, 252, { align: "center" });
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(8);
+  pdf.text("Recortar y adjuntar al envío", right - 26, 258, { align: "center" });
+
+  pdf.addPage();
+  topBrand("Declaración jurada · RUC 20615004708");
+  y = 46;
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(15);
+  pdf.text("DECLARACIÓN JURADA DE CONTENIDO", 105, y, { align: "center" });
+  pdf.setFontSize(11);
+  pdf.text("Y EXENCIÓN DE RESPONSABILIDAD LEGAL", 105, y + 7, { align: "center" });
+  y += 22;
+  const declaration = [
+    `Yo, ${sender}, identificado(a) con documento N° ${shipment.senderDni || "No especificado"}, declaro bajo juramento que el envío amparado bajo la Orden N° ${order} (Código: ${code}) contiene única y estrictamente documentación lícita.`,
+    "Garantizo que el envío no contiene sustancias ilícitas, dinero no declarado ni materiales prohibidos por la legislación aplicable y los convenios aduaneros internacionales vigentes.",
+    `Eximo expresa y legalmente de responsabilidad a Servicom Internacional en colaboración con Kasega Tour E.I.R.L. (RUC: 20615004708). Autorizo la revisión física y el escaneo del envío por la agencia y autoridades competentes.`,
+    `Suscrito en ${route.originPrintLabel}, el ${new Date().toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" })}.`,
+  ];
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(10);
+  declaration.forEach((paragraph) => {
+    const lines = pdf.splitTextToSize(paragraph, width);
+    pdf.text(lines, left, y);
+    y += lines.length * 4.8 + 7;
+  });
+  y += 18;
+  pdf.setDrawColor(11, 43, 94);
+  pdf.line(left, y, left + 70, y);
+  pdf.line(right - 70, y, right, y);
+  pdf.setFontSize(8.5);
+  pdf.text("Firma del remitente", left + 35, y + 6, { align: "center" });
+  pdf.text("Firma y sello de agencia", right - 35, y + 6, { align: "center" });
+  pdf.save(filename);
+  return filename;
 }

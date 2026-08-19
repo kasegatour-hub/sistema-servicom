@@ -828,4 +828,32 @@ export const adminRouter = router({
       await db.update(admins).set({ password: await hashPassword(input.newPassword) }).where(eq(admins.id, input.id));
       return { success: true, message: "Contraseña del Registrador actualizada correctamente." };
     }),
+
+  reportPdfDownloadFailure: adminProcedure
+    .input(z.object({
+      shipmentId: z.number().int().positive().optional(),
+      orderNumber: z.string().trim().max(64),
+      code: z.string().trim().max(64),
+      message: z.string().trim().min(1).max(500),
+      attempts: z.number().int().min(1).max(3),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const report = {
+        shipmentId: input.shipmentId ?? null,
+        orderNumber: input.orderNumber,
+        code: input.code,
+        attempts: input.attempts,
+        message: input.message,
+        actorId: ctx.adminSession.adminId,
+      };
+      console.error("[PDF_DOWNLOAD_FAILURE]", report);
+      await recordInteractionEvent({
+        actorType: "admin",
+        actorId: ctx.adminSession.adminId,
+        eventName: "pdf_download_failed",
+        surface: "admin",
+        metadata: { shipmentId: input.shipmentId ?? null, orderNumber: input.orderNumber, code: input.code, attempts: input.attempts, message: input.message },
+      });
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "El fallo de descarga PDF fue registrado para su atención automática." });
+    }),
 });

@@ -398,6 +398,7 @@ export default function AdminDashboard() {
   const updateMutation = trpc.admin.updateStatus.useMutation();
   const deleteMutation = trpc.admin.deleteShipment.useMutation();
   const setShipmentRegistradorVisibilityMutation = trpc.admin.setShipmentRegistradorVisibility.useMutation();
+  const reportPdfDownloadFailureMutation = trpc.admin.reportPdfDownloadFailure.useMutation();
   const restoreMutation = trpc.admin.restoreShipment.useMutation({
     onSuccess: async () => { toast.success("Envío restaurado correctamente."); await refetchDeletedShipments(); await refetchShipments(); },
     onError: error => toast.error(error.message),
@@ -1168,13 +1169,32 @@ export default function AdminDashboard() {
     setPrintShipment(null);
     try {
       const filename = receiptDownloadFormat === "pdf"
-        ? await downloadAdminReceiptPdf({ shipment: shipmentToDownload, signature: shipmentToDownload.signature, limaTorinoEncomiendasEnabled, origin: window.location.origin })
+        ? await downloadAdministrativePdfWithRetry(shipmentToDownload, shipmentToDownload.signature)
         : await downloadShipmentReceipt(shipmentToDownload, receiptDownloadFormat);
       toast.success(`Archivo descargado: ${filename}`);
     } catch (error) {
       console.error("No se pudo descargar el comprobante administrativo", error);
-      toast.error("No se pudo generar el archivo. Inténtalo nuevamente.");
+      reportPdfDownloadFailure(shipmentToDownload, error);
+      toast.error("No se pudo generar el archivo tras un reintento automático. El fallo fue registrado.");
     }
+  };
+
+  const downloadAdministrativePdfWithRetry = async (shipment: any, signature?: any) => {
+    let lastError: unknown;
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      try {
+        return await downloadAdminReceiptPdf({ shipment, signature, limaTorinoEncomiendasEnabled, origin: window.location.origin });
+      } catch (error) {
+        lastError = error;
+        if (attempt === 1) await new Promise(resolve => window.setTimeout(resolve, 250));
+      }
+    }
+    throw lastError instanceof Error ? lastError : new Error("La exportación PDF falló después del reintento automático.");
+  };
+
+  const reportPdfDownloadFailure = (shipment: any, error: unknown) => {
+    const message = error instanceof Error ? error.message : "Error desconocido al generar el comprobante.";
+    reportPdfDownloadFailureMutation.mutate({ shipmentId: typeof shipment?.id === "number" ? shipment.id : undefined, orderNumber: String(shipment?.orderNumber || "sin-orden"), code: String(shipment?.code || "sin-codigo"), message, attempts: 2 });
   };
 
   const downloadAdministrativePdf = async (shipment: any) => {
@@ -1185,12 +1205,12 @@ export default function AdminDashboard() {
       } catch {
         // La descarga puede continuar con los datos que ya se muestran en la lista.
       }
-      const filename = await downloadAdminReceiptPdf({ shipment: shipmentToDownload, signature: shipmentToDownload.signature || shipment.signature, limaTorinoEncomiendasEnabled, origin: window.location.origin });
+      const filename = await downloadAdministrativePdfWithRetry(shipmentToDownload, shipmentToDownload.signature || shipment.signature);
       toast.success(`PDF descargado: ${filename}`);
     } catch (error) {
       console.error("No se pudo descargar el comprobante administrativo", error);
-      const detail = error instanceof Error ? error.message : "";
-      toast.error(detail ? `No se pudo generar el PDF: ${detail}` : "No se pudo generar el PDF. Inténtalo nuevamente.");
+      reportPdfDownloadFailure(shipment, error);
+      toast.error("No se pudo generar el PDF tras un reintento automático. El fallo fue registrado para su atención.");
     }
   };
 

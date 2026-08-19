@@ -646,3 +646,9 @@
 - [x] Diagnosticar el error de generación al descargar un comprobante desde la tabla administrativa
 - [x] Reparar la generación y descarga del PDF del envío seleccionado
 - [x] Añadir pruebas de regresión, validar y publicar la corrección
+
+## Robustez de descarga PDF y anomalías de producción
+- [x] Recopilar el error real de la descarga PDF que persiste en producción
+- [x] Sustituir el flujo frágil de exportación del navegador por una generación PDF robusta
+- [x] Reintentar automáticamente una descarga recuperable y registrar fallos inesperados como respuesta HTTP 500
+- [x] Validar el flujo en producción, añadir pruebas de regresión y publicar la solución
