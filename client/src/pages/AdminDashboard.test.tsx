@@ -303,7 +303,7 @@ describe("AdminDashboard Nueva Encomienda", () => {
       recipientName: `Cliente ${index + 1}`,
       recipientLastName: "Prueba",
       recipientDni: `7000000${index}`,
-      status: index === 6 ? "En destino" : "En agencia",
+      status: index === 6 ? "Entregado" : "En agencia",
       paymentStatus: index % 2 === 0 ? "Pagado" : "Falta cancelar",
       createdAt: new Date(`2026-08-${String(index + 1).padStart(2, "0")}T10:00:00.000Z`),
       orderNumber: `35209927${index}`,
@@ -320,9 +320,24 @@ describe("AdminDashboard Nueva Encomienda", () => {
     expect(screen.queryByText("Cliente 1 Prueba")).toBeNull();
     fireEvent.change(screen.getByLabelText("Filtro de pago"), { target: { value: "paid" } });
     expect(screen.getByText("Cliente 7 Prueba")).toBeTruthy();
-    fireEvent.change(screen.getByLabelText("Filtro de estado del envío"), { target: { value: "En destino" } });
+    const logisticsSelect = screen.getByLabelText("Filtro de estado del envío") as HTMLSelectElement;
+    expect(Array.from(logisticsSelect.options).map(option => option.value)).toContain("Entregado");
+    fireEvent.change(logisticsSelect, { target: { value: "Entregado" } });
     expect(screen.getByText("Cliente 7 Prueba")).toBeTruthy();
     expect(screen.queryByText("Cliente 5 Prueba")).toBeNull();
+  });
+
+  it("mantiene la calculadora disponible al cambiar de área de trabajo", async () => {
+    render(<AdminDashboard />);
+    fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
+    fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
+
+    const calculatorButton = await screen.findByRole("button", { name: "Calculadora" });
+    fireEvent.click(calculatorButton);
+    expect(screen.getByLabelText("Operación de calculadora")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Cupones" }));
+    expect(screen.getByLabelText("Operación de calculadora")).toBeTruthy();
   });
 
   it("keeps the trash encapsulated and paginates filtered deleted records", async () => {

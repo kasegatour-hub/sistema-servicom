@@ -572,3 +572,10 @@
 - [x] Mantener años de cuatro dígitos y ajustar los anexos editables al formato de referencia aportado
 - [x] Verificar descarga PDF real, impresión, papelera reversible y restauración sin borrar registros
 - [x] Añadir pruebas, compilar y publicar la corrección
+
+## Operación QR, filtros y rediseño persistente
+- [x] Verificar el flujo QR publicado desde el control de entrega y mejorar su respuesta dentro de los límites de cámara, dispositivo y red
+- [x] Añadir el estado Entregado a los filtros logísticos, preservando la combinación con Pagado
+- [x] Convertir la calculadora científica en una herramienta flotante persistente para Registrador y Master Admin
+- [x] Analizar los PDF aportados sobre usabilidad y factores humanos, y aplicar sus principios al rediseño operativo
+- [x] Añadir pruebas, verificación responsive, compilación y publicación

@@ -12,7 +12,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import { Lock, LogOut, Plus, RefreshCw, Download, Printer, RotateCcw, Search, Trash2, MessageSquare } from "lucide-react";
+import { Lock, LogOut, Plus, RefreshCw, Download, Printer, RotateCcw, Search, Trash2, MessageSquare, Calculator } from "lucide-react";
 import QRCode from "qrcode";
 import { buildShipmentManagementUrl, buildTrackingUrl, normalizeTrackingValue, TRACKING_QR_OPTIONS } from "@/lib/tracking";
 import { PhoneInput } from "@/components/PhoneInput";
@@ -1472,9 +1472,6 @@ export default function AdminDashboard() {
               <p className="mt-1 text-sm text-slate-500">Elige directamente qué deseas registrar.</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="outline" onClick={() => setShowCalculator(value => !value)} aria-expanded={showCalculator} aria-controls="admin-scientific-calculator">
-                {showCalculator ? "Cerrar calculadora" : "Calculadora científica"}
-              </Button>
               <Button type="button" onClick={() => openCreateForm("documento")} className="bg-primary text-white hover:bg-primary/90">
                 <Plus className="mr-2 h-4 w-4" /> Nuevo documento
               </Button>
@@ -1483,29 +1480,6 @@ export default function AdminDashboard() {
               </Button>
             </div>
           </div>
-
-          {showCalculator && (
-            <div id="admin-scientific-calculator" className="mt-4 max-w-md rounded-xl border border-[#0B2B5E]/20 bg-slate-50 p-4 shadow-sm">
-              <div className="mb-3 flex items-start justify-between gap-3">
-                <div>
-                  <h3 className="font-semibold text-[#0B2B5E]">Calculadora científica</h3>
-                  <p className="mt-1 text-xs text-slate-600">Funciones en radianes: sin, cos, tan, log, ln, √ y abs.</p>
-                </div>
-                <Button type="button" size="sm" variant="outline" onClick={() => { setCalculatorExpression(""); setCalculatorResult(""); }}>Limpiar</Button>
-              </div>
-              <form onSubmit={(event) => { event.preventDefault(); calculateScientificExpression(); }}>
-                <Input aria-label="Operación de calculadora" value={calculatorExpression} onChange={(event) => { setCalculatorExpression(event.target.value); setCalculatorResult(""); }} placeholder="Ej. (13.5 × 2) + 10" className="bg-white font-mono" />
-                <div className="mt-3 grid grid-cols-5 gap-2">
-                  {["sin(", "cos(", "tan(", "log(", "ln(", "sqrt(", "abs(", "pi", "(", ")", "7", "8", "9", "÷", "^", "4", "5", "6", "×", "-", "1", "2", "3", "+", ".", "0", "00"].map(value => (
-                    <Button key={value} type="button" size="sm" variant="outline" onClick={() => appendCalculatorValue(value)} className="bg-white font-mono">{value === "sqrt(" ? "√(" : value}</Button>
-                  ))}
-                  <Button type="button" size="sm" variant="outline" onClick={() => { setCalculatorExpression(value => value.slice(0, -1)); setCalculatorResult(""); }} className="bg-white">⌫</Button>
-                  <Button type="submit" size="sm" className="col-span-2 bg-[#F28C00] text-white hover:bg-[#d97800]">=</Button>
-                </div>
-              </form>
-              <p aria-live="polite" className={`mt-3 min-h-5 text-sm font-semibold ${calculatorResult.startsWith("Resultado") ? "text-emerald-700" : "text-red-700"}`}>{calculatorResult}</p>
-            </div>
-          )}
 
           {adminInsights && adminWorkspace === "analitica" && (
             <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -2016,6 +1990,7 @@ export default function AdminDashboard() {
                 <option value="En agencia">En agencia</option>
                 <option value="En tránsito">En tránsito</option>
                 <option value="En destino">En destino</option>
+                <option value="Entregado">Entregado</option>
               </select>
               <Button
                 onClick={async () => {
@@ -2401,6 +2376,33 @@ export default function AdminDashboard() {
             </Card>
           </div>
         )}
+        <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-3 print:hidden" aria-label="Herramientas operativas">
+          {showCalculator && (
+            <section id="admin-scientific-calculator" aria-label="Calculadora científica" className="w-[min(23rem,calc(100vw-2rem))] rounded-2xl border border-[#0B2B5E]/20 bg-white p-4 shadow-2xl">
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="flex items-center gap-2 font-semibold text-[#0B2B5E]"><Calculator className="h-4 w-4" /> Calculadora científica</h3>
+                  <p className="mt-1 text-xs text-slate-600">Funciones en radianes: sin, cos, tan, log, ln, √ y abs.</p>
+                </div>
+                <div className="flex shrink-0 gap-1"><Button type="button" size="sm" variant="outline" onClick={() => { setCalculatorExpression(""); setCalculatorResult(""); }}>Limpiar</Button><Button type="button" size="sm" variant="outline" aria-label="Cerrar calculadora" onClick={() => setShowCalculator(false)}>×</Button></div>
+              </div>
+              <form onSubmit={(event) => { event.preventDefault(); calculateScientificExpression(); }}>
+                <Input aria-label="Operación de calculadora" inputMode="decimal" value={calculatorExpression} onChange={(event) => { setCalculatorExpression(event.target.value); setCalculatorResult(""); }} placeholder="Ej. (13.5 × 2) + 10" className="bg-white font-mono" />
+                <div className="mt-3 grid grid-cols-5 gap-2">
+                  {["sin(", "cos(", "tan(", "log(", "ln(", "sqrt(", "abs(", "pi", "(", ")", "7", "8", "9", "÷", "^", "4", "5", "6", "×", "-", "1", "2", "3", "+", ".", "0", "00"].map(value => (
+                    <Button key={value} type="button" size="sm" variant="outline" onClick={() => appendCalculatorValue(value)} className="bg-slate-50 font-mono hover:bg-blue-50">{value === "sqrt(" ? "√(" : value}</Button>
+                  ))}
+                  <Button type="button" size="sm" variant="outline" onClick={() => { setCalculatorExpression(value => value.slice(0, -1)); setCalculatorResult(""); }} className="bg-slate-50">⌫</Button>
+                  <Button type="submit" size="sm" className="col-span-2 bg-[#F28C00] text-white hover:bg-[#d97800]">=</Button>
+                </div>
+              </form>
+              <p aria-live="polite" className={`mt-3 min-h-5 text-sm font-semibold ${!calculatorResult ? "text-slate-500" : calculatorResult.startsWith("Resultado") ? "text-emerald-700" : "text-red-700"}`}>{calculatorResult || "Escribe una operación para calcular."}</p>
+            </section>
+          )}
+          <Button type="button" onClick={() => setShowCalculator(value => !value)} aria-expanded={showCalculator} aria-controls="admin-scientific-calculator" className="h-12 rounded-full bg-[#0B2B5E] px-4 text-white shadow-lg hover:bg-[#123b78]">
+            <Calculator className="mr-2 h-5 w-5" /><span>{showCalculator ? "Ocultar" : "Calculadora"}</span>
+          </Button>
+        </div>
         <GeneralFeedbackDialog open={showGeneralFeedback} onOpenChange={setShowGeneralFeedback} />
       </main>
     </div>
