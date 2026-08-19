@@ -658,3 +658,9 @@
 - [x] Permitir mostrar u ocultar la contraseña mientras se escribe en todos los ingresos de sesión
 - [x] Reforzar mensajes visibles de carga, éxito y error durante el inicio de sesión
 - [x] Añadir pruebas, validar la interfaz y publicar los ajustes
+
+## Límite de intentos de contraseña
+- [x] Limitar a cinco intentos fallidos de contraseña por sesión de acceso o reautenticación
+- [x] Bloquear nuevos intentos durante 60 segundos y mostrar una cuenta regresiva clara
+- [x] Restablecer el contador tras una verificación correcta y añadir pruebas de regresión
+- [x] Validar y publicar la protección de acceso

@@ -34,6 +34,7 @@ const brandLogo = "/manus-storage/servicom_logo_final_e7ce35aa.png";
 
 type AccountMode = "login" | "register" | "request" | "reset";
 type ClientWorkspace = "envios" | "registrar" | "papelera" | "perfil" | "seguridad" | "resumen" | "analitica";
+const getLockoutSecondsFromMessage = (message: string) => Number(message.match(/espera\s+(\d+)\s+segundos/i)?.[1] || 0);
 
 export default function AccountPage() {
   const [mode, setMode] = useState<AccountMode>("login");
@@ -56,6 +57,8 @@ export default function AccountPage() {
   const [showGeneralFeedback, setShowGeneralFeedback] = useState(false);
   const [reauthPassword, setReauthPassword] = useState("");
   const [showReauthPassword, setShowReauthPassword] = useState(false);
+  const [loginLockSeconds, setLoginLockSeconds] = useState(0);
+  const [reauthLockSeconds, setReauthLockSeconds] = useState(0);
 
   // Perfil con modo de visualización y edición
   const [profileName, setProfileName] = useState("");
@@ -200,6 +203,16 @@ export default function AccountPage() {
   useEffect(() => setClientCurrentPage(page => Math.min(page, clientPagination.totalPages)), [clientPagination.totalPages]);
   useEffect(() => setClientTrashCurrentPage(1), [clientTrashSearchTerm, clientTrashPaymentFilter, clientTrashStatusFilter]);
   useEffect(() => setClientTrashCurrentPage(page => Math.min(page, clientTrashPagination.totalPages)), [clientTrashPagination.totalPages]);
+  useEffect(() => {
+    if (loginLockSeconds <= 0) return;
+    const timer = window.setTimeout(() => setLoginLockSeconds(seconds => Math.max(0, seconds - 1)), 1000);
+    return () => window.clearTimeout(timer);
+  }, [loginLockSeconds]);
+  useEffect(() => {
+    if (reauthLockSeconds <= 0) return;
+    const timer = window.setTimeout(() => setReauthLockSeconds(seconds => Math.max(0, seconds - 1)), 1000);
+    return () => window.clearTimeout(timer);
+  }, [reauthLockSeconds]);
 
   const registerMutation = trpc.account.register.useMutation({
     onSuccess: async () => {
@@ -212,10 +225,15 @@ export default function AccountPage() {
 
   const loginMutation = trpc.account.login.useMutation({
     onSuccess: () => {
+      setLoginLockSeconds(0);
       toast.success("Sesión iniciada correctamente.");
       utils.account.me.invalidate();
     },
-    onError: error => toast.error(error.message),
+    onError: error => {
+      const seconds = getLockoutSecondsFromMessage(error.message);
+      if (seconds) setLoginLockSeconds(seconds);
+      toast.error(error.message);
+    },
   });
 
   const logoutMutation = trpc.account.logout.useMutation({
@@ -229,10 +247,15 @@ export default function AccountPage() {
     onSuccess: async result => {
       toast.success(result.message);
       setReauthPassword("");
+      setReauthLockSeconds(0);
       await utils.account.me.invalidate();
       await refetchShipments();
     },
-    onError: error => toast.error(error.message),
+    onError: error => {
+      const seconds = getLockoutSecondsFromMessage(error.message);
+      if (seconds) setReauthLockSeconds(seconds);
+      toast.error(error.message);
+    },
   });
 
   const updateProfileMutation = trpc.account.updateProfile.useMutation({
@@ -357,8 +380,9 @@ export default function AccountPage() {
                   </div>
                   <div className="flex flex-wrap justify-end gap-2">
                     <Button type="button" variant="outline" onClick={() => logoutMutation.mutate()} disabled={logoutMutation.isPending}>Cerrar sesión</Button>
-                    <Button type="submit" disabled={!reauthPassword || reauthenticateMutation.isPending}>{reauthenticateMutation.isPending ? "Verificando..." : "Verificar contraseña"}</Button>
+                    <Button type="submit" disabled={!reauthPassword || reauthenticateMutation.isPending || reauthLockSeconds > 0}>{reauthLockSeconds > 0 ? `Espera ${reauthLockSeconds}s` : reauthenticateMutation.isPending ? "Verificando..." : "Verificar contraseña"}</Button>
                   </div>
+                  {reauthLockSeconds > 0 && <p role="status" aria-live="polite" className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">Por seguridad, alcanzaste cinco intentos fallidos. Podrás verificar de nuevo en {reauthLockSeconds} segundos.</p>}
                 </form>
               </DialogContent>
             </Dialog>
@@ -860,10 +884,10 @@ export default function AccountPage() {
               </>
             )}
 
-            <Button type="submit" disabled={registerMutation.isPending || loginMutation.isPending || requestMutation.isPending || resetMutation.isPending} className="w-full bg-[#0B2B5E] text-white hover:bg-[#123d78]">
-              {mode === "register" ? (registerMutation.isPending ? "Creando cuenta..." : "Crear cuenta") : mode === "request" ? (requestMutation.isPending ? "Enviando código..." : "Enviar código") : mode === "reset" ? (resetMutation.isPending ? "Cambiando contraseña..." : "Cambiar contraseña") : (loginMutation.isPending ? "Iniciando sesión..." : "Iniciar sesión")}
+            <Button type="submit" disabled={registerMutation.isPending || loginMutation.isPending || requestMutation.isPending || resetMutation.isPending || (mode === "login" && loginLockSeconds > 0)} className="w-full bg-[#0B2B5E] text-white hover:bg-[#123d78]">
+              {mode === "register" ? (registerMutation.isPending ? "Creando cuenta..." : "Crear cuenta") : mode === "request" ? (requestMutation.isPending ? "Enviando código..." : "Enviar código") : mode === "reset" ? (resetMutation.isPending ? "Cambiando contraseña..." : "Cambiar contraseña") : (loginLockSeconds > 0 ? `Espera ${loginLockSeconds}s` : loginMutation.isPending ? "Iniciando sesión..." : "Iniciar sesión")}
             </Button>
-            <p role="status" aria-live="polite" className="min-h-5 text-center text-xs text-slate-500">{registerMutation.isPending ? "Estamos creando tu cuenta; no cierres esta pantalla." : loginMutation.isPending ? "Estamos verificando tus credenciales." : requestMutation.isPending ? "Estamos enviando el código de recuperación." : resetMutation.isPending ? "Estamos actualizando tu contraseña." : ""}</p>
+            <p role="status" aria-live="polite" className="min-h-5 text-center text-xs text-slate-500">{loginLockSeconds > 0 ? `Por seguridad, podrás volver a intentarlo en ${loginLockSeconds} segundos.` : registerMutation.isPending ? "Estamos creando tu cuenta; no cierres esta pantalla." : loginMutation.isPending ? "Estamos verificando tus credenciales." : requestMutation.isPending ? "Estamos enviando el código de recuperación." : resetMutation.isPending ? "Estamos actualizando tu contraseña." : ""}</p>
 
             <div className="flex flex-wrap justify-center gap-x-3 gap-y-2 text-sm">
               {mode !== "login" && <button type="button" onClick={() => setMode("login")} className="font-medium text-[#0B2B5E] hover:text-[#F28C00]">Iniciar sesión</button>}

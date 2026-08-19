@@ -4,10 +4,12 @@ import { publicProcedure, router } from "./_core/trpc";
 import {
   consumeVerificationCode,
   createLocalAccount,
+  clearLocalAccountPasswordFailures,
   createVerificationCode,
   getActiveVerificationCode,
   getLocalAccountByEmail,
   getLocalAccountById,
+  registerLocalAccountPasswordFailure,
   getShipmentByOrderAndCode,
   incrementVerificationAttempts,
   updateLocalAccountProfile,
@@ -21,6 +23,7 @@ import {
   updateLocalAccountPassword,
   upsertClient,
 } from "./db";
+import { getRemainingLockoutSeconds, MAX_PASSWORD_FAILURES, PASSWORD_LOCKOUT_SECONDS } from "./loginProtection";
 import {
   generateVerificationCode,
   hashPassword,
@@ -176,10 +179,16 @@ export const accountRouter = router({
     .input(z.object({ email: emailSchema, password: z.string().min(1), rememberDevice: z.boolean().default(false) }))
     .mutation(async ({ input, ctx }) => {
       const account = await getLocalAccountByEmail(normalizeEmail(input.email));
+      const remainingLock = getRemainingLockoutSeconds(account?.passwordLockedUntil);
+      if (remainingLock > 0) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: `Por seguridad, espera ${remainingLock} segundos antes de volver a intentarlo.` });
       if (!account || !(await verifyPassword(input.password, account.passwordHash))) {
+        const failure = account ? await registerLocalAccountPasswordFailure(account.id) : undefined;
+        const lockSeconds = getRemainingLockoutSeconds(failure?.lockedUntil);
+        if (lockSeconds > 0) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: `Alcanzaste ${MAX_PASSWORD_FAILURES} intentos fallidos. Espera ${lockSeconds || PASSWORD_LOCKOUT_SECONDS} segundos antes de volver a intentarlo.` });
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Correo o contraseña inválidos." });
       }
 
+      await clearLocalAccountPasswordFailures(account.id);
       setAccountSession(ctx.req, ctx.res, account.id, input.rememberDevice);
       return {
         success: true,
@@ -221,9 +230,15 @@ export const accountRouter = router({
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Tu sesión ha expirado. Inicia sesión nuevamente." });
       }
       const account = await getLocalAccountById(session.accountId);
+      const remainingLock = getRemainingLockoutSeconds(account?.passwordLockedUntil);
+      if (remainingLock > 0) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: `Por seguridad, espera ${remainingLock} segundos antes de volver a intentarlo.` });
       if (!account || !(await verifyPassword(input.password, account.passwordHash))) {
+        const failure = account ? await registerLocalAccountPasswordFailure(account.id) : undefined;
+        const lockSeconds = getRemainingLockoutSeconds(failure?.lockedUntil);
+        if (lockSeconds > 0) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: `Alcanzaste ${MAX_PASSWORD_FAILURES} intentos fallidos. Espera ${lockSeconds || PASSWORD_LOCKOUT_SECONDS} segundos antes de volver a intentarlo.` });
         throw new TRPCError({ code: "UNAUTHORIZED", message: "La contraseña actual no es correcta." });
       }
+      await clearLocalAccountPasswordFailures(account.id);
       setAccountSession(ctx.req, ctx.res, account.id, session.remembered);
       return { success: true, message: "Identidad verificada. Puedes continuar." };
     }),

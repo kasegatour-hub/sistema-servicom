@@ -6,6 +6,7 @@ import { ENV } from './_core/env';
 import { buildShipmentClientDirectoryRecords, type ClientDirectoryRecord, type ShipmentClientDirectoryInput } from "./clientDirectory";
 import { rankFuzzyMatches } from "../shared/fuzzySearch";
 import { searchInvitationPeople, type InvitationPersonSeed } from "../shared/invitationPeople";
+import { getFailureUpdate } from "./loginProtection";
 
 // Normalizar números de orden y códigos: remover espacios y convertir a mayúsculas
 function normalizeOrderCode(value: string): string {
@@ -247,6 +248,22 @@ export async function getAdminByEmail(email: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
+export async function registerAdminPasswordFailure(adminId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const [admin] = await db.select().from(admins).where(eq(admins.id, adminId)).limit(1);
+  if (!admin) return undefined;
+  const next = getFailureUpdate(admin.failedPasswordAttempts, admin.passwordLockedUntil);
+  await db.update(admins).set({ failedPasswordAttempts: next.attempts, passwordLockedUntil: next.lockedUntil }).where(eq(admins.id, adminId));
+  return next;
+}
+
+export async function clearAdminPasswordFailures(adminId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(admins).set({ failedPasswordAttempts: 0, passwordLockedUntil: null }).where(eq(admins.id, adminId));
+}
+
 export async function getClientById(id: number) {
   const db = await getDb();
   if (!db) return undefined;
@@ -311,6 +328,22 @@ export async function getLocalAccountById(id: number) {
   if (!db) return undefined;
   const result = await db.select().from(localAccounts).where(eq(localAccounts.id, id)).limit(1);
   return result[0];
+}
+
+export async function registerLocalAccountPasswordFailure(accountId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const [account] = await db.select().from(localAccounts).where(eq(localAccounts.id, accountId)).limit(1);
+  if (!account) return undefined;
+  const next = getFailureUpdate(account.failedPasswordAttempts, account.passwordLockedUntil);
+  await db.update(localAccounts).set({ failedPasswordAttempts: next.attempts, passwordLockedUntil: next.lockedUntil, updatedAt: new Date() }).where(eq(localAccounts.id, accountId));
+  return next;
+}
+
+export async function clearLocalAccountPasswordFailures(accountId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(localAccounts).set({ failedPasswordAttempts: 0, passwordLockedUntil: null, updatedAt: new Date() }).where(eq(localAccounts.id, accountId));
 }
 
 export async function createLocalAccount(email: string, phone: string | null, passwordHash: string, name?: string, lastName?: string, dni?: string, documentType: "dni_peru" | "pasaporte" | "carta_identita_italia" = "dni_peru") {

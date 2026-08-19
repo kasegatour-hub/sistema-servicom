@@ -37,6 +37,8 @@ export const localAccounts = mysqlTable("local_accounts", {
   documentType: mysqlEnum("documentType", ["dni_peru", "pasaporte", "carta_identita_italia"]).default("dni_peru").notNull(),
   emailVerifiedAt: timestamp("emailVerifiedAt"),
   phoneVerifiedAt: timestamp("phoneVerifiedAt"),
+  failedPasswordAttempts: int("failedPasswordAttempts").default(0).notNull(),
+  passwordLockedUntil: timestamp("passwordLockedUntil"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -98,6 +100,8 @@ export const admins = mysqlTable("admins", {
   name: varchar("name", { length: 255 }).notNull(),
   role: mysqlEnum("role", ["registrador", "superadmin"]).default("registrador").notNull(),
   isActive: int("isActive").default(1).notNull(),
+  failedPasswordAttempts: int("failedPasswordAttempts").default(0).notNull(),
+  passwordLockedUntil: timestamp("passwordLockedUntil"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

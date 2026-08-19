@@ -7,7 +7,8 @@ function buildTrackingPath(orderNumber: string, code: string): string {
   return `/?order=${encodeURIComponent(order)}&code=${encodeURIComponent(normalizedCode)}`;
 }
 import { publicProcedure, router } from "./_core/trpc";
-import { attachShipmentAuditActorLabels, createDiscountCoupon, createInvitationLetterRecord, createShipment, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAllShipments, getDeletedShipments, getDiscountCouponByCode, getShipmentAuditLogs, getShipmentById, getShipmentByOrderAndCode, getShipmentRoutePolicy, incrementDiscountCouponRedemption, isEncomiendaEnabledForRoute, listDeletedInvitationLetterRecords, listDiscountCoupons, listInvitationLetterRecords, moveInvitationLetterToTrash, recordInteractionEvent, recordShipmentAudit, restoreInvitationLetterFromTrash, restoreShipment, searchClients, searchInvitationLetterPeople, setEncomiendaAvailabilityForRoute, setShipmentRegistradorVisibility, updateDiscountCoupon, updateShipmentStatus } from "./db";
+import { attachShipmentAuditActorLabels, clearAdminPasswordFailures, createDiscountCoupon, createInvitationLetterRecord, createShipment, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAllShipments, getDeletedShipments, getDiscountCouponByCode, getShipmentAuditLogs, getShipmentById, getShipmentByOrderAndCode, getShipmentRoutePolicy, incrementDiscountCouponRedemption, isEncomiendaEnabledForRoute, listDeletedInvitationLetterRecords, listDiscountCoupons, listInvitationLetterRecords, moveInvitationLetterToTrash, recordInteractionEvent, recordShipmentAudit, registerAdminPasswordFailure, restoreInvitationLetterFromTrash, restoreShipment, searchClients, searchInvitationLetterPeople, setEncomiendaAvailabilityForRoute, setShipmentRegistradorVisibility, updateDiscountCoupon, updateShipmentStatus } from "./db";
+import { getRemainingLockoutSeconds, MAX_PASSWORD_FAILURES, PASSWORD_LOCKOUT_SECONDS } from "./loginProtection";
 import { generateVerificationCode, hashPassword, hashVerificationCode, normalizeEmail, sendVerificationEmail, verificationExpiry, verifyPassword } from "./localAuth";
 import { AdminSessionPayload, clearAdminSession, getAdminSession, setAdminSession } from "./adminSession";
 import { admins } from "../drizzle/schema";
@@ -196,6 +197,8 @@ export const adminRouter = router({
       if (!admin || admin.isActive !== 1) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Credenciales inválidas" });
       }
+      const remainingLock = getRemainingLockoutSeconds(admin.passwordLockedUntil);
+      if (remainingLock > 0) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: `Por seguridad, espera ${remainingLock} segundos antes de volver a intentarlo.` });
 
       let validPassword = false;
       if (admin.password.startsWith("scrypt$")) {
@@ -209,9 +212,13 @@ export const adminRouter = router({
       }
 
       if (!validPassword) {
+        const failure = await registerAdminPasswordFailure(admin.id);
+        const lockSeconds = getRemainingLockoutSeconds(failure?.lockedUntil);
+        if (lockSeconds > 0) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: `Alcanzaste ${MAX_PASSWORD_FAILURES} intentos fallidos. Espera ${lockSeconds || PASSWORD_LOCKOUT_SECONDS} segundos antes de volver a intentarlo.` });
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Credenciales inválidas" });
       }
 
+      await clearAdminPasswordFailures(admin.id);
       const role = admin.role === "superadmin" ? "superadmin" : "registrador";
       setAdminSession(ctx.req, ctx.res, admin.id, role, input.rememberDevice);
       return { id: admin.id, email: admin.email, name: admin.name, role };
@@ -269,12 +276,18 @@ export const adminRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database error" });
       const [admin] = await db.select().from(admins).where(eq(admins.id, ctx.adminSession.adminId)).limit(1);
       const isMasterSession = ctx.adminSession.adminId === 1 && ctx.adminSession.role === "superadmin";
+      const remainingLock = getRemainingLockoutSeconds(admin?.passwordLockedUntil);
+      if (remainingLock > 0) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: `Por seguridad, espera ${remainingLock} segundos antes de volver a intentarlo.` });
       const validPassword = Boolean(admin && admin.isActive === 1 && (admin.password.startsWith("scrypt$")
         ? await verifyPassword(input.password, admin.password)
         : isMasterSession ? input.password === MASTER_ADMIN_PASSWORD : admin.password === input.password));
       if (!admin || admin.isActive !== 1 || !validPassword) {
+        const failure = admin ? await registerAdminPasswordFailure(admin.id) : undefined;
+        const lockSeconds = getRemainingLockoutSeconds(failure?.lockedUntil);
+        if (lockSeconds > 0) throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: `Alcanzaste ${MAX_PASSWORD_FAILURES} intentos fallidos. Espera ${lockSeconds || PASSWORD_LOCKOUT_SECONDS} segundos antes de volver a intentarlo.` });
         throw new TRPCError({ code: "UNAUTHORIZED", message: "La contraseña actual no es correcta." });
       }
+      await clearAdminPasswordFailures(admin.id);
       setAdminSession(ctx.req, ctx.res, admin.id, ctx.adminSession.role, ctx.adminSession.remembered);
       return { success: true, message: "Identidad verificada. Puedes continuar." };
     }),

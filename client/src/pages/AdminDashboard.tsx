@@ -254,6 +254,8 @@ type UpdateStatusForm = z.infer<typeof updateStatusSchema>;
 
 type PasswordInputProps = Omit<React.ComponentProps<typeof Input>, "type"> & { revealLabel?: string };
 
+const getLockoutSecondsFromMessage = (message: string) => Number(message.match(/espera\s+(\d+)\s+segundos/i)?.[1] || 0);
+
 function PasswordInput({ className, revealLabel = "contraseña", ...inputProps }: PasswordInputProps) {
   const [isVisible, setIsVisible] = React.useState(false);
   const actionLabel = `${isVisible ? "Ocultar" : "Mostrar"} ${revealLabel}`;
@@ -282,6 +284,8 @@ export default function AdminDashboard() {
   const [adminNewPassword, setAdminNewPassword] = useState("");
   const [adminPasswordConfirmation, setAdminPasswordConfirmation] = useState("");
   const [reauthPassword, setReauthPassword] = useState("");
+  const [reauthLockSeconds, setReauthLockSeconds] = useState(0);
+  const [loginLockSeconds, setLoginLockSeconds] = useState(0);
   const [printShipment, setPrintShipment] = useState<any>(null);
   const [receiptDownloadFormat, setReceiptDownloadFormat] = useState<ReceiptDownloadFormat>("pdf");
   const [showGeneralFeedback, setShowGeneralFeedback] = useState(false);
@@ -383,6 +387,16 @@ export default function AdminDashboard() {
   useEffect(() => setCouponCurrentPage(page => Math.min(Math.max(1, page), couponTotalPages)), [couponTotalPages]);
   useEffect(() => setDeletedCurrentPage(1), [deletedSearchTerm, deletedPaymentFilter, deletedLogisticsFilter, deletedTypeFilter]);
   useEffect(() => setDeletedCurrentPage(page => Math.min(page, deletedPagination.totalPages)), [deletedPagination.totalPages]);
+  useEffect(() => {
+    if (reauthLockSeconds <= 0) return;
+    const timer = window.setTimeout(() => setReauthLockSeconds(seconds => Math.max(0, seconds - 1)), 1000);
+    return () => window.clearTimeout(timer);
+  }, [reauthLockSeconds]);
+  useEffect(() => {
+    if (loginLockSeconds <= 0) return;
+    const timer = window.setTimeout(() => setLoginLockSeconds(seconds => Math.max(0, seconds - 1)), 1000);
+    return () => window.clearTimeout(timer);
+  }, [loginLockSeconds]);
 
   // Mutations
   const loginMutation = trpc.admin.login.useMutation();
@@ -395,11 +409,16 @@ export default function AdminDashboard() {
     onSuccess: async (result) => {
       toast.success(result.message);
       setReauthPassword("");
+      setReauthLockSeconds(0);
       setAdmin((previous: any) => previous ? { ...previous, reauthRequired: false } : previous);
       await refetchAdminSession();
       await refetchShipments();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => {
+      const seconds = getLockoutSecondsFromMessage(error.message);
+      if (seconds) setReauthLockSeconds(seconds);
+      toast.error(error.message);
+    },
   });
   const createMutation = trpc.admin.createShipment.useMutation();
   const updateMutation = trpc.admin.updateStatus.useMutation();
@@ -612,6 +631,8 @@ export default function AdminDashboard() {
       await refetchAdminSession();
       toast.success("Sesión iniciada correctamente");
     } catch (error: any) {
+      const seconds = getLockoutSecondsFromMessage(error.message || "");
+      if (seconds) setLoginLockSeconds(seconds);
       toast.error(error.message || "Error al iniciar sesión");
     }
   };
@@ -1341,10 +1362,10 @@ export default function AdminDashboard() {
 
             <Button
               type="submit"
-              disabled={loginMutation.isPending}
+              disabled={loginMutation.isPending || loginLockSeconds > 0}
               className="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-2"
             >
-              {loginMutation.isPending ? (
+              {loginLockSeconds > 0 ? `Espera ${loginLockSeconds}s` : loginMutation.isPending ? (
                 <>
                   <Spinner className="w-4 h-4 mr-2" />
                   Iniciando sesión...
@@ -1353,6 +1374,7 @@ export default function AdminDashboard() {
                 "Iniciar Sesión"
               )}
             </Button>
+            {loginLockSeconds > 0 && <p role="status" aria-live="polite" className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-center text-sm text-amber-900">Por seguridad, agotaste los intentos. Podrás volver a intentarlo en {loginLockSeconds} segundos.</p>}
             <div className="text-center"><button type="button" onClick={() => { setAdminRecoveryEmail(loginForm.getValues("email") || ""); setAdminAuthMode("request"); }} className="text-sm font-semibold text-primary hover:underline">¿Olvidaste tu contraseña?</button></div>
           </form>
           {adminAuthMode !== "login" && <form onSubmit={adminAuthMode === "request" ? handleAdminRecoveryRequest : handleAdminPasswordReset} className="space-y-4" autoComplete="off">
@@ -1384,8 +1406,9 @@ export default function AdminDashboard() {
               </div>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={handleLogout} disabled={logoutMutation.isPending}>Cerrar sesión</Button>
-                <Button type="submit" disabled={!reauthPassword || reauthenticateMutation.isPending}>{reauthenticateMutation.isPending ? "Verificando..." : "Verificar contraseña"}</Button>
+                <Button type="submit" disabled={!reauthPassword || reauthenticateMutation.isPending || reauthLockSeconds > 0}>{reauthLockSeconds > 0 ? `Espera ${reauthLockSeconds}s` : reauthenticateMutation.isPending ? "Verificando..." : "Verificar contraseña"}</Button>
               </div>
+              {reauthLockSeconds > 0 && <p role="status" aria-live="polite" className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">Por seguridad, alcanzaste cinco intentos fallidos. Podrás verificar de nuevo en {reauthLockSeconds} segundos.</p>}
             </form>
           </Card>
         </div>
