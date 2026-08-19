@@ -613,3 +613,8 @@
 - [x] Contrastar los requisitos del invitado con la plantilla PDF aportada
 - [x] Retirar el documento de identidad del invitado cuando no corresponde y ajustar su validación
 - [x] Actualizar plantilla, pruebas, compilación y publicación
+
+## Conexión WebSocket de vista previa
+- [x] Diagnosticar el intento de conexión de Vite al puerto interno 5173 desde el proxy público
+- [x] Configurar o reiniciar la actualización en tiempo real para que use el origen de la vista previa
+- [x] Verificar la reconexión y publicar la corrección si se requieren cambios
