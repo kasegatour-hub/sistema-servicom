@@ -41,8 +41,6 @@ describe("InvitationLetterWorkspace", () => {
 
     expect(birthPlace.value).toBe("LIMA");
     expect(nationality.value).toBe("PERUVIANA");
-    expect(screen.queryByText("PERUANA")).toBeNull();
-    fireEvent.click(screen.getAllByRole("button", { name: /Ver sugerencias para Nacionalidad/ })[0]);
     expect(screen.getByText("PERUANA")).toBeTruthy();
     expect(screen.queryByText("Dirección de hospedaje")).toBeNull();
     expect(screen.getByLabelText(/Otros documentos \/ Altri documenti/)).toBeTruthy();
@@ -58,15 +56,25 @@ describe("InvitationLetterWorkspace", () => {
     expect(document.getElementById("invitado-email")).toBeNull();
   });
 
-  it("incluye departamentos peruanos en la búsqueda opcional de lugar de nacimiento", () => {
+  it("incluye departamentos peruanos en la búsqueda automática de lugar de nacimiento", () => {
     render(<InvitationLetterWorkspace />);
     const birthPlace = screen.getAllByLabelText(/Lugar de nacimiento/)[0] as HTMLInputElement;
     fireEvent.change(birthPlace, { target: { value: "juni" } });
 
     expect(birthPlace.value).toBe("JUNI");
     expect(screen.queryByText(/Sin coincidencias/)).toBeNull();
-    fireEvent.click(screen.getAllByRole("button", { name: /Ver sugerencias para Lugar de nacimiento/ })[0]);
     expect(screen.getByText("JUNÍN")).toBeTruthy();
+  });
+
+  it("cierra las sugerencias al pasar a otro campo sin alterar el texto escrito", async () => {
+    render(<InvitationLetterWorkspace />);
+    const nationality = screen.getAllByLabelText(/Nacionalidad/)[0] as HTMLInputElement;
+    fireEvent.change(nationality, { target: { value: "peruviana" } });
+    expect(screen.getByText("PERUANA")).toBeTruthy();
+
+    fireEvent.blur(nationality);
+    await waitFor(() => expect(screen.queryByText("PERUANA")).toBeNull());
+    expect(nationality.value).toBe("PERUVIANA");
   });
 
   it("enables export actions only after the validated draft is saved", async () => {

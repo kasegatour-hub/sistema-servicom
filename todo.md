@@ -618,3 +618,8 @@
 - [x] Diagnosticar el intento de conexión de Vite al puerto interno 5173 desde el proxy público
 - [x] Configurar o reiniciar la actualización en tiempo real para que use el origen de la vista previa
 - [x] Verificar la reconexión y publicar la corrección si se requieren cambios
+
+## Búsqueda difusa automática en Carta de invitación
+- [x] Mostrar coincidencias de lugar de nacimiento y nacionalidad mientras se escribe, sin pulsar la lupa
+- [x] Cerrar el menú de sugerencias al cambiar de campo, sin borrar ni invalidar el texto escrito
+- [x] Añadir pruebas, compilar y publicar la corrección
