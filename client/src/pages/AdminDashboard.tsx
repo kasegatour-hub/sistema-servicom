@@ -284,6 +284,7 @@ export default function AdminDashboard() {
   const [contentChecklist, setContentChecklist] = useState<string[]>([]);
   const [catalogDocuments, setCatalogDocuments] = useState<CatalogDocumentItem[]>([]);
   const [showCalculator, setShowCalculator] = useState(false);
+  const [showAdvancedCalculator, setShowAdvancedCalculator] = useState(false);
   const [calculatorExpression, setCalculatorExpression] = useState("");
   const [calculatorResult, setCalculatorResult] = useState("");
   const [auditShipmentId, setAuditShipmentId] = useState<number | null>(null);
@@ -2516,19 +2517,21 @@ export default function AdminDashboard() {
               <div className="mb-3 flex items-start justify-between gap-3">
                 <div>
                   <h3 className="flex items-center gap-2 font-semibold text-[#0B2B5E]"><Calculator className="h-4 w-4" /> Calculadora científica</h3>
-                  <p className="mt-1 text-xs text-slate-600">Funciones en radianes: sin, cos, tan, log, ln, √ y abs.</p>
+                  <p className="mt-1 text-xs text-slate-600">Operaciones básicas y porcentaje. Despliega las funciones científicas cuando las necesites.</p>
                 </div>
                 <div className="flex shrink-0 gap-1"><Button type="button" size="sm" variant="outline" onClick={() => { setCalculatorExpression(""); setCalculatorResult(""); }}>Limpiar</Button><Button type="button" size="sm" variant="outline" aria-label="Cerrar calculadora" onClick={() => setShowCalculator(false)}>×</Button></div>
               </div>
               <form onSubmit={(event) => { event.preventDefault(); calculateScientificExpression(); }}>
                 <Input aria-label="Operación de calculadora" inputMode="decimal" value={calculatorExpression} onChange={(event) => { setCalculatorExpression(event.target.value); setCalculatorResult(""); }} placeholder="Ej. (13.5 × 2) + 10" className="bg-white font-mono" />
                 <div className="mt-3 grid grid-cols-5 gap-2">
-                  {["sin(", "cos(", "tan(", "log(", "ln(", "sqrt(", "abs(", "pi", "(", ")", "7", "8", "9", "÷", "^", "4", "5", "6", "×", "-", "1", "2", "3", "+", ".", "0", "00"].map(value => (
+                  {["7", "8", "9", "÷", "%", "4", "5", "6", "×", "-", "1", "2", "3", "+", "(", "0", "00", ".", ")"].map(value => (
                     <Button key={value} type="button" size="sm" variant="outline" onClick={() => appendCalculatorValue(value)} className="bg-slate-50 font-mono hover:bg-blue-50">{value === "sqrt(" ? "√(" : value}</Button>
                   ))}
                   <Button type="button" size="sm" variant="outline" onClick={() => { setCalculatorExpression(value => value.slice(0, -1)); setCalculatorResult(""); }} className="bg-slate-50">⌫</Button>
                   <Button type="submit" size="sm" className="col-span-2 bg-[#F28C00] text-white hover:bg-[#d97800]">=</Button>
                 </div>
+                <Button type="button" variant="outline" size="sm" className="mt-3 w-full border-[#0B2B5E]/25 text-[#0B2B5E] hover:bg-blue-50" aria-expanded={showAdvancedCalculator} aria-controls="admin-calculator-advanced" onClick={() => setShowAdvancedCalculator(value => !value)}>{showAdvancedCalculator ? "Ocultar funciones científicas" : "Ver funciones científicas y trigonométricas"}</Button>
+                {showAdvancedCalculator && <div id="admin-calculator-advanced" className="mt-2 rounded-xl border border-blue-100 bg-blue-50 p-2"><p className="mb-2 text-xs text-slate-600">Funciones en radianes: sin, cos, tan, log, ln, √, abs, π, e y potencia.</p><div className="grid grid-cols-5 gap-2">{["sin(", "cos(", "tan(", "log(", "ln(", "sqrt(", "abs(", "pi", "e", "^"].map(value => <Button key={value} type="button" size="sm" variant="outline" onClick={() => appendCalculatorValue(value)} className="bg-white font-mono hover:bg-blue-100">{value === "sqrt(" ? "√(" : value}</Button>)}</div></div>}
               </form>
               <p aria-live="polite" className={`mt-3 min-h-5 text-sm font-semibold ${!calculatorResult ? "text-slate-500" : calculatorResult.startsWith("Resultado") ? "text-emerald-700" : "text-red-700"}`}>{calculatorResult || "Escribe una operación para calcular."}</p>
             </section>

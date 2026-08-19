@@ -362,6 +362,12 @@ describe("AdminDashboard Nueva Encomienda", () => {
     const calculatorButton = await screen.findByRole("button", { name: "Calculadora" });
     fireEvent.click(calculatorButton);
     expect(screen.getByLabelText("Operación de calculadora")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "%" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "sin(" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Ver funciones científicas y trigonométricas" }));
+    expect(screen.getByRole("button", { name: "sin(" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "cos(" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "tan(" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Cupones" }));
     expect(screen.getByLabelText("Operación de calculadora")).toBeTruthy();
   });

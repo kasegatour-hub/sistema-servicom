@@ -635,3 +635,9 @@
 - [x] Alinear los títulos italiano e inglés y conservar su composición bilingüe
 - [x] Destacar en negrita y en su propia fila el período «dal/from … al/to …»
 - [x] Actualizar pruebas, compilar y publicar el ajuste de plantilla
+
+## Calculadora científica progresiva
+- [x] Incluir porcentaje junto a las operaciones básicas visibles inicialmente
+- [x] Mostrar un botón para desplegar u ocultar las funciones científicas y trigonométricas
+- [x] Mantener las funciones sin, cos, tan, log, ln, raíz, valor absoluto, pi y potencia disponibles en el panel avanzado
+- [x] Añadir pruebas, verificar la interfaz y publicar la mejora

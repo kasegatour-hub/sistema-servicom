@@ -4,7 +4,7 @@ const ALLOWED_WORDS = new Set(["sin", "cos", "tan", "log", "ln", "sqrt", "abs", 
 export function evaluateScientificExpression(value: string): number {
   const expression = value.trim().replace(/×/g, "*").replace(/÷/g, "/");
   if (!expression) throw new Error("Ingresa una operación.");
-  if (!/^[0-9+\-*/^().,\sA-Za-z]+$/.test(expression)) throw new Error("La expresión contiene caracteres no permitidos.");
+  if (!/^[0-9+\-*/^().,%\sA-Za-z]+$/.test(expression)) throw new Error("La expresión contiene caracteres no permitidos.");
 
   const words = expression.match(/[A-Za-z]+/g) || [];
   if (words.some(word => !ALLOWED_WORDS.has(word.toLowerCase()))) {
@@ -12,6 +12,7 @@ export function evaluateScientificExpression(value: string): number {
   }
 
   const normalized = expression
+    .replace(/(\d+(?:\.\d+)?|\))\s*%/g, "($1/100)")
     .replace(/\^/g, "**")
     .replace(/\bpi\b/gi, "Math.PI")
     .replace(/\be\b/gi, "Math.E")

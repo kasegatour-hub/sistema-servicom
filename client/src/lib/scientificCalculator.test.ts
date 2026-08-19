@@ -5,6 +5,7 @@ describe("evaluateScientificExpression", () => {
   it("calcula operaciones y potencias", () => {
     expect(evaluateScientificExpression("(13.5 * 2.5) + 10")).toBe(43.75);
     expect(evaluateScientificExpression("2^4")).toBe(16);
+    expect(evaluateScientificExpression("200 * 15%")).toBe(30);
   });
 
   it("calcula funciones científicas básicas", () => {
