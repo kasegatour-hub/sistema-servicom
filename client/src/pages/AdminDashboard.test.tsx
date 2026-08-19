@@ -355,6 +355,9 @@ describe("AdminDashboard Nueva Encomienda", () => {
     expect(screen.getByText("Peso de la encomienda (kg)")).toBeTruthy();
     expect(screen.getByText("Total automático: 13.50 €")).toBeTruthy();
     expect(screen.queryByDisplayValue("Documentos")).toBeNull();
+    const checklistHeading = screen.getByText("Checklist de contenido");
+    const notesLabel = screen.getByText("Notas");
+    expect(checklistHeading.compareDocumentPosition(notesLabel) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
   it("fills sender data from a persistent client match by DNI", async () => {

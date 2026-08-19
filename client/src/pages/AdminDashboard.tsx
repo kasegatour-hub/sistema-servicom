@@ -1781,17 +1781,6 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* Notas */}
-              <div className="border-t pt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Notas</label>
-                <Textarea
-                  placeholder="Notas adicionales sobre la encomienda"
-                  {...createForm.register("notes")}
-                  className="border-2 focus:border-primary"
-                  rows={3}
-                />
-              </div>
-
               {selectedShipmentType === "documento" ? (
                 <div className="border-t pt-4"><DocumentCatalogSelector value={catalogDocuments} onChange={setCatalogDocuments} idPrefix="admin-document" /></div>
               ) : (
@@ -1811,6 +1800,17 @@ export default function AdminDashboard() {
                   </div>}
                 </div>
               )}
+
+              {/* Notas */}
+              <div className="border-t pt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Notas</label>
+                <Textarea
+                  placeholder="Notas adicionales sobre la encomienda"
+                  {...createForm.register("notes")}
+                  className="border-2 focus:border-primary"
+                  rows={3}
+                />
+              </div>
 
               <div className="flex gap-2">
                 <Button

@@ -485,3 +485,8 @@
 - [x] Sustituir la acción administrativa de guardado mediante impresión por la descarga PDF nombrada
 - [x] Conservar la impresión administrativa como acción independiente
 - [x] Añadir pruebas, validación y publicación de la descarga administrativa
+
+## Orden del checklist y notas
+- [x] Situar el checklist obligatorio antes de las notas adicionales en los formularios de envío
+- [x] Mantener las notas como el último campo antes de crear o cancelar
+- [x] Añadir pruebas, verificación responsive, compilación y publicación
