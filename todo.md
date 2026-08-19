@@ -591,3 +591,9 @@
 - [x] Abrir primero el envío escaneado en una ventana de actualización de estado enfocada
 - [x] Permitir cerrar con X y continuar con las acciones completas de actualización del mismo envío
 - [x] Añadir pruebas, compilar y publicar la corrección
+
+## Fecha y encabezado de Carta de invitación
+- [x] Ampliar el selector anual para permitir años históricos, incluido 1978
+- [x] Restringir la escritura manual a ocho dígitos y formatearla automáticamente como DD/MM/AAAA
+- [x] Simplificar el encabezado visible a la banda azul «Carta de invitación / Lettera d'invito»
+- [x] Añadir pruebas, compilar y publicar la mejora
