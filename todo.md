@@ -532,3 +532,8 @@
 - [x] Consolidar personas de clientes, envíos y cartas guardadas, buscando por documento, nombre o apellido
 - [x] Completar los datos disponibles sin sobrescribir campos que no existan y conservar validaciones
 - [x] Añadir pruebas, verificación responsive, compilación y publicación
+
+## Conexión de desarrollo de Vite
+- [x] Corregir la conexión WebSocket de actualización en tiempo real detrás del proxy de vista previa
+- [x] Verificar los registros, reiniciar el servidor y validar que la vista previa carga sin error de Vite
+- [x] Añadir pruebas o verificación de compilación y publicar la corrección

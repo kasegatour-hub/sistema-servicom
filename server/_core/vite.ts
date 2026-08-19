@@ -9,6 +9,8 @@ import viteConfig from "../../vite.config";
 export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
     middlewareMode: true,
+    // Reutiliza el servidor HTTP y permite que el cliente derive protocolo,
+    // host y puerto a partir de la vista previa que lo está sirviendo.
     hmr: { server },
     allowedHosts: true as const,
   };
