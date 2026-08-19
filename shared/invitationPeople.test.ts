@@ -17,4 +17,14 @@ describe("searchInvitationPeople", () => {
     const results = searchInvitationPeople([{ source: "directorio", firstName: "CESARIA", lastName: "QUISPE", identityCard: "3580640671", passport: "", residencePermit: "", address: "", occupation: "", phone: "", email: "", birthDate: "", birthPlace: "", nationality: "" }], "3580640671");
     expect(results[0]?.firstName).toBe("CESARIA");
   });
+
+  it("actualiza una ficha encontrada por pasaporte con el correo y datos completados posteriormente", () => {
+    const results = searchInvitationPeople([
+      { source: "carta", firstName: "ELISABETH", lastName: "MALLQUI CHAVEZ", identityCard: "CA40175TF", passport: "222052411", residencePermit: "I23368849", address: "VIA DEI MAISTREFRATELLI 9", occupation: "BADANTE", phone: "+39 348 730 0259", email: "elisabeth@example.com", birthDate: "1997-11-09", birthPlace: "LIMA", nationality: "PERUANA" },
+      { source: "carta", firstName: "ELISABETH", lastName: "MALLQUI CHAVEZ", identityCard: "CA40175TF", passport: "222052411", residencePermit: "I23368849", address: "VIA DEI MAISTREFRATELLI 9", occupation: "BADANTE", phone: "+39 348 730 0259", email: "", birthDate: "1997-11-09", birthPlace: "LIMA", nationality: "PERUANA" },
+    ], "222052411");
+
+    expect(results).toHaveLength(1);
+    expect(results[0]).toMatchObject({ passport: "222052411", email: "elisabeth@example.com", occupation: "BADANTE" });
+  });
 });

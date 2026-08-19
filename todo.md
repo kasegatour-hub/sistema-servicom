@@ -556,3 +556,8 @@
 - [x] Añadir campos opcionales editables para anexos y anexos de sociedades/entidades
 - [x] Mover cartas eliminadas a una papelera reversible con restauración, sin borrado definitivo
 - [x] Añadir migración, pruebas, verificación responsive, compilación y publicación
+
+## Actualización progresiva de personas en Carta de invitación
+- [x] Consolidar por pasaporte, documento de identidad o DNI los datos más recientes completados posteriormente, incluido el correo electrónico
+- [x] Reutilizar los datos consolidados al buscar invitante o invitado y cubrir el caso con pruebas de regresión
+- [x] Validar, compilar y publicar la mejora
