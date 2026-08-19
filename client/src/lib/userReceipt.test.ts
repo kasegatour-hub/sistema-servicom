@@ -164,6 +164,9 @@ describe("receipt window helpers", () => {
     expect(finalHtml).toContain("Servicom Internacional en colaboración con KASEGA TOUR EIRL (RUC: 20615004708)");
     expect(finalHtml).not.toContain("Suscrito en la ciudad de Lima");
     expect(finalHtml).not.toContain("Ley N° 28002");
+    expect(typeof (printWindow as any).onafterprint).toBe("function");
+    (printWindow as any).onafterprint();
+    expect(printWindow.close).toHaveBeenCalled();
   });
 
   it("uses green only for Pagado and red only for No cancelado", () => {

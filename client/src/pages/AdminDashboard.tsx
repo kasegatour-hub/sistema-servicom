@@ -1059,8 +1059,15 @@ export default function AdminDashboard() {
         });
       }
       await new Promise((resolve) => setTimeout(resolve, 150));
+      // La vista previa administrativa ya cumplió su función: se cierra antes del diálogo nativo.
+      setPrintShipment(null);
+      const closePrintWindow = () => {
+        if (!printWindow.closed) printWindow.close();
+      };
+      printWindow.onafterprint = closePrintWindow;
       printWindow.focus();
       printWindow.print();
+      window.setTimeout(closePrintWindow, 1200);
     }
   };
 

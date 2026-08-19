@@ -369,8 +369,15 @@ ${buildReceiptPrintStyles()}*{box-sizing:border-box}body{font-family:Arial,Helve
     printWindow.document.title = downloadFilename;
     await waitForImages(printWindow.document);
     await new Promise((resolve) => setTimeout(resolve, 150));
+    const closePrintWindow = () => {
+      if (!printWindow.closed) printWindow.close();
+    };
+    // Chrome ejecuta afterprint una vez que el usuario imprime, guarda el PDF o cancela el diálogo.
+    printWindow.onafterprint = closePrintWindow;
     printWindow.focus();
     printWindow.print();
+    // Respaldo para navegadores que no emiten afterprint al cerrar el diálogo nativo.
+    window.setTimeout(closePrintWindow, 1200);
   } catch (error) {
     printWindow.close();
     window.alert("No se pudo preparar el recibo. Inténtalo nuevamente.");

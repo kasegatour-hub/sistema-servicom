@@ -475,3 +475,8 @@
 - [x] Generar un PDF descargable con el nombre del destinatario sin depender del diálogo de impresión del navegador
 - [x] Mantener la impresión del comprobante como acción separada
 - [x] Añadir pruebas, validación y publicación de la descarga
+
+## Cierre automático de vistas de comprobante
+- [x] Cerrar la vista previa administrativa al iniciar la impresión o la descarga
+- [x] Cerrar la ventana emergente de impresión después de entregar el diálogo nativo al navegador
+- [x] Añadir pruebas, validación y publicación del cierre automático
