@@ -7,7 +7,7 @@ function buildTrackingPath(orderNumber: string, code: string): string {
   return `/?order=${encodeURIComponent(order)}&code=${encodeURIComponent(normalizedCode)}`;
 }
 import { publicProcedure, router } from "./_core/trpc";
-import { attachShipmentAuditActorLabels, createDiscountCoupon, createShipment, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAllShipments, getDeletedShipments, getDiscountCouponByCode, getShipmentAuditLogs, getShipmentById, getShipmentRoutePolicy, incrementDiscountCouponRedemption, isEncomiendaEnabledForRoute, listDiscountCoupons, recordInteractionEvent, recordShipmentAudit, restoreShipment, searchClients, setEncomiendaAvailabilityForRoute, setShipmentRegistradorVisibility, updateDiscountCoupon, updateShipmentStatus } from "./db";
+import { attachShipmentAuditActorLabels, createDiscountCoupon, createInvitationLetterRecord, createShipment, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAllShipments, getDeletedShipments, getDiscountCouponByCode, getShipmentAuditLogs, getShipmentById, getShipmentRoutePolicy, incrementDiscountCouponRedemption, isEncomiendaEnabledForRoute, listDiscountCoupons, listInvitationLetterRecords, recordInteractionEvent, recordShipmentAudit, restoreShipment, searchClients, setEncomiendaAvailabilityForRoute, setShipmentRegistradorVisibility, updateDiscountCoupon, updateShipmentStatus } from "./db";
 import { generateVerificationCode, hashPassword, hashVerificationCode, normalizeEmail, sendVerificationEmail, verificationExpiry, verifyPassword } from "./localAuth";
 import { AdminSessionPayload, clearAdminSession, getAdminSession, setAdminSession } from "./adminSession";
 import { admins } from "../drizzle/schema";
@@ -34,6 +34,35 @@ const invitationItalianSchema = z.object({
   relationship: z.string(),
   purpose: z.string(),
   city: z.string(),
+});
+const invitationPersonSchema = z.object({
+  firstName: z.string().trim().min(1).max(255),
+  lastName: z.string().trim().min(1).max(255),
+  birthDate: z.string().trim().min(1).max(32),
+  birthPlace: z.string().trim().min(1).max(255),
+  nationality: z.string().trim().min(1).max(255),
+  identityCard: z.string().trim().min(1).max(255),
+  passport: z.string().trim().min(1).max(255),
+  residencePermit: z.string().trim().max(255),
+  address: z.string().trim().min(1).max(500),
+  occupation: z.string().trim().min(1).max(255),
+  phone: z.string().trim().min(1).max(32),
+  email: z.string().trim().max(320),
+});
+const invitationLetterDataSchema = z.object({
+  inviter: invitationPersonSchema,
+  invitee: invitationPersonSchema,
+  relationship: z.string().trim().min(1).max(255),
+  purpose: z.string().trim().min(1).max(255),
+  arrivalDate: z.string().trim().min(1).max(32),
+  departureDate: z.string().trim().min(1).max(32),
+  city: z.string().trim().min(1).max(255),
+  date: z.string().trim().min(1).max(32),
+  financialSupport: z.boolean(),
+  healthInsurance: z.boolean(),
+  financialGuarantee: z.boolean(),
+  inviteeIdAttached: z.boolean(),
+  financialGuaranteeAttached: z.boolean(),
 });
 
 export async function translateInvitationToItalian(input: z.infer<typeof invitationItalianSchema>) {
@@ -403,6 +432,28 @@ export const adminRouter = router({
   translateInvitationLetter: adminProcedure
     .input(invitationItalianSchema)
     .mutation(async ({ input }) => translateInvitationToItalian(input)),
+
+  saveInvitationLetter: adminProcedure
+    .input(z.object({ data: invitationLetterDataSchema, italian: invitationItalianSchema }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      const [admin] = db ? await db.select({ name: admins.name, email: admins.email }).from(admins).where(eq(admins.id, ctx.adminSession.adminId)).limit(1) : [];
+      const record = await createInvitationLetterRecord({
+        createdByAdminId: ctx.adminSession.adminId,
+        createdByAdminLabel: admin ? `${admin.name} (${admin.email})` : ctx.adminSession.role,
+        inviterName: input.data.inviter.firstName,
+        inviterLastName: input.data.inviter.lastName,
+        inviteeName: input.data.invitee.firstName,
+        inviteeLastName: input.data.invitee.lastName,
+        letterData: input.data,
+        italianData: input.italian,
+      });
+      if (!record) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No se pudo guardar la carta de invitación." });
+      return record;
+    }),
+
+  listInvitationLetters: adminProcedure
+    .query(async ({ ctx }) => listInvitationLetterRecords({ adminId: ctx.adminSession.adminId, canReviewAll: ctx.adminSession.role === "superadmin" })),
 
   createShipment: adminProcedure
     .input(z.object({

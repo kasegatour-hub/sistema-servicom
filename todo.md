@@ -520,3 +520,9 @@
 - [x] Reutilizar el teléfono internacional validado, eliminando dirección de hospedaje y otros anexos; mantener el correo opcional
 - [x] Exigir el guardado del borrador antes de habilitar descarga PDF e impresión
 - [x] Añadir pruebas, verificación responsive, compilación y publicación
+
+## Plantilla exacta e historial de cartas de invitación
+- [x] Replicar exclusivamente el texto, bandera, márgenes, tablas y alineación de la plantilla aportada
+- [x] Persistir cada carta guardada y asociarla al Administrador o Registrador que la creó
+- [x] Mostrar cartas generadas con ordenamiento cronológico, paginación y acciones de abrir, descargar e imprimir
+- [x] Añadir migración, pruebas, verificación responsive, compilación y publicación

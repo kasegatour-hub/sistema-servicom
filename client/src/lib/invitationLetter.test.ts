@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildInvitationLetterFilename, buildInvitationLetterText, type InvitationLetterData } from "./invitationLetter";
+import { buildInvitationLetterFilename, buildInvitationLetterHtml, buildInvitationLetterText, type InvitationLetterData } from "./invitationLetter";
 
 const data: InvitationLetterData = {
   inviter: { firstName: "Elisabeth", lastName: "Angela", birthDate: "1970-11-09", birthPlace: "Lima, Perú", nationality: "Peruana", identityCard: "CA40175TF", passport: "22252411", residencePermit: "123368849", address: "Via dei Maistreffatelli 9, Torino", occupation: "Comerciante", phone: "+39 348 730 0259", email: "elisabeth@example.com" },
@@ -12,13 +12,19 @@ describe("carta de invitación", () => {
     expect(buildInvitationLetterFilename(data)).toBe("carta-invitacion-maria-rossi-2026-08-19");
   });
 
-  it("includes the inviter, invitee, stay period, declarations and attachments in Italian", () => {
+  it("reproduces the supplied Italian and English template blocks without extra text", () => {
     const letter = buildInvitationLetterText(data);
-    expect(letter).toContain("Elisabeth Angela");
-    expect(letter).toContain("María Rossi");
-    expect(letter).toContain("dal 2026-09-01 al 2026-09-30");
-    expect(letter).toContain("mi assumo le spese di mantenimento");
-    expect(letter).toContain("Firma dell'invitante");
-    expect(letter).not.toContain("Otros documentos");
+    const html = buildInvitationLetterHtml(data);
+    expect(letter).toContain("Elisabeth");
+    expect(letter).toContain("Angela");
+    expect(letter).toContain("María");
+    expect(letter).toContain("Rossi");
+    expect(letter).toContain("01/09/26");
+    expect(letter).toContain("dichiaro di farmi carico delle sue spese di sostentamento");
+    expect(letter).toContain("Firma/ Signature");
+    expect(html).toContain("DICHIARAZIONE GARANZIA E/O");
+    expect(html).toContain("PROOF OF SPONSORSHIP AND/OR");
+    expect(html).toContain("/manus-storage/bandera-italiana-carta_95ecacf7.webp");
+    expect(letter).not.toContain("Servicom Internacional");
   });
 });

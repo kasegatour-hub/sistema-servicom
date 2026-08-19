@@ -105,6 +105,25 @@ export const admins = mysqlTable("admins", {
 export type Admin = typeof admins.$inferSelect;
 export type InsertAdmin = typeof admins.$inferInsert;
 
+/** Cartas de invitación guardadas por el equipo operativo, con el contenido congelado al momento de la emisión. */
+export const invitationLetters = mysqlTable("invitation_letters", {
+  id: int("id").autoincrement().primaryKey(),
+  createdByAdminId: int("createdByAdminId").notNull(),
+  createdByAdminLabel: varchar("createdByAdminLabel", { length: 255 }).notNull(),
+  inviterName: varchar("inviterName", { length: 255 }).notNull(),
+  inviterLastName: varchar("inviterLastName", { length: 255 }).notNull(),
+  inviteeName: varchar("inviteeName", { length: 255 }).notNull(),
+  inviteeLastName: varchar("inviteeLastName", { length: 255 }).notNull(),
+  letterData: longtext("letterData").notNull(),
+  italianData: longtext("italianData").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, table => ({
+  creatorIdx: index("invitation_letters_creator_created_idx").on(table.createdByAdminId, table.createdAt),
+  createdIdx: index("invitation_letters_created_idx").on(table.createdAt),
+}));
+export type InvitationLetter = typeof invitationLetters.$inferSelect;
+export type InsertInvitationLetter = typeof invitationLetters.$inferInsert;
+
 /** Cupones promocionales del 25% gestionados por operadores y Master Admin. */
 export const discountCoupons = mysqlTable("discount_coupons", {
   id: int("id").autoincrement().primaryKey(),

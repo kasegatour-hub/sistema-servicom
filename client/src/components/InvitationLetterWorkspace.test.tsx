@@ -4,11 +4,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 const translationMutation = vi.hoisted(() => ({ isPending: false, mutate: vi.fn(), onSuccess: undefined as undefined | ((value: any) => void) }));
+const saveMutation = vi.hoisted(() => ({ isPending: false, mutate: vi.fn(), onSuccess: undefined as undefined | ((value: any, variables: any) => void) }));
+const lettersQuery = vi.hoisted(() => ({ data: [] as any[], isLoading: false, refetch: vi.fn() }));
 
 vi.mock("@/lib/trpc", () => ({
   trpc: {
     admin: {
       translateInvitationLetter: { useMutation: (options?: { onSuccess?: (value: any) => void }) => { translationMutation.onSuccess = options?.onSuccess; return translationMutation; } },
+      saveInvitationLetter: { useMutation: (options?: { onSuccess?: (value: any, variables: any) => void }) => { saveMutation.onSuccess = options?.onSuccess; return saveMutation; } },
+      listInvitationLetters: { useQuery: () => lettersQuery },
     },
   },
 }));
@@ -16,7 +20,7 @@ vi.mock("@/lib/trpc", () => ({
 import { InvitationLetterWorkspace } from "./InvitationLetterWorkspace";
 
 afterEach(() => cleanup());
-beforeEach(() => { vi.clearAllMocks(); translationMutation.onSuccess = undefined; });
+beforeEach(() => { vi.clearAllMocks(); translationMutation.onSuccess = undefined; saveMutation.onSuccess = undefined; lettersQuery.data = []; });
 
 describe("InvitationLetterWorkspace", () => {
   it("normalizes searchable places and nationalities to uppercase and requires saving before export", () => {
@@ -46,12 +50,28 @@ describe("InvitationLetterWorkspace", () => {
     fireEvent.change(screen.getAllByLabelText("Número de teléfono")[1], { target: { value: "908722617" } });
     fill("invitation-arrival", "2026-09-01"); fill("invitation-departure", "2026-09-30");
 
-    fireEvent.click(screen.getByRole("button", { name: /Guardar borrador/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Guardar carta/ }));
     await waitFor(() => expect(translationMutation.mutate).toHaveBeenCalledTimes(1));
     translationMutation.onSuccess?.({ inviter: { birthPlace: "LIMA", nationality: "PERUVIANA", residencePermit: "PERMESSO", address: "VIA MURIAGLIO 12", occupation: "COMMERCIANTE" }, invitee: { birthPlace: "LIMA", nationality: "PERUVIANA", address: "LIMA, PERÙ", occupation: "STUDENTESSA" }, relationship: "FAMILIARE", purpose: "TURISMO", city: "TORINO" });
+    await waitFor(() => expect(saveMutation.mutate).toHaveBeenCalledTimes(1));
+    const savedVariables = saveMutation.mutate.mock.calls[0][0];
+    saveMutation.onSuccess?.({ id: 19 }, savedVariables);
 
     await waitFor(() => expect((screen.getByRole("button", { name: /Descargar carta PDF/ }) as HTMLButtonElement).disabled).toBe(false));
     expect((screen.getByRole("button", { name: /Imprimir carta/ }) as HTMLButtonElement).disabled).toBe(false);
-    expect(screen.getByRole("status").textContent).toMatch(/Borrador guardado/);
+    expect(screen.getByRole("status").textContent).toMatch(/Carta guardada/);
+  });
+
+  it("lists saved letters in pages of six and restores a saved record", () => {
+    const recordData = { inviter: { firstName: "ANA", lastName: "ROSSI", birthDate: "1970-01-01", birthPlace: "LIMA", nationality: "PERUANA", identityCard: "AA12345BB", passport: "AB123456", residencePermit: "PERMISO", address: "VIA 1", occupation: "COMERCIANTE", phone: "+51 970 188 447", email: "" }, invitee: { firstName: "MARIA", lastName: "BIANCHI", birthDate: "1995-01-01", birthPlace: "LIMA", nationality: "PERUANA", identityCard: "AA12345BB", passport: "AB123456", residencePermit: "", address: "LIMA", occupation: "ESTUDIANTE", phone: "+51 908 722 617", email: "" }, relationship: "FAMILIAR", purpose: "TURISMO", arrivalDate: "2026-09-01", departureDate: "2026-09-30", city: "TORINO", date: "2026-08-19", financialSupport: true, healthInsurance: true, financialGuarantee: false, inviteeIdAttached: true, financialGuaranteeAttached: false };
+    const italian = { inviter: { birthPlace: "LIMA", nationality: "PERUVIANA", residencePermit: "PERMESSO", address: "VIA 1", occupation: "COMMERCIANTE" }, invitee: { birthPlace: "LIMA", nationality: "PERUVIANA", address: "LIMA", occupation: "STUDENTESSA" }, relationship: "FAMILIARE", purpose: "TURISMO", city: "TORINO" };
+    lettersQuery.data = Array.from({ length: 7 }, (_, index) => ({ id: index + 1, inviterName: "ANA", inviterLastName: "ROSSI", inviteeName: `INVITADO${index + 1}`, inviteeLastName: "BIANCHI", createdAt: new Date(2026, 7, index + 1), letterData: JSON.stringify(recordData), italianData: JSON.stringify(italian) }));
+    render(<InvitationLetterWorkspace />);
+    expect(screen.getByText(/INVITADO7/)).toBeTruthy();
+    expect(screen.queryByText(/INVITADO1/)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
+    expect(screen.getByText(/INVITADO1/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Abrir/ }));
+    expect((document.getElementById("invitante-firstName") as HTMLInputElement).value).toBe("ANA");
   });
 });

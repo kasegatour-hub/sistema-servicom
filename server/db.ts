@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, like, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { createHash } from "node:crypto";
-import { InsertUser, users, shipments, shipmentSignatures, shipmentAuditLogs, shipmentFeedback, platformFeedback, interactionEvents, admins, localAccounts, verificationCodes, adminPasswordResetCodes, clients, discountCoupons, shipmentRoutePolicies } from "../drizzle/schema";
+import { InsertUser, users, shipments, shipmentSignatures, shipmentAuditLogs, shipmentFeedback, platformFeedback, interactionEvents, admins, localAccounts, verificationCodes, adminPasswordResetCodes, clients, discountCoupons, shipmentRoutePolicies, invitationLetters } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { buildShipmentClientDirectoryRecords, type ClientDirectoryRecord, type ShipmentClientDirectoryInput } from "./clientDirectory";
 import { rankFuzzyMatches } from "../shared/fuzzySearch";
@@ -330,6 +330,43 @@ export async function getShipmentsByAccountId(accountId: number) {
   const db = await getDb();
   if (!db) return [];
   return await db.select().from(shipments).where(and(eq(shipments.accountId, accountId), isNull(shipments.deletedAt))).orderBy(desc(shipments.createdAt));
+}
+
+export async function createInvitationLetterRecord(input: {
+  createdByAdminId: number;
+  createdByAdminLabel: string;
+  inviterName: string;
+  inviterLastName: string;
+  inviteeName: string;
+  inviteeLastName: string;
+  letterData: unknown;
+  italianData: unknown;
+}) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.insert(invitationLetters).values({
+    createdByAdminId: input.createdByAdminId,
+    createdByAdminLabel: input.createdByAdminLabel,
+    inviterName: input.inviterName,
+    inviterLastName: input.inviterLastName,
+    inviteeName: input.inviteeName,
+    inviteeLastName: input.inviteeLastName,
+    letterData: JSON.stringify(input.letterData),
+    italianData: JSON.stringify(input.italianData),
+  });
+  const id = Number((result as { insertId?: number }).insertId);
+  if (!id) return undefined;
+  const rows = await db.select().from(invitationLetters).where(eq(invitationLetters.id, id)).limit(1);
+  return rows[0];
+}
+
+export async function listInvitationLetterRecords(actor: { adminId: number; canReviewAll: boolean }) {
+  const db = await getDb();
+  if (!db) return [];
+  const condition = actor.canReviewAll ? undefined : eq(invitationLetters.createdByAdminId, actor.adminId);
+  return condition
+    ? db.select().from(invitationLetters).where(condition).orderBy(desc(invitationLetters.createdAt))
+    : db.select().from(invitationLetters).orderBy(desc(invitationLetters.createdAt));
 }
 
 export type ShipmentAuditActor = {
