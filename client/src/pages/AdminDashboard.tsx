@@ -293,14 +293,22 @@ export default function AdminDashboard() {
   const [adminRecoveryPassword, setAdminRecoveryPassword] = useState("");
   const [adminRecoveryResendSeconds, setAdminRecoveryResendSeconds] = useState(0);
   const [consumedDeliveryQr, setConsumedDeliveryQr] = useState(false);
+  const [deliveryQrMode] = useState<"status" | "update" | null>(() => {
+    if (typeof window === "undefined") return null;
+    const open = new URLSearchParams(window.location.search).get("open");
+    return open === "status" || open === "update" ? open : null;
+  });
   const [deliveryQrTarget] = useState<{ orderNumber: string; code: string } | null>(() => {
     if (typeof window === "undefined") return null;
     const params = new URLSearchParams(window.location.search);
-    if (params.get("open") !== "update") return null;
+    if (params.get("open") !== "update" && params.get("open") !== "status") return null;
     const orderNumber = normalizeTrackingValue(params.get("order") || "");
     const code = normalizeTrackingValue(params.get("code") || "");
     return orderNumber && code ? { orderNumber, code } : null;
   });
+  const [deliveryStatusShipment, setDeliveryStatusShipment] = useState<any>(null);
+  const [deliveryStatusValue, setDeliveryStatusValue] = useState<UpdateStatusForm["newStatus"]>("En agencia");
+  const [deliveryStatusDescription, setDeliveryStatusDescription] = useState("");
   const [paymentFilter, setPaymentFilter] = useState<"all" | "paid" | "unpaid">("all");
   const [logisticsFilter, setLogisticsFilter] = useState("all");
   const [deletedSearchTerm, setDeletedSearchTerm] = useState("");
@@ -576,10 +584,16 @@ export default function AdminDashboard() {
     setAdminWorkspace("registros");
     setShipmentView(shipment.shipmentType === "encomienda" ? "encomienda" : "documento");
     setSearchTerm(String(shipment.orderNumber));
-    openShipmentUpdate(shipment);
+    if (deliveryQrMode === "status") {
+      setDeliveryStatusShipment(shipment);
+      setDeliveryStatusValue(shipment.status || "En agencia");
+      setDeliveryStatusDescription("");
+    } else {
+      openShipmentUpdate(shipment);
+    }
     setConsumedDeliveryQr(true);
     window.history.replaceState({}, "", "/admin");
-  }, [consumedDeliveryQr, isLoggedIn, deliveryQrTarget, deliveryShipmentQuery.data, deliveryShipmentQuery.error, deliveryShipmentQuery.isLoading]);
+  }, [consumedDeliveryQr, isLoggedIn, deliveryQrMode, deliveryQrTarget, deliveryShipmentQuery.data, deliveryShipmentQuery.error, deliveryShipmentQuery.isLoading]);
 
   const handleLogin = async (data: LoginForm) => {
     try {
@@ -808,6 +822,30 @@ export default function AdminDashboard() {
       refetchShipments();
     } catch (error: any) {
       toast.error(error.message || "Error al actualizar estado");
+    }
+  };
+
+  const continueWithFullUpdateFromDeliveryQr = () => {
+    if (!deliveryStatusShipment) return;
+    const shipment = deliveryStatusShipment;
+    setDeliveryStatusShipment(null);
+    setDeliveryStatusDescription("");
+    openShipmentUpdate(shipment);
+  };
+
+  const updateDeliveryStatusFromQr = async () => {
+    if (!deliveryStatusShipment) return;
+    try {
+      await updateMutation.mutateAsync({
+        shipmentId: deliveryStatusShipment.id,
+        newStatus: deliveryStatusValue,
+        description: deliveryStatusDescription.trim(),
+      });
+      toast.success("Estado del envío actualizado correctamente.");
+      await refetchShipments();
+      continueWithFullUpdateFromDeliveryQr();
+    } catch (error: any) {
+      toast.error(error.message || "No se pudo actualizar el estado del envío.");
     }
   };
 
@@ -2186,6 +2224,42 @@ export default function AdminDashboard() {
           <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-lg font-bold text-[#0B2B5E]">Historial de cambios del envío</h2><p className="mt-1 text-xs text-slate-500">Visible únicamente para el Master Admin. Incluye quién eliminó, actualizó, restauró o completó una firma.</p></div><Button size="sm" variant="outline" onClick={() => setAuditShipmentId(null)}>Cerrar historial</Button></div>
           {isLoadingShipmentAudit ? <p className="mt-4 text-sm text-slate-500">Cargando historial…</p> : shipmentAudit.length === 0 ? <p className="mt-4 text-sm text-slate-500">No hay registros de auditoría disponibles para este envío.</p> : <ol className="mt-4 space-y-3">{shipmentAudit.map((entry: any) => <li key={entry.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3"><p className="text-sm font-semibold text-[#0B2B5E]">{({ created: "Registro creado", updated: "Datos o estado actualizado", deleted: "Envío eliminado", restored: "Envío restaurado", price_updated: "Precio actualizado", signature_requested: "Firma solicitada", signature_completed: "Firma completada", feedback_added: "Retroalimentación añadida", hidden_from_registradores: "Envío oculto para Registradores", shown_to_registradores: "Envío mostrado a Registradores" } as Record<string, string>)[entry.action] || entry.action}</p><p className="mt-1 text-xs text-slate-600">Realizado por: <strong>{entry.actorDisplayName || "No indicado"}</strong> · {entry.createdAt ? new Date(entry.createdAt).toLocaleString() : "sin fecha"}</p>{entry.reason && <p className="mt-1 text-xs text-slate-600">Motivo: {entry.reason}</p>}</li>)}</ol>}
         </Card>}
+
+        {deliveryStatusShipment && (
+          <div className="fixed inset-0 z-60 flex items-center justify-center bg-slate-950/55 p-4" role="dialog" aria-modal="true" aria-labelledby="delivery-status-title">
+            <Card className="w-full max-w-2xl border-0 p-6 shadow-2xl">
+              <div className="flex items-start justify-between gap-4 border-b border-slate-200 pb-4">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#F28C00]">Control de entrega escaneado</p>
+                  <h2 id="delivery-status-title" className="mt-1 text-xl font-bold text-[#0B2B5E]">Actualizar estado del envío</h2>
+                  <p className="mt-1 text-sm text-slate-600">Orden {deliveryStatusShipment.orderNumber} · Código {deliveryStatusShipment.code} · {deliveryStatusShipment.recipientName || "Destinatario"} {deliveryStatusShipment.recipientLastName || ""}</p>
+                </div>
+                <Button type="button" variant="outline" size="sm" aria-label="Cerrar actualización rápida y abrir formulario completo" onClick={continueWithFullUpdateFromDeliveryQr}>×</Button>
+              </div>
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="delivery-status-select" className="mb-2 block text-sm font-semibold text-slate-800">Nuevo estado del envío</label>
+                  <select id="delivery-status-select" aria-label="Nuevo estado del envío" value={deliveryStatusValue} onChange={(event) => setDeliveryStatusValue(event.target.value as UpdateStatusForm["newStatus"])} className="h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-800 focus:border-[#0B2B5E] focus:outline-none">
+                    <option value="Por entregar en agencia">Por entregar en agencia</option>
+                    <option value="En agencia">En agencia</option>
+                    <option value="En tránsito">En tránsito</option>
+                    <option value="En destino">En destino</option>
+                    <option value="Entregado">Entregado</option>
+                  </select>
+                </div>
+                <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm text-[#0B2B5E]"><strong>Envío identificado</strong><br />El cambio se aplicará únicamente a esta orden y código.</div>
+              </div>
+              <div className="mt-4">
+                <label htmlFor="delivery-status-description" className="mb-2 block text-sm font-semibold text-slate-800">Nota de actualización <span className="font-normal text-slate-500">(opcional)</span></label>
+                <Textarea id="delivery-status-description" aria-label="Nota de actualización" value={deliveryStatusDescription} onChange={(event) => setDeliveryStatusDescription(event.target.value)} placeholder="Ej. Entregado al destinatario en la sede de destino" rows={3} />
+              </div>
+              <div className="mt-6 flex flex-wrap justify-end gap-2">
+                <Button type="button" variant="outline" onClick={continueWithFullUpdateFromDeliveryQr}>Abrir actualización completa</Button>
+                <Button type="button" onClick={() => void updateDeliveryStatusFromQr()} disabled={updateMutation.isPending} className="bg-[#0B2B5E] text-white hover:bg-[#123d78]">{updateMutation.isPending ? "Actualizando…" : "Actualizar estado"}</Button>
+              </div>
+            </Card>
+          </div>
+        )}
 
         {/* Update Status Modal */}
         <UpdateShipmentModal

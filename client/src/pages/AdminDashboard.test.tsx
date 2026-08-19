@@ -195,6 +195,22 @@ describe("AdminDashboard Nueva Encomienda", () => {
     expect(window.location.search).toBe("");
   });
 
+  it("abre primero el estado del envío escaneado y permite continuar con la actualización completa", async () => {
+    const shipment = { id: 90, shipmentType: "documento", senderName: "Ana", senderLastName: "Pérez", recipientName: "Miguel", recipientLastName: "Díaz", status: "En destino", paymentStatus: "Pagado", createdAt: new Date("2026-08-19T10:00:00.000Z"), orderNumber: "8582224585", code: "ENC-2026-JVZU4", events: [] };
+    mocks.deliveryShipment = { data: shipment, isLoading: false, error: null };
+    window.history.replaceState({}, "", "/admin?order=8582224585&code=ENC-2026-JVZU4&open=status");
+    render(<AdminDashboard />);
+    fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
+    fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
+
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Actualizar estado del envío" })).toBeTruthy());
+    expect((screen.getByLabelText("Nuevo estado del envío") as HTMLSelectElement).value).toBe("En destino");
+    expect(screen.getByText("Orden 8582224585 · Código ENC-2026-JVZU4 · Miguel Díaz")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Cerrar actualización rápida y abrir formulario completo" }));
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Actualizar Estado de Documento" })).toBeTruthy());
+  });
+
   it("offers administrative password recovery by the registered email", () => {
     render(<AdminDashboard />);
     fireEvent.click(screen.getByRole("button", { name: "¿Olvidaste tu contraseña?" }));

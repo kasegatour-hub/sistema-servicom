@@ -5,7 +5,7 @@ import { getPaymentPrintPresentation } from "./paymentPrint";
 import { buildReceiptPriceHtml } from "./receiptPrice";
 import { getRoutePresentation } from "./routeDetails";
 import { buildElectronicSignatureHtml, buildReceiptDownloadFilename } from "./userReceipt";
-import { buildShipmentManagementUrl, buildTrackingUrl, TRACKING_QR_OPTIONS } from "./tracking";
+import { buildShipmentDeliveryStatusUrl, buildTrackingUrl, TRACKING_QR_OPTIONS } from "./tracking";
 
 type AdminReceiptDocumentInput = {
   shipment: any;
@@ -53,7 +53,7 @@ export async function buildAdminReceiptDocument(input: AdminReceiptDocumentInput
   const filename = buildReceiptDownloadFilename({ recipientName: shipment.recipientName, recipientLastName: shipment.recipientLastName, recipientDisplayName: recipient, orderNumber: order, shipmentType: shipment.shipmentType });
   const [trackingQrDataUrl, managementQrDataUrl] = await Promise.all([
     QRCode.toDataURL(buildTrackingUrl(order, code, input.origin), { ...TRACKING_QR_OPTIONS, width: 220, margin: 1, color: { dark: "#0B2B5E", light: "#ffffff" } }),
-    QRCode.toDataURL(buildShipmentManagementUrl(order, code, input.origin), { ...TRACKING_QR_OPTIONS, width: 160, margin: 1, color: { dark: "#0B2B5E", light: "#ffffff" } }),
+    QRCode.toDataURL(buildShipmentDeliveryStatusUrl(order, code, input.origin), { ...TRACKING_QR_OPTIONS, width: 160, margin: 1, color: { dark: "#0B2B5E", light: "#ffffff" } }),
   ]);
   const logoSrc = new URL("/manus-storage/servicom_logo_final_e7ce35aa.png", input.origin).href;
   const createdAt = new Date(shipment.createdAt || Date.now()).toLocaleString("es-PE");

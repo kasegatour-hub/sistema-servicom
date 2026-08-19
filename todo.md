@@ -585,3 +585,9 @@
 - [x] Mostrar Descargar PDF e Imprimir como acciones independientes y contiguas en la vista de comprobante
 - [x] Unificar el generador descargable y la maqueta de impresión para documento y encomienda
 - [x] Añadir pruebas, verificar PDFs generados, compilar y publicar
+
+## Apertura específica desde QR de control de entrega
+- [x] Validar que el QR codifique y consulte exclusivamente la orden y el código del envío dueño del control
+- [x] Abrir primero el envío escaneado en una ventana de actualización de estado enfocada
+- [x] Permitir cerrar con X y continuar con las acciones completas de actualización del mismo envío
+- [x] Añadir pruebas, compilar y publicar la corrección
