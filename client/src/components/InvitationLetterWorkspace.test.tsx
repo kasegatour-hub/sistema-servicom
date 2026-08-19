@@ -53,6 +53,9 @@ describe("InvitationLetterWorkspace", () => {
     expect(screen.getByText("Declaro que puedo hospedar / Dichiaro di voler ospitare")).toBeTruthy();
     expect(screen.getByText("En mi domicilio indicado / Presso la mia abitazione")).toBeTruthy();
     expect(screen.getByText("En otra dirección / Al seguente indirizzo")).toBeTruthy();
+    expect(document.getElementById("invitado-identityCard")).toBeNull();
+    expect(document.getElementById("invitado-telefono")).toBeNull();
+    expect(document.getElementById("invitado-email")).toBeNull();
   });
 
   it("incluye departamentos peruanos en la búsqueda opcional de lugar de nacimiento", () => {
@@ -71,9 +74,8 @@ describe("InvitationLetterWorkspace", () => {
     const fill = (id: string, value: string) => fireEvent.change(document.getElementById(id) as HTMLInputElement, { target: { value } });
     const fillDate = (id: string, value: string) => { const input = document.getElementById(id) as HTMLInputElement; fireEvent.change(input, { target: { value } }); fireEvent.blur(input); };
     fill("invitante-firstName", "Ana"); fill("invitante-lastName", "Rossi"); fillDate("invitante-nacimiento", "01/01/1970"); fill("invitante-lugar", "Lima"); fill("invitante-nacionalidad", "Peruana"); fill("invitante-identityCard", "AA12345BB"); fill("invitante-passport", "AB123456"); fill("invitante-residencePermit", "Permiso"); fill("invitante-occupation", "Comerciante"); fill("invitante-address", "Via Muriaglio 12");
-    fill("invitado-firstName", "Maria"); fill("invitado-lastName", "Bianchi"); fillDate("invitado-nacimiento", "01/01/1995"); fill("invitado-lugar", "Lima"); fill("invitado-nacionalidad", "Peruana"); fill("invitado-identityCard", "AA12345BB"); fill("invitado-passport", "AB123456"); fill("invitado-occupation", "Estudiante"); fill("invitado-address", "Lima Peru");
+    fill("invitado-firstName", "Maria"); fill("invitado-lastName", "Bianchi"); fillDate("invitado-nacimiento", "01/01/1995"); fill("invitado-lugar", "Lima"); fill("invitado-nacionalidad", "Peruana"); fill("invitado-passport", "AB123456"); fill("invitado-occupation", "Estudiante"); fill("invitado-address", "Lima Peru");
     fireEvent.change(screen.getAllByLabelText("Número de teléfono")[0], { target: { value: "970188447" } });
-    fireEvent.change(screen.getAllByLabelText("Número de teléfono")[1], { target: { value: "908722617" } });
     fillDate("invitation-arrival", "01/09/2026"); fillDate("invitation-departure", "30/09/2026");
 
     fireEvent.click(screen.getByRole("button", { name: /Guardar carta/ }));

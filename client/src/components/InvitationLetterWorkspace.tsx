@@ -54,13 +54,13 @@ function PersonFields({ heading, person, onChange, invitee = false }: { heading:
     <ManualDateField id={`${prefix}-nacimiento`} label="Fecha de nacimiento / Data di nascita" value={person.birthDate} onChange={value => onChange("birthDate", value)} required maxYear={new Date().getFullYear()} />
     <FuzzyUppercaseInput id={`${prefix}-lugar`} label="Lugar de nacimiento / Luogo di nascita" value={person.birthPlace} onChange={value => onChange("birthPlace", value)} placeholder="Ej.: LIMA" options={BIRTH_PLACES} />
     <FuzzyUppercaseInput id={`${prefix}-nacionalidad`} label="Nacionalidad / Nazionalità" value={person.nationality} onChange={value => onChange("nationality", value)} placeholder="Ej.: PERUANA" options={NATIONALITIES} />
-    {textField("identityCard", "Documento de identidad / Documento d'identità")}
+    {!invitee && textField("identityCard", "Documento de identidad / Documento d'identità")}
     {textField("passport", "Pasaporte / Passaporto")}
     {!invitee && textField("residencePermit", "Permiso de residencia / Permesso di soggiorno")}
     {textField("occupation", "Ocupación / Professione")}
     <div className="md:col-span-2">{textField("address", "Dirección / Indirizzo")}</div>
-    <div><label htmlFor={`${prefix}-telefono`} className="text-sm font-medium">Teléfono / Telefono *</label><PhoneInput id={`${prefix}-telefono`} value={person.phone} onChange={value => onChange("phone", value)} required placeholder="970 188 447" className="mt-1" /></div>
-    <div><label htmlFor={`${prefix}-email`} className="text-sm font-medium">Correo / E-mail <span className="font-normal text-slate-500">(opcional)</span></label><Input id={`${prefix}-email`} type="email" value={person.email} onChange={e => onChange("email", e.target.value.trim())} className="mt-1 h-11 bg-white" autoComplete="email" /></div>
+    {!invitee && <><div><label htmlFor={`${prefix}-telefono`} className="text-sm font-medium">Teléfono / Telefono *</label><PhoneInput id={`${prefix}-telefono`} value={person.phone} onChange={value => onChange("phone", value)} required placeholder="970 188 447" className="mt-1" /></div>
+    <div><label htmlFor={`${prefix}-email`} className="text-sm font-medium">Correo / E-mail <span className="font-normal text-slate-500">(opcional)</span></label><Input id={`${prefix}-email`} type="email" value={person.email} onChange={e => onChange("email", e.target.value.trim())} className="mt-1 h-11 bg-white" autoComplete="email" /></div></>}
   </div></section>;
 }
 
@@ -113,12 +113,12 @@ export function InvitationLetterWorkspace({ shipments = [] as any[] }: { shipmen
     });
   };
   const validatePerson = (person: InvitationPerson, role: string, requiresResidencePermit: boolean) => {
-    const requiredFields: Array<[keyof InvitationPerson, string]> = [["firstName", "nombres"], ["lastName", "apellidos"], ["birthDate", "fecha de nacimiento"], ["birthPlace", "lugar de nacimiento"], ["nationality", "nacionalidad"], ["identityCard", "documento de identidad"], ["passport", "pasaporte"], ["address", "dirección"], ["occupation", "ocupación"], ["phone", "teléfono"]];
-    if (requiresResidencePermit) requiredFields.push(["residencePermit", "permiso de residencia"]);
+    const requiredFields: Array<[keyof InvitationPerson, string]> = [["firstName", "nombres"], ["lastName", "apellidos"], ["birthDate", "fecha de nacimiento"], ["birthPlace", "lugar de nacimiento"], ["nationality", "nacionalidad"], ["passport", "pasaporte"], ["address", "dirección"], ["occupation", "ocupación"]];
+    if (requiresResidencePermit) requiredFields.push(["identityCard", "documento de identidad"], ["residencePermit", "permiso de residencia"], ["phone", "teléfono"]);
     const missing = requiredFields.find(([field]) => !String(person[field] || "").trim());
     if (missing) return `Completa ${missing[1]} de ${role}. El correo es opcional. / Completa ${missing[1]} per ${role}. L'e-mail è facoltativa.`;
-    if (!isValidInternationalPhone(person.phone)) return `El teléfono de ${role} no coincide con los dígitos requeridos por el país seleccionado.`;
-    if (person.email && !/^\S+@\S+\.\S+$/.test(person.email)) return `El correo de ${role} no es válido.`;
+    if (requiresResidencePermit && !isValidInternationalPhone(person.phone)) return `El teléfono de ${role} no coincide con los dígitos requeridos por el país seleccionado.`;
+    if (requiresResidencePermit && person.email && !/^\S+@\S+\.\S+$/.test(person.email)) return `El correo de ${role} no es válido.`;
     return "";
   };
   const validate = () => {

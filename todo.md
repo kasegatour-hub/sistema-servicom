@@ -608,3 +608,8 @@
 - [x] Incorporar los 25 departamentos del Perú y capitales principales a la búsqueda difusa de lugar de nacimiento
 - [x] Mantener las sugerencias opcionales y no bloqueantes
 - [x] Añadir pruebas, compilar y publicar las mejoras
+
+## Campos del invitado según plantilla de Carta de invitación
+- [x] Contrastar los requisitos del invitado con la plantilla PDF aportada
+- [x] Retirar el documento de identidad del invitado cuando no corresponde y ajustar su validación
+- [x] Actualizar plantilla, pruebas, compilación y publicación
