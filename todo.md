@@ -480,3 +480,8 @@
 - [x] Cerrar la vista previa administrativa al iniciar la impresión o la descarga
 - [x] Cerrar la ventana emergente de impresión después de entregar el diálogo nativo al navegador
 - [x] Añadir pruebas, validación y publicación del cierre automático
+
+## Descarga nombrada desde vista previa administrativa
+- [x] Sustituir la acción administrativa de guardado mediante impresión por la descarga PDF nombrada
+- [x] Conservar la impresión administrativa como acción independiente
+- [x] Añadir pruebas, validación y publicación de la descarga administrativa

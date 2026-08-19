@@ -40,6 +40,9 @@ const mocks = vi.hoisted(() => ({
     }),
   },
 }));
+const receiptMocks = vi.hoisted(() => ({
+  download: vi.fn().mockResolvedValue("recibo-documento-giselle-garcia-orden-6352627659.pdf"),
+}));
 
 vi.mock("@/lib/trpc", () => ({
   trpc: {
@@ -81,6 +84,11 @@ vi.mock("@/lib/trpc", () => ({
     },
   },
 }));
+
+vi.mock("@/lib/userReceipt", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/userReceipt")>();
+  return { ...actual, downloadUserShipmentReceiptPdf: receiptMocks.download };
+});
 
 import AdminDashboard from "./AdminDashboard";
 
@@ -184,6 +192,37 @@ describe("AdminDashboard Nueva Encomienda", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "Ocultar a Registradores" })).toBeTruthy());
     fireEvent.click(screen.getByRole("button", { name: "Ocultar a Registradores" }));
     await waitFor(() => expect(mocks.setShipmentRegistradorVisibility.mutateAsync).toHaveBeenCalledWith({ shipmentId: 42, hidden: true }));
+  });
+
+  it("downloads a named PDF from the administrative receipt preview instead of using the print dialog", async () => {
+    const shipment = {
+      id: 42,
+      shipmentType: "documento",
+      recipientName: "Giselle",
+      recipientLastName: "García",
+      senderName: "Ana",
+      senderLastName: "Pérez",
+      recipientPhone: "+51 970188447",
+      senderPhone: "+51 908722617",
+      status: "En agencia",
+      paymentStatus: "Falta cancelar",
+      createdAt: new Date("2026-08-17T10:00:00.000Z"),
+      orderNumber: "6352627659",
+      code: "DOC-2026-XPF2A",
+      events: [],
+      hiddenFromRegistradoresAt: null,
+    };
+    mocks.shipments = [shipment];
+    render(<AdminDashboard />);
+    fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
+    fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Imprimir" })).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "Imprimir" }));
+    expect(await screen.findByText("Vista Previa de Recibo")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Descargar PDF" }));
+    await waitFor(() => expect(receiptMocks.download).toHaveBeenCalledWith(shipment));
+    expect(screen.queryByText("Vista Previa de Recibo")).toBeNull();
   });
 
   it("hides, orders and paginates promotional coupons five at a time", async () => {

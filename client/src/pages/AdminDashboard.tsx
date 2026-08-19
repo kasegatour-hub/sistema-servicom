@@ -31,7 +31,7 @@ import { buildReceiptPriceHtml } from "@/lib/receiptPrice";
 import { closeUpdateModal } from "@/lib/updateModal";
 import { UpdateShipmentModal } from "@/components/UpdateShipmentModal";
 import { evaluateScientificExpression } from "@/lib/scientificCalculator";
-import { buildElectronicSignatureHtml, buildReceiptDownloadFilename } from "@/lib/userReceipt";
+import { buildElectronicSignatureHtml, buildReceiptDownloadFilename, downloadUserShipmentReceiptPdf } from "@/lib/userReceipt";
 import { summarizeRevenue } from "@shared/revenueSummary";
 import { DocumentPricePreview } from "@/components/DocumentPricePreview";
 import { GeneralFeedbackDialog } from "@/components/GeneralFeedbackDialog";
@@ -1068,6 +1068,19 @@ export default function AdminDashboard() {
       printWindow.focus();
       printWindow.print();
       window.setTimeout(closePrintWindow, 1200);
+    }
+  };
+
+  const downloadReceiptFromPreview = async () => {
+    if (!printShipment) return;
+    const shipmentToDownload = printShipment;
+    setPrintShipment(null);
+    try {
+      const filename = await downloadUserShipmentReceiptPdf(shipmentToDownload);
+      toast.success(`PDF descargado: ${filename}`);
+    } catch (error) {
+      console.error("No se pudo descargar el comprobante administrativo", error);
+      toast.error("No se pudo generar el PDF. Inténtalo nuevamente.");
     }
   };
 
@@ -2332,10 +2345,18 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={downloadReceiptFromPreview}
+                  className="flex-1 bg-primary hover:bg-primary/90 text-white"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Descargar PDF
+                </Button>
                 <Button
                   onClick={printReceipt}
-                  className="flex-1 bg-primary hover:bg-primary/90 text-white"
+                  variant="outline"
+                  className="flex-1"
                 >
                   <Printer className="w-4 h-4 mr-2" />
                   Imprimir
