@@ -46,11 +46,12 @@ describe("InvitationLetterWorkspace", () => {
   it("enables export actions only after the validated draft is saved", async () => {
     render(<InvitationLetterWorkspace />);
     const fill = (id: string, value: string) => fireEvent.change(document.getElementById(id) as HTMLInputElement, { target: { value } });
-    fill("invitante-firstName", "Ana"); fill("invitante-lastName", "Rossi"); fill("invitante-nacimiento", "1970-01-01"); fill("invitante-lugar", "Lima"); fill("invitante-nacionalidad", "Peruana"); fill("invitante-identityCard", "AA12345BB"); fill("invitante-passport", "AB123456"); fill("invitante-residencePermit", "Permiso"); fill("invitante-occupation", "Comerciante"); fill("invitante-address", "Via Muriaglio 12");
-    fill("invitado-firstName", "Maria"); fill("invitado-lastName", "Bianchi"); fill("invitado-nacimiento", "1995-01-01"); fill("invitado-lugar", "Lima"); fill("invitado-nacionalidad", "Peruana"); fill("invitado-identityCard", "AA12345BB"); fill("invitado-passport", "AB123456"); fill("invitado-occupation", "Estudiante"); fill("invitado-address", "Lima Peru");
+    const fillDate = (id: string, value: string) => { const input = document.getElementById(id) as HTMLInputElement; fireEvent.change(input, { target: { value } }); fireEvent.blur(input); };
+    fill("invitante-firstName", "Ana"); fill("invitante-lastName", "Rossi"); fillDate("invitante-nacimiento", "01/01/1970"); fill("invitante-lugar", "Lima"); fill("invitante-nacionalidad", "Peruana"); fill("invitante-identityCard", "AA12345BB"); fill("invitante-passport", "AB123456"); fill("invitante-residencePermit", "Permiso"); fill("invitante-occupation", "Comerciante"); fill("invitante-address", "Via Muriaglio 12");
+    fill("invitado-firstName", "Maria"); fill("invitado-lastName", "Bianchi"); fillDate("invitado-nacimiento", "01/01/1995"); fill("invitado-lugar", "Lima"); fill("invitado-nacionalidad", "Peruana"); fill("invitado-identityCard", "AA12345BB"); fill("invitado-passport", "AB123456"); fill("invitado-occupation", "Estudiante"); fill("invitado-address", "Lima Peru");
     fireEvent.change(screen.getAllByLabelText("Número de teléfono")[0], { target: { value: "970188447" } });
     fireEvent.change(screen.getAllByLabelText("Número de teléfono")[1], { target: { value: "908722617" } });
-    fill("invitation-arrival", "2026-09-01"); fill("invitation-departure", "2026-09-30");
+    fillDate("invitation-arrival", "01/09/2026"); fillDate("invitation-departure", "30/09/2026");
 
     fireEvent.click(screen.getByRole("button", { name: /Guardar carta/ }));
     await waitFor(() => expect(translationMutation.mutate).toHaveBeenCalledTimes(1));
@@ -73,7 +74,7 @@ describe("InvitationLetterWorkspace", () => {
     expect(screen.queryByText(/INVITADO1/)).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
     expect(screen.getByText(/INVITADO1/)).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /Abrir/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Abrir" }));
     expect((document.getElementById("invitante-firstName") as HTMLInputElement).value).toBe("ANA");
   });
 

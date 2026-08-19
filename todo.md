@@ -537,3 +537,9 @@
 - [x] Corregir la conexión WebSocket de actualización en tiempo real detrás del proxy de vista previa
 - [x] Verificar los registros, reiniciar el servidor y validar que la vista previa carga sin error de Vite
 - [x] Añadir pruebas o verificación de compilación y publicar la corrección
+
+## Fechas de Carta de invitación
+- [x] Permitir la escritura manual de fechas sin bloquear el formulario
+- [x] Añadir calendario claro con selector anual amplio y fácil de recorrer
+- [x] Aplicar el control a nacimiento, estadía y fecha de emisión
+- [x] Añadir pruebas, verificación responsive, compilación y publicación
