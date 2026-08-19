@@ -513,3 +513,10 @@
 - [x] Exigir contraseñas de al menos 12 caracteres con mayúscula, minúscula, número y símbolo
 - [x] Mostrar los requisitos claros y la retroalimentación de cumplimiento en los formularios de contraseña
 - [x] Añadir pruebas de seguridad, sesión, compilación y publicación
+
+## Carta de invitación: datos bilingües y guardado previo
+- [x] Añadir búsqueda difusa para lugar de nacimiento y nacionalidad, convirtiendo los valores a mayúsculas
+- [x] Presentar los campos requeridos en español e italiano y reflejar la información en italiano en la carta emitida
+- [x] Reutilizar el teléfono internacional validado, eliminando dirección de hospedaje y otros anexos; mantener el correo opcional
+- [x] Exigir el guardado del borrador antes de habilitar descarga PDF e impresión
+- [x] Añadir pruebas, verificación responsive, compilación y publicación

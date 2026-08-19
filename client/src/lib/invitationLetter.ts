@@ -20,7 +20,6 @@ export type InvitationLetterData = {
   purpose: string;
   arrivalDate: string;
   departureDate: string;
-  hostingAddress: string;
   city: string;
   date: string;
   financialSupport: boolean;
@@ -28,64 +27,94 @@ export type InvitationLetterData = {
   financialGuarantee: boolean;
   inviteeIdAttached: boolean;
   financialGuaranteeAttached: boolean;
-  otherAttachment: string;
 };
 
-const display = (value?: string) => value?.trim() || "No especificado";
-const personName = (person: InvitationPerson) => `${person.firstName} ${person.lastName}`.trim() || "invitado";
-const safeName = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-+|-+$/g, "").toLowerCase() || "invitado";
+export type InvitationLetterItalian = {
+  inviter: Pick<InvitationPerson, "birthPlace" | "nationality" | "residencePermit" | "address" | "occupation">;
+  invitee: Pick<InvitationPerson, "birthPlace" | "nationality" | "address" | "occupation">;
+  relationship: string;
+  purpose: string;
+  city: string;
+};
+
+const display = (value?: string) => value?.trim() || "Non specificato";
+const personName = (person: InvitationPerson) => `${person.firstName} ${person.lastName}`.trim() || "invitato";
+const safeName = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-+|-+$/g, "").toLowerCase() || "invitato";
+const uppercase = (value: string) => value.toLocaleUpperCase("es-PE");
 
 export const buildInvitationLetterFilename = (data: InvitationLetterData) => `carta-invitacion-${safeName(personName(data.invitee))}-${data.date || "sin-fecha"}`;
 
-export function buildInvitationLetterText(data: InvitationLetterData): string {
+export function buildInvitationLetterItalianFallback(data: InvitationLetterData): InvitationLetterItalian {
+  return {
+    inviter: {
+      birthPlace: uppercase(data.inviter.birthPlace),
+      nationality: uppercase(data.inviter.nationality),
+      residencePermit: uppercase(data.inviter.residencePermit),
+      address: uppercase(data.inviter.address),
+      occupation: uppercase(data.inviter.occupation),
+    },
+    invitee: {
+      birthPlace: uppercase(data.invitee.birthPlace),
+      nationality: uppercase(data.invitee.nationality),
+      address: uppercase(data.invitee.address),
+      occupation: uppercase(data.invitee.occupation),
+    },
+    relationship: uppercase(data.relationship),
+    purpose: uppercase(data.purpose),
+    city: uppercase(data.city),
+  };
+}
+
+export function buildInvitationLetterText(data: InvitationLetterData, italian: InvitationLetterItalian = buildInvitationLetterItalianFallback(data)): string {
   const inviter = data.inviter;
   const invitee = data.invitee;
-  return `DICHIARAZIONE GARANZIA E/O ALLOGGIAMENTO
+  return `DICHIARAZIONE DI GARANZIA E/O ALLOGGIO
 PROOF OF SPONSORSHIP AND/OR PRIVATE ACCOMMODATION
 
-DATOS DEL INVITANTE / UNDERSIGNED
-Nombre: ${display(personName(inviter))}
-Fecha y lugar de nacimiento: ${display(inviter.birthDate)} · ${display(inviter.birthPlace)}
-Nacionalidad: ${display(inviter.nationality)}
-Documento de identidad: ${display(inviter.identityCard)}
-Pasaporte: ${display(inviter.passport)}
-Permiso de residencia: ${display(inviter.residencePermit)}
-Dirección: ${display(inviter.address)}
-Ocupación: ${display(inviter.occupation)}
-Teléfono / Email: ${display(inviter.phone)} · ${display(inviter.email)}
+DATI DELL'INVITANTE / HOST
+Nome e cognome: ${display(personName(inviter))}
+Data e luogo di nascita: ${display(inviter.birthDate)} · ${display(italian.inviter.birthPlace)}
+Nazionalità: ${display(italian.inviter.nationality)}
+Documento d'identità: ${display(inviter.identityCard)}
+Passaporto: ${display(inviter.passport)}
+Permesso di soggiorno: ${display(italian.inviter.residencePermit)}
+Indirizzo: ${display(italian.inviter.address)}
+Professione: ${display(italian.inviter.occupation)}
+Telefono: ${display(inviter.phone)}
+E-mail: ${display(inviter.email)}
 
-DECLARACIÓN DE HOSPEDAJE / ACCOMMODATION DECLARATION
-Declaro poder hospedar a la siguiente persona en la dirección: ${display(data.hostingAddress || inviter.address)}.
+DICHIARAZIONE DI ALLOGGIO
+Dichiaro di poter ospitare la persona invitata al seguente indirizzo: ${display(italian.inviter.address)}.
 
-DATOS DEL INVITADO / INVITEE
-Nombre: ${display(personName(invitee))}
-Fecha y lugar de nacimiento: ${display(invitee.birthDate)} · ${display(invitee.birthPlace)}
-Nacionalidad: ${display(invitee.nationality)}
-Documento de identidad: ${display(invitee.identityCard)}
-Pasaporte: ${display(invitee.passport)}
-Dirección: ${display(invitee.address)}
-Ocupación: ${display(invitee.occupation)}
-Teléfono / Email: ${display(invitee.phone)} · ${display(invitee.email)}
+DATI DELLA PERSONA INVITATA / INVITEE
+Nome e cognome: ${display(personName(invitee))}
+Data e luogo di nascita: ${display(invitee.birthDate)} · ${display(italian.invitee.birthPlace)}
+Nazionalità: ${display(italian.invitee.nationality)}
+Documento d'identità: ${display(invitee.identityCard)}
+Passaporto: ${display(invitee.passport)}
+Indirizzo: ${display(italian.invitee.address)}
+Professione: ${display(italian.invitee.occupation)}
+Telefono: ${display(invitee.phone)}
+E-mail: ${display(invitee.email)}
 
-Relación con el invitado: ${display(data.relationship)}
-Finalidad de la visita: ${display(data.purpose)}
-Periodo de estadía: ${display(data.arrivalDate)} al ${display(data.departureDate)}
+Rapporto con la persona invitata: ${display(italian.relationship)}
+Scopo della visita: ${display(italian.purpose)}
+Periodo di soggiorno: dal ${display(data.arrivalDate)} al ${display(data.departureDate)}
 
-DECLARACIONES
-- ${data.financialSupport ? "Sí" : "No"}: asumir los gastos de sostenimiento durante la estadía.
-- ${data.healthInsurance ? "Sí" : "No"}: seguro sanitario del invitado.
-- ${data.financialGuarantee ? "Sí" : "No"}: garantía económica adicional.
-- Me comprometo a comunicar a las autoridades locales la presencia del ciudadano extranjero dentro de los plazos legales aplicables.
+DICHIARAZIONI
+- ${data.financialSupport ? "Sì" : "No"}: mi assumo le spese di mantenimento durante il soggiorno.
+- ${data.healthInsurance ? "Sì" : "No"}: la persona invitata dispone di assicurazione sanitaria.
+- ${data.financialGuarantee ? "Sì" : "No"}: dichiaro una garanzia economica aggiuntiva.
+- Mi impegno a comunicare alle autorità locali la presenza del cittadino straniero nei termini previsti dalla legge.
 
-ANEXOS
-- ${data.inviteeIdAttached ? "Sí" : "No"}: documento de identidad del invitante.
-- ${data.financialGuaranteeAttached ? "Sí" : "No"}: garantía financiera.
-- Otros documentos: ${display(data.otherAttachment)}
+ALLEGATI
+- ${data.inviteeIdAttached ? "Sì" : "No"}: documento d'identità dell'invitante.
+- ${data.financialGuaranteeAttached ? "Sì" : "No"}: garanzia finanziaria.
 
-Lugar: ${display(data.city)}
-Fecha: ${display(data.date)}
+Luogo: ${display(italian.city)}
+Data: ${display(data.date)}
 
-Firma del invitante: ______________________________`;
+Firma dell'invitante: ______________________________`;
 }
 
 function writeSection(pdf: any, title: string, lines: string[], y: number) {
@@ -108,7 +137,7 @@ function writeSection(pdf: any, title: string, lines: string[], y: number) {
   return y + 3;
 }
 
-export async function downloadInvitationLetterPdf(data: InvitationLetterData): Promise<string> {
+export async function downloadInvitationLetterPdf(data: InvitationLetterData, italian: InvitationLetterItalian = buildInvitationLetterItalianFallback(data)): Promise<string> {
   const { jsPDF } = await import("jspdf");
   const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
   const filename = `${buildInvitationLetterFilename(data)}.pdf`;
@@ -119,47 +148,46 @@ export async function downloadInvitationLetterPdf(data: InvitationLetterData): P
   pdf.setTextColor(255, 255, 255);
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(16);
-  pdf.text("DICHIARAZIONE GARANZIA E/O ALLOGGIAMENTO", 105, 12, { align: "center" });
+  pdf.text("DICHIARAZIONE DI GARANZIA E/O ALLOGGIO", 105, 12, { align: "center" });
   pdf.setFontSize(10);
   pdf.text("PROOF OF SPONSORSHIP AND/OR PRIVATE ACCOMMODATION", 105, 20, { align: "center" });
   let y = 40;
-  y = writeSection(pdf, "DATOS DEL INVITANTE / UNDERSIGNED", [
-    `Nombre: ${display(personName(inviter))}`,
-    `Fecha y lugar de nacimiento: ${display(inviter.birthDate)} · ${display(inviter.birthPlace)}`,
-    `Nacionalidad: ${display(inviter.nationality)} · Documento: ${display(inviter.identityCard)}`,
-    `Pasaporte: ${display(inviter.passport)} · Permiso de residencia: ${display(inviter.residencePermit)}`,
-    `Dirección: ${display(inviter.address)}`,
-    `Ocupación: ${display(inviter.occupation)} · Teléfono: ${display(inviter.phone)} · Email: ${display(inviter.email)}`,
+  y = writeSection(pdf, "DATI DELL'INVITANTE / HOST", [
+    `Nome e cognome: ${display(personName(inviter))}`,
+    `Data e luogo di nascita: ${display(inviter.birthDate)} · ${display(italian.inviter.birthPlace)}`,
+    `Nazionalità: ${display(italian.inviter.nationality)} · Documento d'identità: ${display(inviter.identityCard)}`,
+    `Passaporto: ${display(inviter.passport)} · Permesso di soggiorno: ${display(italian.inviter.residencePermit)}`,
+    `Indirizzo: ${display(italian.inviter.address)}`,
+    `Professione: ${display(italian.inviter.occupation)} · Telefono: ${display(inviter.phone)} · E-mail: ${display(inviter.email)}`,
   ], y);
-  y = writeSection(pdf, "DECLARACIÓN DE HOSPEDAJE / ACCOMMODATION", [
-    `Declaro poder hospedar a la persona invitada en: ${display(data.hostingAddress || inviter.address)}.`,
+  y = writeSection(pdf, "DICHIARAZIONE DI ALLOGGIO", [
+    `Dichiaro di poter ospitare la persona invitata al seguente indirizzo: ${display(italian.inviter.address)}.`,
   ], y);
-  y = writeSection(pdf, "DATOS DEL INVITADO / INVITEE", [
-    `Nombre: ${display(personName(invitee))}`,
-    `Fecha y lugar de nacimiento: ${display(invitee.birthDate)} · ${display(invitee.birthPlace)}`,
-    `Nacionalidad: ${display(invitee.nationality)} · Documento: ${display(invitee.identityCard)}`,
-    `Pasaporte: ${display(invitee.passport)}`,
-    `Dirección: ${display(invitee.address)}`,
-    `Ocupación: ${display(invitee.occupation)} · Teléfono: ${display(invitee.phone)} · Email: ${display(invitee.email)}`,
+  y = writeSection(pdf, "DATI DELLA PERSONA INVITATA / INVITEE", [
+    `Nome e cognome: ${display(personName(invitee))}`,
+    `Data e luogo di nascita: ${display(invitee.birthDate)} · ${display(italian.invitee.birthPlace)}`,
+    `Nazionalità: ${display(italian.invitee.nationality)} · Documento d'identità: ${display(invitee.identityCard)}`,
+    `Passaporto: ${display(invitee.passport)}`,
+    `Indirizzo: ${display(italian.invitee.address)}`,
+    `Professione: ${display(italian.invitee.occupation)} · Telefono: ${display(invitee.phone)} · E-mail: ${display(invitee.email)}`,
   ], y);
-  y = writeSection(pdf, "VISITA Y DECLARACIONES", [
-    `Relación: ${display(data.relationship)}. Finalidad: ${display(data.purpose)}.`,
-    `Periodo de estadía: ${display(data.arrivalDate)} al ${display(data.departureDate)}.`,
-    `${data.financialSupport ? "[X]" : "[ ]"} Asumo los gastos de sostenimiento durante la estadía.`,
-    `${data.healthInsurance ? "[X]" : "[ ]"} El invitado cuenta con seguro sanitario.`,
-    `${data.financialGuarantee ? "[X]" : "[ ]"} Declaro una garantía económica adicional.`,
-    "Me comprometo a comunicar a las autoridades locales la presencia del ciudadano extranjero dentro de los plazos legales aplicables.",
+  y = writeSection(pdf, "VISITA E DICHIARAZIONI", [
+    `Rapporto: ${display(italian.relationship)}. Scopo: ${display(italian.purpose)}.`,
+    `Periodo di soggiorno: dal ${display(data.arrivalDate)} al ${display(data.departureDate)}.`,
+    `${data.financialSupport ? "[X]" : "[ ]"} Mi assumo le spese di mantenimento durante il soggiorno.`,
+    `${data.healthInsurance ? "[X]" : "[ ]"} La persona invitata dispone di assicurazione sanitaria.`,
+    `${data.financialGuarantee ? "[X]" : "[ ]"} Dichiaro una garanzia economica aggiuntiva.`,
+    "Mi impegno a comunicare alle autorità locali la presenza del cittadino straniero nei termini previsti dalla legge.",
   ], y);
-  y = writeSection(pdf, "ANEXOS", [
-    `${data.inviteeIdAttached ? "[X]" : "[ ]"} Documento de identidad del invitante.`,
-    `${data.financialGuaranteeAttached ? "[X]" : "[ ]"} Garantía financiera.`,
-    `Otros documentos: ${display(data.otherAttachment)}`,
+  y = writeSection(pdf, "ALLEGATI", [
+    `${data.inviteeIdAttached ? "[X]" : "[ ]"} Documento d'identità dell'invitante.`,
+    `${data.financialGuaranteeAttached ? "[X]" : "[ ]"} Garanzia finanziaria.`,
   ], y);
   if (y + 26 > 276) { pdf.addPage(); y = 28; }
   pdf.setTextColor(15, 23, 42);
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(10);
-  pdf.text(`Luogo / Place: ${display(data.city)}`, 20, y + 8);
+  pdf.text(`Luogo / Place: ${display(italian.city)}`, 20, y + 8);
   pdf.text(`Data / Date: ${display(data.date)}`, 105, y + 8);
   pdf.line(132, y + 23, 190, y + 23);
   pdf.text("Firma / Signature", 145, y + 28);
@@ -167,15 +195,15 @@ export async function downloadInvitationLetterPdf(data: InvitationLetterData): P
   return filename;
 }
 
-export function printInvitationLetter(data: InvitationLetterData) {
+export function printInvitationLetter(data: InvitationLetterData, italian: InvitationLetterItalian = buildInvitationLetterItalianFallback(data)) {
   const filename = buildInvitationLetterFilename(data);
   const printWindow = window.open("", "_blank", "width=900,height=900");
   if (!printWindow) throw new Error("Permite las ventanas emergentes para imprimir la carta.");
-  const content = buildInvitationLetterText(data)
+  const content = buildInvitationLetterText(data, italian)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
-  printWindow.document.write(`<!doctype html><html><head><title>${filename}</title><style>@page{size:A4;margin:18mm}body{font-family:Arial,sans-serif;color:#0f172a;line-height:1.45}h1{font-size:17px;color:#0b2b5e;border-bottom:3px solid #f28c00;padding-bottom:8px}pre{white-space:pre-wrap;font-family:Arial,sans-serif;font-size:11px}</style></head><body><h1>DICHIARAZIONE GARANZIA E/O ALLOGGIAMENTO</h1><pre>${content}</pre></body></html>`);
+  printWindow.document.write(`<!doctype html><html><head><title>${filename}</title><style>@page{size:A4;margin:18mm}body{font-family:Arial,sans-serif;color:#0f172a;line-height:1.45}h1{font-size:17px;color:#0b2b5e;border-bottom:3px solid #f28c00;padding-bottom:8px}pre{white-space:pre-wrap;font-family:Arial,sans-serif;font-size:11px}</style></head><body><h1>DICHIARAZIONE DI GARANZIA E/O ALLOGGIO</h1><pre>${content}</pre></body></html>`);
   printWindow.document.close();
   printWindow.onafterprint = () => { if (!printWindow.closed) printWindow.close(); };
   printWindow.focus();

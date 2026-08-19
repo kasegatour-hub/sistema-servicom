@@ -27,6 +27,7 @@ const mocks = vi.hoisted(() => ({
   requestPasswordReset: { isPending: false, mutate: vi.fn() },
   resetPassword: { isPending: false, mutate: vi.fn() },
   reauthenticate: { isPending: false, mutate: vi.fn() },
+  translateInvitationLetter: { isPending: false, mutate: vi.fn() },
   refetchAdminSession: vi.fn().mockResolvedValue({ data: null }),
   refetchShipments: vi.fn(),
   refetchAdminUsers: vi.fn(),
@@ -74,6 +75,7 @@ vi.mock("@/lib/trpc", () => ({
       requestPasswordReset: { useMutation: (options?: { onSuccess?: (result: { message: string; retryAfterSeconds: number }) => void }) => ({ ...mocks.requestPasswordReset, mutate: (input: { email: string }) => { mocks.requestPasswordReset.mutate(input); options?.onSuccess?.({ message: "Código enviado", retryAfterSeconds: 60 }); } }) },
       resetPassword: { useMutation: () => mocks.resetPassword },
       reauthenticate: { useMutation: () => mocks.reauthenticate },
+      translateInvitationLetter: { useMutation: () => mocks.translateInvitationLetter },
     },
     analytics: {
       adminInsights: { useQuery: () => ({ data: null }) },
