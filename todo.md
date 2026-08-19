@@ -602,3 +602,9 @@
 - [x] Aceptar nacionalidades escritas o autocompletadas sin imponer una coincidencia exacta con la lista
 - [x] Convertir las sugerencias difusas en ayuda opcional sin mensajes que interrumpan el avance
 - [x] Añadir pruebas, compilar y publicar la mejora
+
+## Teléfono dinámico y lugares peruanos en Carta de invitación
+- [x] Actualizar ejemplo, agrupación y validación telefónica según el país seleccionado
+- [x] Incorporar los 25 departamentos del Perú y capitales principales a la búsqueda difusa de lugar de nacimiento
+- [x] Mantener las sugerencias opcionales y no bloqueantes
+- [x] Añadir pruebas, compilar y publicar las mejoras

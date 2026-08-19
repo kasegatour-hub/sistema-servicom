@@ -55,6 +55,7 @@ describe("PhoneInput", () => {
     await user.click(screen.getByRole("button", { name: /Seleccionar país/ }));
     await user.click(screen.getByRole("button", { name: /Italia/ }));
     const input = screen.getByRole("textbox", { name: "Número de teléfono" });
+    expect(input.getAttribute("placeholder")).toBe("351 278 7962");
 
     await user.type(input, "389766372");
     expect(screen.getByRole("alert").textContent).toContain("+39 debe tener 10 dígitos locales");

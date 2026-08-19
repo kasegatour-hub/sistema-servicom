@@ -56,6 +56,7 @@ export function PhoneInput({ value, onChange, placeholder = "970 188 447", requi
     country.name.toLowerCase().includes(searchQuery.toLowerCase()) || country.code.includes(searchQuery),
   );
   const phoneRule = PHONE_LENGTH_RULES.find(rule => rule.countryCode === selectedCountry.code);
+  const countryPlaceholder = selectedCountry.example || placeholder;
   const phoneError = phoneNumber.trim() ? getPhoneValidationError(`${selectedCountry.code} ${phoneNumber}`) : null;
 
   return (
@@ -108,7 +109,7 @@ export function PhoneInput({ value, onChange, placeholder = "970 188 447", requi
           id={id}
           type="tel"
           inputMode="numeric"
-          placeholder={placeholder}
+          placeholder={countryPlaceholder}
           value={formatLocalPhoneInput(phoneNumber)}
           onFocus={event => event.currentTarget.select()}
           onChange={event => {

@@ -12,7 +12,7 @@ import { rankFuzzyMatches } from "@shared/fuzzySearch";
 import { isValidInternationalPhone } from "@shared/phoneValidation";
 import type { InvitationPersonCandidate } from "@shared/invitationPeople";
 
-const BIRTH_PLACES = ["LIMA", "CALLAO", "CUSCO", "AREQUIPA", "TRUJILLO", "PIURA", "CHICLAYO", "HUANCAYO", "TORINO", "ROMA", "MILANO", "NAPOLI", "FIRENZE", "GENOVA", "VENEZIA", "BOLOGNA", "PALERMO"];
+const BIRTH_PLACES = ["AMAZONAS", "CHACHAPOYAS", "ÁNCASH", "HUARAZ", "APURÍMAC", "ABANCAY", "AREQUIPA", "AYACUCHO", "CAJAMARCA", "CALLAO", "CUSCO", "HUANCAVELICA", "HUÁNUCO", "ICA", "JUNÍN", "HUANCAYO", "LA LIBERTAD", "TRUJILLO", "LAMBAYEQUE", "CHICLAYO", "LIMA", "LORETO", "IQUITOS", "MADRE DE DIOS", "PUERTO MALDONADO", "MOQUEGUA", "PASCO", "CERRO DE PASCO", "PIURA", "PUNO", "SAN MARTÍN", "MOYOBAMBA", "TACNA", "TUMBES", "UCAYALI", "PUCALLPA", "TORINO", "ROMA", "MILANO", "NAPOLI", "FIRENZE", "GENOVA", "VENEZIA", "BOLOGNA", "PALERMO"];
 const NATIONALITIES = ["PERUANA", "ITALIANA", "ARGENTINA", "BOLIVIANA", "BRASILEÑA", "CHILENA", "COLOMBIANA", "ECUATORIANA", "ESPAÑOLA", "FRANCESA", "MEXICANA", "VENEZOLANA"];
 const uppercase = (value: string) => value.toLocaleUpperCase("es-PE").replace(/\s+/g, " ");
 

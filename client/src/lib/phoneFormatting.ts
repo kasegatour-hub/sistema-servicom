@@ -3,29 +3,36 @@ export type PhoneParts = {
   localNumber: string;
 };
 
-export const COUNTRY_CODES = [
-  { name: "Perú", code: "+51", flag: "🇵🇪" },
-  { name: "Italia", code: "+39", flag: "🇮🇹" },
-  { name: "España", code: "+34", flag: "🇪🇸" },
-  { name: "Estados Unidos", code: "+1", flag: "🇺🇸" },
-  { name: "Argentina", code: "+54", flag: "🇦🇷" },
-  { name: "Colombia", code: "+57", flag: "🇨🇴" },
-  { name: "Chile", code: "+56", flag: "🇨🇱" },
-  { name: "Bolivia", code: "+591", flag: "🇧🇴" },
-  { name: "Brasil", code: "+55", flag: "🇧🇷" },
-  { name: "Ecuador", code: "+593", flag: "🇪🇨" },
-  { name: "México", code: "+52", flag: "🇲🇽" },
-  { name: "Venezuela", code: "+58", flag: "🇻🇪" },
-  { name: "Caribe Neerlandés", code: "+599", flag: "🌐" },
-  { name: "Bosnia y Herzegovina", code: "+387", flag: "🇧🇦" },
-  { name: "India", code: "+91", flag: "🇮🇳" },
-  { name: "Indonesia", code: "+62", flag: "🇮🇩" },
-  { name: "Irak", code: "+964", flag: "🇮🇶" },
-  { name: "Irán", code: "+98", flag: "🇮🇷" },
-  { name: "Irlanda", code: "+353", flag: "🇮🇪" },
-  { name: "Reino Unido", code: "+44", flag: "🇬🇧" },
-  { name: "Francia", code: "+33", flag: "🇫🇷" },
-  { name: "Alemania", code: "+49", flag: "🇩🇪" },
+export type CountryCodeOption = {
+  name: string;
+  code: string;
+  flag: string;
+  example: string;
+};
+
+export const COUNTRY_CODES: CountryCodeOption[] = [
+  { name: "Perú", code: "+51", flag: "🇵🇪", example: "970 188 447" },
+  { name: "Italia", code: "+39", flag: "🇮🇹", example: "351 278 7962" },
+  { name: "España", code: "+34", flag: "🇪🇸", example: "612 345 678" },
+  { name: "Estados Unidos", code: "+1", flag: "🇺🇸", example: "202 555 0123" },
+  { name: "Argentina", code: "+54", flag: "🇦🇷", example: "112 345 6789" },
+  { name: "Colombia", code: "+57", flag: "🇨🇴", example: "300 123 4567" },
+  { name: "Chile", code: "+56", flag: "🇨🇱", example: "912 345 678" },
+  { name: "Bolivia", code: "+591", flag: "🇧🇴", example: "712 345 67" },
+  { name: "Brasil", code: "+55", flag: "🇧🇷", example: "119 1234 5678" },
+  { name: "Ecuador", code: "+593", flag: "🇪🇨", example: "991 234 567" },
+  { name: "México", code: "+52", flag: "🇲🇽", example: "551 234 5678" },
+  { name: "Venezuela", code: "+58", flag: "🇻🇪", example: "412 123 4567" },
+  { name: "Caribe Neerlandés", code: "+599", flag: "🌐", example: "912 3456" },
+  { name: "Bosnia y Herzegovina", code: "+387", flag: "🇧🇦", example: "611 234 56" },
+  { name: "India", code: "+91", flag: "🇮🇳", example: "987 654 3210" },
+  { name: "Indonesia", code: "+62", flag: "🇮🇩", example: "812 3456 7890" },
+  { name: "Irak", code: "+964", flag: "🇮🇶", example: "770 123 4567" },
+  { name: "Irán", code: "+98", flag: "🇮🇷", example: "912 123 4567" },
+  { name: "Irlanda", code: "+353", flag: "🇮🇪", example: "851 234 567" },
+  { name: "Reino Unido", code: "+44", flag: "🇬🇧", example: "770 090 0123" },
+  { name: "Francia", code: "+33", flag: "🇫🇷", example: "612 345 678" },
+  { name: "Alemania", code: "+49", flag: "🇩🇪", example: "151 234 56789" },
 ];
 
 const sortedCodes = [...COUNTRY_CODES].sort((left, right) => right.code.length - left.code.length);

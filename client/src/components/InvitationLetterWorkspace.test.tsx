@@ -55,6 +55,17 @@ describe("InvitationLetterWorkspace", () => {
     expect(screen.getByText("En otra dirección / Al seguente indirizzo")).toBeTruthy();
   });
 
+  it("incluye departamentos peruanos en la búsqueda opcional de lugar de nacimiento", () => {
+    render(<InvitationLetterWorkspace />);
+    const birthPlace = screen.getAllByLabelText(/Lugar de nacimiento/)[0] as HTMLInputElement;
+    fireEvent.change(birthPlace, { target: { value: "juni" } });
+
+    expect(birthPlace.value).toBe("JUNI");
+    expect(screen.queryByText(/Sin coincidencias/)).toBeNull();
+    fireEvent.click(screen.getAllByRole("button", { name: /Ver sugerencias para Lugar de nacimiento/ })[0]);
+    expect(screen.getByText("JUNÍN")).toBeTruthy();
+  });
+
   it("enables export actions only after the validated draft is saved", async () => {
     render(<InvitationLetterWorkspace />);
     const fill = (id: string, value: string) => fireEvent.change(document.getElementById(id) as HTMLInputElement, { target: { value } });
