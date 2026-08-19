@@ -78,7 +78,7 @@ export function InvitationLetterWorkspace({ shipments = [] as any[] }: { shipmen
     onError: issue => setError(issue.message || "No se pudo guardar la carta de invitación."),
   });
   const translateMutation = trpc.admin.translateInvitationLetter.useMutation({
-    onSuccess: italian => saveRecordMutation.mutate({ data, italian }),
+    onSuccess: italian => saveRecordMutation.mutate({ data: { ...data, otherAnnexes: data.otherAnnexes ?? "", companyAnnexes: data.companyAnnexes ?? "" }, italian }),
     onError: issue => setError(issue.message || "No se pudo preparar la versión italiana. Revisa tu conexión e inténtalo nuevamente."),
   });
   const refreshInvitationLetterLists = () => { void lettersQuery.refetch(); void deletedLettersQuery.refetch(); };
@@ -130,7 +130,7 @@ export function InvitationLetterWorkspace({ shipments = [] as any[] }: { shipmen
     return true;
   };
   const save = () => { if (validate()) translateMutation.mutate({ inviter: { birthPlace: data.inviter.birthPlace, nationality: data.inviter.nationality, residencePermit: data.inviter.residencePermit, address: data.inviter.address, occupation: data.inviter.occupation }, invitee: { birthPlace: data.invitee.birthPlace, nationality: data.invitee.nationality, address: data.invitee.address, occupation: data.invitee.occupation }, relationship: data.relationship, purpose: data.purpose, city: data.city }); };
-  const download = async () => { if (!savedLetter) { setError("Guarda primero el borrador antes de descargar la carta."); return; } try { await downloadInvitationLetterPdf(savedLetter.data, savedLetter.italian); } catch { setError("No se pudo generar la carta PDF. Inténtalo nuevamente."); } };
+  const download = async () => { if (!savedLetter) { setError("Guarda primero el borrador antes de descargar la carta."); return; } try { await downloadInvitationLetterPdf(savedLetter.data, savedLetter.italian); } catch (issue) { console.error("Error al generar la carta PDF", issue); setError("No se pudo generar la carta PDF. Inténtalo nuevamente."); } };
   const print = () => { if (!savedLetter) { setError("Guarda primero el borrador antes de imprimir la carta."); return; } try { printInvitationLetter(savedLetter.data, savedLetter.italian); } catch { setError("No se pudo abrir la impresión. Verifica que el navegador permita ventanas emergentes."); } };
   const restoreStoredLetter = (record: any) => {
     const stored = parseSavedLetter(record);
@@ -138,7 +138,7 @@ export function InvitationLetterWorkspace({ shipments = [] as any[] }: { shipmen
     setData(stored.data); setSavedLetter(stored); setError("");
     return stored;
   };
-  const downloadStoredLetter = async (record: any) => { const stored = parseSavedLetter(record); if (!stored) { setError("No se pudo descargar la información guardada de esta carta."); return; } try { await downloadInvitationLetterPdf(stored.data, stored.italian); } catch { setError("No se pudo generar la carta PDF. Inténtalo nuevamente."); } };
+  const downloadStoredLetter = async (record: any) => { const stored = parseSavedLetter(record); if (!stored) { setError("No se pudo descargar la información guardada de esta carta."); return; } try { await downloadInvitationLetterPdf(stored.data, stored.italian); } catch (issue) { console.error("Error al generar la carta PDF guardada", issue); setError("No se pudo generar la carta PDF. Inténtalo nuevamente."); } };
   const printStoredLetter = (record: any) => { const stored = parseSavedLetter(record); if (!stored) { setError("No se pudo imprimir la información guardada de esta carta."); return; } try { printInvitationLetter(stored.data, stored.italian); } catch { setError("No se pudo abrir la impresión. Verifica que el navegador permita ventanas emergentes."); } };
   return <Card className="mb-8 border-0 p-6 shadow-lg"><div className="mb-6 flex flex-col gap-4 md:flex-row md:items-start md:justify-between"><div><p className="text-xs font-semibold uppercase tracking-wide text-[#F28C00]">Uso interno · Administrador y Registrador / Uso interno · Amministratore e registratore</p><h2 className="mt-1 text-xl font-bold text-[#0B2B5E]">Carta de invitación / Lettera d'invito</h2><p className="mt-1 max-w-2xl text-sm text-slate-600">Completa los datos en español; al guardar se prepara el contenido de la carta en italiano. / Compila i dati in spagnolo; al salvataggio viene preparato il contenuto della lettera in italiano. Los campos con asterisco son obligatorios; el correo es opcional. / I campi con asterisco sono obbligatori; l'e-mail è facoltativa.</p></div><FileText className="h-10 w-10 text-[#0B2B5E]" aria-hidden="true" /></div>
     <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Borrador operativo basado en la plantilla aportada. Debe revisarse antes de usarlo ante una autoridad. / Bozza operativa basata sul modello fornito. Deve essere verificata prima dell'uso davanti a un'autorità.</div>

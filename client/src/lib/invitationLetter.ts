@@ -30,8 +30,8 @@ export type InvitationLetterData = {
   accommodationAtOtherAddress: boolean;
   inviteeIdAttached: boolean;
   financialGuaranteeAttached: boolean;
-  otherAnnexes: string;
-  companyAnnexes: string;
+  otherAnnexes?: string;
+  companyAnnexes?: string;
 };
 
 export type InvitationLetterItalian = {
@@ -45,13 +45,17 @@ export type InvitationLetterItalian = {
 const safeName = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-+|-+$/g, "").toLowerCase() || "invitato";
 const escapeHtml = (value?: string) => String(value || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const display = (value?: string) => escapeHtml(value?.trim() || "");
-const displayMultiline = (value?: string) => display(value).replace(/\n/g, "<br/>");
 const check = (value: boolean) => value ? "☑" : "☐";
 const titleCaseDate = (value: string) => {
   const parts = value.split("-");
   return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : value;
 };
 const personName = (person: InvitationPerson) => `${person.firstName} ${person.lastName}`.trim();
+const buildCompanyAnnexLines = (value?: string) => {
+  const lines = String(value || "").split(/\r?\n/).map(line => line.trim()).filter(Boolean).slice(0, 3);
+  while (lines.length < 3) lines.push("");
+  return lines.map(line => `<div class="company-annex-line">${display(line)}</div>`).join("");
+};
 
 export const buildInvitationLetterFilename = (data: InvitationLetterData) => `carta-invitacion-${safeName(personName(data.invitee))}-${data.date || "sin-fecha"}`;
 
@@ -105,7 +109,7 @@ const templateStyles = `
     .annexes { margin: 0 3mm; font-size: 8.5pt; line-height: 1.45; }
     .annexes .line { display: inline-block; width: 88mm; border-bottom: .25mm solid #111; transform: translateY(-1mm); }
     .annexes-company { margin-top: 6mm; }
-    .annexes-company .empty { width: 85mm; height: 4.6mm; margin: 1.5mm 0; background: #f6f7ff; }
+    .company-annex-line { width: 85mm; min-height: 4.6mm; margin: 1.5mm 0; padding: .45mm 1mm; background: #f6f7ff; border-bottom: .18mm solid #edf0fa; }
     @media print { body { background: white; } .invitation-document { margin: 0; } }
   </style>`;
 
@@ -139,7 +143,7 @@ export function buildInvitationLetterHtml(data: InvitationLetterData, italian: I
     <section class="invitation-paper-page template-page-three">
       <div class="privacy-grid"><div class="privacy-box"><h3>INFORMATIVA SUL TRATTAMENTO DEI<br/>DATI PERSONALI:</h3>${privacyItalian}</div><div class="privacy-box"><h3>INFORMATION ON THE PROCESSING OF<br/>PERSONAL DATA</h3>${privacyEnglish}</div></div>
       <div class="footer-grid"><span>Luogo/Place &nbsp;<b>${display(italian.city)}</b></span><span>Data/ Date &nbsp; <b>${display(titleCaseDate(data.date))}</b></span><span>Firma/ Signature</span></div>
-      <div class="annexes">Allegati/Annexes:<br/><span>${check(data.inviteeIdAttached)}</span> documento d’identità dell’invitante/ identity card of the person issuing the invitation<br/><span>${check(data.financialGuaranteeAttached)}</span> fideiussione bancaria / financial guarantee<br/><span>${check(Boolean(data.otherAnnexes?.trim()))}</span> altri documenti/ other documents: <span class="line">${display(data.otherAnnexes)}</span><div class="annexes-company">Allegati per le Società-Enti / Annexes for<div class="empty">${displayMultiline(data.companyAnnexes)}</div></div></div>
+      <div class="annexes">Allegati/Annexes:<br/><span>${check(data.inviteeIdAttached)}</span> documento d’identità dell’invitante/ identity card of the person issuing the invitation<br/><span>${check(data.financialGuaranteeAttached)}</span> fideiussione bancaria / financial guarantee<br/><span>${check(Boolean(data.otherAnnexes?.trim()))}</span> altri documenti/ other documents: <span class="line">${display(data.otherAnnexes)}</span><div class="annexes-company">Allegati per le Società-Enti / Annexes for${buildCompanyAnnexLines(data.companyAnnexes)}</div></div>
     </section>
   </div>`;
 }
@@ -156,25 +160,38 @@ async function createLetterContainer(data: InvitationLetterData, italian: Invita
   container.style.width = "210mm";
   container.innerHTML = buildInvitationLetterHtml(data, italian);
   document.body.appendChild(container);
-  await new Promise(resolve => window.setTimeout(resolve, 120));
+  await document.fonts?.ready?.catch(() => undefined);
+  await new Promise(resolve => window.setTimeout(resolve, 160));
   return container;
 }
 
 export async function downloadInvitationLetterPdf(data: InvitationLetterData, italian: InvitationLetterItalian = buildInvitationLetterItalianFallback(data)): Promise<string> {
-  const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import("html2canvas"), import("jspdf")]);
-  const container = await createLetterContainer(data, italian);
+  let container: HTMLDivElement | null = null;
   try {
+    const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import("html2canvas"), import("jspdf")]);
+    container = await createLetterContainer(data, italian);
     const pages = Array.from(container.querySelectorAll<HTMLElement>(".invitation-paper-page"));
+    if (!pages.length) throw new Error("No se encontraron páginas para exportar.");
     const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
     for (let index = 0; index < pages.length; index += 1) {
-      const canvas = await html2canvas(pages[index], { backgroundColor: "#ffffff", scale: 2, logging: false, useCORS: true });
+      const page = pages[index];
+      const canvas = await html2canvas(page, {
+        backgroundColor: "#ffffff",
+        scale: 1.5,
+        logging: false,
+        useCORS: false,
+        removeContainer: true,
+        windowWidth: Math.ceil(page.scrollWidth),
+        windowHeight: Math.ceil(page.scrollHeight),
+      });
+      if (!canvas.width || !canvas.height) throw new Error(`No se pudo renderizar la página ${index + 1} de la carta.`);
       if (index > 0) pdf.addPage();
-      pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, 210, 297, undefined, "FAST");
+      pdf.addImage(canvas, "PNG", 0, 0, 210, 297, undefined, "FAST");
     }
     const filename = `${buildInvitationLetterFilename(data)}.pdf`;
     pdf.save(filename);
     return filename;
-  } finally { container.remove(); }
+  } finally { container?.remove(); }
 }
 
 export function printInvitationLetter(data: InvitationLetterData, italian: InvitationLetterItalian = buildInvitationLetterItalianFallback(data)) {
