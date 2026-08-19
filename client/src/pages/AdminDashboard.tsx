@@ -292,6 +292,14 @@ export default function AdminDashboard() {
   const [adminRecoveryPassword, setAdminRecoveryPassword] = useState("");
   const [adminRecoveryResendSeconds, setAdminRecoveryResendSeconds] = useState(0);
   const [consumedDeliveryQr, setConsumedDeliveryQr] = useState(false);
+  const [deliveryQrTarget] = useState<{ orderNumber: string; code: string } | null>(() => {
+    if (typeof window === "undefined") return null;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("open") !== "update") return null;
+    const orderNumber = normalizeTrackingValue(params.get("order") || "");
+    const code = normalizeTrackingValue(params.get("code") || "");
+    return orderNumber && code ? { orderNumber, code } : null;
+  });
   const [paymentFilter, setPaymentFilter] = useState<"all" | "paid" | "unpaid">("all");
   const [logisticsFilter, setLogisticsFilter] = useState("all");
   const [deletedSearchTerm, setDeletedSearchTerm] = useState("");
@@ -309,6 +317,10 @@ export default function AdminDashboard() {
   const { data: coupons = [], refetch: refetchCoupons } = trpc.admin.listCoupons.useQuery(undefined, { enabled: isLoggedIn && !admin?.reauthRequired });
   const { data: limaTorinoPolicy, refetch: refetchLimaTorinoPolicy } = trpc.admin.getLimaTorinoEncomiendaPolicy.useQuery(undefined, { enabled: isLoggedIn && !admin?.reauthRequired });
   const { data: shipments, isLoading: loadingShipments, refetch: refetchShipments } = trpc.admin.getAllShipments.useQuery(undefined, { enabled: isLoggedIn && !admin?.reauthRequired });
+  const deliveryShipmentQuery = trpc.admin.getShipmentForDeliveryUpdate.useQuery(
+    deliveryQrTarget || { orderNumber: "", code: "" },
+    { enabled: isLoggedIn && !admin?.reauthRequired && Boolean(deliveryQrTarget) },
+  );
   const { data: deletedShipments = [], refetch: refetchDeletedShipments } = trpc.admin.listDeletedShipments.useQuery(undefined, { enabled: isLoggedIn && !admin?.reauthRequired });
   const { data: shipmentAudit = [], isFetching: isLoadingShipmentAudit } = trpc.admin.shipmentAudit.useQuery(
     { shipmentId: auditShipmentId || 0 },
@@ -552,23 +564,21 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    if (consumedDeliveryQr || !isLoggedIn || !shipments || typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("open") !== "update") return;
-    const order = normalizeTrackingValue(params.get("order") || "");
-    const code = normalizeTrackingValue(params.get("code") || "");
-    if (!order || !code) return;
-    const shipment = shipments.find((row: any) => normalizeTrackingValue(String(row.orderNumber || "")) === order && normalizeTrackingValue(String(row.code || "")) === code);
-    setConsumedDeliveryQr(true);
-    if (!shipment) {
-      toast.error("No se encontró un envío activo para el código escaneado.");
+    if (consumedDeliveryQr || !isLoggedIn || !deliveryQrTarget || typeof window === "undefined") return;
+    if (deliveryShipmentQuery.isLoading) return;
+    if (deliveryShipmentQuery.error || !deliveryShipmentQuery.data) {
+      setConsumedDeliveryQr(true);
+      toast.error(deliveryShipmentQuery.error?.message || "No se encontró un envío activo para el código escaneado.");
       return;
     }
+    const shipment = deliveryShipmentQuery.data;
     setAdminWorkspace("registros");
     setShipmentView(shipment.shipmentType === "encomienda" ? "encomienda" : "documento");
     setSearchTerm(String(shipment.orderNumber));
     openShipmentUpdate(shipment);
-  }, [consumedDeliveryQr, isLoggedIn, shipments]);
+    setConsumedDeliveryQr(true);
+    window.history.replaceState({}, "", "/admin");
+  }, [consumedDeliveryQr, isLoggedIn, deliveryQrTarget, deliveryShipmentQuery.data, deliveryShipmentQuery.error, deliveryShipmentQuery.isLoading]);
 
   const handleLogin = async (data: LoginForm) => {
     try {

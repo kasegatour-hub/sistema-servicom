@@ -563,9 +563,9 @@
 - [x] Validar, compilar y publicar la mejora
 
 ## Rendimiento y destino de códigos QR
-- [ ] Reducir trabajo redundante del escáner QR y mantener una respuesta inmediata y estable dentro de los límites físicos del dispositivo, cámara y red
-- [ ] Hacer que el QR del control de entrega abra el envío específico en una actualización de estado autorizada, sin mostrar el listado general
-- [ ] Añadir pruebas de enlace QR, autorización y rendimiento lógico; validar, compilar y publicar
+- [x] Reducir trabajo redundante del escáner QR y mantener una respuesta inmediata y estable dentro de los límites físicos del dispositivo, cámara y red
+- [x] Hacer que el QR del control de entrega abra el envío específico en una actualización de estado autorizada, sin mostrar el listado general
+- [x] Añadir pruebas de enlace QR, autorización y rendimiento lógico; validar, compilar y publicar
 
 ## Corrección real de exportación PDF de Carta de invitación
 - [x] Reproducir y eliminar el error de generación o descarga de PDF mostrado al usuario

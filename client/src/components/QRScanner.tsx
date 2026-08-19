@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Camera, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import jsQR from "jsqr";
+import { getQrScanFrameSize } from "@/lib/qrScan";
 
 interface QRScannerProps {
   onScan: (data: string) => void;
@@ -14,7 +15,10 @@ export function QRScanner({ onScan, isOpen, onClose }: QRScannerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
-  const scanIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const onScanRef = useRef(onScan);
+
+  useEffect(() => { onScanRef.current = onScan; }, [onScan]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -22,17 +26,21 @@ export function QRScanner({ onScan, isOpen, onClose }: QRScannerProps) {
     const startCamera = async () => {
       try {
         setError(null);
+        if (!navigator.mediaDevices?.getUserMedia) throw new Error("Este navegador no ofrece acceso a la cámara");
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: "environment",
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
+            width: { ideal: 960, max: 1280 },
+            height: { ideal: 540, max: 720 },
           },
         });
 
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          setIsScanning(true);
+          videoRef.current.onloadedmetadata = () => {
+            void videoRef.current?.play().catch(() => undefined);
+            setIsScanning(true);
+          };
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "No se pudo acceder a la cámara";
@@ -46,9 +54,7 @@ export function QRScanner({ onScan, isOpen, onClose }: QRScannerProps) {
     startCamera();
 
     return () => {
-      if (scanIntervalRef.current) {
-        clearInterval(scanIntervalRef.current);
-      }
+      if (animationFrameRef.current) window.cancelAnimationFrame(animationFrameRef.current);
       if (videoRef.current?.srcObject) {
         const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
         tracks.forEach(track => track.stop());
@@ -65,40 +71,49 @@ export function QRScanner({ onScan, isOpen, onClose }: QRScannerProps) {
     if (!ctx) return;
 
     let hasScanned = false;
-
-    scanIntervalRef.current = setInterval(() => {
+    let lastScanAt = 0;
+    const scanFrame = (timestamp: number) => {
       try {
         const video = videoRef.current;
-        if (!video || video.readyState !== video.HAVE_ENOUGH_DATA) return;
+        if (!video || video.readyState !== video.HAVE_ENOUGH_DATA || hasScanned) {
+          if (!hasScanned) animationFrameRef.current = window.requestAnimationFrame(scanFrame);
+          return;
+        }
+        if (timestamp - lastScanAt < 100) {
+          animationFrameRef.current = window.requestAnimationFrame(scanFrame);
+          return;
+        }
+        lastScanAt = timestamp;
+        const frameSize = getQrScanFrameSize(video.videoWidth, video.videoHeight);
+        if (!frameSize.width || !frameSize.height) {
+          animationFrameRef.current = window.requestAnimationFrame(scanFrame);
+          return;
+        }
 
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+        if (canvas.width !== frameSize.width) canvas.width = frameSize.width;
+        if (canvas.height !== frameSize.height) canvas.height = frameSize.height;
 
-        ctx.drawImage(video, 0, 0);
+        ctx.drawImage(video, 0, 0, frameSize.width, frameSize.height);
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-        // Use jsQR to detect QR code
-        const code = jsQR(imageData.data, imageData.width, imageData.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
 
-        if (code && !hasScanned) {
+        if (code) {
           hasScanned = true;
-          onScan(code.data);
-          // Prevent multiple scans
-          setTimeout(() => {
-            hasScanned = false;
-          }, 1000);
+          onScanRef.current(code.data);
+          return;
         }
       } catch (err) {
         console.error("Scan error:", err);
       }
-    }, 300);
+      animationFrameRef.current = window.requestAnimationFrame(scanFrame);
+    };
+    animationFrameRef.current = window.requestAnimationFrame(scanFrame);
 
     return () => {
-      if (scanIntervalRef.current) {
-        clearInterval(scanIntervalRef.current);
-      }
+      if (animationFrameRef.current) window.cancelAnimationFrame(animationFrameRef.current);
     };
-  }, [isScanning, onScan]);
+  }, [isScanning]);
 
   if (!isOpen) return null;
 

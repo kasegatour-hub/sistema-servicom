@@ -7,7 +7,7 @@ function buildTrackingPath(orderNumber: string, code: string): string {
   return `/?order=${encodeURIComponent(order)}&code=${encodeURIComponent(normalizedCode)}`;
 }
 import { publicProcedure, router } from "./_core/trpc";
-import { attachShipmentAuditActorLabels, createDiscountCoupon, createInvitationLetterRecord, createShipment, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAllShipments, getDeletedShipments, getDiscountCouponByCode, getShipmentAuditLogs, getShipmentById, getShipmentRoutePolicy, incrementDiscountCouponRedemption, isEncomiendaEnabledForRoute, listDeletedInvitationLetterRecords, listDiscountCoupons, listInvitationLetterRecords, moveInvitationLetterToTrash, recordInteractionEvent, recordShipmentAudit, restoreInvitationLetterFromTrash, restoreShipment, searchClients, searchInvitationLetterPeople, setEncomiendaAvailabilityForRoute, setShipmentRegistradorVisibility, updateDiscountCoupon, updateShipmentStatus } from "./db";
+import { attachShipmentAuditActorLabels, createDiscountCoupon, createInvitationLetterRecord, createShipment, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAllShipments, getDeletedShipments, getDiscountCouponByCode, getShipmentAuditLogs, getShipmentById, getShipmentByOrderAndCode, getShipmentRoutePolicy, incrementDiscountCouponRedemption, isEncomiendaEnabledForRoute, listDeletedInvitationLetterRecords, listDiscountCoupons, listInvitationLetterRecords, moveInvitationLetterToTrash, recordInteractionEvent, recordShipmentAudit, restoreInvitationLetterFromTrash, restoreShipment, searchClients, searchInvitationLetterPeople, setEncomiendaAvailabilityForRoute, setShipmentRegistradorVisibility, updateDiscountCoupon, updateShipmentStatus } from "./db";
 import { generateVerificationCode, hashPassword, hashVerificationCode, normalizeEmail, sendVerificationEmail, verificationExpiry, verifyPassword } from "./localAuth";
 import { AdminSessionPayload, clearAdminSession, getAdminSession, setAdminSession } from "./adminSession";
 import { admins } from "../drizzle/schema";
@@ -382,6 +382,16 @@ export const adminRouter = router({
         ...s,
         events: JSON.parse(s.events),
       }));
+    }),
+
+  getShipmentForDeliveryUpdate: adminProcedure
+    .input(z.object({ orderNumber: z.string().trim().min(1).max(64), code: z.string().trim().min(1).max(64) }))
+    .query(async ({ input, ctx }) => {
+      const shipment = await getShipmentByOrderAndCode(input.orderNumber, input.code);
+      if (!shipment || (ctx.adminSession.role !== "superadmin" && shipment.hiddenFromRegistradoresAt)) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "No se encontró un envío activo disponible para el código escaneado." });
+      }
+      return { ...shipment, events: JSON.parse(shipment.events) };
     }),
 
   listDeletedShipments: adminProcedure

@@ -37,6 +37,7 @@ const mocks = vi.hoisted(() => ({
   refetchCoupons: vi.fn(),
   shipments: [] as any[],
   deletedShipments: [] as any[],
+  deliveryShipment: { data: null as any, isLoading: false, error: null as any },
   searchClients: {
     useQuery: (input: { query?: string }) => ({
       data: input.query?.trim() ? [{ id: 21, name: "Ana", lastName: "Pérez", dni: "71234567", phone: "+51 970188447", email: null }] : [],
@@ -54,6 +55,7 @@ vi.mock("@/lib/trpc", () => ({
     admin: {
       me: { useQuery: () => ({ data: null, isLoading: false, refetch: mocks.refetchAdminSession }) },
       getAllShipments: { useQuery: () => ({ data: mocks.shipments, isLoading: false, refetch: mocks.refetchShipments }) },
+      getShipmentForDeliveryUpdate: { useQuery: () => mocks.deliveryShipment },
       listDeletedShipments: { useQuery: () => ({ data: mocks.deletedShipments, isLoading: false, refetch: vi.fn() }) },
       shipmentAudit: { useQuery: () => ({ data: [], isFetching: false }) },
       listAdmins: { useQuery: () => ({ data: [], isLoading: false, refetch: mocks.refetchAdminUsers }) },
@@ -110,6 +112,7 @@ beforeEach(() => {
   mocks.listCoupons.data = [];
   mocks.shipments = [];
   mocks.deletedShipments = [];
+  mocks.deliveryShipment = { data: null, isLoading: false, error: null };
   mocks.login.mutateAsync.mockResolvedValue({ id: 1, email: "admin@servicom.pe", name: "Operador", role: "registrador" });
 });
 
@@ -150,6 +153,7 @@ describe("AdminDashboard Nueva Encomienda", () => {
 
   it("abre la actualización del envío al ingresar desde el QR de control de entrega", async () => {
     mocks.shipments = [{ id: 88, shipmentType: "documento", senderName: "Mirian", senderLastName: "Astete", recipientName: "Miguel", recipientLastName: "Díaz Ojitos", status: "En destino", paymentStatus: "Pagado", createdAt: new Date("2026-08-17T10:00:00.000Z"), orderNumber: "3289150504", code: "07900824", events: [] }];
+    mocks.deliveryShipment = { data: mocks.shipments[0], isLoading: false, error: null };
     window.history.replaceState({}, "", "/admin?order=3289150504&code=07900824&open=update");
     render(<AdminDashboard />);
     fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
@@ -161,6 +165,25 @@ describe("AdminDashboard Nueva Encomienda", () => {
     expect(screen.getByRole("group", { name: "Cantidad de Hojas / Documentos" })).toBeTruthy();
     expect(screen.queryByLabelText("Peso (kg)")).toBeNull();
     expect((screen.getByRole("combobox", { name: "Estado de Pago" }) as HTMLSelectElement).value).toBe("Pagado");
+  });
+
+  it("espera el envío objetivo del QR y abre su actualización cuando la consulta directa termina", async () => {
+    const shipment = { id: 89, shipmentType: "encomienda", senderName: "Iván", senderLastName: "Romero", recipientName: "Freddy", recipientLastName: "Grabel", status: "En destino", paymentStatus: "Falta cancelar", createdAt: new Date("2026-08-19T10:00:00.000Z"), orderNumber: "5211941098", code: "DOC-2026-HDXBV", events: [] };
+    mocks.deliveryShipment = { data: null, isLoading: true, error: null };
+    window.history.replaceState({}, "", "/admin?order=5211941098&code=DOC-2026-HDXBV&open=update");
+    const view = render(<AdminDashboard />);
+    fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
+    fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+
+    mocks.deliveryShipment = { data: shipment, isLoading: false, error: null };
+    view.rerender(<AdminDashboard />);
+
+    await waitFor(() => expect(screen.getByRole("dialog")).toBeTruthy());
+    expect(screen.getByRole("heading", { name: "Actualizar Estado de Encomienda" })).toBeTruthy();
+    expect(window.location.pathname).toBe("/admin");
+    expect(window.location.search).toBe("");
   });
 
   it("offers administrative password recovery by the registered email", () => {
