@@ -27,6 +27,11 @@ describe("carta de invitación", () => {
     expect(html).toContain("PROOF OF SPONSORSHIP AND/OR");
     expect(html).toContain('viewBox="0 0 3 2"');
     expect(html).toContain("#009246");
+    const header = html.slice(html.indexOf("<header"), html.indexOf("</header>"));
+    expect(header.indexOf('class="italian-flag"')).toBeLessThan(header.indexOf("DICHIARAZIONE GARANZIA E/O"));
+    expect(header).toContain('class="header-block italian-header"');
+    expect(header).toContain('class="header-block english-header"');
+    expect(html).toContain('per il periodo dal/from <strong class="period-value">01/09/2026</strong> al/to <strong class="period-value">30/09/2026</strong>');
     expect(html).toContain("Copia de pasaporte");
     expect(html).toContain("Constancia registral");
     expect(html).toContain("Carta de la entidad");

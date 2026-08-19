@@ -629,3 +629,9 @@
 - [x] Reparar Abrir y Descargar PDF para las cartas guardadas
 - [x] Reubicar el historial de cartas en una zona visible y fácil de identificar
 - [x] Renombrar la acción principal de Guardar a Crear carta y añadir pruebas, validación y publicación
+
+## Composición de encabezado de Carta de invitación
+- [x] Ubicar la bandera italiana sobre el bloque de declaración, conforme a la referencia
+- [x] Alinear los títulos italiano e inglés y conservar su composición bilingüe
+- [x] Destacar en negrita y en su propia fila el período «dal/from … al/to …»
+- [x] Actualizar pruebas, compilar y publicar el ajuste de plantilla

@@ -76,9 +76,11 @@ const templateStyles = `
     .invitation-document { width: 210mm; margin: 0 auto; }
     .invitation-paper-page { width: 210mm; min-height: 297mm; padding: 16mm 17mm 15mm; background: white; page-break-after: always; overflow: hidden; }
     .invitation-paper-page:last-child { page-break-after: auto; }
-    .invitation-header { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 13mm; min-height: 34mm; padding-left: 36mm; }
-    .italian-flag { position: absolute; top: 0; left: 0; width: 33mm; height: 22mm; display: block; }
+    .invitation-header { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 22mm auto; column-gap: 13mm; row-gap: 1.5mm; min-height: 39mm; }
+    .italian-flag { grid-column: 1; grid-row: 1; justify-self: start; width: 33mm; height: 22mm; display: block; }
     .header-block { text-align: center; }
+    .header-block.italian-header { grid-column: 1; grid-row: 2; }
+    .header-block.english-header { grid-column: 2; grid-row: 2; }
     .header-block strong { display: block; font-size: 11pt; line-height: 1.07; }
     .header-block span { display: block; margin-top: 2mm; font-size: 8pt; line-height: 1.2; }
     .intro-grid { display: grid; grid-template-columns: 1fr 1fr; margin: 4mm 0 5mm; }
@@ -87,6 +89,8 @@ const templateStyles = `
     .form-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 4mm; font-size: 8.2pt; }
     .form-table td { border: .28mm solid #111; height: 5.25mm; padding: .55mm 1.4mm; vertical-align: middle; }
     .form-table td.value { background: white; font-family: Arial, sans-serif; font-size: 7.5pt; font-weight: 700; letter-spacing: .05mm; }
+    .form-table .period-row td { height: 6mm; }
+    .form-table .period-value { font-family: "Times New Roman", Times, serif; font-size: 8.8pt; font-weight: 700; white-space: nowrap; }
     .person-label { white-space: nowrap; }
     .company-heading { display: grid; grid-template-columns: 1fr 1fr; margin: 4mm 0 3mm; font-size: 9pt; }
     .company-heading strong { font-size: 10pt; }
@@ -121,7 +125,7 @@ export function buildInvitationLetterHtml(data: InvitationLetterData, italian: I
   const invitee = data.invitee;
   return `${templateStyles}<div class="invitation-document">
     <section class="invitation-paper-page">
-      <header class="invitation-header"><svg class="italian-flag" viewBox="0 0 3 2" role="img" aria-label="Bandera de Italia"><rect width="1" height="2" x="0" fill="#009246"/><rect width="1" height="2" x="1" fill="#ffffff"/><rect width="1" height="2" x="2" fill="#ce2b37"/></svg><div class="header-block"><strong>DICHIARAZIONE GARANZIA E/O<br/>ALLOGGIO</strong><span>Ai sensi dell’art. 14 p.4 Codice Visti e dell’art. 9<br/>p. 4 Regolamento VIS</span></div><div class="header-block"><strong>PROOF OF SPONSORSHIP AND/OR<br/>PRIVATE ACCOMMODATION</strong><span>According to art. 14 p.4 Visa Code and to art. 9<br/>p. 4 VIS Regulation</span></div></header>
+      <header class="invitation-header"><svg class="italian-flag" viewBox="0 0 3 2" role="img" aria-label="Bandera de Italia"><rect width="1" height="2" x="0" fill="#009246"/><rect width="1" height="2" x="1" fill="#ffffff"/><rect width="1" height="2" x="2" fill="#ce2b37"/></svg><div class="header-block italian-header"><strong>DICHIARAZIONE GARANZIA E/O<br/>ALLOGGIO</strong><span>Ai sensi dell’art. 14 p.4 Codice Visti e dell’art. 9<br/>p. 4 Regolamento VIS</span></div><div class="header-block english-header"><strong>PROOF OF SPONSORSHIP AND/OR<br/>PRIVATE ACCOMMODATION</strong><span>According to art. 14 p.4 Visa Code and to art. 9<br/>p. 4 VIS Regulation</span></div></header>
       <div class="intro-grid"><strong>Io Sottoscritto/a</strong><em>I, the undersigned</em></div>
       <table class="form-table"><tbody>
         <tr><td class="person-label">Nome/Name</td><td class="value" colspan="3">${display(inviter.firstName)}</td></tr><tr><td class="person-label">Cognome/Surname</td><td class="value" colspan="3">${display(inviter.lastName)}</td></tr><tr><td>Data di nascita/Date of birth</td><td class="value">${display(titleCaseDate(inviter.birthDate))}</td><td>Luogo di nascita/ Place of birth</td><td class="value">${display(italian.inviter.birthPlace)}</td></tr><tr><td>Nazionalità/Nationality</td><td class="value" colspan="3">${display(italian.inviter.nationality)}</td></tr><tr><td>Documento di identità/Identity card</td><td class="value" colspan="3">${display(inviter.identityCard)}</td></tr><tr><td>Passaporto/Passport</td><td class="value" colspan="3">${display(inviter.passport)}</td></tr><tr><td>Permesso di soggiorno/Residence permit</td><td class="value" colspan="3">${display(italian.inviter.residencePermit)}</td></tr><tr><td>Indirizzo/Address</td><td class="value" colspan="3">${display(italian.inviter.address)}</td></tr><tr><td>Professione/Occupation</td><td class="value" colspan="3">${display(italian.inviter.occupation)}</td></tr><tr><td>Tel: <span class="value">${display(inviter.phone)}</span></td><td colspan="3">email: <span class="value">${display(inviter.email)}</span></td></tr>
@@ -133,7 +137,7 @@ export function buildInvitationLetterHtml(data: InvitationLetterData, italian: I
       </tbody></table>
     </section>
     <section class="invitation-paper-page template-page-two">
-      <table class="form-table"><tbody><tr><td>Relazione con l’invitante/Relationship to the invitee familiare/family member</td><td class="value">${display(italian.relationship)}</td></tr><tr><td>per la seguente finalità/ for the following reason</td><td class="value">${display(italian.purpose)}</td></tr><tr><td>per il periodo dal/from <span class="value">${display(titleCaseDate(data.arrivalDate))}</span> al/to <span class="value">${display(titleCaseDate(data.departureDate))}</span></td><td></td></tr></tbody></table>
+      <table class="form-table"><tbody><tr><td>Relazione con l’invitante/Relationship to the invitee familiare/family member</td><td class="value">${display(italian.relationship)}</td></tr><tr><td>per la seguente finalità/ for the following reason</td><td class="value">${display(italian.purpose)}</td></tr><tr class="period-row"><td>per il periodo dal/from <strong class="period-value">${display(titleCaseDate(data.arrivalDate))}</strong> al/to <strong class="period-value">${display(titleCaseDate(data.departureDate))}</strong></td><td></td></tr></tbody></table>
       <div class="legal-declaration"><span class="box">${check(data.financialSupport)}</span>dichiaro di farmi carico delle sue spese di sostentamento durante il soggiorno / <em>declare being able to bear his\her living costs during the abovementioned period of stay</em></div>
       <div class="legal-declaration"><span class="box">${check(data.healthInsurance)}</span>dichiaro di avere stipulato in suo nome l’assicurazione sanitaria / <em>declare to have subscribed health insurance on his\her behalf</em></div>
       <div class="legal-declaration"><span class="box">${check(data.financialGuarantee)}</span>dichiaro di aver messo a sua disposizione, a titolo di garanzia economica, sotto forma di “fideiussione bancaria” (v. allegato), la somma di euro &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; presso l’Istituto bancario &nbsp;&nbsp;&nbsp;&nbsp; Agenzia n. &nbsp;&nbsp;&nbsp;&nbsp; sita in &nbsp;&nbsp;&nbsp;&nbsp; / <em>declare to have made available on his\her, as financial guarantee (see annex), the sum of € &nbsp;&nbsp;&nbsp;&nbsp; in the following bank &nbsp;&nbsp;&nbsp;&nbsp; branch &nbsp;&nbsp;&nbsp;&nbsp; address</em></div>
