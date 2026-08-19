@@ -128,6 +128,18 @@ beforeEach(() => {
 });
 
 describe("AdminDashboard Nueva Encomienda", () => {
+  it("permite mostrar u ocultar la contraseña administrativa antes de iniciar sesión", () => {
+    render(<AdminDashboard />);
+    const password = screen.getByPlaceholderText("Contraseña") as HTMLInputElement;
+    expect(password.type).toBe("password");
+    const reveal = screen.getByRole("button", { name: "Mostrar contraseña" });
+    fireEvent.click(reveal);
+    expect(password.type).toBe("text");
+    expect(screen.getByRole("button", { name: "Ocultar contraseña" }).getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(screen.getByRole("button", { name: "Ocultar contraseña" }));
+    expect(password.type).toBe("password");
+  });
+
   it("shows escape links and the administrative password form", async () => {
     render(<AdminDashboard />);
     expect(screen.getByRole("link", { name: /Volver al inicio/ }).getAttribute("href")).toBe("/");

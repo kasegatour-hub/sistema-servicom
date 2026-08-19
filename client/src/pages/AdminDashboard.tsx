@@ -12,7 +12,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import { Lock, LogOut, Plus, RefreshCw, Download, Printer, RotateCcw, Search, Trash2, MessageSquare, Calculator } from "lucide-react";
+import { Lock, LogOut, Plus, RefreshCw, Download, Printer, RotateCcw, Search, Trash2, MessageSquare, Calculator, Eye, EyeOff } from "lucide-react";
 import QRCode from "qrcode";
 import { buildShipmentManagementUrl, buildTrackingUrl, normalizeTrackingValue, TRACKING_QR_OPTIONS } from "@/lib/tracking";
 import { PhoneInput } from "@/components/PhoneInput";
@@ -252,6 +252,14 @@ type CouponForm = z.infer<typeof couponFormSchema>;
 type CreateShipmentForm = z.infer<typeof createShipmentSchema>;
 type UpdateStatusForm = z.infer<typeof updateStatusSchema>;
 
+type PasswordInputProps = Omit<React.ComponentProps<typeof Input>, "type"> & { revealLabel?: string };
+
+function PasswordInput({ className, revealLabel = "contraseña", ...inputProps }: PasswordInputProps) {
+  const [isVisible, setIsVisible] = React.useState(false);
+  const actionLabel = `${isVisible ? "Ocultar" : "Mostrar"} ${revealLabel}`;
+  return <div className="relative"><Input {...inputProps} type={isVisible ? "text" : "password"} className={`${className || ""} pr-11`} /><button type="button" aria-label={actionLabel} aria-pressed={isVisible} title={actionLabel} onClick={() => setIsVisible(value => !value)} className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-500 transition hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"><>{isVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</></button></div>;
+}
+
 export default function AdminDashboard() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [admin, setAdmin] = useState<any>(null);
@@ -274,7 +282,6 @@ export default function AdminDashboard() {
   const [adminNewPassword, setAdminNewPassword] = useState("");
   const [adminPasswordConfirmation, setAdminPasswordConfirmation] = useState("");
   const [reauthPassword, setReauthPassword] = useState("");
-  const [showReauthPassword, setShowReauthPassword] = useState(false);
   const [printShipment, setPrintShipment] = useState<any>(null);
   const [receiptDownloadFormat, setReceiptDownloadFormat] = useState<ReceiptDownloadFormat>("pdf");
   const [showGeneralFeedback, setShowGeneralFeedback] = useState(false);
@@ -1319,8 +1326,7 @@ export default function AdminDashboard() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Contraseña</label>
-              <Input
-                type="password"
+              <PasswordInput
                 placeholder="Contraseña"
                 {...loginForm.register("password")}
                 autoComplete="current-password"
@@ -1352,7 +1358,7 @@ export default function AdminDashboard() {
           {adminAuthMode !== "login" && <form onSubmit={adminAuthMode === "request" ? handleAdminRecoveryRequest : handleAdminPasswordReset} className="space-y-4" autoComplete="off">
             <div><label htmlFor="admin-recovery-email" className="mb-2 block text-sm font-medium text-gray-700">Correo administrativo</label><Input id="admin-recovery-email" type="email" placeholder="Ingresa tu correo administrativo" value={adminRecoveryEmail} onChange={event => setAdminRecoveryEmail(event.target.value)} className="border-2 focus:border-primary" autoComplete="email" required /></div>
             <div className="rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-sm text-primary">Enviaremos un código de seis dígitos al correo administrativo registrado. El código vence en 10 minutos.</div>
-            {adminAuthMode === "reset" && <><div><label htmlFor="admin-recovery-code" className="mb-2 block text-sm font-medium text-gray-700">Código de 6 dígitos</label><Input id="admin-recovery-code" value={adminRecoveryCode} onChange={event => setAdminRecoveryCode(event.target.value.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" pattern="[0-9]{6}" maxLength={6} className="border-2 tracking-[0.35em] focus:border-primary" required /></div><div><label htmlFor="admin-recovery-password" className="mb-2 block text-sm font-medium text-gray-700">Nueva contraseña</label><Input id="admin-recovery-password" type="password" value={adminRecoveryPassword} onChange={event => setAdminRecoveryPassword(event.target.value)} minLength={12} autoComplete="new-password" className="border-2 focus:border-primary" required /><PasswordRequirements password={adminRecoveryPassword} /></div></>}
+            {adminAuthMode === "reset" && <><div><label htmlFor="admin-recovery-code" className="mb-2 block text-sm font-medium text-gray-700">Código de 6 dígitos</label><Input id="admin-recovery-code" value={adminRecoveryCode} onChange={event => setAdminRecoveryCode(event.target.value.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" pattern="[0-9]{6}" maxLength={6} className="border-2 tracking-[0.35em] focus:border-primary" required /></div><div><label htmlFor="admin-recovery-password" className="mb-2 block text-sm font-medium text-gray-700">Nueva contraseña</label><PasswordInput id="admin-recovery-password" revealLabel="nueva contraseña" value={adminRecoveryPassword} onChange={event => setAdminRecoveryPassword(event.target.value)} minLength={12} autoComplete="new-password" className="border-2 focus:border-primary" required /><PasswordRequirements password={adminRecoveryPassword} /></div></>}
             <Button type="submit" disabled={requestAdminPasswordResetMutation.isPending || resetAdminPasswordMutation.isPending} className="w-full bg-primary text-white hover:bg-primary/90">{adminAuthMode === "request" ? (requestAdminPasswordResetMutation.isPending ? "Enviando código..." : "Enviar código") : (resetAdminPasswordMutation.isPending ? "Actualizando..." : "Restablecer contraseña")}</Button>
             <div className="flex flex-col items-center gap-3 text-sm"><button type="button" onClick={() => setAdminAuthMode("login")} className="font-semibold text-primary hover:underline">Volver a iniciar sesión</button>{adminAuthMode === "reset" && <button type="button" disabled={adminRecoveryResendSeconds > 0 || requestAdminPasswordResetMutation.isPending} onClick={() => requestAdminPasswordResetMutation.mutate({ email: adminRecoveryEmail })} className="font-semibold text-primary hover:underline disabled:cursor-not-allowed disabled:text-slate-400 disabled:no-underline">{adminRecoveryResendSeconds > 0 ? `Reenviar código en ${adminRecoveryResendSeconds}s` : "Reenviar código"}</button>}</div>
           </form>}
@@ -1372,10 +1378,9 @@ export default function AdminDashboard() {
             </div>
             <p className="mb-5 text-sm text-slate-600">Tu sesión administrativa continúa activa, pero debes volver a escribir tu contraseña para continuar.</p>
             <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); reauthenticateMutation.mutate({ password: reauthPassword }); }}>
-              <div className="relative">
+              <div>
                 <label htmlFor="admin-reauth-password" className="mb-2 block text-sm font-medium text-slate-700">Contraseña administrativa</label>
-                <Input id="admin-reauth-password" type={showReauthPassword ? "text" : "password"} value={reauthPassword} onChange={(event) => setReauthPassword(event.target.value)} autoComplete="current-password" className="pr-10" />
-                <button type="button" aria-label={showReauthPassword ? "Ocultar contraseña" : "Mostrar contraseña"} onClick={() => setShowReauthPassword(value => !value)} className="absolute right-2 top-8 rounded p-1 text-slate-500 hover:text-primary"><Lock className="h-4 w-4" /></button>
+                <PasswordInput id="admin-reauth-password" revealLabel="contraseña administrativa" value={reauthPassword} onChange={(event) => setReauthPassword(event.target.value)} autoComplete="current-password" />
               </div>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={handleLogout} disabled={logoutMutation.isPending}>Cerrar sesión</Button>
@@ -1457,15 +1462,15 @@ export default function AdminDashboard() {
               </div>
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-700">Contraseña actual</label>
-                <Input type="password" value={adminCurrentPassword} onChange={event => setAdminCurrentPassword(event.target.value)} required autoComplete="current-password" />
+                <PasswordInput revealLabel="contraseña actual" value={adminCurrentPassword} onChange={event => setAdminCurrentPassword(event.target.value)} required autoComplete="current-password" />
               </div>
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-700">Nueva contraseña</label>
-                <Input type="password" value={adminNewPassword} onChange={event => setAdminNewPassword(event.target.value)} minLength={12} required autoComplete="new-password" />
+                <PasswordInput revealLabel="nueva contraseña" value={adminNewPassword} onChange={event => setAdminNewPassword(event.target.value)} minLength={12} required autoComplete="new-password" />
               </div>
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-700">Confirmar nueva contraseña</label>
-                <Input type="password" value={adminPasswordConfirmation} onChange={event => setAdminPasswordConfirmation(event.target.value)} minLength={12} required autoComplete="new-password" />
+                <PasswordInput revealLabel="confirmación de contraseña" value={adminPasswordConfirmation} onChange={event => setAdminPasswordConfirmation(event.target.value)} minLength={12} required autoComplete="new-password" />
               </div>
               <div className="md:col-span-4"><PasswordRequirements password={adminNewPassword} /></div>
               <div className="flex flex-wrap justify-end gap-2 md:col-span-4">
@@ -1973,7 +1978,7 @@ export default function AdminDashboard() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Contraseña inicial</label>
-                  <Input type="password" {...createAdminForm.register("password")} placeholder="Contraseña segura de 12+ caracteres" minLength={12} autoComplete="new-password" />
+                  <PasswordInput revealLabel="contraseña inicial" {...createAdminForm.register("password")} placeholder="Contraseña segura de 12+ caracteres" minLength={12} autoComplete="new-password" />
                   {createAdminForm.formState.errors.password?.message && <p className="mt-1 text-xs text-red-600">{String(createAdminForm.formState.errors.password.message)}</p>}
                 </div>
                 <div className="flex items-end">

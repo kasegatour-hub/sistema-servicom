@@ -861,8 +861,9 @@ export default function AccountPage() {
             )}
 
             <Button type="submit" disabled={registerMutation.isPending || loginMutation.isPending || requestMutation.isPending || resetMutation.isPending} className="w-full bg-[#0B2B5E] text-white hover:bg-[#123d78]">
-              {mode === "register" ? "Crear cuenta" : mode === "request" ? "Enviar código" : mode === "reset" ? "Cambiar contraseña" : "Iniciar sesión"}
+              {mode === "register" ? (registerMutation.isPending ? "Creando cuenta..." : "Crear cuenta") : mode === "request" ? (requestMutation.isPending ? "Enviando código..." : "Enviar código") : mode === "reset" ? (resetMutation.isPending ? "Cambiando contraseña..." : "Cambiar contraseña") : (loginMutation.isPending ? "Iniciando sesión..." : "Iniciar sesión")}
             </Button>
+            <p role="status" aria-live="polite" className="min-h-5 text-center text-xs text-slate-500">{registerMutation.isPending ? "Estamos creando tu cuenta; no cierres esta pantalla." : loginMutation.isPending ? "Estamos verificando tus credenciales." : requestMutation.isPending ? "Estamos enviando el código de recuperación." : resetMutation.isPending ? "Estamos actualizando tu contraseña." : ""}</p>
 
             <div className="flex flex-wrap justify-center gap-x-3 gap-y-2 text-sm">
               {mode !== "login" && <button type="button" onClick={() => setMode("login")} className="font-medium text-[#0B2B5E] hover:text-[#F28C00]">Iniciar sesión</button>}

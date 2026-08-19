@@ -4,13 +4,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 const mutation = vi.hoisted(() => () => ({ mutate: vi.fn(), isPending: false }));
-const accountMocks = vi.hoisted(() => ({ shipments: [] as any[], deletedShipments: [] as any[] }));
+const accountMocks = vi.hoisted(() => ({ shipments: [] as any[], deletedShipments: [] as any[], session: { email: "cliente@example.com", name: "Ana", lastName: "López", dni: "71234567", phone: "+51 970188447", reauthRequired: false } as any }));
 
 vi.mock("@/lib/trpc", () => ({
   trpc: {
     useUtils: () => ({ account: { me: { invalidate: vi.fn() } } }),
     account: {
-      me: { useQuery: () => ({ data: { email: "cliente@example.com", name: "Ana", lastName: "López", dni: "71234567", phone: "+51 970188447", reauthRequired: false }, isLoading: false }) },
+      me: { useQuery: () => ({ data: accountMocks.session, isLoading: false }) },
       myShipments: { useQuery: () => ({ data: accountMocks.shipments, refetch: vi.fn() }) },
       myDeletedShipments: { useQuery: () => ({ data: accountMocks.deletedShipments, refetch: vi.fn() }) },
       deleteMyShipment: { useMutation: mutation },
@@ -42,9 +42,20 @@ afterEach(() => cleanup());
 beforeEach(() => {
   accountMocks.shipments = [];
   accountMocks.deletedShipments = [];
+  accountMocks.session = { email: "cliente@example.com", name: "Ana", lastName: "López", dni: "71234567", phone: "+51 970188447", reauthRequired: false };
 });
 
 describe("AccountPage client labels", () => {
+  it("permite al Cliente mostrar u ocultar la contraseña durante el inicio de sesión", () => {
+    accountMocks.session = null;
+    render(<AccountPage />);
+    const password = screen.getByLabelText("Contraseña") as HTMLInputElement;
+    expect(password.type).toBe("password");
+    fireEvent.click(screen.getByRole("button", { name: "Mostrar contraseña" }));
+    expect(password.type).toBe("text");
+    expect(screen.getByRole("button", { name: "Ocultar contraseña" })).toBeTruthy();
+  });
+
   it("uses Nuevo Documento instead of Nueva Encomienda", () => {
     render(<AccountPage />);
 

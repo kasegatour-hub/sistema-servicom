@@ -652,3 +652,9 @@
 - [x] Sustituir el flujo frágil de exportación del navegador por una generación PDF robusta
 - [x] Reintentar automáticamente una descarga recuperable y registrar fallos inesperados como respuesta HTTP 500
 - [x] Validar el flujo en producción, añadir pruebas de regresión y publicar la solución
+
+## Visibilidad de contraseña y retroalimentación
+- [x] Auditar los formularios de acceso de Cliente y Administración según los principios de usabilidad aportados
+- [x] Permitir mostrar u ocultar la contraseña mientras se escribe en todos los ingresos de sesión
+- [x] Reforzar mensajes visibles de carga, éxito y error durante el inicio de sesión
+- [x] Añadir pruebas, validar la interfaz y publicar los ajustes
