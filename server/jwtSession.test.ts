@@ -2,15 +2,24 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createAccountSession,
   getAccountSession,
+  setAccountSession,
 } from "./localSession";
 import {
   createAdminSession,
   getAdminSession,
+  setAdminSession,
 } from "./adminSession";
 
 function requestWithCookie(name: string, token: string) {
   return {
     headers: { cookie: `${name}=${encodeURIComponent(token)}` },
+  } as any;
+}
+
+function cookieResponse() {
+  return {
+    cookie: vi.fn(),
+    clearCookie: vi.fn(),
   } as any;
 }
 
@@ -51,6 +60,13 @@ describe("JWT local sessions", () => {
     expect(getAccountSession(requestWithCookie("servicom_account_session", token))).toMatchObject({ accountId: 42, remembered: true, reauthRequired: false });
   });
 
+  it("preserves the remembered account state when a session is refreshed after verification", () => {
+    const response = cookieResponse();
+    setAccountSession({ protocol: "https", headers: {} } as any, response, 42, true);
+    const refreshedToken = response.cookie.mock.calls[0][1];
+    expect(getAccountSession(requestWithCookie("servicom_account_session", refreshedToken))).toMatchObject({ accountId: 42, remembered: true, reauthRequired: false });
+  });
+
   it("rejects an expired account JWT", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-14T01:00:00Z"));
@@ -69,6 +85,13 @@ describe("JWT local sessions", () => {
     expect(getAdminSession(requestWithCookie("servicom_admin_session", token))).toMatchObject({ adminId: 9, role: "registrador", remembered: true, reauthRequired: false });
     vi.advanceTimersByTime(121_000);
     expect(getAdminSession(requestWithCookie("servicom_admin_session", token))).toBeNull();
+  });
+
+  it("preserves the remembered admin state when a session is refreshed after verification", () => {
+    const response = cookieResponse();
+    setAdminSession({ protocol: "https", headers: {} } as any, response, 9, "registrador", true);
+    const refreshedToken = response.cookie.mock.calls[0][1];
+    expect(getAdminSession(requestWithCookie("servicom_admin_session", refreshedToken))).toMatchObject({ adminId: 9, role: "registrador", remembered: true, reauthRequired: false });
   });
 
   it("preserves the administrative role and rejects tampering", () => {

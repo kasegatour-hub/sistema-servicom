@@ -17,6 +17,7 @@ import { identityDocumentTypeSchema, identityDocumentValidationMessage, isIdenti
 import { calculateAdminShipmentPricing } from "./adminPricing";
 import { applyCouponDiscount, isCouponCurrentlyValid, normalizeCouponCode } from "./couponPricing";
 import { isValidInternationalPhone } from "../shared/phoneValidation";
+import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "../shared/passwordPolicy";
 
 const MASTER_ADMIN_EMAIL = "peruservicom@gmail.com";
 const MASTER_ADMIN_PASSWORD = "@m*M.mTt@~ADkHpvBbLm+5CD=3ao@DngYa+3Kea6U=qX%r9EJ8-1QFc#,hD3r4Dsis9:9^i-zZJ}pT#aQAcnm^+XMAhV9u3VdrZ3.";
@@ -25,6 +26,7 @@ const ADMIN_PASSWORD_RESET_RESEND_SECONDS = 60;
 const ROUTE_VALUES = ["Lima - Torino", "Torino - Lima"] as const;
 const COUPON_SCOPE_VALUES = ["ambos", "documento", "encomienda"] as const;
 const optionalInternationalPhoneSchema = z.string().trim().optional().refine(value => !value || isValidInternationalPhone(value), "El número no coincide con la cantidad de dígitos del país seleccionado.");
+const securePasswordSchema = z.string().refine(isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE);
 
 function parseCouponDateTime(value: string, endOfDayForDateOnly: boolean) {
   const normalized = value.trim();
@@ -155,7 +157,7 @@ export const adminRouter = router({
     }),
 
   resetPassword: publicProcedure
-    .input(z.object({ email: z.string().email(), code: z.string().regex(/^\d{6}$/, "El código debe tener 6 dígitos."), newPassword: z.string().min(8, "La nueva contraseña debe tener al menos 8 caracteres.") }))
+    .input(z.object({ email: z.string().email(), code: z.string().regex(/^\d{6}$/, "El código debe tener 6 dígitos."), newPassword: securePasswordSchema }))
     .mutation(async ({ input }) => {
       const admin = await getAdminByEmail(normalizeEmail(input.email));
       if (!admin || admin.isActive !== 1) throw new TRPCError({ code: "BAD_REQUEST", message: "El código no es válido o ya venció." });
@@ -185,7 +187,7 @@ export const adminRouter = router({
       if (!admin || admin.isActive !== 1 || !validPassword) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "La contraseña actual no es correcta." });
       }
-      setAdminSession(ctx.req, ctx.res, admin.id, ctx.adminSession.role);
+      setAdminSession(ctx.req, ctx.res, admin.id, ctx.adminSession.role, ctx.adminSession.remembered);
       return { success: true, message: "Identidad verificada. Puedes continuar." };
     }),
 
@@ -193,7 +195,7 @@ export const adminRouter = router({
     .input(z.object({
       email: z.string().email(),
       currentPassword: z.string().min(1),
-      newPassword: z.string().min(8, "La nueva contraseña debe tener al menos 8 caracteres."),
+      newPassword: securePasswordSchema,
     }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -600,7 +602,7 @@ export const adminRouter = router({
   createAdmin: masterAdminProcedure
     .input(z.object({
       email: z.string().email(),
-      password: z.string().min(4),
+      password: securePasswordSchema,
       name: personNameSchema,
       role: z.literal("registrador").default("registrador"),
     }))
@@ -656,7 +658,7 @@ export const adminRouter = router({
     }),
 
   updateAdminPassword: masterAdminProcedure
-    .input(z.object({ id: z.number(), email: z.string().email(), newPassword: z.string().min(8) }))
+    .input(z.object({ id: z.number(), email: z.string().email(), newPassword: securePasswordSchema }))
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database error" });

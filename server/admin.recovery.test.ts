@@ -53,7 +53,7 @@ describe("admin password recovery", () => {
   it("updates an administrative password only after a valid unexpired code", async () => {
     dbMocks.getAdminByEmail.mockResolvedValue(admin);
     dbMocks.getActiveAdminPasswordResetCode.mockResolvedValue({ id: 9, adminId: admin.id, destination: admin.email, codeHash: hashVerificationCode("123456"), expiresAt: new Date(Date.now() + 60_000), attempts: 0 });
-    const result = await appRouter.createCaller(createPublicContext()).admin.resetPassword({ email: admin.email, code: "123456", newPassword: "nueva-clave-segura" });
+    const result = await appRouter.createCaller(createPublicContext()).admin.resetPassword({ email: admin.email, code: "123456", newPassword: "NuevaClave#2026" });
     expect(result.success).toBe(true);
     expect(dbMocks.updateAdminPassword).toHaveBeenCalledWith(admin.id, expect.stringMatching(/^scrypt\$/));
     expect(dbMocks.consumeAdminPasswordResetCode).toHaveBeenCalledWith(9);
@@ -62,8 +62,13 @@ describe("admin password recovery", () => {
   it("counts failed code attempts and rejects the reset", async () => {
     dbMocks.getAdminByEmail.mockResolvedValue(admin);
     dbMocks.getActiveAdminPasswordResetCode.mockResolvedValue({ id: 9, adminId: admin.id, destination: admin.email, codeHash: hashVerificationCode("123456"), expiresAt: new Date(Date.now() + 60_000), attempts: 0 });
-    await expect(appRouter.createCaller(createPublicContext()).admin.resetPassword({ email: admin.email, code: "999999", newPassword: "nueva-clave-segura" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(appRouter.createCaller(createPublicContext()).admin.resetPassword({ email: admin.email, code: "999999", newPassword: "NuevaClave#2026" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
     expect(dbMocks.incrementAdminPasswordResetAttempts).toHaveBeenCalledWith(9);
+    expect(dbMocks.updateAdminPassword).not.toHaveBeenCalled();
+  });
+
+  it("rejects a weak administrative password before modifying the account", async () => {
+    await expect(appRouter.createCaller(createPublicContext()).admin.resetPassword({ email: admin.email, code: "123456", newPassword: "password123" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
     expect(dbMocks.updateAdminPassword).not.toHaveBeenCalled();
   });
 });

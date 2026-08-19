@@ -34,8 +34,9 @@ import {
 import { AccountSessionPayload, clearAccountSession, getAccountSession, setAccountSession } from "./localSession";
 import { identityDocumentNumberSchema, identityDocumentTypeSchema, isIdentityDocumentValid, identityDocumentValidationMessage, optionalIdentityDocumentNumberSchema, optionalPersonNameSchema, personNameSchema } from "./inputValidation";
 import { isValidInternationalPhone } from "../shared/phoneValidation";
+import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "../shared/passwordPolicy";
 
-const passwordSchema = z.string().min(8, "La contraseña debe tener al menos 8 caracteres.");
+const passwordSchema = z.string().refine(isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE);
 const emailSchema = z.string().email("Correo electrónico inválido.");
 const optionalInternationalPhoneSchema = z.string().trim().optional().refine(value => !value || isValidInternationalPhone(value), "El número no coincide con la cantidad de dígitos del país seleccionado.");
 const internationalPhoneSchema = z.string().trim().min(1, "Teléfono requerido").refine(isValidInternationalPhone, "El número no coincide con la cantidad de dígitos del país seleccionado.");
@@ -156,7 +157,7 @@ export const accountRouter = router({
       }
 
       await upsertClient({ name: input.name, lastName: input.lastName, dni: input.dni, documentType: input.documentType, phone, email });
-      setAccountSession(ctx.req, ctx.res, account.id);
+      setAccountSession(ctx.req, ctx.res, account.id, false);
       return {
         success: true,
         account: {
@@ -179,8 +180,7 @@ export const accountRouter = router({
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Correo o contraseña inválidos." });
       }
 
-      ctx.res.locals.servicomRememberDevice = input.rememberDevice;
-      setAccountSession(ctx.req, ctx.res, account.id);
+      setAccountSession(ctx.req, ctx.res, account.id, input.rememberDevice);
       return {
         success: true,
         account: {
@@ -224,7 +224,7 @@ export const accountRouter = router({
       if (!account || !(await verifyPassword(input.password, account.passwordHash))) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "La contraseña actual no es correcta." });
       }
-      setAccountSession(ctx.req, ctx.res, account.id);
+      setAccountSession(ctx.req, ctx.res, account.id, session.remembered);
       return { success: true, message: "Identidad verificada. Puedes continuar." };
     }),
 

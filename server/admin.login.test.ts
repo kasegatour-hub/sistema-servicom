@@ -54,13 +54,13 @@ describe("admin.login", () => {
 
   it("requires an authenticated administrative account and its registered email to change a password", async () => {
     const publicCaller = appRouter.createCaller(createPublicContext());
-    await expect(publicCaller.admin.changeMyPassword({ email: "admin@servicom.pe", currentPassword: "old-password", newPassword: "new-password-2026" })).rejects.toMatchObject({
+    await expect(publicCaller.admin.changeMyPassword({ email: "admin@servicom.pe", currentPassword: "old-password", newPassword: "NuevaClave#2026" })).rejects.toMatchObject({
       code: "UNAUTHORIZED",
       message: "Sesión administrativa requerida",
     });
 
     const sessionCaller = appRouter.createCaller(createRoleContext("registrador"));
-    await expect(sessionCaller.admin.changeMyPassword({ email: "otra@servicom.pe", currentPassword: "old-password", newPassword: "new-password-2026" })).rejects.toMatchObject({
+    await expect(sessionCaller.admin.changeMyPassword({ email: "otra@servicom.pe", currentPassword: "old-password", newPassword: "NuevaClave#2026" })).rejects.toMatchObject({
       code: "UNAUTHORIZED",
       message: "El correo no coincide con la cuenta administrativa activa.",
     });
@@ -68,7 +68,7 @@ describe("admin.login", () => {
 
   it("requires the selected Registrador email when a Master Admin resets it", async () => {
     const caller = appRouter.createCaller(createRoleContext("superadmin"));
-    await expect(caller.admin.updateAdminPassword({ id: 90001, email: "otra@servicom.pe", newPassword: "new-password-2026" })).rejects.toMatchObject({
+    await expect(caller.admin.updateAdminPassword({ id: 90001, email: "otra@servicom.pe", newPassword: "NuevaClave#2026" })).rejects.toMatchObject({
       code: "BAD_REQUEST",
       message: "El correo no coincide con el Registrador seleccionado.",
     });
@@ -81,7 +81,7 @@ describe("admin.login", () => {
       code: "FORBIDDEN",
       message: "Solo el Master Admin puede gestionar usuarios",
     });
-    await expect(caller.admin.createAdmin({ email: "nuevo@servicom.pe", password: "password123", name: "Nuevo Operador", role: "registrador" })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(caller.admin.createAdmin({ email: "nuevo@servicom.pe", password: "NuevaClave#2026", name: "Nuevo Operador", role: "registrador" })).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(caller.admin.deactivateAdmin({ id: 30001 })).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(caller.admin.deleteAdmin({ id: 30001 })).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
@@ -89,6 +89,6 @@ describe("admin.login", () => {
   it("does not allow the create form to elevate an operator to Master Admin", async () => {
     const caller = appRouter.createCaller(createRoleContext("superadmin"));
 
-    await expect(caller.admin.createAdmin({ email: "elevacion@servicom.pe", password: "password123", name: "Operador Valido", role: "superadmin" as never })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(caller.admin.createAdmin({ email: "elevacion@servicom.pe", password: "NuevaClave#2026", name: "Operador Valido", role: "superadmin" as never })).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 });

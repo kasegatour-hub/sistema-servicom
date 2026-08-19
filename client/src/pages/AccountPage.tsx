@@ -25,8 +25,10 @@ import { paginateItems } from "@/lib/pagination";
 import { GeneralFeedbackDialog } from "@/components/GeneralFeedbackDialog";
 import { IdentityDocumentField } from "@/components/IdentityDocumentField";
 import { ShipmentTrendCharts } from "@/components/ShipmentTrendCharts";
+import { PasswordRequirements } from "@/components/PasswordRequirements";
 import type { IdentityDocumentType } from "@shared/identityDocuments";
 import { getFuzzySearchScore } from "@shared/fuzzySearch";
+import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "@shared/passwordPolicy";
 
 const brandLogo = "/manus-storage/servicom_logo_final_e7ce35aa.png";
 
@@ -503,6 +505,10 @@ export default function AccountPage() {
             </h2>
             <form onSubmit={(e) => {
               e.preventDefault();
+              if (!isSecurePassword(accountNewPassword)) {
+                toast.error(PASSWORD_REQUIREMENTS_MESSAGE);
+                return;
+              }
               changePasswordMutation.mutate({ currentPassword, newPassword: accountNewPassword });
             }} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
               <div>
@@ -515,13 +521,14 @@ export default function AccountPage() {
               <div>
                 <Label>Nueva contraseña</Label>
                 <div className="relative mt-1">
-                  <Input type={showAccountNewPassword ? "text" : "password"} minLength={8} value={accountNewPassword} onChange={e => setAccountNewPassword(e.target.value)} required className="pr-10" />
+                  <Input type={showAccountNewPassword ? "text" : "password"} minLength={12} value={accountNewPassword} onChange={e => setAccountNewPassword(e.target.value)} required className="pr-10" autoComplete="new-password" />
                   <button type="button" aria-label={showAccountNewPassword ? "Ocultar nueva contraseña" : "Mostrar nueva contraseña"} onClick={() => setShowAccountNewPassword(value => !value)} className="absolute right-2 top-2 text-slate-500 hover:text-[#0B2B5E]"><>{showAccountNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</></button>
                 </div>
               </div>
               <Button type="submit" disabled={changePasswordMutation.isPending} className="bg-[#0B2B5E] text-white hover:bg-[#123d78]">
                 {changePasswordMutation.isPending ? "Actualizando..." : "Cambiar contraseña"}
               </Button>
+              <div className="md:col-span-3"><PasswordRequirements password={accountNewPassword} /></div>
             </form>
             <p className="mt-3 text-xs text-slate-500">También puedes recuperar la contraseña desde la pantalla de inicio de sesión mediante un código enviado por correo electrónico.</p>
           </Card>
@@ -739,12 +746,20 @@ export default function AccountPage() {
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
     if (mode === "register") {
+      if (!isSecurePassword(password)) {
+        toast.error(PASSWORD_REQUIREMENTS_MESSAGE);
+        return;
+      }
       registerMutation.mutate({ email, phone: phone || undefined, password, name: registerName, lastName: registerLastName, dni: registerDni });
     } else if (mode === "login") {
       loginMutation.mutate({ email, password, rememberDevice });
     } else if (mode === "request") {
       requestMutation.mutate({ email, channel: "email" });
     } else {
+      if (!isSecurePassword(newPassword)) {
+        toast.error(PASSWORD_REQUIREMENTS_MESSAGE);
+        return;
+      }
       resetMutation.mutate({ email, channel: "email", code, newPassword });
     }
   };
@@ -813,14 +828,14 @@ export default function AccountPage() {
               <div>
                 <Label htmlFor="account-password">Contraseña</Label>
                 <div className="relative mt-2">
-                  <Input id="account-password" type={showPassword ? "text" : "password"} minLength={mode === "register" ? 8 : 1} value={password} onChange={event => setPassword(event.target.value)} className="pr-10" required />
+                  <Input id="account-password" type={showPassword ? "text" : "password"} minLength={mode === "register" ? 12 : 1} value={password} onChange={event => setPassword(event.target.value)} className="pr-10" required autoComplete={mode === "register" ? "new-password" : "current-password"} />
                   <button type="button" aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"} onClick={() => setShowPassword(value => !value)} className="absolute right-2 top-2 text-slate-500 hover:text-[#0B2B5E]"><>{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</></button>
                 </div>
-                {mode === "register" && <p className="mt-1 text-xs text-slate-500">Usa al menos 8 caracteres.</p>}
+                {mode === "register" && <PasswordRequirements password={password} />}
               </div>
             )}
 
-            {mode === "login" && <label className="flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700"><input type="checkbox" checked={rememberDevice} onChange={event => setRememberDevice(event.target.checked)} className="mt-0.5 h-4 w-4 accent-[#0B2B5E]" /><span><strong>Recordar este dispositivo</strong><br /><span className="text-xs text-slate-500">Mantiene una sesión firmada para entrar más rápido. No guarda tu contraseña y puedes cerrarla cuando quieras.</span></span></label>}
+            {mode === "login" && <label className="flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700"><input type="checkbox" checked={rememberDevice} onChange={event => setRememberDevice(event.target.checked)} className="mt-0.5 h-4 w-4 accent-[#0B2B5E]" /><span><strong>Recordar este dispositivo</strong><br /><span className="text-xs text-slate-500">Conserva la sesión de este dispositivo hasta por 30 días sin volver a pedir tu contraseña. No la guarda y se revoca al cerrar sesión.</span></span></label>}
 
             {(mode === "request" || mode === "reset") && (
               <div className="rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-sm text-[#0B2B5E]">
@@ -837,9 +852,10 @@ export default function AccountPage() {
                 <div>
                   <Label htmlFor="new-password">Nueva contraseña</Label>
                   <div className="relative mt-2">
-                    <Input id="new-password" type={showNewPassword ? "text" : "password"} minLength={8} value={newPassword} onChange={event => setNewPassword(event.target.value)} className="pr-10" required />
+                    <Input id="new-password" type={showNewPassword ? "text" : "password"} minLength={12} value={newPassword} onChange={event => setNewPassword(event.target.value)} className="pr-10" required autoComplete="new-password" />
                     <button type="button" aria-label={showNewPassword ? "Ocultar nueva contraseña" : "Mostrar nueva contraseña"} onClick={() => setShowNewPassword(value => !value)} className="absolute right-2 top-2 text-slate-500 hover:text-[#0B2B5E]"><>{showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</></button>
                   </div>
+                  <PasswordRequirements password={newPassword} />
                 </div>
               </>
             )}

@@ -507,3 +507,9 @@
 - [x] Añadir búsqueda de destinatarios guardados por DNI, nombre o apellido en el registro del Cliente
 - [x] Autocompletar identidad y teléfono al elegir una coincidencia, cerrando las sugerencias
 - [x] Añadir pruebas, verificación responsive, compilación y publicación
+
+## Sesiones recordadas y contraseñas seguras
+- [x] Corregir la sesión recordada para Cliente, Registrador y Master Admin sin solicitar contraseña durante su vigencia
+- [x] Exigir contraseñas de al menos 12 caracteres con mayúscula, minúscula, número y símbolo
+- [x] Mostrar los requisitos claros y la retroalimentación de cumplimiento en los formularios de contraseña
+- [x] Añadir pruebas de seguridad, sesión, compilación y publicación

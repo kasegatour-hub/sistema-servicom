@@ -117,7 +117,7 @@ export function getAccountSession(req: Request): AccountSessionPayload | null {
   return verifyJwt(raw);
 }
 
-export function setAccountSession(req: Request, res: Response, accountId: number, remembered = Boolean(res.locals?.servicomRememberDevice)): void {
+export function setAccountSession(req: Request, res: Response, accountId: number, remembered = false): void {
   res.cookie(COOKIE_NAME, createAccountSession(accountId, remembered), {
     ...getSessionCookieOptions(req),
     maxAge: getAccountSessionTtlSeconds() * 1000,

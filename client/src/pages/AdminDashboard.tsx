@@ -38,8 +38,10 @@ import { GeneralFeedbackDialog } from "@/components/GeneralFeedbackDialog";
 import { IdentityDocumentField } from "@/components/IdentityDocumentField";
 import { ShipmentTrendCharts } from "@/components/ShipmentTrendCharts";
 import { InvitationLetterWorkspace } from "@/components/InvitationLetterWorkspace";
+import { PasswordRequirements } from "@/components/PasswordRequirements";
 import { normalizeIdentityDocument, type IdentityDocumentType } from "@shared/identityDocuments";
 import { getFuzzySearchScore } from "@shared/fuzzySearch";
+import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "@shared/passwordPolicy";
 
 type AdminWorkspace = "resumen" | "registros" | "crear" | "cupones" | "papelera" | "usuarios" | "analitica" | "carta";
 
@@ -156,7 +158,7 @@ const loginSchema = z.object({
 const createAdminSchema = z.object({
   name: z.string().min(2, "Ingresa el nombre del operador.").regex(/^[A-Za-z\u00C0-\u024F]+(?: +[A-Za-z\u00C0-\u024F]+)*$/, "Solo letras y espacios."),
   email: z.string().email("Email inválido"),
-  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres."),
+  password: z.string().refine(isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE),
 });
 
 const couponFormSchema = z.object({
@@ -425,6 +427,7 @@ export default function AdminDashboard() {
     resolver: zodResolver(createAdminSchema),
     defaultValues: { name: "", email: "", password: "" },
   });
+  const createAdminPassword = createAdminForm.watch("password") || "";
   const createForm = useForm<any>({
     resolver: zodResolver(createShipmentSchema),
     defaultValues: {
@@ -586,6 +589,10 @@ export default function AdminDashboard() {
 
   const handleAdminPasswordReset = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!isSecurePassword(adminRecoveryPassword)) {
+      toast.error(PASSWORD_REQUIREMENTS_MESSAGE);
+      return;
+    }
     resetAdminPasswordMutation.mutate({ email: adminRecoveryEmail, code: adminRecoveryCode, newPassword: adminRecoveryPassword });
   };
 
@@ -1135,8 +1142,8 @@ export default function AdminDashboard() {
       toast.error("El correo debe coincidir exactamente con el correo administrativo registrado.");
       return;
     }
-    if (adminNewPassword.length < 8) {
-      toast.error("La nueva contraseña debe tener al menos 8 caracteres.");
+    if (!isSecurePassword(adminNewPassword)) {
+      toast.error(PASSWORD_REQUIREMENTS_MESSAGE);
       return;
     }
     if (adminNewPassword !== adminPasswordConfirmation) {
@@ -1195,7 +1202,7 @@ export default function AdminDashboard() {
                 type="password"
                 placeholder="Contraseña"
                 {...loginForm.register("password")}
-                autoComplete="new-password"
+                autoComplete="current-password"
                 className="border-2 focus:border-primary"
               />
               {loginForm.formState.errors.password && (
@@ -1203,7 +1210,7 @@ export default function AdminDashboard() {
               )}
             </div>
 
-            <label className="flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700"><input type="checkbox" {...loginForm.register("rememberDevice")} className="mt-0.5 h-4 w-4 accent-primary" /><span><strong>Recordar este dispositivo</strong><br /><span className="text-xs text-slate-500">Mantiene una sesión firmada para entrar más rápido. No guarda la contraseña y se revoca al cerrar sesión.</span></span></label>
+            <label className="flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700"><input type="checkbox" {...loginForm.register("rememberDevice")} className="mt-0.5 h-4 w-4 accent-primary" /><span><strong>Recordar este dispositivo</strong><br /><span className="text-xs text-slate-500">Conserva la sesión de este dispositivo hasta por 30 días sin volver a pedir tu contraseña. No la guarda y se revoca al cerrar sesión.</span></span></label>
 
             <Button
               type="submit"
@@ -1224,7 +1231,7 @@ export default function AdminDashboard() {
           {adminAuthMode !== "login" && <form onSubmit={adminAuthMode === "request" ? handleAdminRecoveryRequest : handleAdminPasswordReset} className="space-y-4" autoComplete="off">
             <div><label htmlFor="admin-recovery-email" className="mb-2 block text-sm font-medium text-gray-700">Correo administrativo</label><Input id="admin-recovery-email" type="email" placeholder="Ingresa tu correo administrativo" value={adminRecoveryEmail} onChange={event => setAdminRecoveryEmail(event.target.value)} className="border-2 focus:border-primary" autoComplete="email" required /></div>
             <div className="rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-sm text-primary">Enviaremos un código de seis dígitos al correo administrativo registrado. El código vence en 10 minutos.</div>
-            {adminAuthMode === "reset" && <><div><label htmlFor="admin-recovery-code" className="mb-2 block text-sm font-medium text-gray-700">Código de 6 dígitos</label><Input id="admin-recovery-code" value={adminRecoveryCode} onChange={event => setAdminRecoveryCode(event.target.value.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" pattern="[0-9]{6}" maxLength={6} className="border-2 tracking-[0.35em] focus:border-primary" required /></div><div><label htmlFor="admin-recovery-password" className="mb-2 block text-sm font-medium text-gray-700">Nueva contraseña</label><Input id="admin-recovery-password" type="password" value={adminRecoveryPassword} onChange={event => setAdminRecoveryPassword(event.target.value)} minLength={8} autoComplete="new-password" className="border-2 focus:border-primary" required /><p className="mt-1 text-xs text-slate-500">Usa al menos 8 caracteres.</p></div></>}
+            {adminAuthMode === "reset" && <><div><label htmlFor="admin-recovery-code" className="mb-2 block text-sm font-medium text-gray-700">Código de 6 dígitos</label><Input id="admin-recovery-code" value={adminRecoveryCode} onChange={event => setAdminRecoveryCode(event.target.value.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" pattern="[0-9]{6}" maxLength={6} className="border-2 tracking-[0.35em] focus:border-primary" required /></div><div><label htmlFor="admin-recovery-password" className="mb-2 block text-sm font-medium text-gray-700">Nueva contraseña</label><Input id="admin-recovery-password" type="password" value={adminRecoveryPassword} onChange={event => setAdminRecoveryPassword(event.target.value)} minLength={12} autoComplete="new-password" className="border-2 focus:border-primary" required /><PasswordRequirements password={adminRecoveryPassword} /></div></>}
             <Button type="submit" disabled={requestAdminPasswordResetMutation.isPending || resetAdminPasswordMutation.isPending} className="w-full bg-primary text-white hover:bg-primary/90">{adminAuthMode === "request" ? (requestAdminPasswordResetMutation.isPending ? "Enviando código..." : "Enviar código") : (resetAdminPasswordMutation.isPending ? "Actualizando..." : "Restablecer contraseña")}</Button>
             <div className="flex flex-col items-center gap-3 text-sm"><button type="button" onClick={() => setAdminAuthMode("login")} className="font-semibold text-primary hover:underline">Volver a iniciar sesión</button>{adminAuthMode === "reset" && <button type="button" disabled={adminRecoveryResendSeconds > 0 || requestAdminPasswordResetMutation.isPending} onClick={() => requestAdminPasswordResetMutation.mutate({ email: adminRecoveryEmail })} className="font-semibold text-primary hover:underline disabled:cursor-not-allowed disabled:text-slate-400 disabled:no-underline">{adminRecoveryResendSeconds > 0 ? `Reenviar código en ${adminRecoveryResendSeconds}s` : "Reenviar código"}</button>}</div>
           </form>}
@@ -1333,12 +1340,13 @@ export default function AdminDashboard() {
               </div>
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-700">Nueva contraseña</label>
-                <Input type="password" value={adminNewPassword} onChange={event => setAdminNewPassword(event.target.value)} minLength={8} required autoComplete="new-password" />
+                <Input type="password" value={adminNewPassword} onChange={event => setAdminNewPassword(event.target.value)} minLength={12} required autoComplete="new-password" />
               </div>
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-700">Confirmar nueva contraseña</label>
-                <Input type="password" value={adminPasswordConfirmation} onChange={event => setAdminPasswordConfirmation(event.target.value)} minLength={8} required autoComplete="new-password" />
+                <Input type="password" value={adminPasswordConfirmation} onChange={event => setAdminPasswordConfirmation(event.target.value)} minLength={12} required autoComplete="new-password" />
               </div>
+              <div className="md:col-span-4"><PasswordRequirements password={adminNewPassword} /></div>
               <div className="flex flex-wrap justify-end gap-2 md:col-span-4">
                 <Button type="button" variant="outline" onClick={() => setShowPasswordForm(false)}>Cancelar</Button>
                 <Button type="submit" disabled={changeMyPasswordMutation.isPending} className="bg-primary text-white">{changeMyPasswordMutation.isPending ? "Actualizando..." : "Guardar contraseña"}</Button>
@@ -1870,7 +1878,7 @@ export default function AdminDashboard() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Contraseña inicial</label>
-                  <Input type="password" {...createAdminForm.register("password")} placeholder="Mínimo 8 caracteres" />
+                  <Input type="password" {...createAdminForm.register("password")} placeholder="Contraseña segura de 12+ caracteres" minLength={12} autoComplete="new-password" />
                   {createAdminForm.formState.errors.password?.message && <p className="mt-1 text-xs text-red-600">{String(createAdminForm.formState.errors.password.message)}</p>}
                 </div>
                 <div className="flex items-end">
@@ -1878,6 +1886,7 @@ export default function AdminDashboard() {
                     {createAdminMutation.isPending ? "Creando..." : "Crear usuario"}
                   </Button>
                 </div>
+                <div className="md:col-span-4"><PasswordRequirements password={createAdminPassword} /></div>
               </form>
             )}
 

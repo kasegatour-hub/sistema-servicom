@@ -9,6 +9,8 @@
 - El contenedor de vista previa tiene desplazamiento interno; la tarjeta de vista previa actualmente muestra la información resumida y el QR.
 - La suite actualizada pasó: 2 archivos de prueba y 6 pruebas.
 - TypeScript pasó sin errores en la ejecución conjunta previa a la suite.
+- La vista móvil de **Mi cuenta** muestra «Recordar este dispositivo» con la explicación de una sesión de hasta 30 días sin volver a solicitar la contraseña y cierre revocable.
+- La vista móvil de **Admin** presenta la misma explicación de sesión recordada sin desbordes ni texto oculto.
 
 ## Incidencias observadas
 
@@ -21,4 +23,3 @@
 - Marcar tareas completadas en `todo.md`.
 - Guardar checkpoint de la versión validada.
 - Entregar al usuario el enlace de la versión.
-
