@@ -5,6 +5,7 @@ import { InsertUser, users, shipments, shipmentSignatures, shipmentAuditLogs, sh
 import { ENV } from './_core/env';
 import { buildShipmentClientDirectoryRecords, type ClientDirectoryRecord, type ShipmentClientDirectoryInput } from "./clientDirectory";
 import { rankFuzzyMatches } from "../shared/fuzzySearch";
+import { searchInvitationPeople, type InvitationPersonSeed } from "../shared/invitationPeople";
 
 // Normalizar números de orden y códigos: remover espacios y convertir a mayúsculas
 function normalizeOrderCode(value: string): string {
@@ -367,6 +368,54 @@ export async function listInvitationLetterRecords(actor: { adminId: number; canR
   return condition
     ? db.select().from(invitationLetters).where(condition).orderBy(desc(invitationLetters.createdAt))
     : db.select().from(invitationLetters).orderBy(desc(invitationLetters.createdAt));
+}
+
+const invitationSeedFromDirectory = (client: typeof clients.$inferSelect): InvitationPersonSeed => ({
+  source: "directorio",
+  firstName: client.name || "", lastName: client.lastName || "",
+  identityCard: client.documentType === "pasaporte" ? "" : client.dni || "",
+  passport: client.documentType === "pasaporte" ? client.dni || "" : "",
+  residencePermit: "", address: "", occupation: "", phone: client.phone || "", email: client.email || "", birthDate: "", birthPlace: "", nationality: "",
+});
+
+const invitationSeedFromShipment = (shipment: typeof shipments.$inferSelect, role: "sender" | "recipient"): InvitationPersonSeed => {
+  const isSender = role === "sender";
+  const documentType = isSender ? shipment.senderDocumentType : shipment.recipientDocumentType;
+  const document = isSender ? shipment.senderDni : shipment.recipientDni;
+  return {
+    source: "envio",
+    firstName: isSender ? shipment.senderName || "" : shipment.recipientName || "",
+    lastName: isSender ? shipment.senderLastName || "" : shipment.recipientLastName || "",
+    identityCard: documentType === "pasaporte" ? "" : document || "",
+    passport: documentType === "pasaporte" ? document || "" : "",
+    residencePermit: "", address: "", occupation: "", phone: isSender ? shipment.senderPhone || "" : shipment.recipientPhone || "", email: "", birthDate: "", birthPlace: "", nationality: "",
+  };
+};
+
+export async function searchInvitationLetterPeople(input: { query: string; adminId: number; canReviewAll: boolean; excludeHiddenShipments: boolean }) {
+  const normalizedQuery = input.query.trim();
+  if (normalizedQuery.length < 2) return [];
+  const db = await getDb();
+  if (!db) return [];
+  const [directoryRows, shipmentRows, letterRows] = await Promise.all([
+    db.select().from(clients).limit(600),
+    getAllShipments(undefined, { excludeHiddenForRegistradores: input.excludeHiddenShipments }),
+    listInvitationLetterRecords({ adminId: input.adminId, canReviewAll: input.canReviewAll }),
+  ]);
+  const letterSeeds: InvitationPersonSeed[] = letterRows.flatMap(letter => {
+    try {
+      const data = JSON.parse(letter.letterData) as { inviter?: Record<string, string>; invitee?: Record<string, string> };
+      const makeSeed = (person: Record<string, string> | undefined): InvitationPersonSeed | null => person ? {
+        source: "carta", firstName: person.firstName || "", lastName: person.lastName || "", identityCard: person.identityCard || "", passport: person.passport || "", residencePermit: person.residencePermit || "", address: person.address || "", occupation: person.occupation || "", phone: person.phone || "", email: person.email || "", birthDate: person.birthDate || "", birthPlace: person.birthPlace || "", nationality: person.nationality || "",
+      } : null;
+      return [makeSeed(data.inviter), makeSeed(data.invitee)].filter((seed): seed is InvitationPersonSeed => Boolean(seed));
+    } catch { return []; }
+  });
+  return searchInvitationPeople([
+    ...letterSeeds,
+    ...directoryRows.map(invitationSeedFromDirectory),
+    ...shipmentRows.flatMap(shipment => [invitationSeedFromShipment(shipment, "sender"), invitationSeedFromShipment(shipment, "recipient")]),
+  ], normalizedQuery, 8);
 }
 
 export type ShipmentAuditActor = {

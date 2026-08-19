@@ -7,7 +7,7 @@ function buildTrackingPath(orderNumber: string, code: string): string {
   return `/?order=${encodeURIComponent(order)}&code=${encodeURIComponent(normalizedCode)}`;
 }
 import { publicProcedure, router } from "./_core/trpc";
-import { attachShipmentAuditActorLabels, createDiscountCoupon, createInvitationLetterRecord, createShipment, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAllShipments, getDeletedShipments, getDiscountCouponByCode, getShipmentAuditLogs, getShipmentById, getShipmentRoutePolicy, incrementDiscountCouponRedemption, isEncomiendaEnabledForRoute, listDiscountCoupons, listInvitationLetterRecords, recordInteractionEvent, recordShipmentAudit, restoreShipment, searchClients, setEncomiendaAvailabilityForRoute, setShipmentRegistradorVisibility, updateDiscountCoupon, updateShipmentStatus } from "./db";
+import { attachShipmentAuditActorLabels, createDiscountCoupon, createInvitationLetterRecord, createShipment, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAllShipments, getDeletedShipments, getDiscountCouponByCode, getShipmentAuditLogs, getShipmentById, getShipmentRoutePolicy, incrementDiscountCouponRedemption, isEncomiendaEnabledForRoute, listDiscountCoupons, listInvitationLetterRecords, recordInteractionEvent, recordShipmentAudit, restoreShipment, searchClients, searchInvitationLetterPeople, setEncomiendaAvailabilityForRoute, setShipmentRegistradorVisibility, updateDiscountCoupon, updateShipmentStatus } from "./db";
 import { generateVerificationCode, hashPassword, hashVerificationCode, normalizeEmail, sendVerificationEmail, verificationExpiry, verifyPassword } from "./localAuth";
 import { AdminSessionPayload, clearAdminSession, getAdminSession, setAdminSession } from "./adminSession";
 import { admins } from "../drizzle/schema";
@@ -454,6 +454,15 @@ export const adminRouter = router({
 
   listInvitationLetters: adminProcedure
     .query(async ({ ctx }) => listInvitationLetterRecords({ adminId: ctx.adminSession.adminId, canReviewAll: ctx.adminSession.role === "superadmin" })),
+
+  searchInvitationPeople: adminProcedure
+    .input(z.object({ query: z.string().trim().min(2).max(120) }))
+    .query(async ({ input, ctx }) => searchInvitationLetterPeople({
+      query: input.query,
+      adminId: ctx.adminSession.adminId,
+      canReviewAll: ctx.adminSession.role === "superadmin",
+      excludeHiddenShipments: ctx.adminSession.role !== "superadmin",
+    })),
 
   createShipment: adminProcedure
     .input(z.object({

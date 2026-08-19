@@ -526,3 +526,9 @@
 - [x] Persistir cada carta guardada y asociarla al Administrador o Registrador que la creó
 - [x] Mostrar cartas generadas con ordenamiento cronológico, paginación y acciones de abrir, descargar e imprimir
 - [x] Añadir migración, pruebas, verificación responsive, compilación y publicación
+
+## Autocompletado de personas para Carta de invitación
+- [x] Reemplazar el selector de envío por búsquedas difusas separadas para invitante e invitado
+- [x] Consolidar personas de clientes, envíos y cartas guardadas, buscando por documento, nombre o apellido
+- [x] Completar los datos disponibles sin sobrescribir campos que no existan y conservar validaciones
+- [x] Añadir pruebas, verificación responsive, compilación y publicación

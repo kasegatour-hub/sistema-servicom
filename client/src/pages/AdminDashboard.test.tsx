@@ -30,6 +30,7 @@ const mocks = vi.hoisted(() => ({
   translateInvitationLetter: { isPending: false, mutate: vi.fn() },
   saveInvitationLetter: { isPending: false, mutate: vi.fn() },
   listInvitationLetters: { data: [] as any[], isLoading: false, refetch: vi.fn() },
+  searchInvitationPeople: { data: [] as any[], isFetching: false },
   refetchAdminSession: vi.fn().mockResolvedValue({ data: null }),
   refetchShipments: vi.fn(),
   refetchAdminUsers: vi.fn(),
@@ -80,6 +81,7 @@ vi.mock("@/lib/trpc", () => ({
       translateInvitationLetter: { useMutation: () => mocks.translateInvitationLetter },
       saveInvitationLetter: { useMutation: () => mocks.saveInvitationLetter },
       listInvitationLetters: { useQuery: () => mocks.listInvitationLetters },
+      searchInvitationPeople: { useQuery: () => mocks.searchInvitationPeople },
     },
     analytics: {
       adminInsights: { useQuery: () => ({ data: null }) },

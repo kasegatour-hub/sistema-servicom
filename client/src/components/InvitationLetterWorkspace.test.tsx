@@ -6,6 +6,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 const translationMutation = vi.hoisted(() => ({ isPending: false, mutate: vi.fn(), onSuccess: undefined as undefined | ((value: any) => void) }));
 const saveMutation = vi.hoisted(() => ({ isPending: false, mutate: vi.fn(), onSuccess: undefined as undefined | ((value: any, variables: any) => void) }));
 const lettersQuery = vi.hoisted(() => ({ data: [] as any[], isLoading: false, refetch: vi.fn() }));
+const peopleSearchQuery = vi.hoisted(() => ({ data: [] as any[], isFetching: false }));
 
 vi.mock("@/lib/trpc", () => ({
   trpc: {
@@ -13,6 +14,7 @@ vi.mock("@/lib/trpc", () => ({
       translateInvitationLetter: { useMutation: (options?: { onSuccess?: (value: any) => void }) => { translationMutation.onSuccess = options?.onSuccess; return translationMutation; } },
       saveInvitationLetter: { useMutation: (options?: { onSuccess?: (value: any, variables: any) => void }) => { saveMutation.onSuccess = options?.onSuccess; return saveMutation; } },
       listInvitationLetters: { useQuery: () => lettersQuery },
+      searchInvitationPeople: { useQuery: () => peopleSearchQuery },
     },
   },
 }));
@@ -20,7 +22,7 @@ vi.mock("@/lib/trpc", () => ({
 import { InvitationLetterWorkspace } from "./InvitationLetterWorkspace";
 
 afterEach(() => cleanup());
-beforeEach(() => { vi.clearAllMocks(); translationMutation.onSuccess = undefined; saveMutation.onSuccess = undefined; lettersQuery.data = []; });
+beforeEach(() => { vi.clearAllMocks(); translationMutation.onSuccess = undefined; saveMutation.onSuccess = undefined; lettersQuery.data = []; peopleSearchQuery.data = []; });
 
 describe("InvitationLetterWorkspace", () => {
   it("normalizes searchable places and nationalities to uppercase and requires saving before export", () => {
@@ -73,5 +75,19 @@ describe("InvitationLetterWorkspace", () => {
     expect(screen.getByText(/INVITADO1/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /Abrir/ }));
     expect((document.getElementById("invitante-firstName") as HTMLInputElement).value).toBe("ANA");
+  });
+
+  it("completes inviter and invitee from fuzzy results without requiring a shipment selector", () => {
+    peopleSearchQuery.data = [{ key: "ab123456|lucia|sanchez", sources: ["carta", "envio"], firstName: "LUCÍA", lastName: "SÁNCHEZ", identityCard: "", passport: "AB123456", residencePermit: "PERMISO", address: "VIA ROMA 1", occupation: "COMERCIANTE", phone: "+39 351 278 7962", email: "lucia@example.com", birthDate: "1980-01-01", birthPlace: "LIMA", nationality: "PERUANA" }];
+    render(<InvitationLetterWorkspace />);
+
+    const search = screen.getByLabelText(/Buscar invitante guardado/) as HTMLInputElement;
+    fireEvent.change(search, { target: { value: "sanches" } });
+    fireEvent.click(screen.getByText("LUCÍA SÁNCHEZ"));
+
+    expect((document.getElementById("invitante-firstName") as HTMLInputElement).value).toBe("LUCÍA");
+    expect((document.getElementById("invitante-passport") as HTMLInputElement).value).toBe("AB123456");
+    expect((document.getElementById("invitante-address") as HTMLInputElement).value).toBe("VIA ROMA 1");
+    expect(screen.queryByLabelText(/Autocompletar invitado desde un envío/)).toBeNull();
   });
 });

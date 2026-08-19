@@ -17,6 +17,8 @@
 - La estructura central incorpora el bloque opcional de sociedades, las casillas de alojamiento y una segunda tabla para la persona invitada; sus rótulos son italiano/inglés y no deben sustituirse por rótulos propios.
 - Las declaraciones de la plantilla incluyen casillas para sostenimiento, seguro, garantía bancaria y los avisos normativos de los artículos 7 y 12 del D. Lgs. n. 286/1998, siempre con la traducción inglesa en cursiva a continuación.
 - Los avisos de protección de datos ocupan dos cajas paralelas de texto en italiano e inglés, con títulos en negrita y borde negro fino, por lo que la réplica debe conservar estas columnas sin insertar contenido corporativo adicional.
+- La referencia del buscador muestra un bloque ancho de fondo azul muy claro, etiqueta bilingüe, campo horizontal y ayuda; se sustituirá por dos buscadores equivalentes, uno para invitante y otro para invitado.
+- La ayuda de búsqueda indica pasaporte, carta d’identità, DNI, nombre o apellido y aclara que admite tildes faltantes o errores menores; este texto orientará los dos campos de autocompletado.
 
 ## Incidencias observadas
 
