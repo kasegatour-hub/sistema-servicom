@@ -183,6 +183,8 @@ export const shipments = mysqlTable("shipments", {
   
   // Tipo de envío, peso, tarifa y notas
   shipmentType: mysqlEnum("shipmentType", ["documento", "encomienda"]).default("documento").notNull(),
+  documentKind: mysqlEnum("documentKind", ["simple", "apostillado"]).default("apostillado").notNull(),
+  documentSheetCount: int("documentSheetCount").default(1).notNull(),
   weightKg: decimal("weightKg", { precision: 10, scale: 2 }).default("1.00"),
   manualPriceEur: decimal("manualPriceEur", { precision: 10, scale: 2 }),
   couponCode: varchar("couponCode", { length: 64 }),

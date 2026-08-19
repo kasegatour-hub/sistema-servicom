@@ -21,6 +21,8 @@ describe("account.createMyShipment persistence policy", () => {
     expect(args[13]).toBe("documento");
     expect(args[16]).toBe("Falta cancelar");
     expect(args[17]).toBe("Torino - Lima");
+    expect(args[31]).toBe("simple");
+    expect(args[32]).toBe(1);
   });
 
   it("rejects payment condition from the client input", () => {

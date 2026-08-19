@@ -125,6 +125,7 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
     fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
     const search = await screen.findByRole("textbox", { name: "Buscar registros" });
+    expect(screen.getByText("Buscar en registros")).toBeTruthy();
     expect(screen.getByText(/Busca por orden, código, DNI, nombre o apellido/)).toBeTruthy();
     fireEvent.change(search, { target: { value: "sanches ar" } });
     expect(screen.getByText("Luisa Ramos")).toBeTruthy();
@@ -139,7 +140,10 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
     fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
     await waitFor(() => expect(screen.getByRole("dialog")).toBeTruthy());
-    expect(screen.getByRole("heading", { name: "Actualizar Estado de Encomienda" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Actualizar Estado de Documento" })).toBeTruthy();
+    expect(screen.getByLabelText("Tipo de documento")).toBeTruthy();
+    expect(screen.getByRole("group", { name: "Cantidad de Hojas / Documentos" })).toBeTruthy();
+    expect(screen.queryByLabelText("Peso (kg)")).toBeNull();
     expect((screen.getByRole("combobox", { name: "Estado de Pago" }) as HTMLSelectElement).value).toBe("Pagado");
   });
 

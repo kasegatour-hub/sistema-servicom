@@ -454,6 +454,8 @@ export const adminRouter = router({
         { type: "admin", id: ctx.adminSession.adminId, label: creator?.name || (ctx.adminSession.role === "superadmin" ? "Master Admin" : "Registrador") },
         input.senderDocumentType,
         input.recipientDocumentType,
+        input.docType,
+        input.sheetCount,
       );
       if (!result) {
         throw new TRPCError({
@@ -493,6 +495,8 @@ export const adminRouter = router({
       recipientPhone: optionalInternationalPhoneSchema,
       notes: z.string().optional(),
       shipmentType: z.enum(["documento", "encomienda"]).optional(),
+      docType: z.enum(["simple", "apostillado"]).optional(),
+      sheetCount: z.number().int().min(1).max(10).optional(),
       weightKg: z.number().optional(),
       manualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
       paymentStatus: z.enum(["Pagado", "Falta cancelar"]).optional(),
@@ -501,6 +505,10 @@ export const adminRouter = router({
       destinationAddress: z.string().optional(),
       deliveryMode: z.enum(["agencia", "remoto"]).optional(),
       pricingMode: z.enum(["estandar", "manual"]).default("estandar"),
+    }).superRefine((input, ctx) => {
+      if ((input.shipmentType ?? "documento") === "documento" && input.docType === "simple" && (input.sheetCount ?? 1) > 8) {
+        ctx.addIssue({ code: "custom", path: ["sheetCount"], message: "Los documentos simples permiten un máximo de 8 hojas por registro." });
+      }
     }))
     .mutation(async ({ input, ctx }) => {
       const currentShipment = await getShipmentById(input.shipmentId);
@@ -511,11 +519,13 @@ export const adminRouter = router({
       const effectiveType = input.shipmentType ?? currentShipment.shipmentType;
       const isParcel = effectiveType === "encomienda";
       const effectiveWeight = input.weightKg ?? Number(currentShipment.weightKg ?? 1);
+      const effectiveDocumentKind = input.docType ?? currentShipment.documentKind ?? "apostillado";
+      const effectiveDocumentSheetCount = input.sheetCount ?? currentShipment.documentSheetCount ?? 1;
       const pricing = isParcel ? calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: effectiveWeight, manualPriceEur: input.pricingMode === "manual" ? input.manualPriceEur : null }) : null;
-      const manualDocumentPricing = !isParcel && input.pricingMode === "manual"
-        ? calculateAdminShipmentPricing({ shipmentType: "documento", manualPriceEur: input.manualPriceEur })
+      const documentPricing = !isParcel
+        ? calculateAdminShipmentPricing({ shipmentType: "documento", docType: effectiveDocumentKind, sheetCount: effectiveDocumentSheetCount, manualPriceEur: input.pricingMode === "manual" ? input.manualPriceEur : null })
         : null;
-      const updatedPricing = pricing || manualDocumentPricing;
+      const updatedPricing = pricing || documentPricing;
       const result = await updateShipmentStatus(
         input.shipmentId,
         input.newStatus,
@@ -542,6 +552,8 @@ export const adminRouter = router({
         updatedPricing ? 0 : undefined,
         updatedPricing ? updatedPricing.totalEur : undefined,
         input.deliveryMode,
+        effectiveDocumentKind,
+        effectiveDocumentSheetCount,
       );
       if (!result) {
         throw new TRPCError({

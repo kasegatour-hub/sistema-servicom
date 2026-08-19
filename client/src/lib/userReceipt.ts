@@ -23,10 +23,12 @@ export const buildReceiptUrl = (origin: string, order: string, code: string) => 
 export function buildReceiptDownloadFilename(data: {
   recipientName?: string | null;
   recipientLastName?: string | null;
+  recipientDisplayName?: string | null;
   orderNumber?: string | number | null;
   shipmentType?: "documento" | "encomienda" | null;
 }) {
-  const recipient = fullName(data.recipientName, data.recipientLastName)
+  const namedRecipient = fullName(data.recipientName, data.recipientLastName);
+  const recipient = (namedRecipient === "No especificado" ? String(data.recipientDisplayName || "").trim() || "destinatario" : namedRecipient)
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-zA-Z0-9]+/g, "-")
@@ -178,7 +180,8 @@ export async function printUserShipmentReceipt(shipment: any): Promise<void> {
     const order = escapeHtml(shipment.orderNumber);
     const code = escapeHtml(shipment.code);
     const sender = escapeHtml(fullName(shipment.senderName, shipment.senderLastName));
-    const recipient = escapeHtml(fullName(shipment.recipientName, shipment.recipientLastName));
+    const rawRecipient = fullName(shipment.recipientName, shipment.recipientLastName);
+    const recipient = escapeHtml(rawRecipient);
     const senderPhone = escapeHtml(formatPhoneNumber(shipment.senderPhone) || "No especificado");
     const senderDni = escapeHtml(shipment.senderDni || "No especificado");
     const recipientPhone = escapeHtml(formatPhoneNumber(shipment.recipientPhone) || "No especificado");
@@ -213,6 +216,7 @@ export async function printUserShipmentReceipt(shipment: any): Promise<void> {
     const downloadFilename = buildReceiptDownloadFilename({
       recipientName: shipment.recipientName,
       recipientLastName: shipment.recipientLastName,
+      recipientDisplayName: rawRecipient,
       orderNumber: order,
       shipmentType: shipment.shipmentType,
     });

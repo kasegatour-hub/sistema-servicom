@@ -121,6 +121,8 @@ export function buildClientShipmentPersistenceArgs(
     { type: "account" as const, id: accountId, label: "Cliente" },
     input.senderDocumentType,
     input.recipientDocumentType,
+    input.docType,
+    input.sheetCount,
   ] as const;
 }
 

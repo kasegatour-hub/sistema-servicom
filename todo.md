@@ -463,3 +463,10 @@
 - [x] Añadir un QR escaneable al control de entrega para abrir la actualización de estado autorizada
 - [x] Excluir de ingresos los envíos eliminados u ocultos y revisar el registro de pago señalado
 - [x] Añadir pruebas, verificación de comprobante, compilación y publicación
+
+## Correcciones de actualización documental y buscador
+- [x] Mostrar «Actualizar estado de documento» y sus campos de tipo, hojas y precio al editar documentos
+- [x] Conservar los campos de peso y tarifa por kilogramo solo para encomiendas
+- [x] Corregir el nombre de descarga para incluir de forma fiable al destinatario
+- [x] Convertir el buscador administrativo en un control largo de ancho completo con guía compacta
+- [x] Añadir pruebas, verificación responsive, compilación y publicación

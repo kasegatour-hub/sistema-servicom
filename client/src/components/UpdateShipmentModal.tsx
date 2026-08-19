@@ -12,6 +12,7 @@ type UpdateShipmentModalProps = {
   children: ReactNode;
   paymentStatus?: string;
   registerPaymentStatus?: (name: "paymentStatus") => any;
+  shipmentType?: "documento" | "encomienda";
 };
 
 export function UpdateShipmentModal({
@@ -22,6 +23,7 @@ export function UpdateShipmentModal({
   children,
   paymentStatus,
   registerPaymentStatus,
+  shipmentType = "encomienda",
 }: UpdateShipmentModalProps) {
   if (!open) return null;
 
@@ -46,8 +48,8 @@ export function UpdateShipmentModal({
           <X className="h-5 w-5" />
         </button>
         <div className="pr-12">
-          <h3 id="update-shipment-title" className="mb-1 text-lg font-semibold">Actualizar Estado de Encomienda</h3>
-          <p className="mb-4 text-sm text-slate-500">Actualiza el estado del envío y, si corresponde, marca el pago.</p>
+          <h3 id="update-shipment-title" className="mb-1 text-lg font-semibold">Actualizar Estado de {shipmentType === "documento" ? "Documento" : "Encomienda"}</h3>
+          <p className="mb-4 text-sm text-slate-500">Actualiza el estado del {shipmentType === "documento" ? "documento" : "envío"} y, si corresponde, marca el pago.</p>
         </div>
 
         <form onSubmit={onSubmit} className="space-y-4">

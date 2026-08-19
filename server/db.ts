@@ -746,6 +746,8 @@ export async function createShipment(
   registeredBy?: ShipmentRegistrationActor,
   senderDocumentType?: "dni_peru" | "pasaporte" | "carta_identita_italia",
   recipientDocumentType?: "dni_peru" | "pasaporte" | "carta_identita_italia",
+  documentKind?: "simple" | "apostillado",
+  documentSheetCount?: number,
 ) {
   const db = await getDb();
   if (!db) {
@@ -783,6 +785,8 @@ export async function createShipment(
     recipientPhone,
     notes,
     shipmentType: shipmentType || "documento",
+    documentKind: documentKind || "apostillado",
+    documentSheetCount: Math.max(1, Math.min(10, Math.round(Number(documentSheetCount) || 1))),
     weightKg: String(weightKg ?? "1.00"),
     manualPriceEur: manualPriceEur !== undefined && manualPriceEur !== null && String(manualPriceEur).trim() !== "" ? String(manualPriceEur) : null,
     couponCode: couponCode ? normalizeOrderCode(couponCode) : null,
@@ -853,7 +857,9 @@ export async function updateShipmentStatus(
   discountPercent?: string | number | null,
   discountAmountEur?: string | number | null,
   finalPriceEur?: string | number | null,
-  deliveryMode?: "agencia" | "remoto"
+  deliveryMode?: "agencia" | "remoto",
+  documentKind?: "simple" | "apostillado",
+  documentSheetCount?: number,
 ) {
   const db = await getDb();
   if (!db) {
@@ -897,6 +903,8 @@ export async function updateShipmentStatus(
         recipientPhone,
         notes,
         shipmentType: shipmentType ?? shipment.shipmentType ?? "documento",
+        documentKind: documentKind ?? shipment.documentKind ?? "apostillado",
+        documentSheetCount: documentSheetCount !== undefined ? Math.max(1, Math.min(10, Math.round(Number(documentSheetCount) || 1))) : shipment.documentSheetCount ?? 1,
         weightKg: weightKg !== undefined ? String(weightKg) : shipment.weightKg ?? "1.00",
         manualPriceEur: manualPriceEur !== undefined ? (manualPriceEur !== null && String(manualPriceEur).trim() !== "" ? String(manualPriceEur) : null) : shipment.manualPriceEur,
         couponCode: couponCode !== undefined ? (couponCode ? normalizeOrderCode(couponCode) : null) : shipment.couponCode,

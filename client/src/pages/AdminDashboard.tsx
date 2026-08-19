@@ -230,6 +230,8 @@ const updateStatusSchema = z.object({
   recipientPhone: z.string().optional(),
   notes: z.string().optional(),
   shipmentType: z.enum(["documento", "encomienda"]).optional(),
+  docType: z.enum(["simple", "apostillado"]).optional(),
+  sheetCount: z.number().int().min(1).max(10).optional(),
   paymentStatus: z.enum(["Pagado", "Falta cancelar"]).optional(),
   route: z.string().optional(),
   originAddress: z.string().optional(),
@@ -501,6 +503,8 @@ export default function AdminDashboard() {
       recipientPhone: '',
       notes: '',
       shipmentType: 'documento',
+      docType: 'apostillado',
+      sheetCount: 1,
       paymentStatus: 'Falta cancelar',
       route: 'Lima - Torino',
       originAddress: '',
@@ -528,6 +532,8 @@ export default function AdminDashboard() {
       recipientPhone: shipment.recipientPhone || "",
       notes: shipment.notes || "",
       shipmentType: shipment.shipmentType || "documento",
+      docType: shipment.documentKind || "apostillado",
+      sheetCount: Number(shipment.documentSheetCount || 1),
       paymentStatus: shipment.paymentStatus || "Falta cancelar",
       route: shipment.route || "Lima - Torino",
       originAddress: shipment.originAddress || "",
@@ -830,6 +836,7 @@ export default function AdminDashboard() {
       const downloadFilename = buildReceiptDownloadFilename({
         recipientName: printShipment.recipientName,
         recipientLastName: printShipment.recipientLastName,
+        recipientDisplayName: [printShipment.recipientName, printShipment.recipientLastName].filter(Boolean).join(" "),
         orderNumber: printShipment.orderNumber,
         shipmentType: printShipment.shipmentType,
       });
@@ -1906,7 +1913,7 @@ export default function AdminDashboard() {
 
         {/* Shipments Table */}
         <Card className={`border-0 p-6 shadow-lg ${adminWorkspace === "registros" ? "" : "hidden"}`}>
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+          <div className="flex flex-col gap-5 mb-6">
             <div className="flex flex-wrap items-center gap-3">
               <h2 className="text-xl font-semibold text-gray-900">{shipmentView === 'documento' ? 'Documentos Registrados' : 'Encomiendas Registradas'}</h2>
               <div className="flex items-center gap-1 rounded-lg bg-slate-100 p-1" role="tablist" aria-label="Tipo de envío">
@@ -1930,19 +1937,23 @@ export default function AdminDashboard() {
                 </button>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-              <div className="relative flex-1 md:w-64">
-                <Search className="pointer-events-none absolute left-3 top-6 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+            <div className="w-full">
+              <label htmlFor="admin-shipment-search" className="mb-2 block text-sm font-semibold text-[#0B2B5E]">Buscar en registros</label>
+              <div className="relative w-full">
+                <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" aria-hidden="true" />
                 <Input
+                  id="admin-shipment-search"
                   aria-label="Buscar registros"
                   aria-describedby="admin-shipment-search-help"
-                  placeholder="Orden, código, DNI, nombre o apellido"
+                  placeholder="Escribe orden, código, DNI, nombre o apellido"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="h-12 bg-white pl-9 text-base"
+                  className="h-14 w-full bg-white pl-11 pr-4 text-base shadow-sm ring-1 ring-slate-200 focus-visible:ring-2 focus-visible:ring-[#0B2B5E]"
                 />
-                <p id="admin-shipment-search-help" role="status" className="mt-1 text-xs leading-4 text-slate-600">Busca por orden, código, DNI, nombre o apellido. Se muestran coincidencias similares aunque falten tildes o haya errores menores.</p>
               </div>
+              <p id="admin-shipment-search-help" role="status" className="mt-2 text-sm leading-5 text-slate-600">Busca por orden, código, DNI, nombre o apellido. Se muestran coincidencias similares aunque falten tildes o haya errores menores.</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
                 variant="outline"
@@ -2105,6 +2116,7 @@ export default function AdminDashboard() {
           isSubmitting={updateMutation.isPending}
           paymentStatus={updateForm.watch("paymentStatus")}
           registerPaymentStatus={(name) => updateForm.register(name)}
+          shipmentType={updateForm.watch("shipmentType") === "encomienda" ? "encomienda" : "documento"}
         >
                 <input type="hidden" {...updateForm.register("shipmentId", { valueAsNumber: true })} />
                 <input type="hidden" {...updateForm.register("shipmentType")} />
@@ -2128,7 +2140,7 @@ export default function AdminDashboard() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Descripción (Opcional)</label>
                   <Input
-                    placeholder="Ej: Encomienda en camino a destino"
+                    placeholder={updateForm.watch("shipmentType") === "documento" ? "Ej: Documento en camino a destino" : "Ej: Encomienda en camino a destino"}
                     {...updateForm.register("description")}
                     className="border-2 focus:border-primary"
                   />
@@ -2192,24 +2204,51 @@ export default function AdminDashboard() {
                       <option value="remoto">Envío remoto: firma electrónica</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Peso (kg)</label>
-                    <Input type="number" min="0.1" step="0.1" {...updateForm.register("weightKg", { valueAsNumber: true })} />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Tarifa</label>
-                    <select {...updateForm.register("pricingMode")} className="w-full p-2 bg-white border-2 border-slate-200 rounded-md text-sm font-medium focus:border-primary">
-                      <option value="estandar">{updateForm.watch("shipmentType") === "encomienda" ? "Estándar: 13,50 €/kg" : "Mantener tarifa registrada"}</option>
-                      <option value="manual">Precio manual en EUR</option>
-                    </select>
-                  </div>
+                  {updateForm.watch("shipmentType") === "encomienda" ? <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Peso (kg)</label>
+                      <Input type="number" min="0.1" step="0.1" {...updateForm.register("weightKg", { valueAsNumber: true })} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Tarifa</label>
+                      <select {...updateForm.register("pricingMode")} className="w-full p-2 bg-white border-2 border-slate-200 rounded-md text-sm font-medium focus:border-primary">
+                        <option value="estandar">Estándar: 13,50 €/kg</option>
+                        <option value="manual">Precio manual en EUR</option>
+                      </select>
+                    </div>
+                  </> : <>
+                    <div>
+                      <label htmlFor="update-document-type" className="block text-sm font-medium text-gray-700 mb-1">Tipo de documento</label>
+                      <select id="update-document-type" {...updateForm.register("docType")} className="w-full p-2 bg-white border-2 border-[#0B2B5E] rounded-md text-sm font-medium focus:border-primary">
+                        <option value="simple">Documento simple (45 € hasta 4 hojas, +2 € por hoja adicional)</option>
+                        <option value="apostillado">Documento apostillado (50 € hasta 5 hojas, +10 € adicional)</option>
+                      </select>
+                    </div>
+                    <QuantityStepper
+                      id="update-document-sheet-count"
+                      label="Cantidad de Hojas / Documentos"
+                      value={Number(updateForm.watch("sheetCount") || 1)}
+                      min={1}
+                      max={updateForm.watch("docType") === "simple" ? 8 : 10}
+                      description={updateForm.watch("docType") === "simple" ? "Máximo 8 hojas por registro. Si supera el límite, crea otro registro." : "Máximo 10 hojas por registro. Si supera el límite, crea otro registro."}
+                      onChange={(value) => updateForm.setValue("sheetCount", value, { shouldDirty: true, shouldValidate: true })}
+                    />
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Tarifa del documento</label>
+                      <select {...updateForm.register("pricingMode")} className="w-full p-2 bg-white border-2 border-slate-200 rounded-md text-sm font-medium focus:border-primary">
+                        <option value="estandar">Tarifa automática según tipo y hojas</option>
+                        <option value="manual">Precio manual en EUR</option>
+                      </select>
+                    </div>
+                  </>}
                   {updateForm.watch("pricingMode") === "manual" && <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Precio manual (EUR)</label><Input type="number" min="0" step="0.01" {...updateForm.register("manualPriceEur")} placeholder="Ej.: 25.00" /><p className="mt-1 text-xs text-slate-500">Guarda una tarifa para que los pagos de este envío se contabilicen correctamente.</p></div>}
+                  {updateForm.watch("shipmentType") === "documento" && <div className="md:col-span-2"><DocumentPricePreview docType={(updateForm.watch("docType") || "apostillado") as "simple" | "apostillado"} sheetCount={Number(updateForm.watch("sheetCount") || 1)} manualPriceEur={updateForm.watch("pricingMode") === "manual" ? updateForm.watch("manualPriceEur") : null} /></div>}
                 </div>
 
                 <div className="border-t pt-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Notas</label>
                   <Textarea
-                    placeholder="Notas adicionales sobre la encomienda"
+                    placeholder={`Notas adicionales sobre el ${updateForm.watch("shipmentType") === "documento" ? "documento" : "envío"}`}
                     {...updateForm.register("notes")}
                     className="border-2 focus:border-primary"
                     rows={3}

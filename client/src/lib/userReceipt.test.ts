@@ -43,6 +43,11 @@ describe("receipt window helpers", () => {
       orderNumber: "3289150504",
       shipmentType: "documento",
     })).toBe("recibo-documento-maria-jose-diaz-ojitos-orden-3289150504");
+    expect(buildReceiptDownloadFilename({
+      recipientDisplayName: "Miguel Díaz Ojitos",
+      orderNumber: "3289150504",
+      shipmentType: "documento",
+    })).toBe("recibo-documento-miguel-diaz-ojitos-orden-3289150504");
   });
 
   it("includes the complete delivery ticket and anti-split rule in the final receipt output", () => {
