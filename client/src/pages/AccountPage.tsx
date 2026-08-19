@@ -88,6 +88,8 @@ export default function AccountPage() {
   const [recipientDni, setRecipientDni] = useState("");
   const [recipientDocumentType, setRecipientDocumentType] = useState<IdentityDocumentType>("dni_peru");
   const [recipientPhone, setRecipientPhone] = useState("+51 ");
+  const [recipientLookupQuery, setRecipientLookupQuery] = useState("");
+  const [recipientLookupOpen, setRecipientLookupOpen] = useState(false);
   const [notes, setNotes] = useState("");
   const [catalogDocuments, setCatalogDocuments] = useState<CatalogDocumentItem[]>([]);
   const [identityErrors, setIdentityErrors] = useState<Record<string, string>>({});
@@ -136,6 +138,32 @@ export default function AccountPage() {
   const { data: myShipments, refetch: refetchShipments } = trpc.account.myShipments.useQuery(undefined, {
     enabled: !!me && !me.reauthRequired,
   });
+  const recipientLookupResults = useMemo(() => {
+    const query = recipientLookupQuery.trim();
+    if (query.length < 2) return [] as Array<any & { relevance: number }>;
+    const uniqueRecipients = new Map<string, any & { relevance: number }>();
+    for (const shipment of myShipments || []) {
+      const candidate = shipment as any;
+      if (!candidate.recipientName && !candidate.recipientLastName && !candidate.recipientDni) continue;
+      const searchable = [candidate.recipientName, candidate.recipientLastName, candidate.recipientDni].filter(Boolean).join(" ");
+      const relevance = getFuzzySearchScore(query, searchable);
+      if (relevance <= 0) continue;
+      const key = [candidate.recipientDocumentType || "dni_peru", candidate.recipientDni || "", candidate.recipientName || "", candidate.recipientLastName || ""].join("|").toLowerCase();
+      const existing = uniqueRecipients.get(key);
+      if (!existing || relevance > existing.relevance) uniqueRecipients.set(key, { ...candidate, relevance });
+    }
+    return Array.from(uniqueRecipients.values()).sort((left, right) => right.relevance - left.relevance).slice(0, 6);
+  }, [myShipments, recipientLookupQuery]);
+  const applyRecipientLookup = (recipient: any) => {
+    setRecipientName(recipient.recipientName || "");
+    setRecipientLastName(recipient.recipientLastName || "");
+    setRecipientDni(recipient.recipientDni || "");
+    setRecipientDocumentType((recipient.recipientDocumentType || "dni_peru") as IdentityDocumentType);
+    setRecipientPhone(recipient.recipientPhone || "+51 ");
+    setRecipientLookupQuery("");
+    setRecipientLookupOpen(false);
+    setIdentityErrors(previous => ({ ...previous, recipientName: "", recipientLastName: "" }));
+  };
   const clientRevenue = useMemo(() => summarizeRevenue(myShipments), [myShipments]);
   const { data: myDeletedShipments, refetch: refetchDeletedShipments } = trpc.account.myDeletedShipments.useQuery(undefined, {
     enabled: !!me && !me.reauthRequired,
@@ -592,6 +620,30 @@ export default function AccountPage() {
                     description={docType === "simple" ? "Máximo 8 hojas por registro." : "Máximo 10 hojas por registro."}
                   />
                   <DocumentPricePreview docType={docType} sheetCount={sheetCount} />
+                  <div className="relative md:col-span-2">
+                    <Label htmlFor="account-recipient-search">Buscar destinatario guardado</Label>
+                    <Search className="pointer-events-none absolute left-3 top-9 h-4 w-4 text-slate-400" aria-hidden="true" />
+                    <Input
+                      id="account-recipient-search"
+                      aria-describedby="account-recipient-search-help"
+                      value={recipientLookupQuery}
+                      onFocus={() => setRecipientLookupOpen(true)}
+                      onChange={event => { setRecipientLookupQuery(event.target.value); setRecipientLookupOpen(true); }}
+                      placeholder="Escribe DNI, nombre o apellido de un destinatario anterior"
+                      className="mt-1 h-12 bg-white pl-9 text-base"
+                    />
+                    <p id="account-recipient-search-help" className="mt-1 text-xs text-slate-500">Busca entre los destinatarios de tus envíos anteriores. Se aceptan coincidencias parecidas, sin tildes y con pequeños errores.</p>
+                    {recipientLookupOpen && recipientLookupQuery.trim().length >= 2 && (
+                      <div className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white p-1 shadow-lg">
+                        {recipientLookupResults.length > 0 ? recipientLookupResults.map(recipient => (
+                          <button key={`${recipient.id}-${recipient.recipientDni || recipient.recipientName}`} type="button" onClick={() => applyRecipientLookup(recipient)} className="w-full rounded-md px-3 py-2 text-left hover:bg-blue-50 focus:bg-blue-50 focus:outline-none">
+                            <span className="block text-sm font-semibold text-[#0B2B5E]">Usar {[recipient.recipientName, recipient.recipientLastName].filter(Boolean).join(" ") || "Destinatario sin nombre"}</span>
+                            <span className="block text-xs text-slate-600">{recipient.recipientDni || "Sin documento"} · {recipient.recipientPhone || "Sin teléfono"}</span>
+                          </button>
+                        )) : <p className="px-3 py-3 text-sm text-slate-500">No encontramos destinatarios similares en tus envíos anteriores.</p>}
+                      </div>
+                    )}
+                  </div>
                   <div>
                     <Label>Destinatario - Nombres</Label>
                     <Input value={recipientName} onChange={e => updateTextValue("recipientName", e.target.value, setRecipientName, "El nombre")} placeholder="Ej: María" autoComplete="given-name" required className="mt-1 bg-white" />

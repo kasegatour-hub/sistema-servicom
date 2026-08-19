@@ -502,3 +502,8 @@
 - [x] Diseñar un formulario rápido con datos de invitante, invitado, estadía, relación, motivo y anexos
 - [x] Generar la carta en PDF con nombre del invitado y permitir su impresión independiente
 - [x] Añadir pruebas de permisos, contenido, descarga, compilación y publicación
+
+## Búsqueda de destinatarios para Cliente
+- [x] Añadir búsqueda de destinatarios guardados por DNI, nombre o apellido en el registro del Cliente
+- [x] Autocompletar identidad y teléfono al elegir una coincidencia, cerrando las sugerencias
+- [x] Añadir pruebas, verificación responsive, compilación y publicación

@@ -78,6 +78,20 @@ describe("AccountPage client labels", () => {
     expect(screen.getByLabelText("Acta de nacimiento")).toBeTruthy();
   });
 
+  it("finds a previous recipient by a fuzzy name and completes the recipient fields", async () => {
+    accountMocks.shipments = [{ id: 8, orderNumber: "3520992728", code: "DOC-LUC", recipientName: "Lucía", recipientLastName: "Sánchez", recipientDni: "71234567", recipientDocumentType: "dni_peru", recipientPhone: "+51 970188447", status: "En agencia", paymentStatus: "Falta cancelar", createdAt: new Date("2026-08-17T10:00:00.000Z") }];
+    render(<AccountPage />);
+    fireEvent.click(screen.getByRole("button", { name: /Registrar Nuevo Documento/ }));
+    const search = await screen.findByLabelText("Buscar destinatario guardado");
+    fireEvent.change(search, { target: { value: "sanches" } });
+    const option = await screen.findByRole("button", { name: /Usar Lucía Sánchez/ });
+    fireEvent.click(option);
+
+    expect((screen.getByPlaceholderText("Ej: María") as HTMLInputElement).value).toBe("Lucía");
+    expect((screen.getByPlaceholderText("Ej: López") as HTMLInputElement).value).toBe("Sánchez");
+    expect(screen.queryByRole("button", { name: /Usar Lucía Sánchez/ })).toBeNull();
+  });
+
   it("shows six records per page and keeps the deleted list closed until requested", () => {
     accountMocks.shipments = Array.from({ length: 7 }, (_, index) => ({
       id: index + 1,
