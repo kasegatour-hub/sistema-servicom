@@ -579,3 +579,9 @@
 - [x] Convertir la calculadora científica en una herramienta flotante persistente para Registrador y Master Admin
 - [x] Analizar los PDF aportados sobre usabilidad y factores humanos, y aplicar sus principios al rediseño operativo
 - [x] Añadir pruebas, verificación responsive, compilación y publicación
+
+## Coherencia entre descarga e impresión de comprobantes
+- [x] Comparar los PDF adjuntos para identificar las diferencias de contenido y diseño
+- [x] Mostrar Descargar PDF e Imprimir como acciones independientes y contiguas en la vista de comprobante
+- [x] Unificar el generador descargable y la maqueta de impresión para documento y encomienda
+- [x] Añadir pruebas, verificar PDFs generados, compilar y publicar

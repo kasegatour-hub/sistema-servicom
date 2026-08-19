@@ -48,6 +48,10 @@ const mocks = vi.hoisted(() => ({
 const receiptMocks = vi.hoisted(() => ({
   download: vi.fn().mockResolvedValue("recibo-documento-giselle-garcia-orden-6352627659.pdf"),
 }));
+const adminReceiptDocumentMocks = vi.hoisted(() => ({
+  download: vi.fn().mockResolvedValue("recibo-documento-giselle-garcia-orden-6352627659.pdf"),
+  build: vi.fn().mockResolvedValue({ filename: "recibo-documento-giselle-garcia-orden-6352627659", html: "<!doctype html><html><body>recibo</body></html>" }),
+}));
 
 vi.mock("@/lib/trpc", () => ({
   trpc: {
@@ -99,6 +103,11 @@ vi.mock("@/lib/userReceipt", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/userReceipt")>();
   return { ...actual, downloadShipmentReceipt: receiptMocks.download };
 });
+
+vi.mock("@/lib/adminReceiptDocument", () => ({
+  downloadAdminReceiptPdf: adminReceiptDocumentMocks.download,
+  buildAdminReceiptDocument: adminReceiptDocumentMocks.build,
+}));
 
 import AdminDashboard from "./AdminDashboard";
 
@@ -249,11 +258,12 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
     fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
     await waitFor(() => expect(screen.getByRole("button", { name: "Imprimir" })).toBeTruthy());
+    expect(screen.getByRole("button", { name: "Descargar PDF" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Imprimir" }));
     expect(await screen.findByText("Vista Previa de Recibo")).toBeTruthy();
     expect(screen.getByRole("combobox", { name: "Formato de descarga administrativa" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Descargar PDF" }));
-    await waitFor(() => expect(receiptMocks.download).toHaveBeenCalledWith(shipment, "pdf"));
+    fireEvent.click(screen.getAllByRole("button", { name: "Descargar PDF" }).at(-1)!);
+    await waitFor(() => expect(adminReceiptDocumentMocks.download).toHaveBeenCalledWith(expect.objectContaining({ shipment, origin: window.location.origin })));
     expect(screen.queryByText("Vista Previa de Recibo")).toBeNull();
   });
 

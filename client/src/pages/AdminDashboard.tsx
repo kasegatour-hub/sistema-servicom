@@ -32,6 +32,7 @@ import { closeUpdateModal } from "@/lib/updateModal";
 import { UpdateShipmentModal } from "@/components/UpdateShipmentModal";
 import { evaluateScientificExpression } from "@/lib/scientificCalculator";
 import { buildElectronicSignatureHtml, buildReceiptDownloadFilename, downloadShipmentReceipt, type ReceiptDownloadFormat } from "@/lib/userReceipt";
+import { buildAdminReceiptDocument, downloadAdminReceiptPdf } from "@/lib/adminReceiptDocument";
 import { summarizeRevenue } from "@shared/revenueSummary";
 import { DocumentPricePreview } from "@/components/DocumentPricePreview";
 import { GeneralFeedbackDialog } from "@/components/GeneralFeedbackDialog";
@@ -833,7 +834,7 @@ export default function AdminDashboard() {
     }, 100);
   };
 
-  const printReceipt = async () => {
+  const printReceiptLegacy = async () => {
     if (!printShipment) return;
     let latestSignature = printShipment.signature;
     try {
@@ -1090,16 +1091,66 @@ export default function AdminDashboard() {
     }
   };
 
+  const printReceipt = async () => {
+    if (!printShipment) return;
+    try {
+      let shipmentForReceipt = printShipment;
+      try {
+        shipmentForReceipt = await utils.shipment.search.fetch({ orderNumber: String(printShipment.orderNumber), code: String(printShipment.code) }) || printShipment;
+      } catch {
+        // Se conserva la información visible si una actualización puntual no está disponible.
+      }
+      const receiptDocument = await buildAdminReceiptDocument({ shipment: shipmentForReceipt, signature: shipmentForReceipt.signature || printShipment.signature, limaTorinoEncomiendasEnabled, origin: window.location.origin });
+      const receiptUrl = new URL('/recibo', window.location.origin);
+      receiptUrl.searchParams.set('order', String(shipmentForReceipt.orderNumber));
+      receiptUrl.searchParams.set('code', String(shipmentForReceipt.code));
+      const printWindow = window.open(receiptUrl.href, '_blank', 'width=900,height=900');
+      if (!printWindow) { toast.error('Permite las ventanas emergentes para imprimir el comprobante.'); return; }
+      printWindow.document.open();
+      printWindow.document.write(receiptDocument.html);
+      printWindow.document.close();
+      printWindow.document.title = receiptDocument.filename;
+      await Promise.all(Array.from(printWindow.document.images).map((image) => image.complete ? Promise.resolve() : new Promise<void>((resolve) => { image.addEventListener('load', () => resolve(), { once: true }); image.addEventListener('error', () => resolve(), { once: true }); })));
+      setPrintShipment(null);
+      const closePrintWindow = () => { if (!printWindow.closed) printWindow.close(); };
+      printWindow.onafterprint = closePrintWindow;
+      printWindow.focus();
+      printWindow.print();
+      window.setTimeout(closePrintWindow, 1200);
+    } catch (error) {
+      console.error('No se pudo preparar el comprobante administrativo', error);
+      toast.error('No se pudo preparar el comprobante. Inténtalo nuevamente.');
+    }
+  };
+
   const downloadReceiptFromPreview = async () => {
     if (!printShipment) return;
     const shipmentToDownload = printShipment;
     setPrintShipment(null);
     try {
-      const filename = await downloadShipmentReceipt(shipmentToDownload, receiptDownloadFormat);
+      const filename = receiptDownloadFormat === "pdf"
+        ? await downloadAdminReceiptPdf({ shipment: shipmentToDownload, signature: shipmentToDownload.signature, limaTorinoEncomiendasEnabled, origin: window.location.origin })
+        : await downloadShipmentReceipt(shipmentToDownload, receiptDownloadFormat);
       toast.success(`Archivo descargado: ${filename}`);
     } catch (error) {
       console.error("No se pudo descargar el comprobante administrativo", error);
       toast.error("No se pudo generar el archivo. Inténtalo nuevamente.");
+    }
+  };
+
+  const downloadAdministrativePdf = async (shipment: any) => {
+    try {
+      let shipmentToDownload = shipment;
+      try {
+        shipmentToDownload = await utils.shipment.search.fetch({ orderNumber: String(shipment.orderNumber), code: String(shipment.code) }) || shipment;
+      } catch {
+        // La descarga puede continuar con los datos que ya se muestran en la lista.
+      }
+      const filename = await downloadAdminReceiptPdf({ shipment: shipmentToDownload, signature: shipmentToDownload.signature || shipment.signature, limaTorinoEncomiendasEnabled, origin: window.location.origin });
+      toast.success(`PDF descargado: ${filename}`);
+    } catch (error) {
+      console.error("No se pudo descargar el comprobante administrativo", error);
+      toast.error("No se pudo generar el PDF. Inténtalo nuevamente.");
     }
   };
 
@@ -2064,6 +2115,15 @@ export default function AdminDashboard() {
                           >
                             <Printer className="w-4 h-4 mr-1" />
                             Imprimir
+                          </Button>
+                          <Button
+                            onClick={() => void downloadAdministrativePdf(shipment)}
+                            size="sm"
+                            variant="outline"
+                            className="text-[#0B2B5E] border-[#0B2B5E] hover:bg-blue-50"
+                          >
+                            <Download className="w-4 h-4 mr-1" />
+                            Descargar PDF
                           </Button>
                           <Button
                             onClick={() => handleDeleteShipment(shipment.id)}
