@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { AlertCircle, ArrowLeft, CheckCircle2, PenLine, Printer } from "lucide-react";
+import { AlertCircle, ArrowLeft, CheckCircle2, Download, PenLine, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { trpc } from "@/lib/trpc";
-import { buildReceiptDownloadFilename, printUserShipmentReceipt } from "@/lib/userReceipt";
+import { buildReceiptDownloadFilename, downloadUserShipmentReceiptPdf, printUserShipmentReceipt } from "@/lib/userReceipt";
 import { getPaymentStatusUi } from "@/lib/paymentStatus";
 import { getReceiptPricePresentation } from "@/lib/receiptPrice";
 import { formatPhoneNumber } from "@/lib/phoneFormatting";
@@ -30,6 +30,8 @@ export default function ReceiptPage() {
   const [signatureToken, setSignatureToken] = useState("");
   const [signatureExpiresAt, setSignatureExpiresAt] = useState<string | Date | undefined>();
   const [signatureError, setSignatureError] = useState("");
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState("");
   const paymentUi = shipment ? getPaymentStatusUi(shipment.paymentStatus) : getPaymentStatusUi(undefined);
   const priceUi = shipment ? getReceiptPricePresentation(shipment) : null;
   const routePresentation = getRoutePresentation(shipment?.route);
@@ -74,7 +76,21 @@ export default function ReceiptPage() {
   const handlePrintReceipt = async () => {
     if (!shipment) return;
     const refreshed = await refetchShipment();
-    await printUserShipmentReceipt(refreshed.data || shipment);
+    await printUserShipmentReceipt(refreshed?.data || shipment);
+  };
+  const handleDownloadReceipt = async () => {
+    if (!shipment) return;
+    setDownloadError("");
+    setIsDownloading(true);
+    try {
+      const refreshed = await refetchShipment();
+      await downloadUserShipmentReceiptPdf(refreshed?.data || shipment);
+    } catch (downloadReceiptError) {
+      console.error("No se pudo descargar el comprobante", downloadReceiptError);
+      setDownloadError("No se pudo generar el PDF. Inténtalo nuevamente.");
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   return (
@@ -152,13 +168,19 @@ export default function ReceiptPage() {
 
               <div className="flex flex-col gap-3 rounded-lg border border-[#0B2B5E]/15 bg-[#0B2B5E]/5 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="font-semibold">Recibo listo para imprimir</p>
-                  <p className="text-sm text-slate-600">Incluye el código QR, la declaración jurada y el ticket recortable de la sede de entrega.</p>
+                  <p className="font-semibold">Recibo listo para descargar o imprimir</p>
+                  <p className="text-sm text-slate-600">La descarga crea un PDF con el nombre del destinatario. La impresión conserva la vista completa del comprobante.</p>
                 </div>
-                <Button type="button" onClick={handlePrintReceipt} className="bg-[#0B2B5E] text-white hover:bg-[#123d78]">
-                  <Printer className="mr-2 h-4 w-4" aria-hidden="true" /> Imprimir recibo
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" onClick={handleDownloadReceipt} disabled={isDownloading} className="bg-[#0B2B5E] text-white hover:bg-[#123d78]">
+                    <Download className="mr-2 h-4 w-4" aria-hidden="true" /> {isDownloading ? "Generando PDF…" : "Descargar PDF"}
+                  </Button>
+                  <Button type="button" variant="outline" onClick={handlePrintReceipt}>
+                    <Printer className="mr-2 h-4 w-4" aria-hidden="true" /> Imprimir recibo
+                  </Button>
+                </div>
               </div>
+              {downloadError && <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">{downloadError}</p>}
             </div>
           )}
         </Card>

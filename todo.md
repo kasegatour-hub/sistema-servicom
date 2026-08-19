@@ -470,3 +470,8 @@
 - [x] Corregir el nombre de descarga para incluir de forma fiable al destinatario
 - [x] Convertir el buscador administrativo en un control largo de ancho completo con guía compacta
 - [x] Añadir pruebas, verificación responsive, compilación y publicación
+
+## Descarga controlada de comprobantes PDF
+- [x] Generar un PDF descargable con el nombre del destinatario sin depender del diálogo de impresión del navegador
+- [x] Mantener la impresión del comprobante como acción separada
+- [x] Añadir pruebas, validación y publicación de la descarga

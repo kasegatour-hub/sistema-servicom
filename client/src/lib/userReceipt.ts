@@ -105,6 +105,142 @@ export function buildReceiptTicketHtml(data: {
   return `<div class="ticket"><div class="ticket-title">CONTROL DE ENTREGA — ${route.deliveryTitle} (${shipmentLabel})</div><div class="ticket-grid"><div><strong>INFORMACIÓN DE ENVÍO DE ${shipmentLabel}</strong><br><strong>ORDEN:</strong> ${data.order}<br><strong>CÓDIGO:</strong> ${data.code}<br><strong>RUTA:</strong> ${route.route}<br><strong>ORIGEN:</strong> ${route.originPrintLabel}<br><strong>DESTINO:</strong> ${route.destinationPrintLabel}<br><strong>SEDE DE ENTREGA:</strong> ${route.destination.officeLabel}<br><strong>DIRECCIÓN:</strong> ${route.destination.address}<br><strong>REMITENTE:</strong> ${data.sender || "No especificado"}<br><strong>CELULAR REMITENTE:</strong> ${data.senderPhone || "No especificado"}<br><strong>DNI REMITENTE:</strong> ${data.senderDni || "No especificado"}<br><strong>DESTINATARIO:</strong> ${data.recipient}<br><strong>CELULAR DESTINATARIA:</strong> ${data.recipientPhone}<br><strong>DNI DESTINATARIO:</strong> ${data.recipientDni || "No especificado"}<br><strong>NOTAS:</strong> ${escapeHtml(data.notes || "Sin notas")}${checklistHtml}${priceHtml}</div><div class="ticket-code">${data.code}</div></div></div>`;
 }
 
+export async function downloadUserShipmentReceiptPdf(shipment: any): Promise<string> {
+  if (!shipment?.orderNumber || !shipment?.code) throw new Error("Faltan la orden o el código del envío.");
+  const { jsPDF } = await import("jspdf");
+  const rawRecipient = fullName(shipment.recipientName, shipment.recipientLastName);
+  const filename = `${buildReceiptDownloadFilename({
+    recipientName: shipment.recipientName,
+    recipientLastName: shipment.recipientLastName,
+    recipientDisplayName: rawRecipient,
+    orderNumber: shipment.orderNumber,
+    shipmentType: shipment.shipmentType,
+  })}.pdf`;
+  const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
+  const route = getRoutePresentation(shipment.route);
+  const sender = fullName(shipment.senderName, shipment.senderLastName);
+  const payment = getPaymentStatusPresentation(shipment.paymentStatus);
+  const rawPrice = Number(shipment.finalPriceEur ?? shipment.basePriceEur ?? 0);
+  const price = Number.isFinite(rawPrice) ? `${rawPrice.toFixed(2)} EUR` : "No especificado";
+  const qrDataUrl = await QRCode.toDataURL(buildTrackingUrl(String(shipment.orderNumber), String(shipment.code)), {
+    ...TRACKING_QR_OPTIONS,
+    width: 180,
+    margin: 1,
+    color: { dark: "#0B2B5E", light: "#ffffff" },
+  });
+  const left = 18;
+  const contentWidth = 174;
+  let y = 20;
+  const ensureSpace = (height: number) => {
+    if (y + height < 275) return;
+    pdf.addPage();
+    y = 20;
+  };
+  const section = (title: string) => {
+    ensureSpace(12);
+    pdf.setDrawColor(242, 140, 0);
+    pdf.setLineWidth(1.2);
+    pdf.line(left, y - 4, left, y + 2);
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(11, 43, 94);
+    pdf.setFontSize(11);
+    pdf.text(title.toUpperCase(), left + 4, y);
+    y += 7;
+  };
+  const row = (label: string, value: string) => {
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(8.5);
+    pdf.setTextColor(43, 57, 78);
+    pdf.text(`${label}:`, left, y);
+    const offset = Math.min(55, pdf.getTextWidth(`${label}:`) + 4);
+    pdf.setFont("helvetica", "normal");
+    pdf.setTextColor(15, 23, 42);
+    const lines = pdf.splitTextToSize(value || "No especificado", contentWidth - offset);
+    pdf.text(lines, left + offset, y);
+    y += Math.max(5.5, lines.length * 4.2 + 1);
+  };
+
+  pdf.setFillColor(11, 43, 94);
+  pdf.rect(0, 0, 210, 26, "F");
+  pdf.setTextColor(255, 255, 255);
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(18);
+  pdf.text("SERVICOM INTERNACIONAL", left, 13);
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(8.5);
+  pdf.text("RUC 20615004708 · Recibo de envío", left, 20);
+  pdf.setTextColor(11, 43, 94);
+  y = 38;
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(15);
+  pdf.text(`INFORMACIÓN DE ENVÍO DE ${shipment.shipmentType === "encomienda" ? "ENCOMIENDA" : "DOCUMENTO"}`, left, y);
+  y += 10;
+  section("Ruta y sedes");
+  row("Ruta", route.route);
+  row("Origen", `${route.originPrintLabel} · ${route.origin.officeLabel}`);
+  row("Destino", `${route.destinationPrintLabel} · ${route.destination.officeLabel}`);
+  row("Dirección de entrega", route.destination.address);
+  row("Contacto de sede", route.destination.phone);
+  section("Datos del remitente");
+  row("Remitente", sender);
+  row("Documento", String(shipment.senderDni || "No especificado"));
+  row("Celular", formatPhoneNumber(shipment.senderPhone) || "No especificado");
+  section("Datos del destinatario");
+  row("Destinatario", rawRecipient);
+  row("Documento", String(shipment.recipientDni || "No especificado"));
+  row("Celular", formatPhoneNumber(shipment.recipientPhone) || "No especificado");
+  section("Estado y comprobante");
+  row("Orden", String(shipment.orderNumber));
+  row("Código", String(shipment.code));
+  row("Estado del envío", String(shipment.status || "No especificado"));
+  row("Estado de pago", payment.label);
+  row("Precio final", price);
+  row("Notas", String(shipment.notes || "Sin notas"));
+  ensureSpace(42);
+  pdf.addImage(qrDataUrl, "PNG", left, y, 34, 34);
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(9);
+  pdf.setTextColor(11, 43, 94);
+  pdf.text("Escanea para rastrear el envío", left + 42, y + 12);
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(8);
+  pdf.text(`Orden ${shipment.orderNumber} · Código ${shipment.code}`, left + 42, y + 19);
+
+  pdf.addPage();
+  y = 22;
+  pdf.setTextColor(11, 43, 94);
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(15);
+  pdf.text("DECLARACIÓN JURADA DE CONTENIDO", 105, y, { align: "center" });
+  pdf.setFontSize(11);
+  pdf.text("Y EXENCIÓN DE RESPONSABILIDAD LEGAL", 105, y + 7, { align: "center" });
+  y += 19;
+  const declaration = getDeclarationLegalText(shipment.route);
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(9.5);
+  const declarationParts = [
+    `Yo, ${sender}, identificado(a) con documento N° ${shipment.senderDni || "No especificado"}, declaro bajo juramento que el envío amparado bajo la Orden N° ${shipment.orderNumber} (Código: ${shipment.code}) contiene única y estrictamente documentación lícita.`,
+    declaration.guarantee,
+    declaration.authorities,
+    `Eximo expresa y legalmente de responsabilidad operativa o financiera a ${INSTITUTIONAL_DECLARATION_ENTITY}. Autorizo la revisión física y el escaneo del envío por la agencia o las autoridades competentes.`,
+    `${declaration.originLine} ${new Date().toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" })}.`,
+  ];
+  declarationParts.forEach((paragraph) => {
+    const lines = pdf.splitTextToSize(paragraph, contentWidth);
+    pdf.text(lines, left, y);
+    y += lines.length * 4.6 + 7;
+  });
+  y += 15;
+  pdf.setDrawColor(11, 43, 94);
+  pdf.line(left, y, left + 75, y);
+  pdf.line(left + 100, y, left + 174, y);
+  pdf.setFontSize(8);
+  pdf.text("Firma del remitente", left + 37.5, y + 5, { align: "center" });
+  pdf.text("Firma y sello de agencia", left + 137, y + 5, { align: "center" });
+  pdf.save(filename);
+  return filename;
+}
+
 const absoluteAssetUrl = (path: string) => resolveReceiptAssetUrl(path, window.location.origin);
 
 async function loadLogoSource(): Promise<string> {
