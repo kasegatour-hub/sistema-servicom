@@ -116,10 +116,15 @@ export const invitationLetters = mysqlTable("invitation_letters", {
   inviteeLastName: varchar("inviteeLastName", { length: 255 }).notNull(),
   letterData: longtext("letterData").notNull(),
   italianData: longtext("italianData").notNull(),
+  deletedAt: timestamp("deletedAt"),
+  deletedByAdminId: int("deletedByAdminId"),
+  deletedByAdminLabel: varchar("deletedByAdminLabel", { length: 255 }),
+  deleteReason: text("deleteReason"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, table => ({
   creatorIdx: index("invitation_letters_creator_created_idx").on(table.createdByAdminId, table.createdAt),
   createdIdx: index("invitation_letters_created_idx").on(table.createdAt),
+  deletedIdx: index("invitation_letters_deleted_idx").on(table.deletedAt),
 }));
 export type InvitationLetter = typeof invitationLetters.$inferSelect;
 export type InsertInvitationLetter = typeof invitationLetters.$inferInsert;

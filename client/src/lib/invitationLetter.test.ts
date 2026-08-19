@@ -19,13 +19,13 @@ describe("carta de invitación", () => {
     expect(letter).toContain("Angela");
     expect(letter).toContain("María");
     expect(letter).toContain("Rossi");
-    expect(letter).toContain("01/09/26");
+    expect(letter).toContain("01/09/2026");
     expect(letter).toContain("dichiaro di farmi carico delle sue spese di sostentamento");
     expect(letter).toContain("Firma/ Signature");
     expect(html).toContain("DICHIARAZIONE GARANZIA E/O");
     expect(html).toContain("PROOF OF SPONSORSHIP AND/OR");
-    expect(html).toContain("/manus-storage/flag-000_05ad78ee.png");
-    expect(html).toContain("object-fit: contain");
+    expect(html).toContain('viewBox="0 0 3 2"');
+    expect(html).toContain("#009246");
     expect(letter).toContain("presso la mia abitazione");
     expect(letter).not.toContain("Servicom Internacional");
   });

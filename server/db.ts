@@ -364,10 +364,37 @@ export async function createInvitationLetterRecord(input: {
 export async function listInvitationLetterRecords(actor: { adminId: number; canReviewAll: boolean }) {
   const db = await getDb();
   if (!db) return [];
-  const condition = actor.canReviewAll ? undefined : eq(invitationLetters.createdByAdminId, actor.adminId);
+  const condition = actor.canReviewAll ? isNull(invitationLetters.deletedAt) : and(eq(invitationLetters.createdByAdminId, actor.adminId), isNull(invitationLetters.deletedAt));
   return condition
     ? db.select().from(invitationLetters).where(condition).orderBy(desc(invitationLetters.createdAt))
     : db.select().from(invitationLetters).orderBy(desc(invitationLetters.createdAt));
+}
+
+export async function listDeletedInvitationLetterRecords(actor: { adminId: number; canReviewAll: boolean }) {
+  const db = await getDb();
+  if (!db) return [];
+  const condition = actor.canReviewAll ? isNotNull(invitationLetters.deletedAt) : and(eq(invitationLetters.createdByAdminId, actor.adminId), isNotNull(invitationLetters.deletedAt));
+  return db.select().from(invitationLetters).where(condition).orderBy(desc(invitationLetters.deletedAt));
+}
+
+export async function moveInvitationLetterToTrash(id: number, actor: { adminId: number; label: string; canReviewAll: boolean }, reason?: string) {
+  const db = await getDb();
+  if (!db) return false;
+  const condition = actor.canReviewAll ? and(eq(invitationLetters.id, id), isNull(invitationLetters.deletedAt)) : and(eq(invitationLetters.id, id), eq(invitationLetters.createdByAdminId, actor.adminId), isNull(invitationLetters.deletedAt));
+  const record = await db.select({ id: invitationLetters.id }).from(invitationLetters).where(condition).limit(1);
+  if (!record[0]) return false;
+  await db.update(invitationLetters).set({ deletedAt: new Date(), deletedByAdminId: actor.adminId, deletedByAdminLabel: actor.label, deleteReason: reason?.trim() || null }).where(eq(invitationLetters.id, id));
+  return true;
+}
+
+export async function restoreInvitationLetterFromTrash(id: number, actor: { adminId: number; canReviewAll: boolean }) {
+  const db = await getDb();
+  if (!db) return false;
+  const condition = actor.canReviewAll ? and(eq(invitationLetters.id, id), isNotNull(invitationLetters.deletedAt)) : and(eq(invitationLetters.id, id), eq(invitationLetters.createdByAdminId, actor.adminId), isNotNull(invitationLetters.deletedAt));
+  const record = await db.select({ id: invitationLetters.id }).from(invitationLetters).where(condition).limit(1);
+  if (!record[0]) return false;
+  await db.update(invitationLetters).set({ deletedAt: null, deletedByAdminId: null, deletedByAdminLabel: null, deleteReason: null }).where(eq(invitationLetters.id, id));
+  return true;
 }
 
 const invitationSeedFromDirectory = (client: typeof clients.$inferSelect): InvitationPersonSeed => ({

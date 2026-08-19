@@ -1,0 +1,1 @@
+ALTER TABLE `invitation_letters` ADD `deletedByAdminLabel` varchar(255);

@@ -7,7 +7,7 @@ function buildTrackingPath(orderNumber: string, code: string): string {
   return `/?order=${encodeURIComponent(order)}&code=${encodeURIComponent(normalizedCode)}`;
 }
 import { publicProcedure, router } from "./_core/trpc";
-import { attachShipmentAuditActorLabels, createDiscountCoupon, createInvitationLetterRecord, createShipment, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAllShipments, getDeletedShipments, getDiscountCouponByCode, getShipmentAuditLogs, getShipmentById, getShipmentRoutePolicy, incrementDiscountCouponRedemption, isEncomiendaEnabledForRoute, listDiscountCoupons, listInvitationLetterRecords, recordInteractionEvent, recordShipmentAudit, restoreShipment, searchClients, searchInvitationLetterPeople, setEncomiendaAvailabilityForRoute, setShipmentRegistradorVisibility, updateDiscountCoupon, updateShipmentStatus } from "./db";
+import { attachShipmentAuditActorLabels, createDiscountCoupon, createInvitationLetterRecord, createShipment, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAllShipments, getDeletedShipments, getDiscountCouponByCode, getShipmentAuditLogs, getShipmentById, getShipmentRoutePolicy, incrementDiscountCouponRedemption, isEncomiendaEnabledForRoute, listDeletedInvitationLetterRecords, listDiscountCoupons, listInvitationLetterRecords, moveInvitationLetterToTrash, recordInteractionEvent, recordShipmentAudit, restoreInvitationLetterFromTrash, restoreShipment, searchClients, searchInvitationLetterPeople, setEncomiendaAvailabilityForRoute, setShipmentRegistradorVisibility, updateDiscountCoupon, updateShipmentStatus } from "./db";
 import { generateVerificationCode, hashPassword, hashVerificationCode, normalizeEmail, sendVerificationEmail, verificationExpiry, verifyPassword } from "./localAuth";
 import { AdminSessionPayload, clearAdminSession, getAdminSession, setAdminSession } from "./adminSession";
 import { admins } from "../drizzle/schema";
@@ -66,6 +66,8 @@ const invitationLetterDataSchema = z.object({
   accommodationAtOtherAddress: z.boolean(),
   inviteeIdAttached: z.boolean(),
   financialGuaranteeAttached: z.boolean(),
+  otherAnnexes: z.string().trim().max(1000),
+  companyAnnexes: z.string().trim().max(1500),
 });
 
 const ITALIAN_OCCUPATIONS = ["BADANTE", "MUSICISTA", "COLF", "INFERMIERE", "INFERMIERA", "CAMERIERE", "CAMERIERA", "AUTISTA"];
@@ -464,6 +466,29 @@ export const adminRouter = router({
 
   listInvitationLetters: adminProcedure
     .query(async ({ ctx }) => listInvitationLetterRecords({ adminId: ctx.adminSession.adminId, canReviewAll: ctx.adminSession.role === "superadmin" })),
+
+  listDeletedInvitationLetters: adminProcedure
+    .query(async ({ ctx }) => listDeletedInvitationLetterRecords({ adminId: ctx.adminSession.adminId, canReviewAll: ctx.adminSession.role === "superadmin" })),
+
+  deleteInvitationLetter: adminProcedure
+    .input(z.object({ id: z.number().int().positive(), reason: z.string().trim().max(500).optional() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No se pudo acceder a la base de datos." });
+      const [actor] = await db.select({ name: admins.name, email: admins.email }).from(admins).where(eq(admins.id, ctx.adminSession.adminId)).limit(1);
+      const actorLabel = actor?.name?.trim() || actor?.email || `Administrador #${ctx.adminSession.adminId}`;
+      const deleted = await moveInvitationLetterToTrash(input.id, { adminId: ctx.adminSession.adminId, label: actorLabel, canReviewAll: ctx.adminSession.role === "superadmin" }, input.reason);
+      if (!deleted) throw new TRPCError({ code: "NOT_FOUND", message: "La carta no existe, ya fue enviada a papelera o no tienes permiso para modificarla." });
+      return { success: true };
+    }),
+
+  restoreInvitationLetter: adminProcedure
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      const restored = await restoreInvitationLetterFromTrash(input.id, { adminId: ctx.adminSession.adminId, canReviewAll: ctx.adminSession.role === "superadmin" });
+      if (!restored) throw new TRPCError({ code: "NOT_FOUND", message: "La carta no existe, no está en papelera o no tienes permiso para restaurarla." });
+      return { success: true };
+    }),
 
   searchInvitationPeople: adminProcedure
     .input(z.object({ query: z.string().trim().min(2).max(120) }))

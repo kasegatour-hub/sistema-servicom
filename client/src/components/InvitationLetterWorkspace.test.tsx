@@ -6,7 +6,10 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 const translationMutation = vi.hoisted(() => ({ isPending: false, mutate: vi.fn(), onSuccess: undefined as undefined | ((value: any) => void) }));
 const saveMutation = vi.hoisted(() => ({ isPending: false, mutate: vi.fn(), onSuccess: undefined as undefined | ((value: any, variables: any) => void) }));
 const lettersQuery = vi.hoisted(() => ({ data: [] as any[], isLoading: false, refetch: vi.fn() }));
+const deletedLettersQuery = vi.hoisted(() => ({ data: [] as any[], isLoading: false, refetch: vi.fn() }));
 const peopleSearchQuery = vi.hoisted(() => ({ data: [] as any[], isFetching: false }));
+const deleteMutation = vi.hoisted(() => ({ isPending: false, mutate: vi.fn(), onSuccess: undefined as undefined | ((value: any) => void) }));
+const restoreMutation = vi.hoisted(() => ({ isPending: false, mutate: vi.fn(), onSuccess: undefined as undefined | ((value: any) => void) }));
 
 vi.mock("@/lib/trpc", () => ({
   trpc: {
@@ -14,6 +17,9 @@ vi.mock("@/lib/trpc", () => ({
       translateInvitationLetter: { useMutation: (options?: { onSuccess?: (value: any) => void }) => { translationMutation.onSuccess = options?.onSuccess; return translationMutation; } },
       saveInvitationLetter: { useMutation: (options?: { onSuccess?: (value: any, variables: any) => void }) => { saveMutation.onSuccess = options?.onSuccess; return saveMutation; } },
       listInvitationLetters: { useQuery: () => lettersQuery },
+      listDeletedInvitationLetters: { useQuery: () => deletedLettersQuery },
+      deleteInvitationLetter: { useMutation: (options?: { onSuccess?: (value: any) => void }) => { deleteMutation.onSuccess = options?.onSuccess; return deleteMutation; } },
+      restoreInvitationLetter: { useMutation: (options?: { onSuccess?: (value: any) => void }) => { restoreMutation.onSuccess = options?.onSuccess; return restoreMutation; } },
       searchInvitationPeople: { useQuery: () => peopleSearchQuery },
     },
   },
@@ -22,7 +28,7 @@ vi.mock("@/lib/trpc", () => ({
 import { InvitationLetterWorkspace } from "./InvitationLetterWorkspace";
 
 afterEach(() => cleanup());
-beforeEach(() => { vi.clearAllMocks(); translationMutation.onSuccess = undefined; saveMutation.onSuccess = undefined; lettersQuery.data = []; peopleSearchQuery.data = []; });
+beforeEach(() => { vi.clearAllMocks(); translationMutation.onSuccess = undefined; saveMutation.onSuccess = undefined; deleteMutation.onSuccess = undefined; restoreMutation.onSuccess = undefined; lettersQuery.data = []; deletedLettersQuery.data = []; peopleSearchQuery.data = []; });
 
 describe("InvitationLetterWorkspace", () => {
   it("normalizes searchable places and nationalities to uppercase and requires saving before export", () => {
@@ -37,7 +43,8 @@ describe("InvitationLetterWorkspace", () => {
     expect(nationality.value).toBe("PERUANA");
     expect(screen.getByText("PERUANA")).toBeTruthy();
     expect(screen.queryByText("Dirección de hospedaje")).toBeNull();
-    expect(screen.queryByText("Otros anexos")).toBeNull();
+    expect(screen.getByLabelText(/Otros documentos \/ Altri documenti/)).toBeTruthy();
+    expect(screen.getByLabelText(/Anexos de sociedades o entidades/)).toBeTruthy();
     expect((screen.getByRole("button", { name: /Descargar carta PDF/ }) as HTMLButtonElement).disabled).toBe(true);
     expect((screen.getByRole("button", { name: /Imprimir carta/ }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getAllByText(/Correo \/ E-mail/).length).toBeGreaterThan(0);
@@ -79,6 +86,25 @@ describe("InvitationLetterWorkspace", () => {
     expect(screen.getByText(/INVITADO1/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Abrir" }));
     expect((document.getElementById("invitante-firstName") as HTMLInputElement).value).toBe("ANA");
+  });
+
+  it("sends a letter to the reversible trash and restores it from the trash panel", () => {
+    const record = { id: 23, inviterName: "ANA", inviterLastName: "ROSSI", inviteeName: "MARIA", inviteeLastName: "BIANCHI", createdAt: new Date(2026, 7, 19), letterData: "{}", italianData: "{}" };
+    lettersQuery.data = [record];
+    deletedLettersQuery.data = [{ ...record, deletedAt: new Date(2026, 7, 20), deletedByAdminId: 4, deletedByAdminLabel: "OPERADOR TORINO" }];
+    render(<InvitationLetterWorkspace />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Enviar a papelera la carta de MARIA BIANCHI/ }));
+    expect(deleteMutation.mutate).toHaveBeenCalledWith({ id: 23 });
+    deleteMutation.onSuccess?.({ success: true });
+    expect(lettersQuery.refetch).toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: /Ver papelera/ }));
+    expect(screen.getByText("OPERADOR TORINO")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Restaurar/ }));
+    expect(restoreMutation.mutate).toHaveBeenCalledWith({ id: 23 });
+    restoreMutation.onSuccess?.({ success: true });
+    expect(deletedLettersQuery.refetch).toHaveBeenCalled();
   });
 
   it("completes inviter and invitee from fuzzy results without requiring a shipment selector", () => {

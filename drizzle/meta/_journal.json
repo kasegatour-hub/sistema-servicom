@@ -162,6 +162,20 @@
       "when": 1787163906778,
       "tag": "0022_real_titania",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "5",
+      "when": 1787168206991,
+      "tag": "0023_solid_liz_osborn",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "5",
+      "when": 1787168491138,
+      "tag": "0024_perfect_captain_stacy",
+      "breakpoints": true
     }
   ]
 }

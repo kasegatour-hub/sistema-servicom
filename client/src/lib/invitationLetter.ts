@@ -30,6 +30,8 @@ export type InvitationLetterData = {
   accommodationAtOtherAddress: boolean;
   inviteeIdAttached: boolean;
   financialGuaranteeAttached: boolean;
+  otherAnnexes: string;
+  companyAnnexes: string;
 };
 
 export type InvitationLetterItalian = {
@@ -40,14 +42,14 @@ export type InvitationLetterItalian = {
   city: string;
 };
 
-const ITALIAN_FLAG_URL = "/manus-storage/flag-000_05ad78ee.png";
 const safeName = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-+|-+$/g, "").toLowerCase() || "invitato";
 const escapeHtml = (value?: string) => String(value || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const display = (value?: string) => escapeHtml(value?.trim() || "");
+const displayMultiline = (value?: string) => display(value).replace(/\n/g, "<br/>");
 const check = (value: boolean) => value ? "☑" : "☐";
 const titleCaseDate = (value: string) => {
   const parts = value.split("-");
-  return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0].slice(-2)}` : value;
+  return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : value;
 };
 const personName = (person: InvitationPerson) => `${person.firstName} ${person.lastName}`.trim();
 
@@ -71,7 +73,7 @@ const templateStyles = `
     .invitation-paper-page { width: 210mm; min-height: 297mm; padding: 16mm 17mm 15mm; background: white; page-break-after: always; overflow: hidden; }
     .invitation-paper-page:last-child { page-break-after: auto; }
     .invitation-header { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 13mm; min-height: 34mm; padding-left: 36mm; }
-    .italian-flag { position: absolute; top: 0; left: 0; width: 32mm; height: 22mm; object-fit: contain; object-position: left top; }
+    .italian-flag { position: absolute; top: 0; left: 0; width: 33mm; height: 22mm; display: block; }
     .header-block { text-align: center; }
     .header-block strong { display: block; font-size: 11pt; line-height: 1.07; }
     .header-block span { display: block; margin-top: 2mm; font-size: 8pt; line-height: 1.2; }
@@ -115,7 +117,7 @@ export function buildInvitationLetterHtml(data: InvitationLetterData, italian: I
   const invitee = data.invitee;
   return `${templateStyles}<div class="invitation-document">
     <section class="invitation-paper-page">
-      <header class="invitation-header"><img class="italian-flag" src="${ITALIAN_FLAG_URL}" alt="" /><div class="header-block"><strong>DICHIARAZIONE GARANZIA E/O<br/>ALLOGGIO</strong><span>Ai sensi dell’art. 14 p.4 Codice Visti e dell’art. 9<br/>p. 4 Regolamento VIS</span></div><div class="header-block"><strong>PROOF OF SPONSORSHIP AND/OR<br/>PRIVATE ACCOMMODATION</strong><span>According to art. 14 p.4 Visa Code and to art. 9<br/>p. 4 VIS Regulation</span></div></header>
+      <header class="invitation-header"><svg class="italian-flag" viewBox="0 0 3 2" role="img" aria-label="Bandera de Italia"><rect width="1" height="2" x="0" fill="#009246"/><rect width="1" height="2" x="1" fill="#ffffff"/><rect width="1" height="2" x="2" fill="#ce2b37"/></svg><div class="header-block"><strong>DICHIARAZIONE GARANZIA E/O<br/>ALLOGGIO</strong><span>Ai sensi dell’art. 14 p.4 Codice Visti e dell’art. 9<br/>p. 4 Regolamento VIS</span></div><div class="header-block"><strong>PROOF OF SPONSORSHIP AND/OR<br/>PRIVATE ACCOMMODATION</strong><span>According to art. 14 p.4 Visa Code and to art. 9<br/>p. 4 VIS Regulation</span></div></header>
       <div class="intro-grid"><strong>Io Sottoscritto/a</strong><em>I, the undersigned</em></div>
       <table class="form-table"><tbody>
         <tr><td class="person-label">Nome/Name</td><td class="value" colspan="3">${display(inviter.firstName)}</td></tr><tr><td class="person-label">Cognome/Surname</td><td class="value" colspan="3">${display(inviter.lastName)}</td></tr><tr><td>Data di nascita/Date of birth</td><td class="value">${display(titleCaseDate(inviter.birthDate))}</td><td>Luogo di nascita/ Place of birth</td><td class="value">${display(italian.inviter.birthPlace)}</td></tr><tr><td>Nazionalità/Nationality</td><td class="value" colspan="3">${display(italian.inviter.nationality)}</td></tr><tr><td>Documento di identità/Identity card</td><td class="value" colspan="3">${display(inviter.identityCard)}</td></tr><tr><td>Passaporto/Passport</td><td class="value" colspan="3">${display(inviter.passport)}</td></tr><tr><td>Permesso di soggiorno/Residence permit</td><td class="value" colspan="3">${display(italian.inviter.residencePermit)}</td></tr><tr><td>Indirizzo/Address</td><td class="value" colspan="3">${display(italian.inviter.address)}</td></tr><tr><td>Professione/Occupation</td><td class="value" colspan="3">${display(italian.inviter.occupation)}</td></tr><tr><td>Tel: <span class="value">${display(inviter.phone)}</span></td><td colspan="3">email: <span class="value">${display(inviter.email)}</span></td></tr>
@@ -137,7 +139,7 @@ export function buildInvitationLetterHtml(data: InvitationLetterData, italian: I
     <section class="invitation-paper-page template-page-three">
       <div class="privacy-grid"><div class="privacy-box"><h3>INFORMATIVA SUL TRATTAMENTO DEI<br/>DATI PERSONALI:</h3>${privacyItalian}</div><div class="privacy-box"><h3>INFORMATION ON THE PROCESSING OF<br/>PERSONAL DATA</h3>${privacyEnglish}</div></div>
       <div class="footer-grid"><span>Luogo/Place &nbsp;<b>${display(italian.city)}</b></span><span>Data/ Date &nbsp; <b>${display(titleCaseDate(data.date))}</b></span><span>Firma/ Signature</span></div>
-      <div class="annexes">Allegati/Annexes:<br/><span>${check(data.inviteeIdAttached)}</span> documento d’identità dell’invitante/ identity card of the person issuing the invitation<br/><span>${check(data.financialGuaranteeAttached)}</span> fideiussione bancaria / financial guarantee<br/><span>☐</span> altri documenti/ other documents: <span class="line"></span><div class="annexes-company">Allegati per le Società-Enti / Annexes for<div class="empty"></div><div class="empty"></div><div class="empty"></div></div></div>
+      <div class="annexes">Allegati/Annexes:<br/><span>${check(data.inviteeIdAttached)}</span> documento d’identità dell’invitante/ identity card of the person issuing the invitation<br/><span>${check(data.financialGuaranteeAttached)}</span> fideiussione bancaria / financial guarantee<br/><span>${check(Boolean(data.otherAnnexes?.trim()))}</span> altri documenti/ other documents: <span class="line">${display(data.otherAnnexes)}</span><div class="annexes-company">Allegati per le Società-Enti / Annexes for<div class="empty">${displayMultiline(data.companyAnnexes)}</div></div></div>
     </section>
   </div>`;
 }
@@ -154,7 +156,7 @@ async function createLetterContainer(data: InvitationLetterData, italian: Invita
   container.style.width = "210mm";
   container.innerHTML = buildInvitationLetterHtml(data, italian);
   document.body.appendChild(container);
-  await new Promise(resolve => window.setTimeout(resolve, 80));
+  await new Promise(resolve => window.setTimeout(resolve, 120));
   return container;
 }
 
@@ -165,7 +167,7 @@ export async function downloadInvitationLetterPdf(data: InvitationLetterData, it
     const pages = Array.from(container.querySelectorAll<HTMLElement>(".invitation-paper-page"));
     const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
     for (let index = 0; index < pages.length; index += 1) {
-      const canvas = await html2canvas(pages[index], { backgroundColor: "#ffffff", scale: 2, useCORS: true });
+      const canvas = await html2canvas(pages[index], { backgroundColor: "#ffffff", scale: 2, logging: false, useCORS: true });
       if (index > 0) pdf.addPage();
       pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, 210, 297, undefined, "FAST");
     }

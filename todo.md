@@ -549,3 +549,10 @@
 - [x] Mostrar las opciones declarativas como casillas bilingües visibles y seleccionables en el formulario
 - [x] Preservar palabras ya italianas, como «badante», al preparar el contenido de la carta
 - [x] Añadir pruebas, verificación visual, compilación y publicación
+
+## Gestión segura de cartas de invitación
+- [x] Corregir la generación, apertura y descarga del PDF de carta
+- [x] Mostrar el año completo de cuatro dígitos en todas las fechas de la carta
+- [x] Añadir campos opcionales editables para anexos y anexos de sociedades/entidades
+- [x] Mover cartas eliminadas a una papelera reversible con restauración, sin borrado definitivo
+- [x] Añadir migración, pruebas, verificación responsive, compilación y publicación
