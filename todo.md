@@ -496,3 +496,9 @@
 - [x] Generar los tres formatos con el nombre del destinatario y número de orden
 - [x] Mantener la impresión como acción independiente de la descarga
 - [x] Añadir pruebas, verificación y publicación de las descargas multiformato
+
+## Carta de invitación para roles operativos
+- [x] Crear acceso exclusivo para Master Admin y Registrador, sin exponerlo al Cliente
+- [x] Diseñar un formulario rápido con datos de invitante, invitado, estadía, relación, motivo y anexos
+- [x] Generar la carta en PDF con nombre del invitado y permitir su impresión independiente
+- [x] Añadir pruebas de permisos, contenido, descarga, compilación y publicación

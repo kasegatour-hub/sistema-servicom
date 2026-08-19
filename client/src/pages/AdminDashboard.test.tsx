@@ -343,6 +343,7 @@ describe("AdminDashboard Nueva Encomienda", () => {
 
     await waitFor(() => expect(screen.getByRole("button", { name: "Nuevo documento" })).toBeTruthy());
     expect(screen.getByRole("button", { name: "Nueva encomienda" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Carta de invitación" })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Nuevo documento" }));
     expect(screen.getAllByText("Nuevo documento").length).toBeGreaterThan(0);

@@ -37,10 +37,11 @@ import { DocumentPricePreview } from "@/components/DocumentPricePreview";
 import { GeneralFeedbackDialog } from "@/components/GeneralFeedbackDialog";
 import { IdentityDocumentField } from "@/components/IdentityDocumentField";
 import { ShipmentTrendCharts } from "@/components/ShipmentTrendCharts";
+import { InvitationLetterWorkspace } from "@/components/InvitationLetterWorkspace";
 import { normalizeIdentityDocument, type IdentityDocumentType } from "@shared/identityDocuments";
 import { getFuzzySearchScore } from "@shared/fuzzySearch";
 
-type AdminWorkspace = "resumen" | "registros" | "crear" | "cupones" | "papelera" | "usuarios" | "analitica";
+type AdminWorkspace = "resumen" | "registros" | "crear" | "cupones" | "papelera" | "usuarios" | "analitica" | "carta";
 
 function renderQrCode(canvas: HTMLCanvasElement | null, trackingUrl: string, width: number) {
   if (!canvas) return;
@@ -1301,6 +1302,7 @@ export default function AdminDashboard() {
               ["registros", "Ver registros"],
               ["crear", "Registrar envío"],
               ["cupones", "Cupones"],
+              ["carta", "Carta de invitación"],
               ["papelera", `Papelera (${deletedShipments.length})`],
               ["resumen", "Resumen"],
               ["analitica", "Analítica"],
@@ -1352,6 +1354,8 @@ export default function AdminDashboard() {
         </Card>
 
         {adminWorkspace === "analitica" && <Card className="mb-8 border-0 p-6 shadow-lg"><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-semibold text-gray-900">Analítica de interacción y tendencias</h2><p className="mt-1 text-sm text-slate-500">Esta área se abre solo al revisar la operación. No inspecciona nombres, documentos, teléfonos ni notas.</p></div>{adminInsights && <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-bold text-[#0B2B5E]">Puntaje {adminInsights.engagementScore}/100</span>}</div>{adminInsights && <><div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4"><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Interacciones</p><strong>{adminInsights.totalEvents}</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Sesiones</p><strong>{adminInsights.uniqueSessions}</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Continuidad</p><strong>{Math.round(adminInsights.completionRate * 100)}%</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Anomalía</p><strong>{adminInsights.anomalyScore}/100</strong></div></div><ul className="mt-4 space-y-1 text-sm text-slate-700">{adminInsights.insights.map((insight: string) => <li key={insight}>• {insight}</li>)}</ul></>}<div className="mt-6"><ShipmentTrendCharts shipments={shipments} /></div></Card>}
+
+        {adminWorkspace === "carta" && <InvitationLetterWorkspace shipments={shipments} />}
 
         {/* Coupon Management Section */}
         <Card className={`mb-8 border-0 p-6 shadow-lg ${adminWorkspace === "cupones" ? "" : "hidden"}`}>
