@@ -292,6 +292,8 @@ describe("AdminDashboard Nueva Encomienda", () => {
     expect(screen.getByRole("button", { name: "Descargar PDF" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Imprimir" }));
     expect(await screen.findByText("Vista Previa de Recibo")).toBeTruthy();
+    expect(screen.getAllByText("RUC 20615004708")).toHaveLength(1);
+    expect(screen.queryByText("RUC: 20615004708")).toBeNull();
     expect(screen.getByRole("combobox", { name: "Formato de descarga administrativa" })).toBeTruthy();
     fireEvent.click(screen.getAllByRole("button", { name: "Descargar PDF" }).at(-1)!);
     await waitFor(() => expect(adminReceiptDocumentMocks.download).toHaveBeenCalledWith(expect.objectContaining({ shipment, origin: window.location.origin })));

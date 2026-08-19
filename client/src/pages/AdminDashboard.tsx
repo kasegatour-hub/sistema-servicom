@@ -32,7 +32,7 @@ import { closeUpdateModal } from "@/lib/updateModal";
 import { UpdateShipmentModal } from "@/components/UpdateShipmentModal";
 import { evaluateScientificExpression } from "@/lib/scientificCalculator";
 import { buildElectronicSignatureHtml, buildReceiptDownloadFilename, downloadShipmentReceipt, type ReceiptDownloadFormat } from "@/lib/userReceipt";
-import { buildAdminReceiptDocument, downloadAdminReceiptPdf, printAdminReceiptPdf } from "@/lib/adminReceiptDocument";
+import { buildAdminReceiptDocument, downloadAdminReceiptPdf } from "@/lib/adminReceiptDocument";
 import { summarizeRevenue } from "@shared/revenueSummary";
 import { DocumentPricePreview } from "@/components/DocumentPricePreview";
 import { GeneralFeedbackDialog } from "@/components/GeneralFeedbackDialog";
@@ -1168,8 +1168,23 @@ export default function AdminDashboard() {
       } catch {
         // Se conserva la información visible si una actualización puntual no está disponible.
       }
-      await printAdminReceiptPdf({ shipment: shipmentForReceipt, signature: shipmentForReceipt.signature || printShipment.signature, limaTorinoEncomiendasEnabled, origin: window.location.origin });
+      const receiptDocument = await buildAdminReceiptDocument({ shipment: shipmentForReceipt, signature: shipmentForReceipt.signature || printShipment.signature, limaTorinoEncomiendasEnabled, origin: window.location.origin });
+      const receiptUrl = new URL('/recibo', window.location.origin);
+      receiptUrl.searchParams.set('order', String(shipmentForReceipt.orderNumber));
+      receiptUrl.searchParams.set('code', String(shipmentForReceipt.code));
+      const printWindow = window.open(receiptUrl.href, '_blank', 'width=900,height=900');
+      if (!printWindow) { toast.error('Permite las ventanas emergentes para imprimir el comprobante.'); return; }
+      printWindow.document.open();
+      printWindow.document.write(receiptDocument.html);
+      printWindow.document.close();
+      printWindow.document.title = receiptDocument.filename;
+      await Promise.all(Array.from(printWindow.document.images).map((image) => image.complete ? Promise.resolve() : new Promise<void>((resolve) => { image.addEventListener('load', () => resolve(), { once: true }); image.addEventListener('error', () => resolve(), { once: true }); })));
       setPrintShipment(null);
+      const closePrintWindow = () => { if (!printWindow.closed) printWindow.close(); };
+      printWindow.onafterprint = closePrintWindow;
+      printWindow.focus();
+      printWindow.print();
+      window.setTimeout(closePrintWindow, 1200);
     } catch (error) {
       console.error('No se pudo preparar el comprobante administrativo', error);
       toast.error('No se pudo preparar el comprobante. Inténtalo nuevamente.');
@@ -2455,7 +2470,6 @@ export default function AdminDashboard() {
                 <div className="text-center border-b pb-3 mb-3">
                   <div className="font-bold text-lg text-primary">SERVICOM INTERNACIONAL</div>
                   <div className="text-xs text-gray-600">RUC 20615004708</div>
-                  <div className="text-xs text-gray-600">RUC: 20615004708</div>
                 </div>
 
                 <div className="mb-3">

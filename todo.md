@@ -670,3 +670,8 @@
 - [x] Unificar la maqueta que usan Descargar PDF e Imprimir comprobante
 - [x] Incluir QR de rastreo y políticas en la primera hoja del comprobante sin separarlos
 - [x] Añadir pruebas de regresión, validar las tres páginas y publicar la corrección
+
+## Restauración del formato de comprobante
+- [x] Eliminar la repetición del RUC en la vista previa e impresión del comprobante
+- [x] Restaurar exactamente la maqueta anterior aprobada sin cambios de composición no solicitados
+- [x] Añadir pruebas de regresión, validar la impresión y publicar la restauración
