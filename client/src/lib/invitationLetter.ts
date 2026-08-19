@@ -25,6 +25,9 @@ export type InvitationLetterData = {
   financialSupport: boolean;
   healthInsurance: boolean;
   financialGuarantee: boolean;
+  accommodationDeclared: boolean;
+  accommodationAtHome: boolean;
+  accommodationAtOtherAddress: boolean;
   inviteeIdAttached: boolean;
   financialGuaranteeAttached: boolean;
 };
@@ -37,7 +40,7 @@ export type InvitationLetterItalian = {
   city: string;
 };
 
-const ITALIAN_FLAG_URL = "/manus-storage/bandera-italiana-carta_95ecacf7.webp";
+const ITALIAN_FLAG_URL = "/manus-storage/flag-000_05ad78ee.png";
 const safeName = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-+|-+$/g, "").toLowerCase() || "invitato";
 const escapeHtml = (value?: string) => String(value || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const display = (value?: string) => escapeHtml(value?.trim() || "");
@@ -67,8 +70,8 @@ const templateStyles = `
     .invitation-document { width: 210mm; margin: 0 auto; }
     .invitation-paper-page { width: 210mm; min-height: 297mm; padding: 16mm 17mm 15mm; background: white; page-break-after: always; overflow: hidden; }
     .invitation-paper-page:last-child { page-break-after: auto; }
-    .invitation-header { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 17mm; min-height: 43mm; padding-left: 25mm; }
-    .italian-flag { position: absolute; top: 0; left: 0; width: 19mm; height: 31mm; object-fit: fill; }
+    .invitation-header { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 13mm; min-height: 34mm; padding-left: 36mm; }
+    .italian-flag { position: absolute; top: 0; left: 0; width: 32mm; height: 22mm; object-fit: contain; object-position: left top; }
     .header-block { text-align: center; }
     .header-block strong { display: block; font-size: 11pt; line-height: 1.07; }
     .header-block span { display: block; margin-top: 2mm; font-size: 8pt; line-height: 1.2; }
@@ -77,7 +80,7 @@ const templateStyles = `
     .intro-grid em { font-size: 12pt; text-align: right; }
     .form-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 4mm; font-size: 8.2pt; }
     .form-table td { border: .28mm solid #111; height: 5.25mm; padding: .55mm 1.4mm; vertical-align: middle; }
-    .form-table td.value { background: #f6f7ff; font-family: Arial, sans-serif; font-size: 7.5pt; font-weight: 700; letter-spacing: .05mm; }
+    .form-table td.value { background: white; font-family: Arial, sans-serif; font-size: 7.5pt; font-weight: 700; letter-spacing: .05mm; }
     .person-label { white-space: nowrap; }
     .company-heading { display: grid; grid-template-columns: 1fr 1fr; margin: 4mm 0 3mm; font-size: 9pt; }
     .company-heading strong { font-size: 10pt; }
@@ -118,7 +121,7 @@ export function buildInvitationLetterHtml(data: InvitationLetterData, italian: I
         <tr><td class="person-label">Nome/Name</td><td class="value" colspan="3">${display(inviter.firstName)}</td></tr><tr><td class="person-label">Cognome/Surname</td><td class="value" colspan="3">${display(inviter.lastName)}</td></tr><tr><td>Data di nascita/Date of birth</td><td class="value">${display(titleCaseDate(inviter.birthDate))}</td><td>Luogo di nascita/ Place of birth</td><td class="value">${display(italian.inviter.birthPlace)}</td></tr><tr><td>Nazionalità/Nationality</td><td class="value" colspan="3">${display(italian.inviter.nationality)}</td></tr><tr><td>Documento di identità/Identity card</td><td class="value" colspan="3">${display(inviter.identityCard)}</td></tr><tr><td>Passaporto/Passport</td><td class="value" colspan="3">${display(inviter.passport)}</td></tr><tr><td>Permesso di soggiorno/Residence permit</td><td class="value" colspan="3">${display(italian.inviter.residencePermit)}</td></tr><tr><td>Indirizzo/Address</td><td class="value" colspan="3">${display(italian.inviter.address)}</td></tr><tr><td>Professione/Occupation</td><td class="value" colspan="3">${display(italian.inviter.occupation)}</td></tr><tr><td>Tel: <span class="value">${display(inviter.phone)}</span></td><td colspan="3">email: <span class="value">${display(inviter.email)}</span></td></tr>
       </tbody></table>
       <div class="company-heading"><strong>Solo per le Società o Organizzazione</strong><em>Only for Companies or Organizations</em></div><table class="form-table"><tbody><tr><td>Ragione sociale /Company Name</td><td class="value"></td></tr><tr><td>Sede legale /Company Address</td><td class="value"></td></tr><tr><td>Qualifica e nome /Position and Name:</td><td class="value"></td></tr><tr><td>Tel:</td><td>email:</td></tr></tbody></table>
-      <div class="declaration"><span class="box">☑</span>dichiaro di voler ospitare/<em>declare being able to accomodate:</em><br/><span class="accommodation-subline"><span class="box">☑</span>presso la mia abitazione / <em>at my abovementioned address</em></span><br/><span class="accommodation-subline"><span class="box">☐</span>al seguente indirizzo/ <em>at the following address</em></span></div>
+      <div class="declaration"><span class="box">${check(data.accommodationDeclared)}</span>dichiaro di voler ospitare/<em>declare being able to accomodate:</em><br/><span class="accommodation-subline"><span class="box">${check(data.accommodationAtHome)}</span>presso la mia abitazione / <em>at my abovementioned address</em></span><br/><span class="accommodation-subline"><span class="box">${check(data.accommodationAtOtherAddress)}</span>al seguente indirizzo/ <em>at the following address</em></span></div>
       <table class="form-table"><tbody>
         <tr><td>Nome/Name</td><td class="value" colspan="3">${display(invitee.firstName)}</td></tr><tr><td>Cognome/Surname</td><td class="value" colspan="3">${display(invitee.lastName)}</td></tr><tr><td>Data di nascita/Date of birth</td><td class="value">${display(titleCaseDate(invitee.birthDate))}</td><td>Luogo di nascita/ Place of birth</td><td class="value">${display(italian.invitee.birthPlace)}</td></tr><tr><td>Nazionalità/Nationality</td><td class="value" colspan="3">${display(italian.invitee.nationality)}</td></tr><tr><td>Passaporto/Passport</td><td class="value" colspan="3">${display(invitee.passport)}</td></tr><tr><td>Indirizzo/Address</td><td class="value" colspan="3">${display(italian.invitee.address)}</td></tr><tr><td>Professione/Occupation</td><td class="value" colspan="3">${display(italian.invitee.occupation)}</td></tr>
       </tbody></table>

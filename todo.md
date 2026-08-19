@@ -543,3 +543,9 @@
 - [x] Añadir calendario claro con selector anual amplio y fácil de recorrer
 - [x] Aplicar el control a nacimiento, estadía y fecha de emisión
 - [x] Añadir pruebas, verificación responsive, compilación y publicación
+
+## Corrección de plantilla de Carta de invitación
+- [x] Corregir la bandera y reproducir el encabezado, tablas, casillas y bloques de la plantilla PDF aportada
+- [x] Mostrar las opciones declarativas como casillas bilingües visibles y seleccionables en el formulario
+- [x] Preservar palabras ya italianas, como «badante», al preparar el contenido de la carta
+- [x] Añadir pruebas, verificación visual, compilación y publicación

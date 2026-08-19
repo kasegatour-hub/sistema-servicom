@@ -28,4 +28,11 @@ describe("translateInvitationToItalian", () => {
     await expect(translateInvitationToItalian(input)).resolves.toEqual(italian);
     expect(llmMocks.invokeLLM).toHaveBeenCalledWith(expect.objectContaining({ model: "gpt-5-mini", response_format: expect.objectContaining({ type: "json_schema" }) }));
   });
+
+  it("conserva una ocupación ya italiana aunque la respuesta de traducción intente modificarla", async () => {
+    const italian = { inviter: { birthPlace: "LIMA", nationality: "PERUVIANA", residencePermit: "PERMESSO", address: "VIA ROMA 1", occupation: "ASISTENTE" }, invitee: { birthPlace: "LIMA", nationality: "PERUVIANA", address: "LIMA", occupation: "STUDENTESSA" }, relationship: "FAMILIARE", purpose: "TURISMO", city: "TORINO" };
+    llmMocks.invokeLLM.mockResolvedValue({ choices: [{ message: { content: JSON.stringify(italian) } }] });
+    const translated = await translateInvitationToItalian({ ...input, inviter: { ...input.inviter, occupation: "BADANTE" } });
+    expect(translated.inviter.occupation).toBe("BADANTE");
+  });
 });

@@ -16,12 +16,12 @@ const NATIONALITIES = ["PERUANA", "ITALIANA", "ARGENTINA", "BOLIVIANA", "BRASILE
 const uppercase = (value: string) => value.toLocaleUpperCase("es-PE").replace(/\s+/g, " ");
 
 const emptyPerson = (): InvitationPerson => ({ firstName: "", lastName: "", birthDate: "", birthPlace: "", nationality: "", identityCard: "", passport: "", residencePermit: "", address: "", occupation: "", phone: "", email: "" });
-const initialData = (): InvitationLetterData => ({ inviter: emptyPerson(), invitee: emptyPerson(), relationship: "FAMILIAR", purpose: "TURISMO / VISITA FAMILIAR", arrivalDate: "", departureDate: "", city: "TORINO", date: new Date().toISOString().slice(0, 10), financialSupport: true, healthInsurance: true, financialGuarantee: false, inviteeIdAttached: true, financialGuaranteeAttached: false });
+const initialData = (): InvitationLetterData => ({ inviter: emptyPerson(), invitee: emptyPerson(), relationship: "FAMILIAR", purpose: "TURISMO / VISITA FAMILIAR", arrivalDate: "", departureDate: "", city: "TORINO", date: new Date().toISOString().slice(0, 10), financialSupport: true, healthInsurance: true, financialGuarantee: false, accommodationDeclared: true, accommodationAtHome: true, accommodationAtOtherAddress: false, inviteeIdAttached: true, financialGuaranteeAttached: false });
 const LETTERS_PER_PAGE = 6;
 
 function parseSavedLetter(record: any): { data: InvitationLetterData; italian: InvitationLetterItalian } | null {
   try {
-    const data = JSON.parse(record.letterData) as InvitationLetterData;
+    const data = { accommodationDeclared: true, accommodationAtHome: true, accommodationAtOtherAddress: false, ...JSON.parse(record.letterData) } as InvitationLetterData;
     const italian = JSON.parse(record.italianData) as InvitationLetterItalian;
     return data?.inviter && data?.invitee && italian?.inviter && italian?.invitee ? { data, italian } : null;
   } catch { return null; }
@@ -141,6 +141,7 @@ export function InvitationLetterWorkspace({ shipments = [] as any[] }: { shipmen
           <ManualDateField id="invitation-departure" label="Fin de estadía / Fine soggiorno" value={data.departureDate} onChange={value => updateData("departureDate", value)} required minYear={new Date().getFullYear() - 5} />
           <ManualDateField id="invitation-date" label="Fecha de emisión / Data di emissione" value={data.date} onChange={value => updateData("date", value)} required minYear={new Date().getFullYear() - 5} />
         </div>
+        <fieldset className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3"><legend className="px-1 text-sm font-semibold text-[#0B2B5E]">Alojamiento declarado / Alloggio dichiarato</legend><p className="mb-2 text-xs text-slate-600">Estas casillas se reflejan exactamente en la sección de hospedaje de la carta.</p><div className="grid grid-cols-1 gap-2 text-sm"><label className="flex items-center gap-2 rounded-md bg-white p-2"><input type="checkbox" checked={data.accommodationDeclared} onChange={e => updateData("accommodationDeclared", e.target.checked)} />Declaro que puedo hospedar / Dichiaro di voler ospitare</label><label className="flex items-center gap-2 rounded-md bg-white p-2"><input type="checkbox" checked={data.accommodationAtHome} onChange={e => updateData("accommodationAtHome", e.target.checked)} />En mi domicilio indicado / Presso la mia abitazione</label><label className="flex items-center gap-2 rounded-md bg-white p-2"><input type="checkbox" checked={data.accommodationAtOtherAddress} onChange={e => updateData("accommodationAtOtherAddress", e.target.checked)} />En otra dirección / Al seguente indirizzo</label></div></fieldset>
         <div className="mt-4 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">{[["financialSupport", "Asumir gastos de sostenimiento / Sostenimento"], ["healthInsurance", "Seguro sanitario / Assicurazione sanitaria"], ["financialGuarantee", "Garantía económica adicional / Garanzia economica"], ["inviteeIdAttached", "Adjuntar identidad del invitante / Documento invitante"], ["financialGuaranteeAttached", "Adjuntar garantía financiera / Garanzia finanziaria"]].map(([field, label]) => <label key={field} className="flex items-center gap-2 rounded-md bg-white p-2"><input type="checkbox" checked={Boolean(data[field as keyof InvitationLetterData])} onChange={e => updateData(field as keyof InvitationLetterData, e.target.checked as never)} />{label}</label>)}</div>
       </section>
     </div>

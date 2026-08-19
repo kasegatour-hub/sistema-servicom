@@ -41,6 +41,9 @@ describe("InvitationLetterWorkspace", () => {
     expect((screen.getByRole("button", { name: /Descargar carta PDF/ }) as HTMLButtonElement).disabled).toBe(true);
     expect((screen.getByRole("button", { name: /Imprimir carta/ }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getAllByText(/Correo \/ E-mail/).length).toBeGreaterThan(0);
+    expect(screen.getByText("Declaro que puedo hospedar / Dichiaro di voler ospitare")).toBeTruthy();
+    expect(screen.getByText("En mi domicilio indicado / Presso la mia abitazione")).toBeTruthy();
+    expect(screen.getByText("En otra dirección / Al seguente indirizzo")).toBeTruthy();
   });
 
   it("enables export actions only after the validated draft is saved", async () => {
