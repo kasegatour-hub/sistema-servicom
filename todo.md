@@ -597,3 +597,8 @@
 - [x] Restringir la escritura manual a ocho dígitos y formatearla automáticamente como DD/MM/AAAA
 - [x] Simplificar el encabezado visible a la banda azul «Carta de invitación / Lettera d'invito»
 - [x] Añadir pruebas, compilar y publicar la mejora
+
+## Nacionalidad no bloqueante en Carta de invitación
+- [x] Aceptar nacionalidades escritas o autocompletadas sin imponer una coincidencia exacta con la lista
+- [x] Convertir las sugerencias difusas en ayuda opcional sin mensajes que interrumpan el avance
+- [x] Añadir pruebas, compilar y publicar la mejora

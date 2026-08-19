@@ -37,10 +37,12 @@ describe("InvitationLetterWorkspace", () => {
     const birthPlace = screen.getAllByLabelText(/Lugar de nacimiento/)[0] as HTMLInputElement;
     const nationality = screen.getAllByLabelText(/Nacionalidad/)[0] as HTMLInputElement;
     fireEvent.change(birthPlace, { target: { value: "lima" } });
-    fireEvent.change(nationality, { target: { value: "peruana" } });
+    fireEvent.change(nationality, { target: { value: "peruviana" } });
 
     expect(birthPlace.value).toBe("LIMA");
-    expect(nationality.value).toBe("PERUANA");
+    expect(nationality.value).toBe("PERUVIANA");
+    expect(screen.queryByText("PERUANA")).toBeNull();
+    fireEvent.click(screen.getAllByRole("button", { name: /Ver sugerencias para Nacionalidad/ })[0]);
     expect(screen.getByText("PERUANA")).toBeTruthy();
     expect(screen.queryByText("Dirección de hospedaje")).toBeNull();
     expect(screen.getByLabelText(/Otros documentos \/ Altri documenti/)).toBeTruthy();
