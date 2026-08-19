@@ -87,7 +87,7 @@ vi.mock("@/lib/trpc", () => ({
 
 vi.mock("@/lib/userReceipt", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/userReceipt")>();
-  return { ...actual, downloadUserShipmentReceiptPdf: receiptMocks.download };
+  return { ...actual, downloadShipmentReceipt: receiptMocks.download };
 });
 
 import AdminDashboard from "./AdminDashboard";
@@ -220,8 +220,9 @@ describe("AdminDashboard Nueva Encomienda", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "Imprimir" })).toBeTruthy());
     fireEvent.click(screen.getByRole("button", { name: "Imprimir" }));
     expect(await screen.findByText("Vista Previa de Recibo")).toBeTruthy();
+    expect(screen.getByRole("combobox", { name: "Formato de descarga administrativa" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Descargar PDF" }));
-    await waitFor(() => expect(receiptMocks.download).toHaveBeenCalledWith(shipment));
+    await waitFor(() => expect(receiptMocks.download).toHaveBeenCalledWith(shipment, "pdf"));
     expect(screen.queryByText("Vista Previa de Recibo")).toBeNull();
   });
 

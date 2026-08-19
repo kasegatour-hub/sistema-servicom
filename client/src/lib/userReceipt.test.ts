@@ -5,6 +5,8 @@ import {
   buildReceiptTicketHtml,
   buildReceiptPrintStyles,
   buildReceiptDownloadFilename,
+  buildReceiptMarkdown,
+  buildReceiptWordHtml,
   buildReceiptUrl,
   buildElectronicSignatureHtml,
   getPaymentStatusPresentation,
@@ -48,6 +50,33 @@ describe("receipt window helpers", () => {
       orderNumber: "3289150504",
       shipmentType: "documento",
     })).toBe("recibo-documento-miguel-diaz-ojitos-orden-3289150504");
+  });
+
+  it("builds Word and Markdown exports with the recipient, order and tracking data", () => {
+    const shipment = {
+      orderNumber: "3289150504",
+      code: "DOC-2026-XPF2A",
+      shipmentType: "documento",
+      route: "Lima - Torino",
+      senderName: "Ana",
+      senderLastName: "Pérez",
+      recipientName: "Miguel",
+      recipientLastName: "Díaz Ojitos",
+      paymentStatus: "Pagado",
+      finalPriceEur: "50",
+      contentChecklist: ["1 × Acta de nacimiento"],
+      notes: "Entregar en agencia",
+    };
+    const markdown = buildReceiptMarkdown(shipment);
+    const word = buildReceiptWordHtml(shipment);
+
+    expect(markdown).toContain("# SERVICOM INTERNACIONAL");
+    expect(markdown).toContain("Miguel Díaz Ojitos");
+    expect(markdown).toContain("3289150504");
+    expect(markdown).toContain("1 × Acta de nacimiento");
+    expect(markdown).toContain("?order=3289150504&code=DOC-2026-XPF2A");
+    expect(word).toContain("<!doctype html>");
+    expect(word).toContain("Miguel Díaz Ojitos");
   });
 
   it("includes the complete delivery ticket and anti-split rule in the final receipt output", () => {

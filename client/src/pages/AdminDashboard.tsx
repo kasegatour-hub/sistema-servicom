@@ -31,7 +31,7 @@ import { buildReceiptPriceHtml } from "@/lib/receiptPrice";
 import { closeUpdateModal } from "@/lib/updateModal";
 import { UpdateShipmentModal } from "@/components/UpdateShipmentModal";
 import { evaluateScientificExpression } from "@/lib/scientificCalculator";
-import { buildElectronicSignatureHtml, buildReceiptDownloadFilename, downloadUserShipmentReceiptPdf } from "@/lib/userReceipt";
+import { buildElectronicSignatureHtml, buildReceiptDownloadFilename, downloadShipmentReceipt, type ReceiptDownloadFormat } from "@/lib/userReceipt";
 import { summarizeRevenue } from "@shared/revenueSummary";
 import { DocumentPricePreview } from "@/components/DocumentPricePreview";
 import { GeneralFeedbackDialog } from "@/components/GeneralFeedbackDialog";
@@ -272,6 +272,7 @@ export default function AdminDashboard() {
   const [reauthPassword, setReauthPassword] = useState("");
   const [showReauthPassword, setShowReauthPassword] = useState(false);
   const [printShipment, setPrintShipment] = useState<any>(null);
+  const [receiptDownloadFormat, setReceiptDownloadFormat] = useState<ReceiptDownloadFormat>("pdf");
   const [showGeneralFeedback, setShowGeneralFeedback] = useState(false);
   const [senderClientQuery, setSenderClientQuery] = useState("");
   const [recipientClientQuery, setRecipientClientQuery] = useState("");
@@ -1076,11 +1077,11 @@ export default function AdminDashboard() {
     const shipmentToDownload = printShipment;
     setPrintShipment(null);
     try {
-      const filename = await downloadUserShipmentReceiptPdf(shipmentToDownload);
-      toast.success(`PDF descargado: ${filename}`);
+      const filename = await downloadShipmentReceipt(shipmentToDownload, receiptDownloadFormat);
+      toast.success(`Archivo descargado: ${filename}`);
     } catch (error) {
       console.error("No se pudo descargar el comprobante administrativo", error);
-      toast.error("No se pudo generar el PDF. Inténtalo nuevamente.");
+      toast.error("No se pudo generar el archivo. Inténtalo nuevamente.");
     }
   };
 
@@ -2346,12 +2347,17 @@ export default function AdminDashboard() {
               </div>
 
               <div className="flex flex-wrap gap-2">
+                <select aria-label="Formato de descarga administrativa" value={receiptDownloadFormat} onChange={(event) => setReceiptDownloadFormat(event.target.value as ReceiptDownloadFormat)} className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-800 focus:border-primary focus:outline-none">
+                  <option value="pdf">PDF (predeterminado)</option>
+                  <option value="word">Word (.doc)</option>
+                  <option value="md">Markdown (.md)</option>
+                </select>
                 <Button
                   onClick={downloadReceiptFromPreview}
                   className="flex-1 bg-primary hover:bg-primary/90 text-white"
                 >
                   <Download className="w-4 h-4 mr-2" />
-                  Descargar PDF
+                  Descargar {receiptDownloadFormat === "word" ? "Word" : receiptDownloadFormat === "md" ? "MD" : "PDF"}
                 </Button>
                 <Button
                   onClick={printReceipt}

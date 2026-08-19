@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { trpc } from "@/lib/trpc";
-import { buildReceiptDownloadFilename, downloadUserShipmentReceiptPdf, printUserShipmentReceipt } from "@/lib/userReceipt";
+import { buildReceiptDownloadFilename, downloadShipmentReceipt, printUserShipmentReceipt, type ReceiptDownloadFormat } from "@/lib/userReceipt";
 import { getPaymentStatusUi } from "@/lib/paymentStatus";
 import { getReceiptPricePresentation } from "@/lib/receiptPrice";
 import { formatPhoneNumber } from "@/lib/phoneFormatting";
@@ -32,6 +32,7 @@ export default function ReceiptPage() {
   const [signatureError, setSignatureError] = useState("");
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState("");
+  const [downloadFormat, setDownloadFormat] = useState<ReceiptDownloadFormat>("pdf");
   const paymentUi = shipment ? getPaymentStatusUi(shipment.paymentStatus) : getPaymentStatusUi(undefined);
   const priceUi = shipment ? getReceiptPricePresentation(shipment) : null;
   const routePresentation = getRoutePresentation(shipment?.route);
@@ -84,10 +85,10 @@ export default function ReceiptPage() {
     setIsDownloading(true);
     try {
       const refreshed = await refetchShipment();
-      await downloadUserShipmentReceiptPdf(refreshed?.data || shipment);
+      await downloadShipmentReceipt(refreshed?.data || shipment, downloadFormat);
     } catch (downloadReceiptError) {
       console.error("No se pudo descargar el comprobante", downloadReceiptError);
-      setDownloadError("No se pudo generar el PDF. Inténtalo nuevamente.");
+      setDownloadError("No se pudo generar el archivo. Inténtalo nuevamente.");
     } finally {
       setIsDownloading(false);
     }
@@ -169,11 +170,16 @@ export default function ReceiptPage() {
               <div className="flex flex-col gap-3 rounded-lg border border-[#0B2B5E]/15 bg-[#0B2B5E]/5 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="font-semibold">Recibo listo para descargar o imprimir</p>
-                  <p className="text-sm text-slate-600">La descarga crea un PDF con el nombre del destinatario. La impresión conserva la vista completa del comprobante.</p>
+                  <p className="text-sm text-slate-600">Selecciona PDF, Word o Markdown. El archivo se descarga con el nombre del destinatario; la impresión es independiente.</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
+                  <select aria-label="Formato de descarga" value={downloadFormat} onChange={(event) => setDownloadFormat(event.target.value as ReceiptDownloadFormat)} disabled={isDownloading} className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-800 focus:border-[#0B2B5E] focus:outline-none">
+                    <option value="pdf">PDF (predeterminado)</option>
+                    <option value="word">Word (.doc)</option>
+                    <option value="md">Markdown (.md)</option>
+                  </select>
                   <Button type="button" onClick={handleDownloadReceipt} disabled={isDownloading} className="bg-[#0B2B5E] text-white hover:bg-[#123d78]">
-                    <Download className="mr-2 h-4 w-4" aria-hidden="true" /> {isDownloading ? "Generando PDF…" : "Descargar PDF"}
+                    <Download className="mr-2 h-4 w-4" aria-hidden="true" /> {isDownloading ? "Generando archivo…" : `Descargar ${downloadFormat === "word" ? "Word" : downloadFormat === "md" ? "MD" : "PDF"}`}
                   </Button>
                   <Button type="button" variant="outline" onClick={handlePrintReceipt}>
                     <Printer className="mr-2 h-4 w-4" aria-hidden="true" /> Imprimir recibo

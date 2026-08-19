@@ -39,6 +39,106 @@ export function buildReceiptDownloadFilename(data: {
   return `recibo-${type}-${recipient.toLowerCase()}-orden-${order}`;
 }
 
+export type ReceiptDownloadFormat = "pdf" | "word" | "md";
+
+const receiptChecklist = (shipment: any) => Array.isArray(shipment?.contentChecklist)
+  ? shipment.contentChecklist.map((item: unknown) => String(item).trim()).filter(Boolean)
+  : [];
+
+export function buildReceiptMarkdown(shipment: any): string {
+  if (!shipment?.orderNumber || !shipment?.code) throw new Error("Faltan la orden o el código del envío.");
+  const route = getRoutePresentation(shipment.route);
+  const recipient = fullName(shipment.recipientName, shipment.recipientLastName);
+  const sender = fullName(shipment.senderName, shipment.senderLastName);
+  const payment = getPaymentStatusPresentation(shipment.paymentStatus);
+  const rawPrice = Number(shipment.finalPriceEur ?? shipment.basePriceEur ?? 0);
+  const price = Number.isFinite(rawPrice) ? `${rawPrice.toFixed(2)} EUR` : "No especificado";
+  const checklist = receiptChecklist(shipment);
+  const trackingUrl = buildTrackingUrl(String(shipment.orderNumber), String(shipment.code));
+  const shipmentLabel = shipment.shipmentType === "encomienda" ? "ENCOMIENDA" : "DOCUMENTO";
+  return `# SERVICOM INTERNACIONAL
+
+## COMPROBANTE DE ENVÍO DE ${shipmentLabel}
+
+**Orden:** ${shipment.orderNumber}  
+**Código de envío:** ${shipment.code}  
+**Estado:** ${shipment.status || "No especificado"}  
+**Estado de pago:** ${payment.label}  
+**Precio final:** ${price}
+
+## Ruta y sedes
+
+- **Ruta:** ${route.route}
+- **Origen:** ${route.originPrintLabel} · ${route.origin.officeLabel}
+- **Destino:** ${route.destinationPrintLabel} · ${route.destination.officeLabel}
+- **Dirección de entrega:** ${route.destination.address}
+- **Contacto de sede:** ${route.destination.phone}
+
+## Remitente
+
+- **Nombre:** ${sender}
+- **Documento:** ${shipment.senderDni || "No especificado"}
+- **Celular:** ${formatPhoneNumber(shipment.senderPhone) || "No especificado"}
+
+## Destinatario
+
+- **Nombre:** ${recipient}
+- **Documento:** ${shipment.recipientDni || "No especificado"}
+- **Celular:** ${formatPhoneNumber(shipment.recipientPhone) || "No especificado"}
+
+## Checklist de contenido
+
+${checklist.length ? checklist.map((item: string) => `- ${item}`).join("\n") : "- Sin ítems registrados"}
+
+## Notas
+
+${shipment.notes || "Sin notas"}
+
+## Rastreo
+
+[Abrir el rastreo de este envío](${trackingUrl})
+
+---
+
+Servicom Internacional · RUC 20615004708
+`;
+}
+
+export function buildReceiptWordHtml(shipment: any): string {
+  const markdown = buildReceiptMarkdown(shipment)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(buildReceiptDownloadFilename(shipment))}</title><style>body{font-family:Calibri,Arial,sans-serif;color:#0f172a;line-height:1.5;margin:38px}h1{color:#0b2b5e;font-size:22pt;border-bottom:3px solid #f28c00;padding-bottom:8px}h2{color:#0b2b5e;font-size:14pt;margin-top:24px}pre{font-family:Calibri,Arial,sans-serif;white-space:pre-wrap;font-size:10.5pt}</style></head><body><pre>${markdown}</pre></body></html>`;
+}
+
+function saveTextDownload(content: string, mimeType: string, filename: string): string {
+  const blob = new Blob([content], { type: `${mimeType};charset=utf-8` });
+  const href = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = href;
+  anchor.download = filename;
+  anchor.style.display = "none";
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(href), 1000);
+  return filename;
+}
+
+export async function downloadShipmentReceipt(shipment: any, format: ReceiptDownloadFormat = "pdf"): Promise<string> {
+  if (format === "pdf") return downloadUserShipmentReceiptPdf(shipment);
+  const baseName = buildReceiptDownloadFilename({
+    recipientName: shipment?.recipientName,
+    recipientLastName: shipment?.recipientLastName,
+    recipientDisplayName: fullName(shipment?.recipientName, shipment?.recipientLastName),
+    orderNumber: shipment?.orderNumber,
+    shipmentType: shipment?.shipmentType,
+  });
+  if (format === "word") return saveTextDownload(buildReceiptWordHtml(shipment), "application/msword", `${baseName}.doc`);
+  return saveTextDownload(buildReceiptMarkdown(shipment), "text/markdown", `${baseName}.md`);
+}
+
 export function getPaymentStatusPresentation(status?: string | null) {
   const normalizedStatus = typeof status === "string" ? status.trim() : "";
   const isPaid = normalizedStatus === "Pagado";

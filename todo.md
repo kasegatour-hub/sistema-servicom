@@ -490,3 +490,9 @@
 - [x] Situar el checklist obligatorio antes de las notas adicionales en los formularios de envío
 - [x] Mantener las notas como el último campo antes de crear o cancelar
 - [x] Añadir pruebas, verificación responsive, compilación y publicación
+
+## Descarga multiformato de comprobantes
+- [x] Diseñar un control de descarga con PDF predeterminado y opciones Word y Markdown
+- [x] Generar los tres formatos con el nombre del destinatario y número de orden
+- [x] Mantener la impresión como acción independiente de la descarga
+- [x] Añadir pruebas, verificación y publicación de las descargas multiformato

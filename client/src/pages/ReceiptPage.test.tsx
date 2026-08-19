@@ -42,7 +42,7 @@ vi.mock("@/lib/trpc", () => ({
 
 vi.mock("@/lib/userReceipt", () => ({
   buildReceiptDownloadFilename: ({ recipientName, recipientLastName, orderNumber, shipmentType }: any) => `recibo-${shipmentType === "encomienda" ? "encomienda" : "documento"}-${String(recipientName || "destinatario").toLowerCase()}-${String(recipientLastName || "").toLowerCase() || "sin-apellido"}-orden-${orderNumber || "sin-orden"}`,
-  downloadUserShipmentReceiptPdf: receiptMocks.download,
+  downloadShipmentReceipt: receiptMocks.download,
   printUserShipmentReceipt: receiptMocks.print,
 }));
 
@@ -65,8 +65,12 @@ describe("ReceiptPage", () => {
     expect(screen.getByText(/TORINO, ITALIA · Corso Peschiera/)).toBeTruthy();
     expect(screen.getByText(/Corso Peschiera, 162A/)).toBeTruthy();
     expect(screen.getByRole("button", { name: /Imprimir recibo/ })).toBeTruthy();
+    expect(screen.getByRole("combobox", { name: "Formato de descarga" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Descargar PDF" }));
-    await waitFor(() => expect(receiptMocks.download).toHaveBeenCalled());
+    await waitFor(() => expect(receiptMocks.download).toHaveBeenCalledWith(expect.objectContaining({ orderNumber: "3520992723" }), "pdf"));
+    fireEvent.change(screen.getByRole("combobox", { name: "Formato de descarga" }), { target: { value: "word" } });
+    fireEvent.click(screen.getByRole("button", { name: "Descargar Word" }));
+    await waitFor(() => expect(receiptMocks.download).toHaveBeenCalledWith(expect.objectContaining({ orderNumber: "3520992723" }), "word"));
     expect(document.title).toBe("recibo-documento-marco-rossi-orden-3520992723");
     const signButton = screen.getByRole("button", { name: /Firmar electrónicamente/ });
     expect(signButton).toBeTruthy();
