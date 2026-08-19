@@ -641,3 +641,8 @@
 - [x] Mostrar un botón para desplegar u ocultar las funciones científicas y trigonométricas
 - [x] Mantener las funciones sin, cos, tan, log, ln, raíz, valor absoluto, pi y potencia disponibles en el panel avanzado
 - [x] Añadir pruebas, verificar la interfaz y publicar la mejora
+
+## Corrección de descarga PDF administrativa
+- [x] Diagnosticar el error de generación al descargar un comprobante desde la tabla administrativa
+- [x] Reparar la generación y descarga del PDF del envío seleccionado
+- [x] Añadir pruebas de regresión, validar y publicar la corrección

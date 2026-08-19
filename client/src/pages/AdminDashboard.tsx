@@ -1189,7 +1189,8 @@ export default function AdminDashboard() {
       toast.success(`PDF descargado: ${filename}`);
     } catch (error) {
       console.error("No se pudo descargar el comprobante administrativo", error);
-      toast.error("No se pudo generar el PDF. Inténtalo nuevamente.");
+      const detail = error instanceof Error ? error.message : "";
+      toast.error(detail ? `No se pudo generar el PDF: ${detail}` : "No se pudo generar el PDF. Inténtalo nuevamente.");
     }
   };
 

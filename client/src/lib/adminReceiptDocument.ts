@@ -21,6 +21,33 @@ const escapeHtml = (value: unknown) => String(value ?? "")
   .replace(/"/g, "&quot;")
   .replace(/'/g, "&#039;");
 
+const CANVAS_SAFE_LOGO_FALLBACK = `data:image/svg+xml;charset=utf-8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="272" height="136" viewBox="0 0 272 136"><rect width="272" height="136" rx="12" fill="white"/><path d="M18 18h236v8H18z" fill="#f28c00"/><text x="136" y="72" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="31" font-weight="800" fill="#0b2b5e">SERVICOM</text><text x="136" y="101" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="700" fill="#475569">INTERNACIONAL</text></svg>')}`;
+
+const blobToDataUrl = (blob: Blob) => new Promise<string>((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => typeof reader.result === "string" ? resolve(reader.result) : reject(new Error("No se pudo leer el logo."));
+  reader.onerror = () => reject(new Error("No se pudo leer el logo."));
+  reader.readAsDataURL(blob);
+});
+
+async function prepareReceiptImagesForCanvas(host: HTMLElement) {
+  const images = Array.from(host.querySelectorAll<HTMLImageElement>("img"));
+  await Promise.all(images.map(async (image) => {
+    if (image.src.startsWith("data:")) return;
+    const originalSource = image.src;
+    try {
+      const response = await fetch(originalSource, { credentials: "same-origin" });
+      if (!response.ok) throw new Error("No se pudo obtener el logo.");
+      const logoBlob = await response.blob();
+      if (!logoBlob.type.startsWith("image/")) throw new Error("El logo no es una imagen válida.");
+      image.src = await blobToDataUrl(logoBlob);
+    } catch {
+      // Evita que una imagen remota o sin CORS invalide el canvas y bloquee toda la descarga.
+      image.src = CANVAS_SAFE_LOGO_FALLBACK;
+    }
+  }));
+}
+
 const getChecklist = (shipment: any): string[] => {
   if (Array.isArray(shipment?.contentChecklist)) return shipment.contentChecklist.filter((item: unknown): item is string => typeof item === "string" && item.trim().length > 0);
   if (typeof shipment?.contentChecklist !== "string") return [];
@@ -70,16 +97,18 @@ export async function downloadAdminReceiptPdf(input: AdminReceiptDocumentInput):
   const { filename, contentHtml } = await buildAdminReceiptDocument(input);
   const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import("html2canvas"), import("jspdf")]);
   const host = document.createElement("div");
-  host.style.cssText = "position:fixed;left:-10000px;top:0;width:210mm;background:#fff;z-index:-1";
+  host.style.cssText = "position:fixed;left:0;top:0;width:794px;background:#fff;z-index:-1;pointer-events:none";
   host.innerHTML = `<style>${ADMIN_RECEIPT_SHARED_STYLES}</style>${contentHtml}`;
   document.body.appendChild(host);
   try {
+    await prepareReceiptImagesForCanvas(host);
     const images = Array.from(host.querySelectorAll<HTMLImageElement>("img"));
     await Promise.all(images.map((image) => image.complete ? Promise.resolve() : new Promise<void>((resolve) => { image.addEventListener("load", () => resolve(), { once: true }); image.addEventListener("error", () => resolve(), { once: true }); })));
     const pages = Array.from(host.querySelectorAll<HTMLElement>(".receipt-page"));
     const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
     for (let index = 0; index < pages.length; index += 1) {
-      const canvas = await html2canvas(pages[index], { scale: 1.5, useCORS: true, backgroundColor: "#ffffff", logging: false });
+      const canvas = await html2canvas(pages[index], { scale: 1.5, useCORS: true, allowTaint: false, backgroundColor: "#ffffff", logging: false });
+      if (!canvas.width || !canvas.height) throw new Error(`No se pudo renderizar la página ${index + 1} del comprobante.`);
       if (index > 0) pdf.addPage();
       pdf.addImage(canvas.toDataURL("image/jpeg", 0.94), "JPEG", 0, 0, 210, 297, undefined, "FAST");
     }
