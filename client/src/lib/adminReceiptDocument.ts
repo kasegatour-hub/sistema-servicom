@@ -93,6 +93,36 @@ export async function buildAdminReceiptDocument(input: AdminReceiptDocumentInput
   return { filename, contentHtml, html: `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${escapeHtml(filename)}</title><style>${ADMIN_RECEIPT_SHARED_STYLES}</style></head><body>${contentHtml}</body></html>` };
 }
 
+/**
+ * La descarga PDF usa el mismo documento HTML que la impresión. El navegador
+ * abre el diálogo nativo «Guardar como PDF», por lo que no existe una segunda
+ * maqueta de jsPDF que pueda divergir visualmente.
+ */
+export async function downloadAdminReceiptUsingPrintTemplate(input: AdminReceiptDocumentInput): Promise<string> {
+  const receiptDocument = await buildAdminReceiptDocument(input);
+  const printWindow = window.open("", "_blank", "width=900,height=900");
+  if (!printWindow) throw new Error("Permite las ventanas emergentes para guardar el comprobante como PDF.");
+  try {
+    printWindow.document.open();
+    printWindow.document.write(receiptDocument.html);
+    printWindow.document.close();
+    printWindow.document.title = receiptDocument.filename;
+    await Promise.all(Array.from(printWindow.document.images).map((image) => image.complete ? Promise.resolve() : new Promise<void>((resolve) => {
+      image.addEventListener("load", () => resolve(), { once: true });
+      image.addEventListener("error", () => resolve(), { once: true });
+    })));
+    const closePrintWindow = () => { if (!printWindow.closed) printWindow.close(); };
+    printWindow.onafterprint = closePrintWindow;
+    printWindow.focus();
+    printWindow.print();
+    window.setTimeout(closePrintWindow, 1200);
+    return `${receiptDocument.filename}.pdf`;
+  } catch (error) {
+    printWindow.close();
+    throw error;
+  }
+}
+
 export async function downloadAdminReceiptPdf(input: AdminReceiptDocumentInput, options?: { printWindow?: Window | null }): Promise<string> {
   const { shipment } = input;
   if (!shipment?.orderNumber || !shipment?.code) throw new Error("Faltan la orden o el código del envío.");

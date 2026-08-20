@@ -32,7 +32,7 @@ import { closeUpdateModal } from "@/lib/updateModal";
 import { UpdateShipmentModal } from "@/components/UpdateShipmentModal";
 import { evaluateScientificExpression } from "@/lib/scientificCalculator";
 import { buildElectronicSignatureHtml, buildReceiptDownloadFilename, downloadShipmentReceipt, type ReceiptDownloadFormat } from "@/lib/userReceipt";
-import { buildAdminReceiptDocument, downloadAdminReceiptPdf } from "@/lib/adminReceiptDocument";
+import { buildAdminReceiptDocument, downloadAdminReceiptUsingPrintTemplate } from "@/lib/adminReceiptDocument";
 import { summarizeRevenue } from "@shared/revenueSummary";
 import { DocumentPricePreview } from "@/components/DocumentPricePreview";
 import { GeneralFeedbackDialog } from "@/components/GeneralFeedbackDialog";
@@ -1211,7 +1211,7 @@ export default function AdminDashboard() {
     let lastError: unknown;
     for (let attempt = 1; attempt <= 2; attempt += 1) {
       try {
-        return await downloadAdminReceiptPdf({ shipment, signature, limaTorinoEncomiendasEnabled, origin: window.location.origin });
+        return await downloadAdminReceiptUsingPrintTemplate({ shipment, signature, limaTorinoEncomiendasEnabled, origin: window.location.origin });
       } catch (error) {
         lastError = error;
         if (attempt === 1) await new Promise(resolve => window.setTimeout(resolve, 250));

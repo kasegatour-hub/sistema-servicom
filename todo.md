@@ -675,3 +675,9 @@
 - [x] Eliminar la repetición del RUC en la vista previa e impresión del comprobante
 - [x] Restaurar exactamente la maqueta anterior aprobada sin cambios de composición no solicitados
 - [x] Añadir pruebas de regresión, validar la impresión y publicar la restauración
+
+## Unificación visual de descarga e impresión
+- [x] Eliminar la discrepancia entre la maqueta descargada y la maqueta impresa
+- [x] Corregir el solapamiento de textos entre QR y políticas en la primera página
+- [x] Aplicar una única fuente de composición al PDF descargado y a la impresión
+- [x] Añadir pruebas, validar visualmente y publicar la corrección
