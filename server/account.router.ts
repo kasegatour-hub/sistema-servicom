@@ -80,6 +80,7 @@ export const clientShipmentInputSchema = z.object({
   docType: z.enum(["simple", "apostillado"]).default("apostillado"),
   sheetCount: z.number().min(1).default(1),
   route: z.enum(["Lima - Torino", "Torino - Lima"]).default("Lima - Torino"),
+  destinationAddress: z.string().trim().max(1000).optional(),
 }).strict().superRefine((input, ctx) => {
   if (input.senderDni && !isIdentityDocumentValid(input.senderDni, input.senderDocumentType)) ctx.addIssue({ code: "custom", path: ["senderDni"], message: identityDocumentValidationMessage(input.senderDocumentType) });
   if (input.recipientDni && !isIdentityDocumentValid(input.recipientDni, input.recipientDocumentType)) ctx.addIssue({ code: "custom", path: ["recipientDni"], message: identityDocumentValidationMessage(input.recipientDocumentType) });
@@ -113,7 +114,7 @@ export function buildClientShipmentPersistenceArgs(
     CLIENT_PAYMENT_DEFAULTS.status,
     input.route,
     "",
-    "",
+    input.destinationAddress || "",
     null,
     basePriceEur ?? null,
     0,

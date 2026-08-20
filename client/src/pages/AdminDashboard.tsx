@@ -40,6 +40,7 @@ import { IdentityDocumentField } from "@/components/IdentityDocumentField";
 import { ShipmentTrendCharts } from "@/components/ShipmentTrendCharts";
 import { InvitationLetterWorkspace } from "@/components/InvitationLetterWorkspace";
 import { PasswordRequirements } from "@/components/PasswordRequirements";
+import { AgencyDestinationPicker } from "@/components/AgencyDestinationPicker";
 import { normalizeIdentityDocument, type IdentityDocumentType } from "@shared/identityDocuments";
 import { getFuzzySearchScore } from "@shared/fuzzySearch";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "@shared/passwordPolicy";
@@ -928,7 +929,7 @@ export default function AdminDashboard() {
         orderNumber: printShipment.orderNumber,
         shipmentType: printShipment.shipmentType,
       });
-      const routePresentation = getRoutePresentation(printShipment.route);
+      const routePresentation = getRoutePresentation(printShipment.route, printShipment.destinationAddress);
       const paymentPrint = getPaymentPrintPresentation(printShipment.paymentStatus);
       const paymentIsPaid = paymentPrint.isPaid;
       const paymentIsPending = paymentPrint.isPending;
@@ -1712,6 +1713,7 @@ export default function AdminDashboard() {
                     <p className="mt-1 text-xs text-slate-500">Si lo completas, reemplaza la tarifa automática.</p>
                   </div>
                 </div>
+                <AgencyDestinationPicker route={selectedRoute} value={createForm.watch("destinationAddress") || ""} onChange={(destinationAddress) => createForm.setValue("destinationAddress", destinationAddress, { shouldValidate: true, shouldDirty: true })} />
 
                 {selectedShipmentType === "encomienda" && selectedRoute === "Lima - Torino" && !limaTorinoEncomiendasEnabled && (
                   <div className="mt-4 rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-medium text-red-800">

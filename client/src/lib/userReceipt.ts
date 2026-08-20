@@ -175,8 +175,8 @@ export function buildElectronicSignatureHtml(signature: any, fallbackSigner: str
   return `<div class="signature-remote signature-remote-signed"><div class="signature-remote-title">FIRMADO ELECTRÓNICAMENTE POR</div>${svg}<strong>${signer}</strong><br>DNI: ${dni}<br><span style="font-size:9px;color:#555">Fecha de firma: ${signedAt}</span><br><span style="font-size:9px;color:#555">Firma electrónica remota vinculada a la orden</span></div>`;
 }
 
-export function buildReceiptRouteSummaryHtml(routeValue?: string | null) {
-  const route = getRoutePresentation(routeValue);
+export function buildReceiptRouteSummaryHtml(routeValue?: string | null, destinationAddress?: string | null) {
+  const route = getRoutePresentation(routeValue, destinationAddress);
   return `<div class="section"><div class="section-title">Ruta y sedes</div><div class="grid"><div><span class="label">Origen:</span> <span class="line">${route.originPrintLabel} · ${route.origin.officeLabel}</span></div><div><span class="label">Destino:</span> <span class="line">${route.destinationPrintLabel} · ${route.destination.officeLabel}</span></div><div><span class="label">Dirección de entrega:</span> <span class="line">${route.destination.address}</span></div><div><span class="label">Contacto de sede:</span> <span class="line">${route.destination.phone}</span></div></div></div>`;
 }
 
@@ -193,9 +193,10 @@ export function buildReceiptTicketHtml(data: {
   shipmentType?: "documento" | "encomienda";
   price?: ReceiptPriceData;
   route?: string | null;
+  destinationAddress?: string | null;
   contentChecklist?: string[];
 }) {
-  const route = getRoutePresentation(data.route);
+  const route = getRoutePresentation(data.route, data.destinationAddress);
   const shipmentLabel = data.shipmentType === "encomienda" ? "ENCOMIENDA" : "DOCUMENTO";
   const priceHtml = buildReceiptPriceHtml(data.price || {});
   const checklist = (data.contentChecklist || []).map(item => String(item).trim()).filter(Boolean);
@@ -217,7 +218,7 @@ export async function downloadUserShipmentReceiptPdf(shipment: any): Promise<str
     shipmentType: shipment.shipmentType,
   })}.pdf`;
   const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
-  const route = getRoutePresentation(shipment.route);
+  const route = getRoutePresentation(shipment.route, shipment.destinationAddress);
   const sender = fullName(shipment.senderName, shipment.senderLastName);
   const payment = getPaymentStatusPresentation(shipment.paymentStatus);
   const rawPrice = Number(shipment.finalPriceEur ?? shipment.basePriceEur ?? 0);
@@ -440,7 +441,7 @@ export async function printUserShipmentReceipt(shipment: any): Promise<void> {
     const today = new Date().toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" });
     const paymentPresentation = getPaymentStatusPresentation(shipment.paymentStatus);
     const paymentPrint = getPaymentPrintPresentation(shipment.paymentStatus);
-    const routePresentation = getRoutePresentation(shipment.route);
+    const routePresentation = getRoutePresentation(shipment.route, shipment.destinationAddress);
     const declarationLegal = getDeclarationLegalText(shipment.route);
     const paymentStatus = paymentPresentation.label;
     const isPaid = paymentPrint.isPaid;

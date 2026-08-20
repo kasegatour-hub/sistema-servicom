@@ -21,10 +21,11 @@ const TORINO = {
   phone: "+39 351 278 7962 / +39 350 902 5271 / +39 389 766 3723",
 };
 
-export function getRoutePresentation(route?: string | null) {
+export function getRoutePresentation(route?: string | null, destinationAddress?: string | null) {
   const isTorinoToLima = route === ROUTES.TORINO_LIMA;
   const origin = isTorinoToLima ? TORINO : LIMA;
-  const destination = isTorinoToLima ? LIMA : TORINO;
+  const defaultDestination = isTorinoToLima ? LIMA : TORINO;
+  const destination = destinationAddress?.trim() ? { ...defaultDestination, officeLabel: "Agencia de destino seleccionada", address: destinationAddress.trim() } : defaultDestination;
   return {
     route: isTorinoToLima ? ROUTES.TORINO_LIMA : ROUTES.LIMA_TORINO,
     origin,

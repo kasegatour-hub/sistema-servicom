@@ -72,6 +72,7 @@ interface ShipmentData {
   updatedAt: Date;
   paymentStatus?: string | null;
   route?: string | null;
+  destinationAddress?: string | null;
 }
 
 export function LocationsSection() {
@@ -138,7 +139,7 @@ export default function Home() {
   const [scannerOpen, setScannerOpen] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [searchParams, setSearchParams] = useState<SearchFormData | null>(null);
-  const pickupRoute = shipmentData ? getRoutePresentation(shipmentData.route) : null;
+  const pickupRoute = shipmentData ? getRoutePresentation(shipmentData.route, shipmentData.destinationAddress) : null;
 
   // Load search params from URL on mount
   useEffect(() => {

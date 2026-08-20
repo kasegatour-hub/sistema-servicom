@@ -26,6 +26,7 @@ import { GeneralFeedbackDialog } from "@/components/GeneralFeedbackDialog";
 import { IdentityDocumentField } from "@/components/IdentityDocumentField";
 import { ShipmentTrendCharts } from "@/components/ShipmentTrendCharts";
 import { PasswordRequirements } from "@/components/PasswordRequirements";
+import { AgencyDestinationPicker } from "@/components/AgencyDestinationPicker";
 import type { IdentityDocumentType } from "@shared/identityDocuments";
 import { getFuzzySearchScore } from "@shared/fuzzySearch";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "@shared/passwordPolicy";
@@ -83,6 +84,7 @@ export default function AccountPage() {
   const [documentCount, setDocumentCount] = useState(1);
   const [docType, setDocType] = useState<"simple" | "apostillado">("simple");
   const [shipmentRoute, setShipmentRoute] = useState<"Lima - Torino" | "Torino - Lima">("Lima - Torino");
+  const [destinationAddress, setDestinationAddress] = useState("");
   const [sheetCount, setSheetCount] = useState(1);
   const [senderName, setSenderName] = useState("");
   const [senderLastName, setSenderLastName] = useState("");
@@ -338,7 +340,7 @@ export default function AccountPage() {
   // Si ya inició sesión, mostrar su panel personal, datos de perfil y envíos
   if (me) {
     const receiptPaymentUi = receiptShipment ? getPaymentStatusUi(receiptShipment.paymentStatus) : null;
-    const receiptRoute = receiptShipment ? getRoutePresentation(receiptShipment.route) : null;
+    const receiptRoute = receiptShipment ? getRoutePresentation(receiptShipment.route, receiptShipment.destinationAddress) : null;
 
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#eef6fb] to-white pb-12">
@@ -603,6 +605,7 @@ export default function AccountPage() {
                    docType,
                    sheetCount,
                    route: shipmentRoute,
+                  destinationAddress,
                   senderName: profileName || senderName,
                   senderLastName: profileLastName || senderLastName,
                   senderDni: profileDni || senderDni,
@@ -644,6 +647,7 @@ export default function AccountPage() {
                       <option value="apostillado">Documentos Apostillados (50 € base hasta 5 hojas, +10 € adicionales)</option>
                     </select>
                   </div>
+                  <div className="md:col-span-2"><AgencyDestinationPicker route={shipmentRoute} value={destinationAddress} onChange={setDestinationAddress} /></div>
                   <QuantityStepper
                     id="account-sheet-count"
                     label="Cantidad de Hojas / Documentos"

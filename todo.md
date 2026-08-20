@@ -703,3 +703,9 @@
 - [x] Impedir que una misma persona sea seleccionada como invitante e invitado, usando identidad documental y datos personales
 - [x] Corregir el falso error de guardado cuando la Carta ya fue persistida y conciliar el historial automáticamente
 - [x] Reducir trabajo de creación evitable y añadir pruebas de regresión, compilación y publicación
+
+## Destino por agencia y mapa
+- [x] Permitir elegir como destino una agencia Servicom, Olva Courier o Shalom al registrar documentos o encomiendas
+- [x] Incorporar búsqueda de agencia y mapa interactivo para seleccionar el destino exacto
+- [x] Guardar y mostrar la agencia de destino en el registro y el comprobante de envío
+- [x] Cubrir el selector de destino con pruebas, validar la compilación y publicar la mejora

@@ -35,7 +35,7 @@ export default function ReceiptPage() {
   const [downloadFormat, setDownloadFormat] = useState<ReceiptDownloadFormat>("pdf");
   const paymentUi = shipment ? getPaymentStatusUi(shipment.paymentStatus) : getPaymentStatusUi(undefined);
   const priceUi = shipment ? getReceiptPricePresentation(shipment) : null;
-  const routePresentation = getRoutePresentation(shipment?.route);
+  const routePresentation = getRoutePresentation(shipment?.route, shipment?.destinationAddress);
 
   useEffect(() => {
     if (!shipment) return;

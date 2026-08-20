@@ -73,7 +73,7 @@ export async function buildAdminReceiptDocument(input: AdminReceiptDocumentInput
   const code = String(shipment.code);
   const sender = `${shipment.senderName || ""} ${shipment.senderLastName || ""}`.trim() || "No especificado";
   const recipient = `${shipment.recipientName || ""} ${shipment.recipientLastName || ""}`.trim() || "No especificado";
-  const route = getRoutePresentation(shipment.route);
+  const route = getRoutePresentation(shipment.route, shipment.destinationAddress);
   const payment = getPaymentPrintPresentation(shipment.paymentStatus);
   const checklist = getChecklist(shipment);
   const shipmentLabel = shipment.shipmentType === "encomienda" ? "ENCOMIENDA" : "DOCUMENTO";
@@ -131,7 +131,7 @@ export async function downloadAdminReceiptPdf(input: AdminReceiptDocumentInput, 
   const code = String(shipment.code);
   const sender = `${shipment.senderName || ""} ${shipment.senderLastName || ""}`.trim() || "No especificado";
   const recipient = `${shipment.recipientName || ""} ${shipment.recipientLastName || ""}`.trim() || "No especificado";
-  const route = getRoutePresentation(shipment.route);
+  const route = getRoutePresentation(shipment.route, shipment.destinationAddress);
   const paymentLabel = shipment.paymentStatus === "Pagado" ? "Pagado" : shipment.paymentStatus === "Falta cancelar" ? "No cancelado" : "Sin marcar";
   const shipmentLabel = shipment.shipmentType === "encomienda" ? "ENCOMIENDA" : "DOCUMENTO";
   const filename = `${buildReceiptDownloadFilename({ recipientName: shipment.recipientName, recipientLastName: shipment.recipientLastName, recipientDisplayName: recipient, orderNumber: order, shipmentType: shipment.shipmentType })}.pdf`;

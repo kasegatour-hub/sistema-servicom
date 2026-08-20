@@ -19,8 +19,8 @@ export function buildAdminDeclarationHtml(data: {
   return `<p>Yo, <strong>${data.sender}</strong>, identificado(a) con documento de identidad N° <strong>${data.senderDni}</strong>, en pleno uso de mis facultades, declaro bajo juramento que el envío amparado bajo la Orden N° <strong>${data.order}</strong> (Token de seguridad: ${data.token}) contiene <strong>ÚNICA Y ESTRICTAMENTE DOCUMENTACIÓN LÍCITA</strong>.</p><p>${legal.guarantee}</p><p>${legal.authorities}</p><p>En consecuencia, eximo expresa, legal y totalmente de cualquier implicancia, investigación, responsabilidad operativa o financiera a la empresa <strong>${INSTITUTIONAL_DECLARATION_ENTITY}</strong>. Asimismo, autorizo de manera irrevocable la apertura, revisión física detallada y escaneo del presente envío por parte de la agencia o las autoridades competentes sin necesidad de mi presencia ni notificación previa.</p><p>${legal.originLine} ${data.today}. <strong>${INSTITUTIONAL_DECLARATION_ENTITY}</strong>.</p>`;
 }
 
-export function buildAdminRouteSummaryHtml(routeValue?: string | null) {
-  const route = getRoutePresentation(routeValue);
+export function buildAdminRouteSummaryHtml(routeValue?: string | null, destinationAddress?: string | null) {
+  const route = getRoutePresentation(routeValue, destinationAddress);
   return `<div class="section"><div class="section-title">Ruta y sedes</div><div class="row"><div class="label">Origen:</div><div class="value">${route.originPrintLabel} · ${route.origin.officeLabel}</div></div><div class="row"><div class="label">Destino:</div><div class="value">${route.destinationPrintLabel} · ${route.destination.officeLabel}</div></div><div class="row"><div class="label">Dirección de entrega:</div><div class="value">${route.destination.address}</div></div><div class="row"><div class="label">Contacto de sede:</div><div class="value">${route.destination.phone}</div></div></div>`;
 }
 
@@ -38,11 +38,12 @@ export function buildAdminDeliveryTicketHtml(data: {
   shipmentType?: "documento" | "encomienda";
   price?: ReceiptPriceData;
   route?: string;
+  destinationAddress?: string | null;
   limaTorinoEncomiendasEnabled?: boolean;
   managementUrl?: string;
   managementQrDataUrl?: string;
 }) {
-  const route = getRoutePresentation(data.route);
+  const route = getRoutePresentation(data.route, data.destinationAddress);
   const shipmentLabel = data.shipmentType === "encomienda" ? "ENCOMIENDA" : "DOCUMENTO";
   const priceHtml = buildReceiptPriceHtml(data.price || {});
   const checklistHtml = data.contentChecklist?.length
