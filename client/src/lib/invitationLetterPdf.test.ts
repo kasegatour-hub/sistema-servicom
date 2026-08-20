@@ -1,14 +1,6 @@
 /** @vitest-environment jsdom */
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const html2canvasMock = vi.hoisted(() => vi.fn());
-const addPageMock = vi.hoisted(() => vi.fn());
-const addImageMock = vi.hoisted(() => vi.fn());
-const saveMock = vi.hoisted(() => vi.fn());
-
-vi.mock("html2canvas", () => ({ default: html2canvasMock }));
-vi.mock("jspdf", () => ({ jsPDF: vi.fn(() => ({ addPage: addPageMock, addImage: addImageMock, save: saveMock })) }));
-
 import { downloadInvitationLetterPdf, type InvitationLetterData } from "./invitationLetter";
 
 const data: InvitationLetterData = {
@@ -23,20 +15,23 @@ afterEach(() => {
 });
 
 describe("downloadInvitationLetterPdf", () => {
-  it("renderiza las tres páginas, descarga el PDF nombrado y elimina el contenedor temporal", async () => {
-    html2canvasMock.mockImplementation(async () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = 630;
-      canvas.height = 891;
-      return canvas;
-    });
+  it("abre el diálogo nativo con la misma maqueta completa que se imprime", async () => {
+    const printWindow = {
+      closed: false,
+      document: { open: vi.fn(), write: vi.fn(), close: vi.fn(), title: "" },
+      focus: vi.fn(),
+      print: vi.fn(),
+      close: vi.fn(),
+      onload: null as null | (() => void),
+      onafterprint: null as null | (() => void),
+    };
+    vi.spyOn(window, "open").mockReturnValue(printWindow as unknown as Window);
 
     await expect(downloadInvitationLetterPdf(data)).resolves.toBe("carta-invitacion-juan-chavez-rondinel-2026-08-19.pdf");
 
-    expect(html2canvasMock).toHaveBeenCalledTimes(3);
-    expect(addPageMock).toHaveBeenCalledTimes(2);
-    expect(addImageMock).toHaveBeenCalledTimes(3);
-    expect(saveMock).toHaveBeenCalledWith("carta-invitacion-juan-chavez-rondinel-2026-08-19.pdf");
-    expect(document.querySelector(".invitation-document")).toBeNull();
+    expect(printWindow.document.write).toHaveBeenCalledWith(expect.stringContaining("DICHIARAZIONE GARANZIA E/O"));
+    printWindow.onload?.();
+    expect(printWindow.print).toHaveBeenCalledTimes(1);
+    expect(printWindow.document.title).toBe("carta-invitacion-juan-chavez-rondinel-2026-08-19");
   });
 });

@@ -681,3 +681,8 @@
 - [x] Corregir el solapamiento de textos entre QR y políticas en la primera página
 - [x] Aplicar una única fuente de composición al PDF descargado y a la impresión
 - [x] Añadir pruebas, validar visualmente y publicar la corrección
+
+## Descarga PDF de cartas de invitación
+- [x] Diagnosticar el error de generación al descargar una carta guardada desde el historial
+- [x] Reparar la exportación PDF de Carta de invitación sin depender de recursos frágiles
+- [x] Añadir pruebas de descarga, validar y publicar la corrección

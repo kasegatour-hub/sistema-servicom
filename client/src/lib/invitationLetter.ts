@@ -169,41 +169,33 @@ async function createLetterContainer(data: InvitationLetterData, italian: Invita
   return container;
 }
 
+function openInvitationLetterPrintDialog(data: InvitationLetterData, italian: InvitationLetterItalian) {
+  const filename = buildInvitationLetterFilename(data);
+  const printWindow = window.open("", "_blank", "width=900,height=900");
+  if (!printWindow) throw new Error("Permite las ventanas emergentes para imprimir la carta.");
+  let hasPrinted = false;
+  const startPrint = () => {
+    if (hasPrinted || printWindow.closed) return;
+    hasPrinted = true;
+    printWindow.focus();
+    printWindow.print();
+  };
+  printWindow.document.open();
+  printWindow.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${filename}</title></head><body>${buildInvitationLetterHtml(data, italian)}</body></html>`);
+  printWindow.document.close();
+  printWindow.document.title = filename;
+  printWindow.onload = startPrint;
+  printWindow.onafterprint = () => { if (!printWindow.closed) printWindow.close(); };
+  window.setTimeout(startPrint, 250);
+  window.setTimeout(() => { if (!printWindow.closed) printWindow.close(); }, 1200);
+  return `${filename}.pdf`;
+}
+
+/** Abre «Guardar como PDF» con la misma maqueta que la impresión de la carta. */
 export async function downloadInvitationLetterPdf(data: InvitationLetterData, italian: InvitationLetterItalian = buildInvitationLetterItalianFallback(data)): Promise<string> {
-  let container: HTMLDivElement | null = null;
-  try {
-    const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import("html2canvas"), import("jspdf")]);
-    container = await createLetterContainer(data, italian);
-    const pages = Array.from(container.querySelectorAll<HTMLElement>(".invitation-paper-page"));
-    if (!pages.length) throw new Error("No se encontraron páginas para exportar.");
-    const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
-    for (let index = 0; index < pages.length; index += 1) {
-      const page = pages[index];
-      const canvas = await html2canvas(page, {
-        backgroundColor: "#ffffff",
-        scale: 1.5,
-        logging: false,
-        useCORS: false,
-        removeContainer: true,
-        windowWidth: Math.ceil(page.scrollWidth),
-        windowHeight: Math.ceil(page.scrollHeight),
-      });
-      if (!canvas.width || !canvas.height) throw new Error(`No se pudo renderizar la página ${index + 1} de la carta.`);
-      if (index > 0) pdf.addPage();
-      pdf.addImage(canvas, "PNG", 0, 0, 210, 297, undefined, "FAST");
-    }
-    const filename = `${buildInvitationLetterFilename(data)}.pdf`;
-    pdf.save(filename);
-    return filename;
-  } finally { container?.remove(); }
+  return openInvitationLetterPrintDialog(data, italian);
 }
 
 export function printInvitationLetter(data: InvitationLetterData, italian: InvitationLetterItalian = buildInvitationLetterItalianFallback(data)) {
-  const printWindow = window.open("", "_blank", "width=900,height=900");
-  if (!printWindow) throw new Error("Permite las ventanas emergentes para imprimir la carta.");
-  printWindow.document.write(`<!doctype html><html><head><title>${buildInvitationLetterFilename(data)}</title></head><body>${buildInvitationLetterHtml(data, italian)}</body></html>`);
-  printWindow.document.close();
-  printWindow.onload = () => { printWindow.focus(); printWindow.print(); };
-  printWindow.onafterprint = () => { if (!printWindow.closed) printWindow.close(); };
-  window.setTimeout(() => { if (!printWindow.closed) printWindow.close(); }, 1200);
+  openInvitationLetterPrintDialog(data, italian);
 }
