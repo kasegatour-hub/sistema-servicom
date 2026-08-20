@@ -35,4 +35,12 @@ describe("translateInvitationToItalian", () => {
     const translated = await translateInvitationToItalian({ ...input, inviter: { ...input.inviter, occupation: "BADANTE" } });
     expect(translated.inviter.occupation).toBe("BADANTE");
   });
+
+  it("evita la espera del traductor remoto para una Carta con ocupación italiana conocida", async () => {
+    llmMocks.invokeLLM.mockReset();
+    const translated = await translateInvitationToItalian({ ...input, inviter: { ...input.inviter, occupation: "BADANTE" }, invitee: { ...input.invitee, occupation: "ESTUDIANTE UNIVERSITARIO" } });
+
+    expect(translated).toMatchObject({ inviter: { occupation: "BADANTE", nationality: "PERUVIANA" }, invitee: { occupation: "STUDENTE UNIVERSITARIO" }, relationship: "FAMILIARE" });
+    expect(llmMocks.invokeLLM).not.toHaveBeenCalled();
+  });
 });

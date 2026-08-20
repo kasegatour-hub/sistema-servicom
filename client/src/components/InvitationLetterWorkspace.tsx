@@ -19,6 +19,13 @@ const uppercase = (value: string) => value.toLocaleUpperCase("es-PE").replace(/\
 const emptyPerson = (): InvitationPerson => ({ firstName: "", lastName: "", birthDate: "", birthPlace: "", nationality: "", identityCard: "", passport: "", residencePermit: "", address: "", occupation: "", phone: "", email: "" });
 const initialData = (): InvitationLetterData => ({ inviter: emptyPerson(), invitee: emptyPerson(), relationship: "FAMILIAR", purpose: "TURISMO / VISITA FAMILIAR", arrivalDate: "", departureDate: "", city: "TORINO", date: new Date().toISOString().slice(0, 10), financialSupport: true, healthInsurance: true, financialGuarantee: false, accommodationDeclared: true, accommodationAtHome: true, accommodationAtOtherAddress: false, inviteeIdAttached: true, financialGuaranteeAttached: false, otherAnnexes: "", companyAnnexes: "" });
 const LETTERS_PER_PAGE = 6;
+const normalizePersonIdentity = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+const isSameInvitationPerson = (inviter: InvitationPerson, invitee: InvitationPerson) => {
+  const sameName = normalizePersonIdentity(`${inviter.firstName} ${inviter.lastName}`) === normalizePersonIdentity(`${invitee.firstName} ${invitee.lastName}`);
+  const inviterIdentifiers = [inviter.passport, inviter.identityCard, inviter.email].map(normalizePersonIdentity).filter(Boolean);
+  const inviteeIdentifiers = [invitee.passport, invitee.identityCard, invitee.email].map(normalizePersonIdentity).filter(Boolean);
+  return sameName || inviterIdentifiers.some(identifier => inviteeIdentifiers.includes(identifier));
+};
 
 function parseSavedLetter(record: any): { data: InvitationLetterData; italian: InvitationLetterItalian; signature?: InvitationLetterSignatureView | null } | null {
   try {
@@ -76,9 +83,23 @@ export function InvitationLetterWorkspace({ shipments = [] as any[] }: { shipmen
   const [showDeletedLetters, setShowDeletedLetters] = useState(false);
   const lettersQuery = trpc.admin.listInvitationLetters.useQuery();
   const deletedLettersQuery = trpc.admin.listDeletedInvitationLetters.useQuery(undefined, { enabled: showDeletedLetters });
+  const reconcilePersistedLetter = async (variables: { data: InvitationLetterData; italian: InvitationLetterItalian }) => {
+    const result = await lettersQuery.refetch();
+    const record = (result.data || []).find((candidate: any) => {
+      const stored = parseSavedLetter(candidate);
+      return stored?.data.inviter.passport === variables.data.inviter.passport && stored.data.inviter.identityCard === variables.data.inviter.identityCard && stored.data.invitee.passport === variables.data.invitee.passport && stored.data.invitee.firstName === variables.data.invitee.firstName && stored.data.invitee.lastName === variables.data.invitee.lastName && stored.data.date === variables.data.date;
+    });
+    if (!record) return false;
+    const stored = parseSavedLetter(record);
+    if (!stored) return false;
+    setSavedLetter(stored);
+    setError("");
+    setLetterView("history");
+    return true;
+  };
   const saveRecordMutation = trpc.admin.saveInvitationLetter.useMutation({
     onSuccess: (record, variables) => { setSavedLetter({ data: variables.data, italian: variables.italian }); setTemporaryAccount(record.account?.created && record.account?.temporaryPassword ? { email: record.account.email || "", password: record.account.temporaryPassword } : null); setError(""); setLetterView("history"); lettersQuery.refetch(); },
-    onError: issue => setError(issue.message || "No se pudo guardar la carta de invitación."),
+    onError: async (issue, variables) => { if (await reconcilePersistedLetter(variables)) return; setError(issue.message || "No se pudo guardar la carta de invitación."); },
   });
   const translateMutation = trpc.admin.translateInvitationLetter.useMutation({
     onSuccess: italian => saveRecordMutation.mutate({ data: { ...data, otherAnnexes: data.otherAnnexes ?? "", companyAnnexes: data.companyAnnexes ?? "" }, italian }),
@@ -142,6 +163,7 @@ export function InvitationLetterWorkspace({ shipments = [] as any[] }: { shipmen
     const inviterError = validatePerson(data.inviter, "la persona invitante", true);
     const inviteeError = validatePerson(data.invitee, "la persona invitada", false);
     if (inviterError || inviteeError || !data.arrivalDate || !data.departureDate || !data.city || !data.date) { setError(inviterError || inviteeError || "Completa la ciudad, fecha de emisión y el período de estadía. / Completa città, data di emissione e periodo di soggiorno."); return false; }
+    if (isSameInvitationPerson(data.inviter, data.invitee)) { setError("La persona invitante y la persona invitada deben ser distintas. Verifica nombres y documentos de identidad."); return false; }
     if (new Date(data.departureDate) < new Date(data.arrivalDate)) { setError("La fecha de fin de estadía debe ser posterior a la fecha de inicio. / La data di fine deve essere successiva alla data di inizio."); return false; }
     setError("");
     return true;

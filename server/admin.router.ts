@@ -58,6 +58,7 @@ export const invitationInviteeSchema = invitationPersonSchema.extend({
   phone: z.string().trim().max(32),
   email: z.string().trim().max(320),
 });
+const normalizeInvitationPersonIdentity = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
 export const invitationLetterDataSchema = z.object({
   inviter: invitationPersonSchema,
   invitee: invitationInviteeSchema,
@@ -77,12 +78,34 @@ export const invitationLetterDataSchema = z.object({
   financialGuaranteeAttached: z.boolean(),
   otherAnnexes: z.string().trim().max(1000),
   companyAnnexes: z.string().trim().max(1500),
+}).superRefine((data, ctx) => {
+  const inviterName = normalizeInvitationPersonIdentity(`${data.inviter.firstName} ${data.inviter.lastName}`);
+  const inviteeName = normalizeInvitationPersonIdentity(`${data.invitee.firstName} ${data.invitee.lastName}`);
+  const inviterIdentifiers = [data.inviter.passport, data.inviter.identityCard, data.inviter.email].map(normalizeInvitationPersonIdentity).filter(Boolean);
+  const inviteeIdentifiers = [data.invitee.passport, data.invitee.identityCard, data.invitee.email].map(normalizeInvitationPersonIdentity).filter(Boolean);
+  if (inviterName === inviteeName || inviterIdentifiers.some(identifier => inviteeIdentifiers.includes(identifier))) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["invitee", "passport"], message: "La persona invitante y la persona invitada deben ser distintas." });
 });
 
 const ITALIAN_OCCUPATIONS = ["BADANTE", "MUSICISTA", "COLF", "INFERMIERE", "INFERMIERA", "CAMERIERE", "CAMERIERA", "AUTISTA"];
 const preserveItalianOccupation = (source: string, translated: string) => ITALIAN_OCCUPATIONS.some(term => new RegExp(`\\b${term}\\b`, "i").test(source)) ? source : translated;
+const localItalianText = (value: string) => value.trim().toUpperCase().replace(/PERU\b/g, "PERÙ");
+const translateKnownInvitationQuickly = (input: z.infer<typeof invitationItalianSchema>) => {
+  if (!ITALIAN_OCCUPATIONS.includes(localItalianText(input.inviter.occupation))) return null;
+  const nationality = (value: string) => ["PERUANA", "PERUVIANA"].includes(localItalianText(value)) ? "PERUVIANA" : localItalianText(value);
+  const occupation = (value: string) => ({ "ESTUDIANTE": "STUDENTE", "ESTUDIANTE UNIVERSITARIO": "STUDENTE UNIVERSITARIO", "COMERCIANTE": "COMMERCIANTE" }[localItalianText(value)] || localItalianText(value));
+  const residencePermit = localItalianText(input.inviter.residencePermit) === "PERMISO" ? "PERMESSO" : input.inviter.residencePermit;
+  return {
+    inviter: { birthPlace: localItalianText(input.inviter.birthPlace), nationality: nationality(input.inviter.nationality), residencePermit, address: input.inviter.address, occupation: input.inviter.occupation },
+    invitee: { birthPlace: localItalianText(input.invitee.birthPlace), nationality: nationality(input.invitee.nationality), address: input.invitee.address, occupation: occupation(input.invitee.occupation) },
+    relationship: localItalianText(input.relationship) === "FAMILIAR" ? "FAMILIARE" : localItalianText(input.relationship),
+    purpose: localItalianText(input.purpose).replace("VISITA FAMILIAR", "VISITA FAMILIARE"),
+    city: localItalianText(input.city),
+  };
+};
 
 export async function translateInvitationToItalian(input: z.infer<typeof invitationItalianSchema>) {
+  const quickTranslation = translateKnownInvitationQuickly(input);
+  if (quickTranslation) return quickTranslation;
   const response = await invokeLLM({
     model: "gpt-5-mini",
     messages: [

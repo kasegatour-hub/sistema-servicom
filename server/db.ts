@@ -393,6 +393,9 @@ export async function createInvitationLetterRecord(input: {
 }) {
   const db = await getDb();
   if (!db) return undefined;
+  const createdAt = new Date();
+  const letterData = JSON.stringify(input.letterData);
+  const italianData = JSON.stringify(input.italianData);
   const result = await db.insert(invitationLetters).values({
     createdByAdminId: input.createdByAdminId,
     createdByAdminLabel: input.createdByAdminLabel,
@@ -401,13 +404,13 @@ export async function createInvitationLetterRecord(input: {
     inviteeName: input.inviteeName,
     inviteeLastName: input.inviteeLastName,
     clientAccountId: input.clientAccountId ?? null,
-    letterData: JSON.stringify(input.letterData),
-    italianData: JSON.stringify(input.italianData),
+    letterData,
+    italianData,
+    createdAt,
   });
   const id = Number((result as { insertId?: number }).insertId);
   if (!id) return undefined;
-  const rows = await db.select().from(invitationLetters).where(eq(invitationLetters.id, id)).limit(1);
-  return rows[0];
+  return { id, createdByAdminId: input.createdByAdminId, createdByAdminLabel: input.createdByAdminLabel, inviterName: input.inviterName, inviterLastName: input.inviterLastName, inviteeName: input.inviteeName, inviteeLastName: input.inviteeLastName, clientAccountId: input.clientAccountId ?? null, letterData, italianData, deletedAt: null, deletedByAdminId: null, deletedByAdminLabel: null, deleteReason: null, createdAt };
 }
 
 export async function getInvitationLetterById(id: number) {

@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 const translationMutation = vi.hoisted(() => ({ isPending: false, mutate: vi.fn(), onSuccess: undefined as undefined | ((value: any) => void) }));
-const saveMutation = vi.hoisted(() => ({ isPending: false, mutate: vi.fn(), onSuccess: undefined as undefined | ((value: any, variables: any) => void) }));
+const saveMutation = vi.hoisted(() => ({ isPending: false, mutate: vi.fn(), onSuccess: undefined as undefined | ((value: any, variables: any) => void), onError: undefined as undefined | ((error: Error, variables: any) => void) }));
 const lettersQuery = vi.hoisted(() => ({ data: [] as any[], isLoading: false, refetch: vi.fn() }));
 const deletedLettersQuery = vi.hoisted(() => ({ data: [] as any[], isLoading: false, refetch: vi.fn() }));
 const peopleSearchQuery = vi.hoisted(() => ({ data: [] as any[], isFetching: false }));
@@ -18,7 +18,7 @@ vi.mock("@/lib/trpc", () => ({
   trpc: {
     admin: {
       translateInvitationLetter: { useMutation: (options?: { onSuccess?: (value: any) => void }) => { translationMutation.onSuccess = options?.onSuccess; return translationMutation; } },
-      saveInvitationLetter: { useMutation: (options?: { onSuccess?: (value: any, variables: any) => void }) => { saveMutation.onSuccess = options?.onSuccess; return saveMutation; } },
+      saveInvitationLetter: { useMutation: (options?: { onSuccess?: (value: any, variables: any) => void; onError?: (error: Error, variables: any) => void }) => { saveMutation.onSuccess = options?.onSuccess; saveMutation.onError = options?.onError; return saveMutation; } },
       listInvitationLetters: { useQuery: () => lettersQuery },
       listDeletedInvitationLetters: { useQuery: () => deletedLettersQuery },
       deleteInvitationLetter: { useMutation: (options?: { onSuccess?: (value: any) => void }) => { deleteMutation.onSuccess = options?.onSuccess; return deleteMutation; } },
@@ -37,7 +37,7 @@ vi.mock("@/lib/invitationLetter", () => ({
 import { InvitationLetterWorkspace } from "./InvitationLetterWorkspace";
 
 afterEach(() => cleanup());
-beforeEach(() => { vi.clearAllMocks(); translationMutation.onSuccess = undefined; saveMutation.onSuccess = undefined; deleteMutation.onSuccess = undefined; restoreMutation.onSuccess = undefined; prepareSignatureMutation.onSuccess = undefined; sendSignatureMutation.onSuccess = undefined; lettersQuery.data = []; deletedLettersQuery.data = []; peopleSearchQuery.data = []; });
+beforeEach(() => { vi.clearAllMocks(); translationMutation.onSuccess = undefined; saveMutation.onSuccess = undefined; saveMutation.onError = undefined; deleteMutation.onSuccess = undefined; restoreMutation.onSuccess = undefined; prepareSignatureMutation.onSuccess = undefined; sendSignatureMutation.onSuccess = undefined; lettersQuery.data = []; deletedLettersQuery.data = []; peopleSearchQuery.data = []; });
 
 describe("InvitationLetterWorkspace", () => {
   it("normalizes searchable places and nationalities to uppercase and requires saving before export", () => {
@@ -91,7 +91,7 @@ describe("InvitationLetterWorkspace", () => {
     const fill = (id: string, value: string) => fireEvent.change(document.getElementById(id) as HTMLInputElement, { target: { value } });
     const fillDate = (id: string, value: string) => { const input = document.getElementById(id) as HTMLInputElement; fireEvent.change(input, { target: { value } }); fireEvent.blur(input); };
     fill("invitante-firstName", "Ana"); fill("invitante-lastName", "Rossi"); fillDate("invitante-nacimiento", "01/01/1970"); fill("invitante-lugar", "Lima"); fill("invitante-nacionalidad", "Peruana"); fill("invitante-identityCard", "AA12345BB"); fill("invitante-passport", "AB123456"); fill("invitante-residencePermit", "Permiso"); fill("invitante-occupation", "Comerciante"); fill("invitante-address", "Via Muriaglio 12");
-    fill("invitado-firstName", "Maria"); fill("invitado-lastName", "Bianchi"); fillDate("invitado-nacimiento", "01/01/1995"); fill("invitado-lugar", "Lima"); fill("invitado-nacionalidad", "Peruana"); fill("invitado-passport", "AB123456"); fill("invitado-occupation", "Estudiante"); fill("invitado-address", "Lima Peru");
+    fill("invitado-firstName", "Maria"); fill("invitado-lastName", "Bianchi"); fillDate("invitado-nacimiento", "01/01/1995"); fill("invitado-lugar", "Lima"); fill("invitado-nacionalidad", "Peruana"); fill("invitado-passport", "CD654321"); fill("invitado-occupation", "Estudiante"); fill("invitado-address", "Lima Peru");
     fireEvent.change(screen.getAllByLabelText("Número de teléfono")[0], { target: { value: "970188447" } });
     fillDate("invitation-arrival", "01/09/2026"); fillDate("invitation-departure", "30/09/2026");
 
@@ -106,6 +106,31 @@ describe("InvitationLetterWorkspace", () => {
     expect(screen.getByRole("status").textContent).toMatch(/Carta creada/);
     expect(screen.getByText("Acceso temporal creado para el invitante")).toBeTruthy();
     expect(screen.getByText(/Si!claveTemporal9a/)).toBeTruthy();
+  });
+
+  it("impide crear una carta cuando la persona invitante y la invitada son la misma", () => {
+    render(<InvitationLetterWorkspace />);
+    const fill = (id: string, value: string) => fireEvent.change(document.getElementById(id) as HTMLInputElement, { target: { value } });
+    const fillDate = (id: string, value: string) => { const input = document.getElementById(id) as HTMLInputElement; fireEvent.change(input, { target: { value } }); fireEvent.blur(input); };
+    fill("invitante-firstName", "Ana"); fill("invitante-lastName", "Rossi"); fillDate("invitante-nacimiento", "01/01/1970"); fill("invitante-lugar", "Lima"); fill("invitante-nacionalidad", "Peruana"); fill("invitante-identityCard", "AA12345BB"); fill("invitante-passport", "AB123456"); fill("invitante-residencePermit", "Permiso"); fill("invitante-occupation", "Comerciante"); fill("invitante-address", "Via Muriaglio 12");
+    fill("invitado-firstName", "Ana"); fill("invitado-lastName", "Rossi"); fillDate("invitado-nacimiento", "01/01/1970"); fill("invitado-lugar", "Lima"); fill("invitado-nacionalidad", "Peruana"); fill("invitado-passport", "AB123456"); fill("invitado-occupation", "Comerciante"); fill("invitado-address", "Via Muriaglio 12");
+    fireEvent.change(screen.getAllByLabelText("Número de teléfono")[0], { target: { value: "970188447" } });
+    fillDate("invitation-arrival", "01/09/2026"); fillDate("invitation-departure", "30/09/2026");
+
+    fireEvent.click(screen.getByRole("button", { name: "Crear carta" }));
+    expect(translationMutation.mutate).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert").textContent).toMatch(/deben ser distintas/i);
+  });
+
+  it("reconcilia el historial y no muestra un falso error si la Carta ya fue creada", async () => {
+    const data = { inviter: { firstName: "ANA", lastName: "ROSSI", passport: "AB123456", identityCard: "AA12345", email: "ana@example.com" }, invitee: { firstName: "MARIA", lastName: "BIANCHI", passport: "AB765432", identityCard: "", email: "" }, date: "2026-08-19" } as any;
+    const italian = { inviter: {}, invitee: {} } as any;
+    lettersQuery.refetch.mockResolvedValue({ data: [{ id: 31, inviterName: "ANA", inviterLastName: "ROSSI", inviteeName: "MARIA", inviteeLastName: "BIANCHI", createdAt: new Date(), letterData: JSON.stringify(data), italianData: JSON.stringify(italian) }] });
+    render(<InvitationLetterWorkspace />);
+
+    saveMutation.onError?.(new Error("respuesta interrumpida"), { data, italian });
+    await waitFor(() => expect(screen.getByRole("tab", { name: /Cartas generadas \(0\)/ }).getAttribute("aria-selected")).toBe("true"));
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 
   it("muestra pestañas visibles, lista cartas por páginas y abre una carta en el formulario", () => {

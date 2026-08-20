@@ -10,4 +10,11 @@ describe("invitationLetterDataSchema", () => {
 
     expect(result.success).toBe(true);
   });
+
+  it("rechaza que el invitante se invite a sí mismo mediante el mismo pasaporte", () => {
+    const result = invitationLetterDataSchema.safeParse({ inviter, invitee: { ...invitee, firstName: inviter.firstName, lastName: inviter.lastName, passport: inviter.passport }, relationship: "FAMILIAR", purpose: "TURISMO", arrivalDate: "01/09/2026", departureDate: "30/09/2026", city: "TORINO", date: "19/08/2026", financialSupport: true, healthInsurance: true, financialGuarantee: false, accommodationDeclared: true, accommodationAtHome: true, accommodationAtOtherAddress: false, inviteeIdAttached: true, financialGuaranteeAttached: false, otherAnnexes: "", companyAnnexes: "" });
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.message).toMatch(/deben ser distintas/i);
+  });
 });

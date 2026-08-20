@@ -698,3 +698,8 @@
 ## Salida de página de firma de Carta
 - [x] Añadir un botón visible para cerrar la página de firma y volver al panel administrativo que abrió la solicitud
 - [x] Cubrir el regreso y la compilación antes de publicar la mejora
+
+## Integridad y guardado de Carta de invitación
+- [x] Impedir que una misma persona sea seleccionada como invitante e invitado, usando identidad documental y datos personales
+- [x] Corregir el falso error de guardado cuando la Carta ya fue persistida y conciliar el historial automáticamente
+- [x] Reducir trabajo de creación evitable y añadir pruebas de regresión, compilación y publicación
