@@ -4,7 +4,7 @@ import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
-import { completeShipmentSignature, createOrRefreshShipmentSignatureRequest, getShipmentByOrderAndCode, getShipmentById, getShipmentSignatureByShipmentId, listInteractionEvents, recordInteractionEvent, recordShipmentAudit } from "./db";
+import { completeInvitationLetterSignature, completeShipmentSignature, createOrRefreshShipmentSignatureRequest, getInvitationLetterById, getInvitationLetterSignatureByLetterId, getShipmentByOrderAndCode, getShipmentById, getShipmentSignatureByShipmentId, listInteractionEvents, recordInteractionEvent, recordShipmentAudit } from "./db";
 import { createSignatureToken, isSignatureTokenExpired, signatureTokenMatches } from "./signatureTokens";
 import { parseSignatureStrokes } from "../shared/signature";
 import { adminRouter } from "./admin.router";
@@ -30,6 +30,50 @@ export const appRouter = router({
   admin: adminRouter,
   account: accountRouter,
   feedback: feedbackRouter,
+
+  invitationSignature: router({
+    get: publicProcedure
+      .input(z.object({ letterId: z.number().int().positive(), token: z.string().min(20).max(128) }))
+      .query(async ({ input }) => {
+        const [letter, signature] = await Promise.all([getInvitationLetterById(input.letterId), getInvitationLetterSignatureByLetterId(input.letterId)]);
+        if (!letter || letter.deletedAt || !signature) throw new TRPCError({ code: "NOT_FOUND", message: "La solicitud de firma no existe." });
+        if (signature.status !== "signed" && (isSignatureTokenExpired(signature.requestTokenExpiresAt) || !signatureTokenMatches(input.token, signature.requestTokenHash))) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "El enlace de firma expiró o no es válido." });
+        }
+        const data = JSON.parse(letter.letterData) as { inviter: { firstName: string; lastName: string; email: string }; invitee: { firstName: string; lastName: string } };
+        return {
+          id: letter.id,
+          inviterName: `${data.inviter.firstName} ${data.inviter.lastName}`.trim(),
+          inviterEmail: data.inviter.email,
+          inviteeName: `${data.invitee.firstName} ${data.invitee.lastName}`.trim(),
+          status: signature.status,
+          signedAt: signature.signedAt,
+          signatureStrokes: signature.signatureStrokes,
+        };
+      }),
+
+    complete: publicProcedure
+      .input(z.object({ letterId: z.number().int().positive(), token: z.string().min(20).max(128), signatureStrokes: z.string().min(20).max(20000) }))
+      .mutation(async ({ input }) => {
+        const [letter, signature] = await Promise.all([getInvitationLetterById(input.letterId), getInvitationLetterSignatureByLetterId(input.letterId)]);
+        if (!letter || letter.deletedAt || !signature) throw new TRPCError({ code: "NOT_FOUND", message: "La solicitud de firma no existe." });
+        if (signature.status === "signed") throw new TRPCError({ code: "CONFLICT", message: "La Carta ya fue firmada." });
+        if (isSignatureTokenExpired(signature.requestTokenExpiresAt) || !signatureTokenMatches(input.token, signature.requestTokenHash)) throw new TRPCError({ code: "UNAUTHORIZED", message: "El enlace de firma expiró o no es válido." });
+        try { parseSignatureStrokes(input.signatureStrokes); } catch (error: any) { throw new TRPCError({ code: "BAD_REQUEST", message: error.message || "La firma no es válida." }); }
+        const data = JSON.parse(letter.letterData) as { inviter: { firstName: string; lastName: string; email: string } };
+        const saved = await completeInvitationLetterSignature({
+          invitationLetterId: letter.id,
+          tokenHash: signature.requestTokenHash,
+          signerName: `${data.inviter.firstName} ${data.inviter.lastName}`.trim(),
+          signerEmail: data.inviter.email,
+          consentTextVersion: "servicom-carta-invitacion-v1",
+          consentAcceptedAt: new Date(),
+          signatureStrokes: input.signatureStrokes,
+        });
+        if (!saved) throw new TRPCError({ code: "UNAUTHORIZED", message: "La sesión de firma expiró o ya fue utilizada." });
+        return { status: "signed" as const, signedAt: saved.signedAt, signerName: saved.signerName };
+      }),
+  }),
 
   analytics: router({
     track: publicProcedure

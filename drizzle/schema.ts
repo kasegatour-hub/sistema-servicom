@@ -39,6 +39,7 @@ export const localAccounts = mysqlTable("local_accounts", {
   phoneVerifiedAt: timestamp("phoneVerifiedAt"),
   failedPasswordAttempts: int("failedPasswordAttempts").default(0).notNull(),
   passwordLockedUntil: timestamp("passwordLockedUntil"),
+  mustChangePassword: int("mustChangePassword").default(0).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -118,6 +119,7 @@ export const invitationLetters = mysqlTable("invitation_letters", {
   inviterLastName: varchar("inviterLastName", { length: 255 }).notNull(),
   inviteeName: varchar("inviteeName", { length: 255 }).notNull(),
   inviteeLastName: varchar("inviteeLastName", { length: 255 }).notNull(),
+  clientAccountId: int("clientAccountId"),
   letterData: longtext("letterData").notNull(),
   italianData: longtext("italianData").notNull(),
   deletedAt: timestamp("deletedAt"),
@@ -132,6 +134,31 @@ export const invitationLetters = mysqlTable("invitation_letters", {
 }));
 export type InvitationLetter = typeof invitationLetters.$inferSelect;
 export type InsertInvitationLetter = typeof invitationLetters.$inferInsert;
+
+/** Firma electrónica y solicitud de firma asociadas a una Carta de invitación. */
+export const invitationLetterSignatures = mysqlTable("invitation_letter_signatures", {
+  id: int("id").autoincrement().primaryKey(),
+  invitationLetterId: int("invitationLetterId").notNull().unique(),
+  accountId: int("accountId"),
+  requestTokenHash: varchar("requestTokenHash", { length: 128 }).notNull().unique(),
+  requestTokenExpiresAt: timestamp("requestTokenExpiresAt").notNull(),
+  status: mysqlEnum("status", ["pending", "signed"]).default("pending").notNull(),
+  signerName: varchar("signerName", { length: 255 }),
+  signerEmail: varchar("signerEmail", { length: 320 }),
+  consentTextVersion: varchar("consentTextVersion", { length: 64 }),
+  consentAcceptedAt: timestamp("consentAcceptedAt"),
+  evidenceHash: varchar("evidenceHash", { length: 128 }),
+  signatureStrokes: longtext("signatureStrokes"),
+  requestedAt: timestamp("requestedAt").defaultNow().notNull(),
+  signedAt: timestamp("signedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => ({
+  letterIdx: index("invitation_letter_signatures_letter_idx").on(table.invitationLetterId),
+  accountIdx: index("invitation_letter_signatures_account_idx").on(table.accountId),
+}));
+export type InvitationLetterSignature = typeof invitationLetterSignatures.$inferSelect;
+export type InsertInvitationLetterSignature = typeof invitationLetterSignatures.$inferInsert;
 
 /** Cupones promocionales del 25% gestionados por operadores y Master Admin. */
 export const discountCoupons = mysqlTable("discount_coupons", {

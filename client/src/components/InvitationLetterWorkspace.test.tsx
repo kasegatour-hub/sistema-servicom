@@ -10,6 +10,8 @@ const deletedLettersQuery = vi.hoisted(() => ({ data: [] as any[], isLoading: fa
 const peopleSearchQuery = vi.hoisted(() => ({ data: [] as any[], isFetching: false }));
 const deleteMutation = vi.hoisted(() => ({ isPending: false, mutate: vi.fn(), onSuccess: undefined as undefined | ((value: any) => void) }));
 const restoreMutation = vi.hoisted(() => ({ isPending: false, mutate: vi.fn(), onSuccess: undefined as undefined | ((value: any) => void) }));
+const prepareSignatureMutation = vi.hoisted(() => ({ isPending: false, mutate: vi.fn(), onSuccess: undefined as undefined | ((value: any) => void) }));
+const sendSignatureMutation = vi.hoisted(() => ({ isPending: false, mutate: vi.fn(), onSuccess: undefined as undefined | ((value: any) => void) }));
 const invitationDocumentMocks = vi.hoisted(() => ({ download: vi.fn(), print: vi.fn() }));
 
 vi.mock("@/lib/trpc", () => ({
@@ -21,6 +23,8 @@ vi.mock("@/lib/trpc", () => ({
       listDeletedInvitationLetters: { useQuery: () => deletedLettersQuery },
       deleteInvitationLetter: { useMutation: (options?: { onSuccess?: (value: any) => void }) => { deleteMutation.onSuccess = options?.onSuccess; return deleteMutation; } },
       restoreInvitationLetter: { useMutation: (options?: { onSuccess?: (value: any) => void }) => { restoreMutation.onSuccess = options?.onSuccess; return restoreMutation; } },
+      prepareInvitationLetterSignature: { useMutation: (options?: { onSuccess?: (value: any) => void }) => { prepareSignatureMutation.onSuccess = options?.onSuccess; return prepareSignatureMutation; } },
+      sendInvitationLetterSignature: { useMutation: (options?: { onSuccess?: (value: any) => void }) => { sendSignatureMutation.onSuccess = options?.onSuccess; return sendSignatureMutation; } },
       searchInvitationPeople: { useQuery: () => peopleSearchQuery },
     },
   },
@@ -33,7 +37,7 @@ vi.mock("@/lib/invitationLetter", () => ({
 import { InvitationLetterWorkspace } from "./InvitationLetterWorkspace";
 
 afterEach(() => cleanup());
-beforeEach(() => { vi.clearAllMocks(); translationMutation.onSuccess = undefined; saveMutation.onSuccess = undefined; deleteMutation.onSuccess = undefined; restoreMutation.onSuccess = undefined; lettersQuery.data = []; deletedLettersQuery.data = []; peopleSearchQuery.data = []; });
+beforeEach(() => { vi.clearAllMocks(); translationMutation.onSuccess = undefined; saveMutation.onSuccess = undefined; deleteMutation.onSuccess = undefined; restoreMutation.onSuccess = undefined; prepareSignatureMutation.onSuccess = undefined; sendSignatureMutation.onSuccess = undefined; lettersQuery.data = []; deletedLettersQuery.data = []; peopleSearchQuery.data = []; });
 
 describe("InvitationLetterWorkspace", () => {
   it("normalizes searchable places and nationalities to uppercase and requires saving before export", () => {
@@ -96,10 +100,12 @@ describe("InvitationLetterWorkspace", () => {
     translationMutation.onSuccess?.({ inviter: { birthPlace: "LIMA", nationality: "PERUVIANA", residencePermit: "PERMESSO", address: "VIA MURIAGLIO 12", occupation: "COMMERCIANTE" }, invitee: { birthPlace: "LIMA", nationality: "PERUVIANA", address: "LIMA, PERÙ", occupation: "STUDENTESSA" }, relationship: "FAMILIARE", purpose: "TURISMO", city: "TORINO" });
     await waitFor(() => expect(saveMutation.mutate).toHaveBeenCalledTimes(1));
     const savedVariables = saveMutation.mutate.mock.calls[0][0];
-    saveMutation.onSuccess?.({ id: 19 }, savedVariables);
+    saveMutation.onSuccess?.({ id: 19, account: { created: true, email: "ana.rossi@example.com", temporaryPassword: "Si!claveTemporal9a" } }, savedVariables);
 
     await waitFor(() => expect(screen.getByRole("tab", { name: /Cartas generadas \(0\)/ })).toBeTruthy());
     expect(screen.getByRole("status").textContent).toMatch(/Carta creada/);
+    expect(screen.getByText("Acceso temporal creado para el invitante")).toBeTruthy();
+    expect(screen.getByText(/Si!claveTemporal9a/)).toBeTruthy();
   });
 
   it("muestra pestañas visibles, lista cartas por páginas y abre una carta en el formulario", () => {
@@ -128,7 +134,23 @@ describe("InvitationLetterWorkspace", () => {
     fireEvent.click(screen.getByRole("tab", { name: /Cartas generadas \(1\)/ }));
     fireEvent.click(screen.getByRole("button", { name: /Descargar carta de MARÍA BIANCHI/ }));
 
-    await waitFor(() => expect(invitationDocumentMocks.download).toHaveBeenCalledWith(expect.objectContaining(data), italian));
+    await waitFor(() => expect(invitationDocumentMocks.download).toHaveBeenCalledWith(expect.objectContaining(data), italian, null));
+  });
+
+  it("muestra el estado pendiente y permite preparar o enviar la firma electrónica", async () => {
+    const record = { id: 41, inviterName: "ANA", inviterLastName: "ROSSI", inviteeName: "MARIA", inviteeLastName: "BIANCHI", createdAt: new Date(2026, 7, 19), letterData: "{}", italianData: "{}", signature: { status: "pending" } };
+    lettersQuery.data = [record];
+    const open = vi.spyOn(window, "open").mockReturnValue(null);
+    render(<InvitationLetterWorkspace />);
+    fireEvent.click(screen.getByRole("tab", { name: /Cartas generadas \(1\)/ }));
+    expect(screen.getByText("Pendiente")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Firmar ahora" }));
+    expect(prepareSignatureMutation.mutate).toHaveBeenCalledWith({ id: 41 });
+    prepareSignatureMutation.onSuccess?.({ status: "pending", signatureUrl: "https://firma.test/carta" });
+    await waitFor(() => expect(screen.getByText("Enlace de firma preparado")).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "Enviar" }));
+    expect(sendSignatureMutation.mutate).toHaveBeenCalledWith({ id: 41 });
+    open.mockRestore();
   });
 
   it("sends a letter to the reversible trash and restores it from the trash panel", () => {

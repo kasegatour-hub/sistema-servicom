@@ -183,6 +183,13 @@
       "when": 1787179903229,
       "tag": "0025_mighty_avengers",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "5",
+      "when": 1787190646963,
+      "tag": "0026_whole_marauders",
+      "breakpoints": true
     }
   ]
 }

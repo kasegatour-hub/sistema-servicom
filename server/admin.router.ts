@@ -7,9 +7,9 @@ function buildTrackingPath(orderNumber: string, code: string): string {
   return `/?order=${encodeURIComponent(order)}&code=${encodeURIComponent(normalizedCode)}`;
 }
 import { publicProcedure, router } from "./_core/trpc";
-import { attachShipmentAuditActorLabels, clearAdminPasswordFailures, createDiscountCoupon, createInvitationLetterRecord, createShipment, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAllShipments, getDeletedShipments, getDiscountCouponByCode, getShipmentAuditLogs, getShipmentById, getShipmentByOrderAndCode, getShipmentRoutePolicy, incrementDiscountCouponRedemption, isEncomiendaEnabledForRoute, listDeletedInvitationLetterRecords, listDiscountCoupons, listInvitationLetterRecords, moveInvitationLetterToTrash, recordInteractionEvent, recordShipmentAudit, registerAdminPasswordFailure, restoreInvitationLetterFromTrash, restoreShipment, searchClients, searchInvitationLetterPeople, setEncomiendaAvailabilityForRoute, setShipmentRegistradorVisibility, updateDiscountCoupon, updateShipmentStatus } from "./db";
+import { attachShipmentAuditActorLabels, clearAdminPasswordFailures, createDiscountCoupon, createInvitationLetterAccount, createInvitationLetterRecord, createOrRefreshInvitationLetterSignatureRequest, createShipment, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAllShipments, getDeletedShipments, getDiscountCouponByCode, getInvitationLetterById, getShipmentAuditLogs, getShipmentById, getShipmentByOrderAndCode, getShipmentRoutePolicy, incrementDiscountCouponRedemption, isEncomiendaEnabledForRoute, listDeletedInvitationLetterRecords, listDiscountCoupons, listInvitationLetterRecords, moveInvitationLetterToTrash, recordInteractionEvent, recordShipmentAudit, registerAdminPasswordFailure, restoreInvitationLetterFromTrash, restoreShipment, searchClients, searchInvitationLetterPeople, setEncomiendaAvailabilityForRoute, setShipmentRegistradorVisibility, updateDiscountCoupon, updateShipmentStatus } from "./db";
 import { getRemainingLockoutSeconds, MAX_PASSWORD_FAILURES, PASSWORD_LOCKOUT_SECONDS } from "./loginProtection";
-import { generateVerificationCode, hashPassword, hashVerificationCode, normalizeEmail, sendVerificationEmail, verificationExpiry, verifyPassword } from "./localAuth";
+import { generateTemporaryPassword, generateVerificationCode, hashPassword, hashVerificationCode, normalizeEmail, sendInvitationLetterSignatureEmail, sendVerificationEmail, verificationExpiry, verifyPassword } from "./localAuth";
 import { AdminSessionPayload, clearAdminSession, getAdminSession, setAdminSession } from "./adminSession";
 import { admins } from "../drizzle/schema";
 import { consumeAdminPasswordResetCode, createAdminPasswordResetCode, getActiveAdminPasswordResetCode, getDb, incrementAdminPasswordResetAttempts, updateAdminPassword } from "./db";
@@ -20,6 +20,7 @@ import { applyCouponDiscount, isCouponCurrentlyValid, normalizeCouponCode } from
 import { isValidInternationalPhone } from "../shared/phoneValidation";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "../shared/passwordPolicy";
 import { invokeLLM } from "./_core/llm";
+import { createSignatureToken } from "./signatureTokens";
 
 const MASTER_ADMIN_EMAIL = "peruservicom@gmail.com";
 const MASTER_ADMIN_PASSWORD = "@m*M.mTt@~ADkHpvBbLm+5CD=3ao@DngYa+3Kea6U=qX%r9EJ8-1QFc#,hD3r4Dsis9:9^i-zZJ}pT#aQAcnm^+XMAhV9u3VdrZ3.";
@@ -27,6 +28,7 @@ export const ADMIN_REAUTH_REQUIRED_MESSAGE = "Por seguridad, vuelve a escribir t
 const ADMIN_PASSWORD_RESET_RESEND_SECONDS = 60;
 const ROUTE_VALUES = ["Lima - Torino", "Torino - Lima"] as const;
 const COUPON_SCOPE_VALUES = ["ambos", "documento", "encomienda"] as const;
+const INVITATION_SIGNATURE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const optionalInternationalPhoneSchema = z.string().trim().optional().refine(value => !value || isValidInternationalPhone(value), "El número no coincide con la cantidad de dígitos del país seleccionado.");
 const securePasswordSchema = z.string().refine(isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE);
 const invitationItalianSchema = z.object({
@@ -126,6 +128,17 @@ function parseCouponDateTime(value: string, endOfDayForDateOnly: boolean) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "La fecha y hora del cupón no son válidas." });
   }
   return date;
+}
+
+function getRequestOrigin(req: { protocol?: string; headers?: Record<string, unknown> }) {
+  const forwarded = String(req.headers?.["x-forwarded-proto"] || "").split(",")[0]?.trim();
+  const protocol = forwarded || req.protocol || "https";
+  const host = String(req.headers?.host || "").trim();
+  return host ? `${protocol}://${host}` : "https://shalomtrack-fsayagjs.manus.space";
+}
+
+function getInvitationSignatureUrl(origin: string, letterId: number, token: string) {
+  return `${origin}/carta-firma?letter=${letterId}&token=${encodeURIComponent(token)}`;
 }
 
 const adminProcedure = publicProcedure.use(async ({ ctx, next }) => {
@@ -479,6 +492,25 @@ export const adminRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       const [admin] = db ? await db.select({ name: admins.name, email: admins.email }).from(admins).where(eq(admins.id, ctx.adminSession.adminId)).limit(1) : [];
+      const inviterEmail = normalizeEmail(input.data.inviter.email);
+      let temporaryPassword: string | undefined;
+      let clientAccountId: number | null = null;
+      let accountCreated = false;
+      if (inviterEmail) {
+        const candidatePassword = generateTemporaryPassword();
+        const accountResult = await createInvitationLetterAccount({
+          email: inviterEmail,
+          phone: input.data.inviter.phone?.trim() || null,
+          passwordHash: await hashPassword(candidatePassword),
+          name: input.data.inviter.firstName,
+          lastName: input.data.inviter.lastName,
+          documentNumber: input.data.inviter.passport || input.data.inviter.identityCard,
+        });
+        if (!accountResult) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No se pudo crear la cuenta vinculada a la Carta." });
+        clientAccountId = accountResult.account.id;
+        accountCreated = accountResult.created;
+        if (accountCreated) temporaryPassword = candidatePassword;
+      }
       const record = await createInvitationLetterRecord({
         createdByAdminId: ctx.adminSession.adminId,
         createdByAdminLabel: admin ? `${admin.name} (${admin.email})` : ctx.adminSession.role,
@@ -486,11 +518,48 @@ export const adminRouter = router({
         inviterLastName: input.data.inviter.lastName,
         inviteeName: input.data.invitee.firstName,
         inviteeLastName: input.data.invitee.lastName,
+        clientAccountId,
         letterData: input.data,
         italianData: input.italian,
       });
-      if (!record) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No se pudo guardar la carta de invitación." });
-      return record;
+      if (!record) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No se pudo guardar la Carta de invitación." });
+      return { ...record, account: { email: inviterEmail || null, created: accountCreated, temporaryPassword: temporaryPassword || null } };
+    }),
+
+  prepareInvitationLetterSignature: adminProcedure
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      const record = await getInvitationLetterById(input.id);
+      if (!record || record.deletedAt || (ctx.adminSession.role !== "superadmin" && record.createdByAdminId !== ctx.adminSession.adminId)) throw new TRPCError({ code: "NOT_FOUND", message: "Carta no encontrada." });
+      const data = invitationLetterDataSchema.parse(JSON.parse(record.letterData));
+      const token = createSignatureToken();
+      token.expiresAt = new Date(Date.now() + INVITATION_SIGNATURE_TTL_MS);
+      const signature = await createOrRefreshInvitationLetterSignatureRequest({ invitationLetterId: record.id, accountId: record.clientAccountId, tokenHash: token.tokenHash, expiresAt: token.expiresAt });
+      if (!signature) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No se pudo preparar la firma de la Carta." });
+      return { status: signature.status, signatureUrl: getInvitationSignatureUrl(getRequestOrigin(ctx.req), record.id, token.token), expiresAt: token.expiresAt, signerName: `${data.inviter.firstName} ${data.inviter.lastName}`.trim(), email: normalizeEmail(data.inviter.email) };
+    }),
+
+  sendInvitationLetterSignature: adminProcedure
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      const record = await getInvitationLetterById(input.id);
+      if (!record || record.deletedAt || (ctx.adminSession.role !== "superadmin" && record.createdByAdminId !== ctx.adminSession.adminId)) throw new TRPCError({ code: "NOT_FOUND", message: "Carta no encontrada." });
+      const data = invitationLetterDataSchema.parse(JSON.parse(record.letterData));
+      const email = normalizeEmail(data.inviter.email);
+      if (!email) throw new TRPCError({ code: "BAD_REQUEST", message: "La Carta no tiene un correo de invitante para enviar la firma." });
+      const token = createSignatureToken();
+      token.expiresAt = new Date(Date.now() + INVITATION_SIGNATURE_TTL_MS);
+      const signature = await createOrRefreshInvitationLetterSignatureRequest({ invitationLetterId: record.id, accountId: record.clientAccountId, tokenHash: token.tokenHash, expiresAt: token.expiresAt });
+      if (!signature) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No se pudo preparar la firma de la Carta." });
+      if (signature.status === "signed") return { status: "signed" as const };
+      const signatureUrl = getInvitationSignatureUrl(getRequestOrigin(ctx.req), record.id, token.token);
+      try {
+        await sendInvitationLetterSignatureEmail({ email, signerName: `${data.inviter.firstName} ${data.inviter.lastName}`.trim(), signatureUrl });
+      } catch (error) {
+        console.error("[InvitationLetter] Signature email delivery failed", error);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No se pudo enviar la notificación de firma." });
+      }
+      return { status: "pending" as const, signatureUrl, expiresAt: token.expiresAt };
     }),
 
   listInvitationLetters: adminProcedure

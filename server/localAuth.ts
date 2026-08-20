@@ -33,6 +33,10 @@ export function generateVerificationCode(): string {
   return String(randomBytes(3).readUIntBE(0, 3) % 1_000_000).padStart(6, "0");
 }
 
+export function generateTemporaryPassword(): string {
+  return `Si!${randomBytes(9).toString("base64url")}9a`;
+}
+
 export function hashVerificationCode(code: string): string {
   return createHash("sha256").update(code.trim()).digest("hex");
 }
@@ -68,6 +72,18 @@ export async function sendVerificationEmail(email: string, code: string): Promis
     subject: "Código de recuperación — Servicom Internacional",
     text: `Tu código de verificación es ${code}. Vence en ${CODE_TTL_MINUTES} minutos. Si no solicitaste este código, ignora este mensaje.`,
     html: `<p>Tu código de verificación es <strong>${code}</strong>.</p><p>Vence en ${CODE_TTL_MINUTES} minutos. Si no solicitaste este código, ignora este mensaje.</p>`,
+  });
+}
+
+export async function sendInvitationLetterSignatureEmail(input: { email: string; signerName: string; signatureUrl: string }): Promise<void> {
+  const from = process.env.SMTP_FROM?.trim() || "peruservicom@gmail.com";
+  const transporter = getSmtpTransport();
+  await transporter.sendMail({
+    from,
+    to: input.email,
+    subject: "Firma pendiente — Carta de invitación | Servicom Internacional",
+    text: `Hola ${input.signerName}. Tienes una Carta de invitación pendiente de firma electrónica. Abre el enlace seguro para revisar y firmar: ${input.signatureUrl}`,
+    html: `<p>Hola <strong>${input.signerName}</strong>.</p><p>Tienes una <strong>Carta de invitación</strong> pendiente de firma electrónica.</p><p><a href="${input.signatureUrl}">Revisar y firmar la Carta</a></p><p>Si no reconoces esta solicitud, ignora este correo.</p>`,
   });
 }
 

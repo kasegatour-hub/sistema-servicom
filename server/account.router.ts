@@ -159,18 +159,19 @@ export const accountRouter = router({
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No se pudo crear la cuenta." });
       }
 
-      await upsertClient({ name: input.name, lastName: input.lastName, dni: input.dni, documentType: input.documentType, phone, email });
-      setAccountSession(ctx.req, ctx.res, account.id, false);
-      return {
-        success: true,
-        account: {
-          id: account.id,
-          email: account.email,
-          phone: account.phone,
-          name: account.name,
-          lastName: account.lastName,
-          dni: account.dni,
-          createdAt: account.createdAt,
+await upsertClient({ name: input.name, lastName: input.lastName, dni: input.dni, documentType: input.documentType, phone, email });
+setAccountSession(ctx.req, ctx.res, account.id, false);
+return {
+success: true,
+account: {
+id: account.id,
+email: account.email,
+phone: account.phone,
+name: account.name,
+lastName: account.lastName,
+dni: account.dni,
+          mustChangePassword: account.mustChangePassword === 1,
+createdAt: account.createdAt,
         },
       };
     }),
@@ -188,18 +189,19 @@ export const accountRouter = router({
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Correo o contraseña inválidos." });
       }
 
-      await clearLocalAccountPasswordFailures(account.id);
-      setAccountSession(ctx.req, ctx.res, account.id, input.rememberDevice);
-      return {
-        success: true,
-        account: {
-          id: account.id,
-          email: account.email,
-          phone: account.phone,
-          name: account.name,
-          lastName: account.lastName,
-          dni: account.dni,
-          createdAt: account.createdAt,
+await clearLocalAccountPasswordFailures(account.id);
+setAccountSession(ctx.req, ctx.res, account.id, input.rememberDevice);
+return {
+success: true,
+account: {
+id: account.id,
+email: account.email,
+phone: account.phone,
+name: account.name,
+lastName: account.lastName,
+dni: account.dni,
+          mustChangePassword: account.mustChangePassword === 1,
+createdAt: account.createdAt,
         },
       };
     }),
@@ -215,10 +217,11 @@ export const accountRouter = router({
       phone: account.phone,
       name: account.name,
       lastName: account.lastName,
-      dni: account.dni,
-      documentType: account.documentType,
-      createdAt: account.createdAt,
-      reauthRequired: session.reauthRequired,
+dni: account.dni,
+documentType: account.documentType,
+createdAt: account.createdAt,
+      mustChangePassword: account.mustChangePassword === 1,
+reauthRequired: session.reauthRequired,
     };
   }),
 

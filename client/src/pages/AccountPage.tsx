@@ -138,6 +138,7 @@ export default function AccountPage() {
     setProfileDni(me.dni || "");
     setProfileDocumentType((me.documentType || "dni_peru") as IdentityDocumentType);
     setProfilePhone(me.phone || "");
+    if (me.mustChangePassword) setClientWorkspace("seguridad");
   }, [me]);
 
   const { data: myShipments, refetch: refetchShipments } = trpc.account.myShipments.useQuery(undefined, {
@@ -458,6 +459,8 @@ export default function AccountPage() {
             </div>
             <p className="mt-2 text-xs text-slate-500">Elige la tarea que necesitas para trabajar con menos desplazamiento en pantalla.</p>
           </Card>
+
+          {me.mustChangePassword && <Card className="border border-amber-300 bg-amber-50 p-4 shadow-sm"><div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm font-medium text-amber-950">Tu cuenta fue creada con una contraseña temporal. Cámbiala ahora para continuar con un acceso seguro.</p><Button type="button" size="sm" className="bg-[#0B2B5E] text-white hover:bg-[#123d78]" onClick={() => setClientWorkspace("seguridad")}>Cambiar contraseña</Button></div></Card>}
 
           {/* Datos Personales */}
           <Card className={`border-0 p-6 shadow-md ${clientWorkspace === "perfil" ? "" : "hidden"}`}>

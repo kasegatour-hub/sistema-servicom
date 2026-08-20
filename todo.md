@@ -686,3 +686,11 @@
 - [x] Diagnosticar el error de generación al descargar una carta guardada desde el historial
 - [x] Reparar la exportación PDF de Carta de invitación sin depender de recursos frágiles
 - [x] Añadir pruebas de descarga, validar y publicar la corrección
+
+## Cuenta y firma electrónica de Carta de invitación
+- [x] Crear o vincular una cuenta de cliente a partir del correo del invitante al crear una Carta
+- [x] Generar una contraseña temporal segura, visible una sola vez para Registrador o Master Admin y obligar su reemplazo al iniciar sesión
+- [x] Incorporar acciones de Firmar ahora y Enviar para firma desde las cartas generadas
+- [x] Permitir al cliente firmar mediante enlace seguro y guardar trazo, fecha y estado de firma
+- [x] Mostrar el estado antes y después de la firma en la Carta y notificar al cliente
+- [x] Añadir pruebas, validar el flujo completo y publicar la funcionalidad

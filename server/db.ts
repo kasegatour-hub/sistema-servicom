@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, like, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { createHash } from "node:crypto";
-import { InsertUser, users, shipments, shipmentSignatures, shipmentAuditLogs, shipmentFeedback, platformFeedback, interactionEvents, admins, localAccounts, verificationCodes, adminPasswordResetCodes, clients, discountCoupons, shipmentRoutePolicies, invitationLetters } from "../drizzle/schema";
+import { InsertUser, users, shipments, shipmentSignatures, shipmentAuditLogs, shipmentFeedback, platformFeedback, interactionEvents, admins, localAccounts, verificationCodes, adminPasswordResetCodes, clients, discountCoupons, shipmentRoutePolicies, invitationLetters, invitationLetterSignatures } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { buildShipmentClientDirectoryRecords, type ClientDirectoryRecord, type ShipmentClientDirectoryInput } from "./clientDirectory";
 import { rankFuzzyMatches } from "../shared/fuzzySearch";
@@ -346,11 +346,25 @@ export async function clearLocalAccountPasswordFailures(accountId: number) {
   await db.update(localAccounts).set({ failedPasswordAttempts: 0, passwordLockedUntil: null, updatedAt: new Date() }).where(eq(localAccounts.id, accountId));
 }
 
-export async function createLocalAccount(email: string, phone: string | null, passwordHash: string, name?: string, lastName?: string, dni?: string, documentType: "dni_peru" | "pasaporte" | "carta_identita_italia" = "dni_peru") {
+export async function createLocalAccount(email: string, phone: string | null, passwordHash: string, name?: string, lastName?: string, dni?: string, documentType: "dni_peru" | "pasaporte" | "carta_identita_italia" = "dni_peru", mustChangePassword = false) {
   const db = await getDb();
   if (!db) return undefined;
-  await db.insert(localAccounts).values({ email, phone, passwordHash, name, lastName, dni, documentType });
+  await db.insert(localAccounts).values({ email, phone, passwordHash, name, lastName, dni, documentType, mustChangePassword: mustChangePassword ? 1 : 0 });
   return getLocalAccountByEmail(email);
+}
+
+export async function createInvitationLetterAccount(input: {
+  email: string;
+  phone: string | null;
+  passwordHash: string;
+  name: string;
+  lastName: string;
+  documentNumber: string;
+}) {
+  const existing = await getLocalAccountByEmail(input.email);
+  if (existing) return { account: existing, created: false };
+  const account = await createLocalAccount(input.email, input.phone, input.passwordHash, input.name, input.lastName, input.documentNumber, "pasaporte", true);
+  return account ? { account, created: true } : undefined;
 }
 
 export async function updateLocalAccountProfile(id: number, name: string, lastName: string, dni: string, phone: string, documentType: "dni_peru" | "pasaporte" | "carta_identita_italia" = "dni_peru") {
@@ -373,6 +387,7 @@ export async function createInvitationLetterRecord(input: {
   inviterLastName: string;
   inviteeName: string;
   inviteeLastName: string;
+  clientAccountId?: number | null;
   letterData: unknown;
   italianData: unknown;
 }) {
@@ -385,6 +400,7 @@ export async function createInvitationLetterRecord(input: {
     inviterLastName: input.inviterLastName,
     inviteeName: input.inviteeName,
     inviteeLastName: input.inviteeLastName,
+    clientAccountId: input.clientAccountId ?? null,
     letterData: JSON.stringify(input.letterData),
     italianData: JSON.stringify(input.italianData),
   });
@@ -394,13 +410,111 @@ export async function createInvitationLetterRecord(input: {
   return rows[0];
 }
 
+export async function getInvitationLetterById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const rows = await db.select().from(invitationLetters).where(eq(invitationLetters.id, id)).limit(1);
+  return rows[0];
+}
+
+export async function getInvitationLetterSignatureByLetterId(invitationLetterId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const rows = await db.select().from(invitationLetterSignatures).where(eq(invitationLetterSignatures.invitationLetterId, invitationLetterId)).limit(1);
+  return rows[0];
+}
+
+export async function createOrRefreshInvitationLetterSignatureRequest(input: {
+  invitationLetterId: number;
+  accountId?: number | null;
+  tokenHash: string;
+  expiresAt: Date;
+}) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const existing = await getInvitationLetterSignatureByLetterId(input.invitationLetterId);
+  if (existing?.status === "signed") return existing;
+  if (existing) {
+    await db.update(invitationLetterSignatures).set({
+      accountId: input.accountId ?? existing.accountId,
+      requestTokenHash: input.tokenHash,
+      requestTokenExpiresAt: input.expiresAt,
+      status: "pending",
+      signerName: null,
+      signerEmail: null,
+      consentTextVersion: null,
+      consentAcceptedAt: null,
+      evidenceHash: null,
+      signatureStrokes: null,
+      requestedAt: new Date(),
+      signedAt: null,
+      updatedAt: new Date(),
+    }).where(eq(invitationLetterSignatures.id, existing.id));
+  } else {
+    await db.insert(invitationLetterSignatures).values({
+      invitationLetterId: input.invitationLetterId,
+      accountId: input.accountId ?? null,
+      requestTokenHash: input.tokenHash,
+      requestTokenExpiresAt: input.expiresAt,
+      status: "pending",
+    });
+  }
+  return getInvitationLetterSignatureByLetterId(input.invitationLetterId);
+}
+
+export async function completeInvitationLetterSignature(input: {
+  invitationLetterId: number;
+  tokenHash: string;
+  signerName: string;
+  signerEmail: string;
+  consentTextVersion: string;
+  consentAcceptedAt: Date;
+  signatureStrokes: string;
+}) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const now = new Date();
+  const rows = await db.select().from(invitationLetterSignatures).where(and(
+    eq(invitationLetterSignatures.invitationLetterId, input.invitationLetterId),
+    eq(invitationLetterSignatures.requestTokenHash, input.tokenHash),
+    eq(invitationLetterSignatures.status, "pending"),
+    gt(invitationLetterSignatures.requestTokenExpiresAt, now),
+  )).limit(1);
+  const record = rows[0];
+  if (!record) return undefined;
+  const evidenceHash = createHash("sha256").update(JSON.stringify({ invitationLetterId: input.invitationLetterId, signerName: input.signerName, signerEmail: input.signerEmail, consentTextVersion: input.consentTextVersion, consentAcceptedAt: input.consentAcceptedAt.toISOString(), signatureStrokes: input.signatureStrokes })).digest("hex");
+  await db.update(invitationLetterSignatures).set({
+    status: "signed",
+    signerName: input.signerName,
+    signerEmail: input.signerEmail,
+    consentTextVersion: input.consentTextVersion,
+    consentAcceptedAt: input.consentAcceptedAt,
+    evidenceHash,
+    signatureStrokes: input.signatureStrokes,
+    signedAt: now,
+    updatedAt: now,
+  }).where(and(eq(invitationLetterSignatures.id, record.id), eq(invitationLetterSignatures.status, "pending")));
+  return getInvitationLetterSignatureByLetterId(input.invitationLetterId);
+}
+
 export async function listInvitationLetterRecords(actor: { adminId: number; canReviewAll: boolean }) {
   const db = await getDb();
   if (!db) return [];
   const condition = actor.canReviewAll ? isNull(invitationLetters.deletedAt) : and(eq(invitationLetters.createdByAdminId, actor.adminId), isNull(invitationLetters.deletedAt));
-  return condition
+  const rows = condition
     ? db.select().from(invitationLetters).where(condition).orderBy(desc(invitationLetters.createdAt))
     : db.select().from(invitationLetters).orderBy(desc(invitationLetters.createdAt));
+  const letters = await rows;
+  const signatures = await Promise.all(letters.map(letter => getInvitationLetterSignatureByLetterId(letter.id)));
+  return letters.map((letter, index) => ({
+    ...letter,
+    signature: signatures[index] ? {
+      status: signatures[index]!.status,
+      signerName: signatures[index]!.signerName,
+      signedAt: signatures[index]!.signedAt,
+      signatureStrokes: signatures[index]!.signatureStrokes,
+    } : null,
+  }));
 }
 
 export async function listDeletedInvitationLetterRecords(actor: { adminId: number; canReviewAll: boolean }) {
@@ -650,8 +764,8 @@ export async function updateLocalAccountPassword(id: number, passwordHash: strin
   const db = await getDb();
   if (!db) return undefined;
   const updateSet = channel === "email"
-    ? { passwordHash, emailVerifiedAt: new Date(), updatedAt: new Date() }
-    : { passwordHash, phoneVerifiedAt: new Date(), updatedAt: new Date() };
+    ? { passwordHash, emailVerifiedAt: new Date(), mustChangePassword: 0, updatedAt: new Date() }
+    : { passwordHash, phoneVerifiedAt: new Date(), mustChangePassword: 0, updatedAt: new Date() };
   return db.update(localAccounts).set(updateSet).where(eq(localAccounts.id, id));
 }
 

@@ -1,3 +1,5 @@
+import { buildSignatureSvgMarkup } from "../../../shared/signature";
+
 export type InvitationPerson = {
   firstName: string;
   lastName: string;
@@ -42,6 +44,13 @@ export type InvitationLetterItalian = {
   city: string;
 };
 
+export type InvitationLetterSignatureView = {
+  status: "pending" | "signed";
+  signerName?: string | null;
+  signedAt?: string | Date | null;
+  signatureStrokes?: string | null;
+};
+
 const safeName = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-+|-+$/g, "").toLowerCase() || "invitato";
 const escapeHtml = (value?: string) => String(value || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const display = (value?: string) => escapeHtml(value?.trim() || "");
@@ -55,6 +64,17 @@ const buildCompanyAnnexLines = (value?: string) => {
   const lines = String(value || "").split(/\r?\n/).map(line => line.trim()).filter(Boolean).slice(0, 3);
   while (lines.length < 3) lines.push("");
   return lines.map(line => `<div class="company-annex-line">${display(line)}</div>`).join("");
+};
+
+const buildInvitationSignatureMarkup = (signature?: InvitationLetterSignatureView | null) => {
+  if (!signature || signature.status !== "signed") return `<span class="invitation-signature-pending">Firma pendiente / Signature pending</span>`;
+  try {
+    const svg = buildSignatureSvgMarkup(signature.signatureStrokes, "invitation-signature-svg");
+    const signedAt = signature.signedAt ? new Date(signature.signedAt).toLocaleString("es-PE") : "Fecha registrada";
+    return `<span class="invitation-signature-signed">${svg}<small>Firmado electrónicamente por ${display(signature.signerName || "Invitante")} · ${display(signedAt)}</small></span>`;
+  } catch {
+    return `<span class="invitation-signature-signed"><small>Firma electrónica registrada</small></span>`;
+  }
 };
 
 export const buildInvitationLetterFilename = (data: InvitationLetterData) => `carta-invitacion-${safeName(personName(data.invitee))}-${data.date || "sin-fecha"}`;
@@ -110,6 +130,10 @@ const templateStyles = `
     .footer-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; margin: 18mm 3mm 8mm; font-size: 8.4pt; }
     .footer-grid span:nth-child(2) { text-align: center; }
     .footer-grid span:nth-child(3) { text-align: right; padding-top: 9mm; }
+    .invitation-signature-pending { display:block; min-height:15mm; padding-top:7mm; border-bottom:.25mm solid #111; color:#555; font-size:8pt; }
+    .invitation-signature-signed { display:block; min-height:15mm; padding-top:1mm; border-bottom:.25mm solid #111; }
+    .invitation-signature-svg { display:block; width:48mm; height:12mm; margin-left:auto; }
+    .invitation-signature-signed small { display:block; font-size:6.5pt; color:#444; }
     .annexes { margin: 0 3mm; font-size: 8.5pt; line-height: 1.45; }
     .annexes .line { display: inline-block; width: 88mm; border-bottom: .25mm solid #111; transform: translateY(-1mm); }
     .annexes-company { margin-top: 6mm; }
@@ -120,7 +144,7 @@ const templateStyles = `
 const privacyItalian = `I dati forniti con questo modulo sono obbligatori per l'esame della domanda di/dei visto/i e essi saranno comunicati alle autorità competenti degli Stati membri Schengen e trattati dalle stesse, ai fini dell'adozione di una decisione in merito alla domanda di visto.<br/>Tali dati saranno inseriti e conservati nel sistema d'informazione visti (VIS) per un periodo massimo di cinque anni, durante il quale essi saranno accessibili: alle autorità competenti per i visti; alle autorità competenti in materia di controlli ai valichi di frontiera esterni; alle autorità competenti al controllo all'interno degli Stati membri al fine di verificare che siano soddisfatte le condizioni d'ingresso, di soggiorno o di residenza nel territorio degli Stati membri; alle autorità competenti in materia di asilo ai fini della determinazione dello Stato membro competente per l'esame di una domanda di asilo e/o ai fini dell'esame di una domanda di asilo.<br/><br/>A determinate condizioni, i dati saranno anche accessibili alle autorità designate degli Stati membri (per l'Italia il Ministero dell'Interno e le autorità di Polizia) e ad EUROPOL a fini di prevenzione, individuazione ed investigazione sui reati di terrorismo ed altri reati gravi. Il Ministero degli Affari Esteri e della Cooperazione internazionale (Piazzale della Farnesina 1, 00135 Roma, www.esteri.it, dgit6@esteri.it) è l'autorità italiana responsabile (titolare) del trattamento dei dati.<br/>E' suo diritto ottenere, in qualsiasi Stato membro, la comunicazione dei dati relativi alla sua persona registrati nel VIS e l'indicazione dello Stato membro che li ha trasmessi e chiedere che i dati inesatti relativi alla sua persona vengano rettificati e che quelli relativi alla sua persona trattati illecitamente vengano cancellati. Per informazioni sull'esercizio del suo diritto a verificare i suoi dati anagrafici e a rettificarli o sopprimerli, così come sulle vie di ricorso previste a tale riguardo dalla legislazione nazionale dello Stato interessato, vedi http://www.esteri.it e http://vistoperitalia.esteri.it.<br/>Ulteriori informazioni saranno fornite su sua richiesta dall'autorità che esamina la sua domanda. L'autorità di controllo nazionale italiana competente in materia di tutela dei dati personali è il Garante per la Protezione dei Dati Personali (Piazza di Montecitorio 121, 00186 Roma, http://www.garanteprivacy.it; tel.: +3906 696771).`;
 const privacyEnglish = `The collection of the data required by this application form is mandatory for the examination of the visa application; they will be supplied to the relevant authorities of the Member States and processed by those authorities, for the purposes of a decision on your visa application.<br/>Such data, as well as data concerning the decision taken on your application or a decision whether to annul, revoke or extend a visa issued, will be entered into, and stored, in the Visa Information System (VIS) for a maximum period of five years, during which it will be accessible to the visa authorities and the authorities competent for carrying out checks on visas at external borders and within the Member States, immigration and asylum authorities in the Member States for the purposes of verifying whether the conditions for the legal entry into, stay and residence on the territory of the Member States are fulfilled, of identifying persons who do not or who no longer fulfil these conditions, of examining an asylum application and of determining responsibility for such examination.<br/><br/>Under certain conditions the data will be also available to designated authorities of the Member States (for Italy: the Ministry of Interior and the Police authority) and to Europol for the purposes of the prevention, detection and investigation of terrorist offences and of other serious criminal offences. The Ministry of Foreign Affairs and International Cooperation (Piazzale della Farnesina 1, 00135 Roma, www.esteri.it, dgit6@esteri.it) is the Italian authority responsible (controller) for processing the data.<br/>You have the right to obtain in any of the Member States communication of the data relating to you recorded in the VIS and of the Member State which transmitted the data, and to request that the data relating to you which are inaccurate be corrected, and that the data relating to you processed unlawfully be deleted. For information on the exercise of your right to check your personal data and have them corrected or deleted, as well as on legal remedies according to the national law of the State concerned, see http://www.esteri.it and http://vistoperitalia.esteri.it.<br/>Further information will be provided upon request by the authority examining your application. The Italian national supervisory competent authority on the protection of personal data is the Italian Authority for Data Protection (Piazza di Montecitorio 121, 00186 Roma, http://www.garanteprivacy.it; tel.: +3906 696771).`;
 
-export function buildInvitationLetterHtml(data: InvitationLetterData, italian: InvitationLetterItalian = buildInvitationLetterItalianFallback(data)): string {
+export function buildInvitationLetterHtml(data: InvitationLetterData, italian: InvitationLetterItalian = buildInvitationLetterItalianFallback(data), signature?: InvitationLetterSignatureView | null): string {
   const inviter = data.inviter;
   const invitee = data.invitee;
   return `${templateStyles}<div class="invitation-document">
@@ -146,7 +170,7 @@ export function buildInvitationLetterHtml(data: InvitationLetterData, italian: I
     </section>
     <section class="invitation-paper-page template-page-three">
       <div class="privacy-grid"><div class="privacy-box"><h3>INFORMATIVA SUL TRATTAMENTO DEI<br/>DATI PERSONALI:</h3>${privacyItalian}</div><div class="privacy-box"><h3>INFORMATION ON THE PROCESSING OF<br/>PERSONAL DATA</h3>${privacyEnglish}</div></div>
-      <div class="footer-grid"><span>Luogo/Place &nbsp;<b>${display(italian.city)}</b></span><span>Data/ Date &nbsp; <b>${display(titleCaseDate(data.date))}</b></span><span>Firma/ Signature</span></div>
+      <div class="footer-grid"><span>Luogo/Place &nbsp;<b>${display(italian.city)}</b></span><span>Data/ Date &nbsp; <b>${display(titleCaseDate(data.date))}</b></span><span>Firma/ Signature${buildInvitationSignatureMarkup(signature)}</span></div>
       <div class="annexes">Allegati/Annexes:<br/><span>${check(data.inviteeIdAttached)}</span> documento d’identità dell’invitante/ identity card of the person issuing the invitation<br/><span>${check(data.financialGuaranteeAttached)}</span> fideiussione bancaria / financial guarantee<br/><span>${check(Boolean(data.otherAnnexes?.trim()))}</span> altri documenti/ other documents: <span class="line">${display(data.otherAnnexes)}</span><div class="annexes-company">Allegati per le Società-Enti / Annexes for${buildCompanyAnnexLines(data.companyAnnexes)}</div></div>
     </section>
   </div>`;
@@ -169,7 +193,7 @@ async function createLetterContainer(data: InvitationLetterData, italian: Invita
   return container;
 }
 
-function openInvitationLetterPrintDialog(data: InvitationLetterData, italian: InvitationLetterItalian) {
+function openInvitationLetterPrintDialog(data: InvitationLetterData, italian: InvitationLetterItalian, signature?: InvitationLetterSignatureView | null) {
   const filename = buildInvitationLetterFilename(data);
   const printWindow = window.open("", "_blank", "width=900,height=900");
   if (!printWindow) throw new Error("Permite las ventanas emergentes para imprimir la carta.");
@@ -181,7 +205,7 @@ function openInvitationLetterPrintDialog(data: InvitationLetterData, italian: In
     printWindow.print();
   };
   printWindow.document.open();
-  printWindow.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${filename}</title></head><body>${buildInvitationLetterHtml(data, italian)}</body></html>`);
+  printWindow.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${filename}</title></head><body>${buildInvitationLetterHtml(data, italian, signature)}</body></html>`);
   printWindow.document.close();
   printWindow.document.title = filename;
   printWindow.onload = startPrint;
@@ -192,10 +216,10 @@ function openInvitationLetterPrintDialog(data: InvitationLetterData, italian: In
 }
 
 /** Abre «Guardar como PDF» con la misma maqueta que la impresión de la carta. */
-export async function downloadInvitationLetterPdf(data: InvitationLetterData, italian: InvitationLetterItalian = buildInvitationLetterItalianFallback(data)): Promise<string> {
-  return openInvitationLetterPrintDialog(data, italian);
+export async function downloadInvitationLetterPdf(data: InvitationLetterData, italian: InvitationLetterItalian = buildInvitationLetterItalianFallback(data), signature?: InvitationLetterSignatureView | null): Promise<string> {
+  return openInvitationLetterPrintDialog(data, italian, signature);
 }
 
-export function printInvitationLetter(data: InvitationLetterData, italian: InvitationLetterItalian = buildInvitationLetterItalianFallback(data)) {
-  openInvitationLetterPrintDialog(data, italian);
+export function printInvitationLetter(data: InvitationLetterData, italian: InvitationLetterItalian = buildInvitationLetterItalianFallback(data), signature?: InvitationLetterSignatureView | null) {
+  openInvitationLetterPrintDialog(data, italian, signature);
 }
