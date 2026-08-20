@@ -42,6 +42,15 @@ describe("InvitationLetterSignaturePage", () => {
     expect(letterQuery.refetch).toHaveBeenCalledTimes(1);
   });
 
+  it("permite cerrar la pestaña de firma y ofrece un regreso alternativo al panel", () => {
+    const close = vi.spyOn(window, "close").mockImplementation(() => undefined);
+    render(<InvitationLetterSignaturePage />);
+    fireEvent.click(screen.getByRole("button", { name: "Cerrar ventana" }));
+    expect(close).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("link", { name: /Volver al panel administrativo/ }).getAttribute("href")).toBe("/admin");
+    close.mockRestore();
+  });
+
   it("muestra un estado claro cuando el enlace no tiene credenciales válidas", () => {
     window.history.replaceState({}, "", "/carta-firma?letter=41&token=corto");
     render(<InvitationLetterSignaturePage />);

@@ -694,3 +694,7 @@
 - [x] Permitir al cliente firmar mediante enlace seguro y guardar trazo, fecha y estado de firma
 - [x] Mostrar el estado antes y después de la firma en la Carta y notificar al cliente
 - [x] Añadir pruebas, validar el flujo completo y publicar la funcionalidad
+
+## Salida de página de firma de Carta
+- [x] Añadir un botón visible para cerrar la página de firma y volver al panel administrativo que abrió la solicitud
+- [x] Cubrir el regreso y la compilación antes de publicar la mejora
