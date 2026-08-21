@@ -709,3 +709,10 @@
 - [x] Incorporar búsqueda de agencia y mapa interactivo para seleccionar el destino exacto
 - [x] Guardar y mostrar la agencia de destino en el registro y el comprobante de envío
 - [x] Cubrir el selector de destino con pruebas, validar la compilación y publicar la mejora
+
+## Aplicación móvil Servicom Internacional
+- [x] Diseñar la arquitectura móvil y la navegación para Cliente, Registrador y Master Admin
+- [x] Implementar acceso, rastreo por orden/código y lectura QR desde móvil
+- [x] Implementar registro de documentos y encomiendas, agencias de destino y mapa
+- [x] Incorporar recibos, firmas electrónicas, Cartas de invitación y gestión administrativa móvil
+- [x] Validar los flujos móviles y preparar la versión publicable

@@ -9,6 +9,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AccountPage from "./pages/AccountPage";
 import ReceiptPage from "./pages/ReceiptPage";
 import InvitationLetterSignaturePage from "./pages/InvitationLetterSignaturePage";
+import MobileAppPage from "./pages/MobileAppPage";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -19,6 +20,7 @@ function Router() {
       <Route path={"/cuenta"} component={AccountPage} />
       <Route path={"/recibo"} component={ReceiptPage} />
       <Route path={"/carta-firma"} component={InvitationLetterSignaturePage} />
+      <Route path={"/movil"} component={MobileAppPage} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

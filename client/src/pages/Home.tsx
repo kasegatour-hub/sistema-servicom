@@ -244,6 +244,9 @@ export default function Home() {
               <img src="/manus-storage/servicom_logo_final_e7ce35aa.png" alt="Servicom Internacional" className="h-16 md:h-20 w-auto object-contain bg-white rounded-md p-1" />
             </div>
             <div className="flex items-center gap-2">
+              <button onClick={() => window.location.href = '/movil'} className="text-white hover:bg-white/20 px-3 py-1 rounded text-sm font-medium transition">
+                App móvil
+              </button>
               <button onClick={() => window.location.href = '/cuenta'} className="text-white hover:bg-white/20 px-3 py-1 rounded text-sm font-medium transition">
                 Mi cuenta
               </button>
