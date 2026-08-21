@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { Camera, X } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { Camera, RefreshCw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import jsQR from "jsqr";
 import { getQrScanFrameSize } from "@/lib/qrScan";
@@ -10,172 +10,120 @@ interface QRScannerProps {
   onClose: () => void;
 }
 
+const stopStream = (stream: MediaStream | null) => stream?.getTracks().forEach(track => track.stop());
+
 export function QRScanner({ onScan, isOpen, onClose }: QRScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isScanning, setIsScanning] = useState(false);
+  const streamRef = useRef<MediaStream | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const onScanRef = useRef(onScan);
+  const [error, setError] = useState<string | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [cameraAttempt, setCameraAttempt] = useState(0);
 
   useEffect(() => { onScanRef.current = onScan; }, [onScan]);
 
   useEffect(() => {
     if (!isOpen) return;
+    let cancelled = false;
+    setError(null);
+    setIsScanning(false);
 
-    const startCamera = async () => {
+    const connectCamera = async () => {
       try {
-        setError(null);
         if (!navigator.mediaDevices?.getUserMedia) throw new Error("Este navegador no ofrece acceso a la cámara");
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: "environment",
-            width: { ideal: 960, max: 1280 },
-            height: { ideal: 540, max: 720 },
-          },
-        });
-
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.onloadedmetadata = () => {
-            void videoRef.current?.play().catch(() => undefined);
-            setIsScanning(true);
-          };
+        let stream: MediaStream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
+            audio: false,
+          });
+        } catch (rearCameraError) {
+          // Algunos navegadores móviles no aceptan restricciones de cámara trasera; se reintenta con cualquier cámara disponible.
+          stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          console.warn("Se usó una cámara alternativa para leer el QR.", rearCameraError);
         }
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : "No se pudo acceder a la cámara";
-        setError(
-          `${errorMessage}. Verifica los permisos de cámara en tu dispositivo.`
-        );
+        if (cancelled) { stopStream(stream); return; }
+        streamRef.current = stream;
+        const video = videoRef.current;
+        if (!video) { stopStream(stream); return; }
+        video.srcObject = stream;
+        video.onloadeddata = () => {
+          void video.play().then(() => {
+            if (!cancelled) setIsScanning(true);
+          }).catch(() => setError("No se pudo iniciar la vista de cámara. Toca «Reintentar cámara»."));
+        };
+      } catch (cameraError) {
+        if (cancelled) return;
+        const reason = cameraError instanceof Error ? cameraError.message : "No se pudo acceder a la cámara";
+        setError(`${reason}. Permite el uso de cámara y vuelve a intentarlo.`);
         setIsScanning(false);
       }
     };
-
-    startCamera();
+    void connectCamera();
 
     return () => {
+      cancelled = true;
+      setIsScanning(false);
       if (animationFrameRef.current) window.cancelAnimationFrame(animationFrameRef.current);
-      if (videoRef.current?.srcObject) {
-        const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
-        tracks.forEach(track => track.stop());
-      }
+      stopStream(streamRef.current);
+      streamRef.current = null;
+      if (videoRef.current) { videoRef.current.onloadeddata = null; videoRef.current.srcObject = null; }
     };
-  }, [isOpen]);
+  }, [isOpen, cameraAttempt]);
 
-  // QR detection loop using jsQR
   useEffect(() => {
     if (!isScanning || !videoRef.current || !canvasRef.current) return;
-
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context) return;
     let hasScanned = false;
     let lastScanAt = 0;
     const scanFrame = (timestamp: number) => {
+      const video = videoRef.current;
+      if (!video || hasScanned) return;
+      if (video.readyState !== video.HAVE_ENOUGH_DATA || timestamp - lastScanAt < 80) {
+        animationFrameRef.current = window.requestAnimationFrame(scanFrame);
+        return;
+      }
+      lastScanAt = timestamp;
       try {
-        const video = videoRef.current;
-        if (!video || video.readyState !== video.HAVE_ENOUGH_DATA || hasScanned) {
-          if (!hasScanned) animationFrameRef.current = window.requestAnimationFrame(scanFrame);
-          return;
-        }
-        if (timestamp - lastScanAt < 100) {
-          animationFrameRef.current = window.requestAnimationFrame(scanFrame);
-          return;
-        }
-        lastScanAt = timestamp;
         const frameSize = getQrScanFrameSize(video.videoWidth, video.videoHeight);
         if (!frameSize.width || !frameSize.height) {
           animationFrameRef.current = window.requestAnimationFrame(scanFrame);
           return;
         }
-
         if (canvas.width !== frameSize.width) canvas.width = frameSize.width;
         if (canvas.height !== frameSize.height) canvas.height = frameSize.height;
-
-        ctx.drawImage(video, 0, 0, frameSize.width, frameSize.height);
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-        const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
-
-        if (code) {
+        context.drawImage(video, 0, 0, frameSize.width, frameSize.height);
+        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "attemptBoth" });
+        if (code?.data) {
           hasScanned = true;
+          setIsScanning(false);
+          stopStream(streamRef.current);
           onScanRef.current(code.data);
           return;
         }
-      } catch (err) {
-        console.error("Scan error:", err);
+      } catch (scanError) {
+        console.warn("No se pudo procesar un fotograma QR; se continúa intentando.", scanError);
       }
       animationFrameRef.current = window.requestAnimationFrame(scanFrame);
     };
     animationFrameRef.current = window.requestAnimationFrame(scanFrame);
-
-    return () => {
-      if (animationFrameRef.current) window.cancelAnimationFrame(animationFrameRef.current);
-    };
+    return () => { if (animationFrameRef.current) window.cancelAnimationFrame(animationFrameRef.current); };
   }, [isScanning]);
 
+  const retryCamera = () => { setError(null); setCameraAttempt(attempt => attempt + 1); };
+  const closeScanner = () => { setIsScanning(false); onClose(); };
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-lg max-w-md w-full">
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Camera className="w-5 h-5 text-primary" />
-            Escanear QR
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="p-4">
-          {error ? (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
-              {error}
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="relative bg-black rounded-lg overflow-hidden aspect-square">
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  className="w-full h-full object-cover"
-                />
-                <canvas ref={canvasRef} className="hidden" />
-
-                {/* QR frame overlay */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="w-48 h-48 border-4 border-primary rounded-lg opacity-70" />
-                  <div className="absolute top-0 left-0 w-12 h-12 border-t-4 border-l-4 border-primary rounded-tl-lg" />
-                  <div className="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 border-primary rounded-tr-lg" />
-                  <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-primary rounded-bl-lg" />
-                  <div className="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 border-primary rounded-br-lg" />
-                </div>
-              </div>
-
-              <p className="text-sm text-gray-600 text-center">
-                Apunta la cámara hacia el código QR del envío
-              </p>
-            </div>
-          )}
-        </div>
-
-        <div className="p-4 border-t flex gap-2">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            className="flex-1"
-          >
-            Cerrar
-          </Button>
-        </div>
-      </div>
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true" aria-labelledby="qr-scanner-title">
+    <div className="w-full max-w-md overflow-hidden rounded-xl bg-white shadow-2xl">
+      <div className="flex items-center justify-between border-b p-4"><h2 id="qr-scanner-title" className="flex items-center gap-2 text-lg font-semibold"><Camera className="h-5 w-5 text-primary" />Escanear QR</h2><button type="button" onClick={closeScanner} aria-label="Cerrar escáner QR" className="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700"><X className="h-5 w-5" /></button></div>
+      <div className="p-4">{error ? <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700"><p>{error}</p><Button type="button" onClick={retryCamera} className="mt-3 bg-[#0B2B5E] text-white hover:bg-[#123d78]"><RefreshCw className="mr-2 h-4 w-4" />Reintentar cámara</Button></div> : <div className="space-y-4"><div className="relative aspect-square overflow-hidden rounded-lg bg-black"><video ref={videoRef} autoPlay playsInline muted className="h-full w-full object-cover" /><canvas ref={canvasRef} className="hidden" /><div className="pointer-events-none absolute inset-0 flex items-center justify-center"><div className="h-48 w-48 rounded-lg border-4 border-primary opacity-80" /></div></div><p className="text-center text-sm text-gray-600">Apunta a un QR completo, con buena luz, y mantén el teléfono firme unos segundos.</p></div>}</div>
+      <div className="flex gap-2 border-t p-4"><Button variant="outline" type="button" onClick={closeScanner} className="flex-1">Cerrar</Button>{!error && <Button variant="outline" type="button" onClick={retryCamera} className="flex-1"><RefreshCw className="mr-2 h-4 w-4" />Reiniciar cámara</Button>}</div>
     </div>
-  );
+  </div>;
 }

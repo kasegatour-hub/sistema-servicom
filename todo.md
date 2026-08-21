@@ -716,3 +716,8 @@
 - [x] Implementar registro de documentos y encomiendas, agencias de destino y mapa
 - [x] Incorporar recibos, firmas electrónicas, Cartas de invitación y gestión administrativa móvil
 - [x] Validar los flujos móviles y preparar la versión publicable
+
+## Estabilidad del QR en aplicación móvil
+- [x] Corregir la detección intermitente y la apertura del envío desde el escáner QR móvil
+- [x] Mejorar el manejo de permisos, disponibilidad de cámara y recuperación tras un fallo de lectura
+- [x] Cubrir el flujo QR móvil con pruebas, validar la compilación y publicar la corrección
