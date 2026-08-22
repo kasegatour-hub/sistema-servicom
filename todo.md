@@ -810,3 +810,8 @@
 - [x] Aislar los registros operativos del nuevo Master Admin respecto de las demás cuentas
 - [x] Retirar las referencias de Kasega solicitadas sin alterar la marca Servicom Internacional
 - [x] Validar permisos, acceso, pruebas, compilación y publicación
+
+## Corrección de consulta móvil tRPC
+- [x] Identificar la consulta de /movil que recibe HTML en lugar de JSON
+- [x] Corregir la ruta o configuración tRPC responsable de la respuesta incorrecta
+- [x] Validar /movil, pruebas, compilación y publicación
