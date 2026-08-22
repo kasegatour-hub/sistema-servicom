@@ -760,3 +760,8 @@
 - [x] Rediseñar instalación, acceso y rastreo en tarjetas grandes y flujos progresivos
 - [x] Mantener las funciones útiles del sistema sin replicar el panel web de escritorio
 - [x] Validar el rediseño en teléfono, pruebas automatizadas y compilación antes de publicar
+
+## Corrección de creación de Carta de invitación
+- [x] Reproducir el fallo de creación e identificar la validación o persistencia que lo bloquea
+- [x] Corregir el guardado de cartas y presentar el motivo exacto ante un error recuperable
+- [x] Añadir pruebas de creación, validar la compilación y publicar la corrección

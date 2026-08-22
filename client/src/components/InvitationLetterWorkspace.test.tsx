@@ -135,6 +135,16 @@ describe("InvitationLetterWorkspace", () => {
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
+  it("explica cómo continuar si el servidor no confirma la creación de la carta", async () => {
+    const data = { inviter: { firstName: "ANA", lastName: "ROSSI", passport: "AB123456", identityCard: "AA12345", email: "" }, invitee: { firstName: "MARIA", lastName: "BIANCHI", passport: "AB765432", identityCard: "", email: "" }, date: "2026-08-19" } as any;
+    lettersQuery.refetch.mockResolvedValue({ data: [] });
+    render(<InvitationLetterWorkspace />);
+
+    saveMutation.onError?.(new Error("No se pudo guardar la Carta de invitación."), { data, italian: { inviter: {}, invitee: {} } as any });
+
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toMatch(/no recibió una confirmación de guardado/i));
+  });
+
   it("muestra pestañas visibles, lista cartas por páginas y abre una carta en el formulario", () => {
     const recordData = { inviter: { firstName: "ANA", lastName: "ROSSI", birthDate: "1970-01-01", birthPlace: "LIMA", nationality: "PERUANA", identityCard: "AA12345BB", passport: "AB123456", residencePermit: "PERMISO", address: "VIA 1", occupation: "COMERCIANTE", phone: "+51 970 188 447", email: "" }, invitee: { firstName: "MARIA", lastName: "BIANCHI", birthDate: "1995-01-01", birthPlace: "LIMA", nationality: "PERUANA", identityCard: "AA12345BB", passport: "AB123456", residencePermit: "", address: "LIMA", occupation: "ESTUDIANTE", phone: "+51 908 722 617", email: "" }, relationship: "FAMILIAR", purpose: "TURISMO", arrivalDate: "2026-09-01", departureDate: "2026-09-30", city: "TORINO", date: "2026-08-19", financialSupport: true, healthInsurance: true, financialGuarantee: false, inviteeIdAttached: true, financialGuaranteeAttached: false };
     const italian = { inviter: { birthPlace: "LIMA", nationality: "PERUVIANA", residencePermit: "PERMESSO", address: "VIA 1", occupation: "COMMERCIANTE" }, invitee: { birthPlace: "LIMA", nationality: "PERUVIANA", address: "LIMA", occupation: "STUDENTESSA" }, relationship: "FAMILIARE", purpose: "TURISMO", city: "TORINO" };

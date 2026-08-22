@@ -32,6 +32,12 @@ const normalizeInvitationPerson = (person: InvitationPerson): InvitationPerson =
 const normalizeInvitationData = (data: InvitationLetterData): InvitationLetterData => ({ ...data, inviter: normalizeInvitationPerson(data.inviter), invitee: normalizeInvitationPerson(data.invitee), relationship: uppercase(data.relationship), purpose: uppercase(data.purpose), city: uppercase(data.city), otherAnnexes: uppercase(data.otherAnnexes || ""), companyAnnexes: uppercase(data.companyAnnexes || "") });
 const toItalianInput = (data: InvitationLetterData): ItalianInput => ({ inviter: { birthPlace: data.inviter.birthPlace, nationality: data.inviter.nationality, residencePermit: data.inviter.residencePermit, address: data.inviter.address, occupation: data.inviter.occupation }, invitee: { birthPlace: data.invitee.birthPlace, nationality: data.invitee.nationality, address: data.invitee.address, occupation: data.invitee.occupation }, relationship: data.relationship, purpose: data.purpose, city: data.city });
 const canPrepareItalian = (input: ItalianInput) => Object.values(input.inviter).every(value => String(value).trim()) && Object.values(input.invitee).every(value => String(value).trim()) && [input.relationship, input.purpose, input.city].every(value => value.trim());
+const invitationSaveErrorMessage = (issue: unknown) => {
+  const message = issue instanceof Error ? issue.message.trim() : "";
+  if (!message || /^internal server error$/i.test(message)) return "No se pudo crear la carta. Verifica tu conexión e inténtalo nuevamente.";
+  if (/No se pudo guardar la Carta de invitación/i.test(message)) return "La carta no recibió una confirmación de guardado. Actualiza el historial de cartas antes de intentar de nuevo.";
+  return message;
+};
 
 function parseSavedLetter(record: any): { data: InvitationLetterData; italian: InvitationLetterItalian; signature?: InvitationLetterSignatureView | null } | null {
   try {
@@ -110,7 +116,7 @@ export function InvitationLetterWorkspace({ shipments = [] as any[] }: { shipmen
   };
   const saveRecordMutation = trpc.admin.saveInvitationLetter.useMutation({
     onSuccess: (record, variables) => { setSavedLetter({ data: variables.data, italian: variables.italian }); setTemporaryAccount(record.account?.created && record.account?.temporaryPassword ? { email: record.account.email || "", password: record.account.temporaryPassword } : null); setError(""); setLetterView("history"); lettersQuery.refetch(); },
-    onError: async (issue, variables) => { if (await reconcilePersistedLetter(variables)) return; setError(issue.message || "No se pudo guardar la carta de invitación."); },
+    onError: async (issue, variables) => { if (await reconcilePersistedLetter(variables)) return; setError(invitationSaveErrorMessage(issue)); },
   });
   const translateMutation = trpc.admin.translateInvitationLetter.useMutation();
   useEffect(() => {

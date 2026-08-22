@@ -408,9 +408,26 @@ export async function createInvitationLetterRecord(input: {
     italianData,
     createdAt,
   });
-  const id = Number((result as { insertId?: number }).insertId);
-  if (!id) return undefined;
-  return { id, createdByAdminId: input.createdByAdminId, createdByAdminLabel: input.createdByAdminLabel, inviterName: input.inviterName, inviterLastName: input.inviterLastName, inviteeName: input.inviteeName, inviteeLastName: input.inviteeLastName, clientAccountId: input.clientAccountId ?? null, letterData, italianData, deletedAt: null, deletedByAdminId: null, deletedByAdminLabel: null, deleteReason: null, createdAt };
+  const insertHeader = Array.isArray(result) ? result[0] : result;
+  const insertedId = Number((insertHeader as { insertId?: unknown } | undefined)?.insertId);
+  if (Number.isInteger(insertedId) && insertedId > 0) {
+    const stored = await getInvitationLetterById(insertedId);
+    if (stored) return stored;
+  }
+
+  // Algunos adaptadores MySQL/TiDB entregan el encabezado de inserción en otra forma.
+  // La fila ya puede existir aunque `insertId` no esté disponible; se recupera con el
+  // contenido exacto recién insertado para evitar reportar falsamente un fallo al usuario.
+  const [stored] = await db.select().from(invitationLetters).where(and(
+    eq(invitationLetters.createdByAdminId, input.createdByAdminId),
+    eq(invitationLetters.inviterName, input.inviterName),
+    eq(invitationLetters.inviterLastName, input.inviterLastName),
+    eq(invitationLetters.inviteeName, input.inviteeName),
+    eq(invitationLetters.inviteeLastName, input.inviteeLastName),
+    eq(invitationLetters.letterData, letterData),
+    eq(invitationLetters.italianData, italianData),
+  )).orderBy(desc(invitationLetters.id)).limit(1);
+  return stored;
 }
 
 export async function getInvitationLetterById(id: number) {
