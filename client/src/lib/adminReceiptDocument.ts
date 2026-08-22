@@ -251,7 +251,7 @@ export async function downloadAdminReceiptPdf(input: AdminReceiptDocumentInput, 
   const declaration = [
     `Yo, ${sender}, identificado(a) con documento N° ${shipment.senderDni || "No especificado"}, declaro bajo juramento que el envío amparado bajo la Orden N° ${order} (Código: ${code}) contiene única y estrictamente documentación lícita.`,
     "Garantizo que el envío no contiene sustancias ilícitas, dinero no declarado ni materiales prohibidos por la legislación aplicable y los convenios aduaneros internacionales vigentes.",
-    `Eximo expresa y legalmente de responsabilidad a Servicom Internacional en colaboración con Kasega Tour E.I.R.L. (RUC: 20615004708). Autorizo la revisión física y el escaneo del envío por la agencia y autoridades competentes.`,
+    `Eximo expresa y legalmente de responsabilidad a Servicom Internacional. Autorizo la revisión física y el escaneo del envío por la agencia y autoridades competentes.`,
     `Suscrito en ${route.originPrintLabel}, el ${new Date().toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" })}.`,
   ];
   pdf.setFont("helvetica", "normal");

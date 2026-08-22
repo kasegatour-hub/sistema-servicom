@@ -803,3 +803,10 @@
 - [x] Rediseñar el selector con listados por empresa, búsqueda por ubicación y vista de detalle
 - [x] Autocompletar el destino al elegir una sede y mantener una opción de sede manual
 - [x] Cubrir filtros, selección y entrada manual con pruebas, compilación y publicación
+
+## Master Admin aislado y retiro de Kasega
+- [x] Auditar referencias de Kasega y la visibilidad actual de registros por cuenta
+- [x] Crear el Master Admin solicitado con contraseña protegida mediante hash seguro
+- [x] Aislar los registros operativos del nuevo Master Admin respecto de las demás cuentas
+- [x] Retirar las referencias de Kasega solicitadas sin alterar la marca Servicom Internacional
+- [x] Validar permisos, acceso, pruebas, compilación y publicación

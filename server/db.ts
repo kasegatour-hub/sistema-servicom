@@ -271,11 +271,13 @@ export async function getClientById(id: number) {
   return result[0];
 }
 
-export async function searchClients(query: string, limit = 8) {
+export async function searchClients(query: string, limit = 8, ownerAdminId?: number | null) {
   const db = await getDb();
   const normalizedQuery = query.trim();
   if (!db || normalizedQuery.length < 2) return [];
-  const candidates = await db.select().from(clients).limit(500);
+  const candidates = ownerAdminId === undefined
+    ? await db.select().from(clients).limit(500)
+    : await db.select().from(clients).where(ownerAdminId === null ? isNull(clients.ownerAdminId) : eq(clients.ownerAdminId, ownerAdminId)).limit(500);
   return rankFuzzyMatches(candidates, normalizedQuery, client => `${client.dni || ""} ${client.name} ${client.lastName}`)
     .slice(0, Math.min(Math.max(limit, 1), 20));
 }
@@ -289,9 +291,11 @@ export async function upsertClient(record: ClientDirectoryRecord) {
   const dni = record.dni;
   const phone = record.phone;
   const email = record.email;
+  const ownerCondition = record.ownerAdminId === null ? isNull(clients.ownerAdminId) : eq(clients.ownerAdminId, record.ownerAdminId);
   const existing = dni
-    ? await db.select().from(clients).where(eq(clients.dni, dni)).limit(1)
+    ? await db.select().from(clients).where(and(eq(clients.dni, dni), ownerCondition)).limit(1)
     : await db.select().from(clients).where(and(
+        ownerCondition,
         eq(clients.name, name),
         eq(clients.lastName, lastName),
         phone ? eq(clients.phone, phone) : isNull(clients.phone),
@@ -302,7 +306,7 @@ export async function upsertClient(record: ClientDirectoryRecord) {
     return getClientById(existing[0].id);
   }
 
-  const inserted = await db.insert(clients).values({ name, lastName, dni, documentType: record.documentType || "dni_peru", phone, email });
+  const inserted = await db.insert(clients).values({ ownerAdminId: record.ownerAdminId, name, lastName, dni, documentType: record.documentType || "dni_peru", phone, email });
   const insertedId = Number((inserted as { insertId?: number }).insertId);
   return insertedId ? getClientById(insertedId) : undefined;
 }
@@ -914,6 +918,7 @@ export async function updateDiscountCoupon(input: {
   appliesTo: "ambos" | "documento" | "encomienda";
   startsAt: Date;
   endsAt: Date;
+  ownerAdminId: number;
 }) {
   const db = await getDb();
   if (!db) return false;
@@ -924,28 +929,34 @@ export async function updateDiscountCoupon(input: {
     startsAt: input.startsAt,
     endsAt: input.endsAt,
     updatedAt: new Date(),
-  }).where(eq(discountCoupons.id, input.id));
+  }).where(and(eq(discountCoupons.id, input.id), eq(discountCoupons.createdByAdminId, input.ownerAdminId)));
   return true;
 }
 
-export async function listDiscountCoupons() {
+export async function listDiscountCoupons(ownerAdminId?: number) {
   const db = await getDb();
   if (!db) return [];
-  return await db.select().from(discountCoupons);
+  return ownerAdminId === undefined
+    ? await db.select().from(discountCoupons)
+    : await db.select().from(discountCoupons).where(eq(discountCoupons.createdByAdminId, ownerAdminId));
 }
 
-export async function getDiscountCouponByCode(code: string) {
+export async function getDiscountCouponByCode(code: string, ownerAdminId?: number) {
   const db = await getDb();
   if (!db) return undefined;
   const normalizedCode = normalizeOrderCode(code);
-  const rows = await db.select().from(discountCoupons).where(eq(discountCoupons.code, normalizedCode)).limit(1);
+  const condition = ownerAdminId === undefined
+    ? eq(discountCoupons.code, normalizedCode)
+    : and(eq(discountCoupons.code, normalizedCode), eq(discountCoupons.createdByAdminId, ownerAdminId));
+  const rows = await db.select().from(discountCoupons).where(condition).limit(1);
   return rows[0];
 }
 
-export async function deactivateDiscountCoupon(id: number) {
+export async function deactivateDiscountCoupon(id: number, ownerAdminId?: number) {
   const db = await getDb();
   if (!db) return false;
-  await db.update(discountCoupons).set({ isActive: 0, updatedAt: new Date() }).where(eq(discountCoupons.id, id));
+  const condition = ownerAdminId === undefined ? eq(discountCoupons.id, id) : and(eq(discountCoupons.id, id), eq(discountCoupons.createdByAdminId, ownerAdminId));
+  await db.update(discountCoupons).set({ isActive: 0, updatedAt: new Date() }).where(condition);
   return true;
 }
 
@@ -983,7 +994,7 @@ export async function setEncomiendaAvailabilityForRoute(route: string, encomiend
   return true;
 }
 
-export async function getAllShipments(shipmentType?: "documento" | "encomienda", options?: { excludeHiddenForRegistradores?: boolean }) {
+export async function getAllShipments(shipmentType?: "documento" | "encomienda", options?: { excludeHiddenForRegistradores?: boolean; ownerAdminId?: number }) {
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot get shipments: database not available");
@@ -993,15 +1004,23 @@ export async function getAllShipments(shipmentType?: "documento" | "encomienda",
   const conditions = [isNull(shipments.deletedAt)];
   if (shipmentType) conditions.push(eq(shipments.shipmentType, shipmentType));
   if (options?.excludeHiddenForRegistradores) conditions.push(isNull(shipments.hiddenFromRegistradoresAt));
+  if (options?.ownerAdminId !== undefined) {
+    conditions.push(eq(shipments.registeredByType, "admin"));
+    conditions.push(eq(shipments.registeredById, options.ownerAdminId));
+  }
   return await db.select().from(shipments).where(and(...conditions));
 }
 
-export async function getDeletedShipments(shipmentType?: "documento" | "encomienda") {
+export async function getDeletedShipments(shipmentType?: "documento" | "encomienda", ownerAdminId?: number) {
   const db = await getDb();
   if (!db) return [];
-  const deletedCondition = shipmentType
-    ? and(eq(shipments.shipmentType, shipmentType), isNotNull(shipments.deletedAt))
-    : isNotNull(shipments.deletedAt);
+  const conditions = [isNotNull(shipments.deletedAt)];
+  if (shipmentType) conditions.push(eq(shipments.shipmentType, shipmentType));
+  if (ownerAdminId !== undefined) {
+    conditions.push(eq(shipments.registeredByType, "admin"));
+    conditions.push(eq(shipments.registeredById, ownerAdminId));
+  }
+  const deletedCondition = and(...conditions);
   return await db.select().from(shipments).where(deletedCondition).orderBy(desc(shipments.deletedAt));
 }
 
@@ -1106,6 +1125,7 @@ export async function createShipment(
 
   // El directorio de clientes no depende de la cuenta de acceso y no se elimina con ella.
   await persistShipmentClients({
+    ownerAdminId: registeredBy?.type === "admin" ? registeredBy.id ?? null : null,
     senderName,
     senderLastName,
     senderDni,

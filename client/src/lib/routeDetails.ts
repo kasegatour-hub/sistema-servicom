@@ -61,4 +61,4 @@ export function getDeclarationLegalText(route?: string | null) {
   };
 }
 
-export const INSTITUTIONAL_DECLARATION_ENTITY = "Servicom Internacional en colaboración con KASEGA TOUR EIRL (RUC: 20615004708)";
+export const INSTITUTIONAL_DECLARATION_ENTITY = "Servicom Internacional";

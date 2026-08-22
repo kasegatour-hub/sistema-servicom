@@ -190,7 +190,7 @@ describe("receipt window helpers", () => {
     expect(finalHtml).toContain("Guardia di Finanza");
     expect(finalHtml).toContain("Agenzia delle Dogane e dei Monopoli - ADM");
     expect(finalHtml).toContain("Suscrito en la sede de origen de Torino, Italia");
-    expect(finalHtml).toContain("Servicom Internacional en colaboración con KASEGA TOUR EIRL (RUC: 20615004708)");
+    expect(finalHtml).toContain("Servicom Internacional");
     expect(finalHtml).not.toContain("Suscrito en la ciudad de Lima");
     expect(finalHtml).not.toContain("Ley N° 28002");
     expect(typeof (printWindow as any).onafterprint).toBe("function");

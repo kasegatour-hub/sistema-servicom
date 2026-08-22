@@ -164,7 +164,7 @@ export const accountRouter = router({
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No se pudo crear la cuenta." });
       }
 
-await upsertClient({ name: input.name, lastName: input.lastName, dni: input.dni, documentType: input.documentType, phone, email });
+await upsertClient({ ownerAdminId: null, name: input.name, lastName: input.lastName, dni: input.dni, documentType: input.documentType, phone, email });
 setAccountSession(ctx.req, ctx.res, account.id, false);
 return {
 success: true,
@@ -273,7 +273,7 @@ reauthRequired: session.reauthRequired,
       if (!account) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Cuenta no encontrada." });
       }
-      await upsertClient({ name: input.name, lastName: input.lastName, dni: input.dni, documentType: input.documentType, phone, email: account.email });
+      await upsertClient({ ownerAdminId: null, name: input.name, lastName: input.lastName, dni: input.dni, documentType: input.documentType, phone, email: account.email });
       return { success: true, account };
     }),
 

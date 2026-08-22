@@ -49,6 +49,8 @@ export type InsertLocalAccount = typeof localAccounts.$inferInsert;
 /** Registro operativo persistente de remitentes y destinatarios, independiente de las cuentas de acceso. */
 export const clients = mysqlTable("clients", {
   id: int("id").autoincrement().primaryKey(),
+  /** Espacio operativo del administrador que registró estos datos; nulo para registros previos o públicos. */
+  ownerAdminId: int("ownerAdminId"),
   name: varchar("name", { length: 255 }).notNull(),
   lastName: varchar("lastName", { length: 255 }).notNull(),
   dni: varchar("dni", { length: 20 }),
@@ -58,6 +60,7 @@ export const clients = mysqlTable("clients", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, table => ({
+  ownerIdx: index("clients_owner_admin_idx").on(table.ownerAdminId, table.createdAt),
   dniIdx: index("clients_dni_idx").on(table.dni),
   nameIdx: index("clients_name_last_name_idx").on(table.name, table.lastName),
 }));

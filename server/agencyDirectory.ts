@@ -1,5 +1,6 @@
 import { createHmac, randomBytes } from "node:crypto";
-import shalomOfficialSnapshot from "./data/shalom-official-agencies-snapshot-2026-08-22.json";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 export type AgencyProvider = "OLVA COURIER" | "SHALOM";
 
@@ -29,6 +30,7 @@ const SHALOM_OFFICIAL_DIRECTORY_URL = "https://serviceswebapi.shalomcontrol.com/
 const SHALOM_SOURCE_PAGE = "https://shalom.com.pe/agencias/";
 const CACHE_WINDOW_MS = 30 * 60 * 1000;
 const SHALOM_PUBLIC_WEB_SECRET = ".Ov3rsku112024l4r43l.";
+const SHALOM_FALLBACK_FILE = join(process.cwd(), "server", "data", "shalom-official-agencies-snapshot-2026-08-22.json");
 
 let olvaCache: { value: AgencyDirectoryEntry[]; expiresAt: number } | null = null;
 let shalomCache: { value: AgencyDirectoryEntry[]; expiresAt: number } | null = null;
@@ -85,7 +87,8 @@ export async function getOfficialShalomAgencies() {
     entries = (payload.data || []).map(normalizeShalomOffice).filter((entry): entry is AgencyDirectoryEntry => Boolean(entry));
     if (!payload.success || entries.length === 0) throw new Error("El directorio oficial de Shalom no devolvió agencias utilizables.");
   } catch {
-    entries = (shalomOfficialSnapshot as ShalomOffice[]).map(normalizeShalomOffice).filter((entry): entry is AgencyDirectoryEntry => Boolean(entry));
+    const snapshot = JSON.parse(readFileSync(SHALOM_FALLBACK_FILE, "utf8")) as ShalomOffice[];
+    entries = snapshot.map(normalizeShalomOffice).filter((entry): entry is AgencyDirectoryEntry => Boolean(entry));
   }
   if (!entries.length) throw new Error("No fue posible cargar el respaldo verificado de agencias de Shalom.");
   shalomCache = { value: entries, expiresAt: Date.now() + CACHE_WINDOW_MS };

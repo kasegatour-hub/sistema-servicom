@@ -43,6 +43,6 @@ describe("route presentation", () => {
     expect(legal.authorities).toContain("Guardia di Finanza");
     expect(legal.authorities).toContain("Agenzia delle Dogane e dei Monopoli - ADM");
     expect(legal.originLine).toContain("Torino, Italia");
-    expect(INSTITUTIONAL_DECLARATION_ENTITY).toContain("KASEGA TOUR EIRL");
+    expect(INSTITUTIONAL_DECLARATION_ENTITY).toBe("Servicom Internacional");
   });
 });

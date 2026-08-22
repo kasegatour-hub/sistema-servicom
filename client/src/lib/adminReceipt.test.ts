@@ -90,7 +90,7 @@ describe("administrative receipt ticket", () => {
     expect(html).toContain("Guardia di Finanza");
     expect(html).toContain("Agenzia delle Dogane e dei Monopoli - ADM");
     expect(html).toContain("Suscrito en la sede de origen de Torino, Italia, el 12 de agosto de 2026");
-    expect(html).toContain("Servicom Internacional en colaboración con KASEGA TOUR EIRL (RUC: 20615004708)");
+    expect(html).toContain("Servicom Internacional");
     expect(html).not.toContain("Suscrito en la ciudad de Lima");
     expect(html).not.toContain("Ley N° 28002");
   });

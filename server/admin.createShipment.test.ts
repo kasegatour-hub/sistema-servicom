@@ -66,6 +66,7 @@ describe("admin.createShipment", () => {
     expect(args[32]).toBe("simple");
     expect(args[33]).toBe(6);
     expect(args[34]).toBe(false);
+    expect(args[29]).toMatchObject({ type: "admin", id: 9 });
   });
 
   it("persists the apostille service only for a Torino–Lima document", async () => {

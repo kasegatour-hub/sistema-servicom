@@ -1,4 +1,5 @@
 export type ShipmentClientDirectoryInput = {
+  ownerAdminId?: number | null;
   senderName?: string | null;
   senderLastName?: string | null;
   senderDni?: string | null;
@@ -14,6 +15,7 @@ export type ShipmentClientDirectoryInput = {
 };
 
 export type ClientDirectoryRecord = {
+  ownerAdminId: number | null;
   name: string;
   lastName: string;
   dni: string | null;
@@ -29,6 +31,7 @@ function clean(value?: string | null) {
 
 export function buildShipmentClientDirectoryRecords(input: ShipmentClientDirectoryInput): ClientDirectoryRecord[] {
   const sender = {
+    ownerAdminId: input.ownerAdminId ?? null,
     name: clean(input.senderName),
     lastName: clean(input.senderLastName),
     dni: clean(input.senderDni),
@@ -37,6 +40,7 @@ export function buildShipmentClientDirectoryRecords(input: ShipmentClientDirecto
     email: clean(input.senderEmail),
   };
   const recipient = {
+    ownerAdminId: input.ownerAdminId ?? null,
     name: clean(input.recipientName),
     lastName: clean(input.recipientLastName),
     dni: clean(input.recipientDni),

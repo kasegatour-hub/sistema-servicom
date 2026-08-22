@@ -187,7 +187,7 @@ export default function ReceiptPage() {
           onSubmit={handleCompleteSignature}
         />
 
-        <p className="mt-5 text-center text-xs text-slate-500"><CheckCircle2 className="mr-1 inline h-3.5 w-3.5 text-emerald-600" aria-hidden="true" /> Recibo oficial de Servicom Internacional en colaboración con Kasega Tour E.I.R.L.</p>
+        <p className="mt-5 text-center text-xs text-slate-500"><CheckCircle2 className="mr-1 inline h-3.5 w-3.5 text-emerald-600" aria-hidden="true" /> Recibo oficial de Servicom Internacional.</p>
       </div>
     </main>
   );

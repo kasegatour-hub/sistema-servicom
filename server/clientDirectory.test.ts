@@ -16,6 +16,7 @@ describe("shipment client directory", () => {
 
     expect(records).toEqual([
       {
+        ownerAdminId: null,
         name: "Ana",
         lastName: "Pérez",
         dni: "71234567",
@@ -24,6 +25,7 @@ describe("shipment client directory", () => {
         email: null,
       },
       {
+        ownerAdminId: null,
         name: "Marco",
         lastName: "Rossi",
         dni: "00112233",
