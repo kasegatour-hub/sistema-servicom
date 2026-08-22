@@ -754,3 +754,9 @@
 - [x] Revisar el aviso de instalación PWA y hacerlo disponible desde la entrada móvil
 - [x] Exigir inicio de sesión antes de mostrar rastreo u otras funciones en /movil
 - [x] Probar la ruta móvil protegida, el flujo de instalación y publicar la corrección
+
+## Rediseño de experiencia móvil táctil
+- [x] Definir una navegación inferior táctil y jerarquía de acciones propia de móvil
+- [x] Rediseñar instalación, acceso y rastreo en tarjetas grandes y flujos progresivos
+- [x] Mantener las funciones útiles del sistema sin replicar el panel web de escritorio
+- [x] Validar el rediseño en teléfono, pruebas automatizadas y compilación antes de publicar

@@ -32,7 +32,7 @@ describe("MobileAppPage", () => {
   it("muestra instalación e inicio de sesión, sin exponer rastreo a visitantes sin sesión", () => {
     render(<MobileAppPage />);
 
-    expect(screen.getByRole("heading", { name: "App móvil Servicom" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Tu oficina de envíos, en el bolsillo." })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Ver cómo instalar" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Iniciar sesión" }).getAttribute("href")).toBe("/cuenta?returnTo=%2Fmovil");
     expect(screen.queryByRole("heading", { name: "Rastrear envío" })).toBeNull();
@@ -51,11 +51,13 @@ describe("MobileAppPage", () => {
     accountMocks.session = { id: 7, email: "cliente@servicom.pe", reauthRequired: false };
     render(<MobileAppPage />);
 
-    expect(screen.getByRole("heading", { name: "Rastrear envío" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /Escanear QR/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Inicio" }).getAttribute("aria-current")).toBe("page");
+    fireEvent.click(screen.getByRole("button", { name: "Rastrear" }));
+    expect(screen.getByRole("heading", { name: "Encuentra tu envío" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Escanear QR de envío" })).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Número de orden móvil"), { target: { value: "3520992723" } });
     fireEvent.change(screen.getByLabelText("Código de envío móvil"), { target: { value: "ca06721wb" } });
-    fireEvent.click(screen.getByRole("button", { name: "Buscar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Buscar envío" }));
 
     expect(searchMock).toHaveBeenLastCalledWith({ orderNumber: "3520992723", code: "CA06721WB" }, { enabled: true });
   });
@@ -64,6 +66,8 @@ describe("MobileAppPage", () => {
     accountMocks.session = { id: 7, email: "cliente@servicom.pe", reauthRequired: false };
     searchMock.mockReturnValue({ data: undefined, isLoading: true, error: null });
     render(<MobileAppPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Rastrear" }));
 
     expect(screen.getByRole("status").textContent).toContain("Buscando tu envío");
   });
