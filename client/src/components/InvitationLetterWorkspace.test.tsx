@@ -95,11 +95,13 @@ describe("InvitationLetterWorkspace", () => {
     fireEvent.change(screen.getAllByLabelText("Número de teléfono")[0], { target: { value: "970188447" } });
     fillDate("invitation-arrival", "01/09/2026"); fillDate("invitation-departure", "30/09/2026");
 
+    translationMutation.mutate.mockImplementationOnce((_input: unknown, options?: { onSuccess?: (italian: any) => void }) => options?.onSuccess?.({ inviter: { birthPlace: "LIMA", nationality: "PERUVIANA", residencePermit: "PERMESSO", address: "VIA MURIAGLIO 12", occupation: "COMMERCIANTE" }, invitee: { birthPlace: "LIMA", nationality: "PERUVIANA", address: "LIMA, PERÙ", occupation: "STUDENTESSA" }, relationship: "FAMILIARE", purpose: "TURISMO", city: "TORINO" }));
     fireEvent.click(screen.getByRole("button", { name: "Crear carta" }));
     await waitFor(() => expect(translationMutation.mutate).toHaveBeenCalledTimes(1));
-    translationMutation.onSuccess?.({ inviter: { birthPlace: "LIMA", nationality: "PERUVIANA", residencePermit: "PERMESSO", address: "VIA MURIAGLIO 12", occupation: "COMMERCIANTE" }, invitee: { birthPlace: "LIMA", nationality: "PERUVIANA", address: "LIMA, PERÙ", occupation: "STUDENTESSA" }, relationship: "FAMILIARE", purpose: "TURISMO", city: "TORINO" });
     await waitFor(() => expect(saveMutation.mutate).toHaveBeenCalledTimes(1));
     const savedVariables = saveMutation.mutate.mock.calls[0][0];
+    expect(savedVariables.data.inviter.firstName).toBe("ANA");
+    expect(savedVariables.data.invitee.firstName).toBe("MARIA");
     saveMutation.onSuccess?.({ id: 19, account: { created: true, email: "ana.rossi@example.com", temporaryPassword: "Si!claveTemporal9a" } }, savedVariables);
 
     await waitFor(() => expect(screen.getByRole("tab", { name: /Cartas generadas \(0\)/ })).toBeTruthy());
@@ -148,6 +150,17 @@ describe("InvitationLetterWorkspace", () => {
     fireEvent.click(screen.getByRole("button", { name: "Abrir" }));
     expect((document.getElementById("invitante-firstName") as HTMLInputElement).value).toBe("ANA");
     expect(screen.getByLabelText(/Buscar invitante guardado/)).toBeTruthy();
+  });
+
+  it("muestra una pestaña de papelera y permite restaurar una carta eliminada", () => {
+    deletedLettersQuery.data = [{ id: 45, inviteeName: "MARÍA", inviteeLastName: "ROSSI", deletedAt: new Date("2026-08-22T12:00:00.000Z"), deletedByAdminLabel: "Operador" }];
+    render(<InvitationLetterWorkspace />);
+
+    fireEvent.click(screen.getByRole("tab", { name: "Papelera" }));
+    expect(screen.getByText("Papelera de cartas")).toBeTruthy();
+    expect(screen.getByText("MARÍA ROSSI")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Restaurar" }));
+    expect(restoreMutation.mutate).toHaveBeenCalledWith({ id: 45 });
   });
 
   it("descarga una carta directamente desde el historial visible", async () => {

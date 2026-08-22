@@ -15,10 +15,10 @@ describe("carta de invitación", () => {
   it("reproduces the supplied Italian and English template blocks without extra text", () => {
     const letter = buildInvitationLetterText(data);
     const html = buildInvitationLetterHtml(data);
-    expect(letter).toContain("Elisabeth");
-    expect(letter).toContain("Angela");
-    expect(letter).toContain("María");
-    expect(letter).toContain("Rossi");
+    expect(letter).toContain("ELISABETH");
+    expect(letter).toContain("ANGELA");
+    expect(letter).toContain("MARÍA");
+    expect(letter).toContain("ROSSI");
     expect(letter).toContain("01/09/2026");
     expect(letter).toContain("19/08/2026");
     expect(letter).toContain("dichiaro di farmi carico delle sue spese di sostentamento");
@@ -32,9 +32,9 @@ describe("carta de invitación", () => {
     expect(header).toContain('class="header-block italian-header"');
     expect(header).toContain('class="header-block english-header"');
     expect(html).toContain('per il periodo dal/from <strong class="period-value">01/09/2026</strong> al/to <strong class="period-value">30/09/2026</strong>');
-    expect(html).toContain("Copia de pasaporte");
-    expect(html).toContain("Constancia registral");
-    expect(html).toContain("Carta de la entidad");
+    expect(html).toContain("COPIA DE PASAPORTE");
+    expect(html).toContain("CONSTANCIA REGISTRAL");
+    expect(html).toContain("CARTA DE LA ENTIDAD");
     expect((html.match(/company-annex-line/g) || []).length).toBe(4);
     expect(letter).toContain("presso la mia abitazione");
     expect(letter).not.toContain("Servicom Internacional");

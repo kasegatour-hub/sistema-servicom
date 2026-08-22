@@ -53,7 +53,7 @@ export type InvitationLetterSignatureView = {
 
 const safeName = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-+|-+$/g, "").toLowerCase() || "invitato";
 const escapeHtml = (value?: string) => String(value || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-const display = (value?: string) => escapeHtml(value?.trim() || "");
+const display = (value?: string) => escapeHtml(value?.trim().toLocaleUpperCase("es-PE") || "");
 const check = (value: boolean) => value ? "☑" : "☐";
 const titleCaseDate = (value: string) => {
   const parts = value.split("-");

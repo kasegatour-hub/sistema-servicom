@@ -721,3 +721,10 @@
 - [x] Corregir la detección intermitente y la apertura del envío desde el escáner QR móvil
 - [x] Mejorar el manejo de permisos, disponibilidad de cámara y recuperación tras un fallo de lectura
 - [x] Cubrir el flujo QR móvil con pruebas, validar la compilación y publicar la corrección
+
+## Correcciones de Carta de invitación y experiencia móvil
+- [x] Completar la papelera de Cartas generadas con listado, restauración y acceso visible
+- [x] Normalizar a mayúsculas todos los datos de Carta y ajustar el formato para seguir la referencia aprobada
+- [x] Reducir el tiempo de creación preparando traducciones de forma anticipada y sin bloquear el guardado final
+- [x] Corregir la adaptación móvil, retroalimentación táctil, navegación por rol e instalación única
+- [x] Cubrir las correcciones con pruebas, validación visual y compilación de producción

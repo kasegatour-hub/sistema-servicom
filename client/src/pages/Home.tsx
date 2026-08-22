@@ -239,18 +239,18 @@ export default function Home() {
       {/* Header */}
       <header className="bg-primary text-white shadow-md sticky top-0 z-40">
         <div className="max-w-4xl mx-auto px-4 py-4 md:py-6">
-          <div className="flex justify-between items-start mb-2">
+          <div className="mb-2 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-center gap-2 md:gap-3">
               <img src="/manus-storage/servicom_logo_final_e7ce35aa.png" alt="Servicom Internacional" className="h-16 md:h-20 w-auto object-contain bg-white rounded-md p-1" />
             </div>
-            <div className="flex items-center gap-2">
-              <button onClick={() => window.location.href = '/movil'} className="text-white hover:bg-white/20 px-3 py-1 rounded text-sm font-medium transition">
+            <div className="flex flex-wrap items-center gap-1 self-start sm:self-auto">
+              <button onClick={() => window.location.href = '/movil'} className="rounded px-2 py-2 text-xs font-medium text-white transition active:scale-[0.97] hover:bg-white/20 sm:px-3 sm:text-sm">
                 App móvil
               </button>
-              <button onClick={() => window.location.href = '/cuenta'} className="text-white hover:bg-white/20 px-3 py-1 rounded text-sm font-medium transition">
+              <button onClick={() => window.location.href = '/cuenta'} className="rounded px-2 py-2 text-xs font-medium text-white transition active:scale-[0.97] hover:bg-white/20 sm:px-3 sm:text-sm">
                 Mi cuenta
               </button>
-              <button onClick={() => window.location.href = '/admin'} className="text-white hover:bg-white/20 px-3 py-1 rounded text-sm font-medium transition">
+              <button onClick={() => window.location.href = '/admin'} className="rounded px-2 py-2 text-xs font-medium text-white transition active:scale-[0.97] hover:bg-white/20 sm:px-3 sm:text-sm">
                 Admin
               </button>
             </div>
