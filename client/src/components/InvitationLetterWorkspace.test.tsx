@@ -30,6 +30,13 @@ vi.mock("@/lib/trpc", () => ({
   },
 }));
 vi.mock("@/lib/invitationLetter", () => ({
+  buildInvitationLetterItalianFallback: (data: any) => ({
+    inviter: { birthPlace: data.inviter.birthPlace, nationality: data.inviter.nationality, residencePermit: data.inviter.residencePermit, address: data.inviter.address, occupation: data.inviter.occupation },
+    invitee: { birthPlace: data.invitee.birthPlace, nationality: data.invitee.nationality, address: data.invitee.address, occupation: data.invitee.occupation },
+    relationship: data.relationship,
+    purpose: data.purpose,
+    city: data.city,
+  }),
   downloadInvitationLetterPdf: invitationDocumentMocks.download,
   printInvitationLetter: invitationDocumentMocks.print,
 }));
@@ -94,14 +101,18 @@ describe("InvitationLetterWorkspace", () => {
     fill("invitado-firstName", "Maria"); fill("invitado-lastName", "Bianchi"); fillDate("invitado-nacimiento", "01/01/1995"); fill("invitado-lugar", "Lima"); fill("invitado-nacionalidad", "Peruana"); fill("invitado-passport", "CD654321"); fill("invitado-occupation", "Estudiante"); fill("invitado-address", "Lima Peru");
     fireEvent.change(screen.getAllByLabelText("Número de teléfono")[0], { target: { value: "970188447" } });
     fillDate("invitation-arrival", "01/09/2026"); fillDate("invitation-departure", "30/09/2026");
+    fireEvent.change(screen.getByLabelText("Precio manual en EUR (opcional)"), { target: { value: "20" } });
+    fireEvent.click(screen.getByRole("button", { name: "Agregar extra" }));
+    fireEvent.change(screen.getByLabelText("Descripción extra 1"), { target: { value: "TRÁMITE URGENTE" } });
+    fireEvent.change(screen.getByLabelText("Importe extra 1"), { target: { value: "5" } });
 
-    translationMutation.mutate.mockImplementationOnce((_input: unknown, options?: { onSuccess?: (italian: any) => void }) => options?.onSuccess?.({ inviter: { birthPlace: "LIMA", nationality: "PERUVIANA", residencePermit: "PERMESSO", address: "VIA MURIAGLIO 12", occupation: "COMMERCIANTE" }, invitee: { birthPlace: "LIMA", nationality: "PERUVIANA", address: "LIMA, PERÙ", occupation: "STUDENTESSA" }, relationship: "FAMILIARE", purpose: "TURISMO", city: "TORINO" }));
     fireEvent.click(screen.getByRole("button", { name: "Crear carta" }));
-    await waitFor(() => expect(translationMutation.mutate).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(saveMutation.mutate).toHaveBeenCalledTimes(1));
+    expect(translationMutation.mutate).not.toHaveBeenCalled();
     const savedVariables = saveMutation.mutate.mock.calls[0][0];
     expect(savedVariables.data.inviter.firstName).toBe("ANA");
     expect(savedVariables.data.invitee.firstName).toBe("MARIA");
+    expect(savedVariables.pricing).toEqual({ manualPriceEur: 20, extras: [{ description: "TRÁMITE URGENTE", amountEur: 5 }] });
     saveMutation.onSuccess?.({ id: 19, account: { created: true, email: "ana.rossi@example.com", temporaryPassword: "Si!claveTemporal9a" } }, savedVariables);
 
     await waitFor(() => expect(screen.getByRole("tab", { name: /Cartas generadas \(0\)/ })).toBeTruthy());

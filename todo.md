@@ -777,3 +777,12 @@
 - [x] Devolver al Cliente firmante al rastreo público, no al panel administrativo
 - [x] Resaltar en rojo y explicar los campos faltantes o inválidos en Carta, Administrador y Cliente
 - [x] Probar los flujos de validación y publicar las correcciones
+
+## Firma, cobro y comprobante de Cartas de invitación
+- [x] Añadir selector de país con búsqueda al teléfono del firmante y hacer visible el trazo de firma
+- [x] Corregir la composición de firma en la carta y diferenciar de forma inequívoca el nombre de descarga firmado
+- [x] Reducir el flujo de creación de carta y mostrar retroalimentación naranja mientras se genera
+- [x] Guardar tarifa base de 15 EUR, precio manual, extras detallados y total final de cada carta
+- [x] Generar, imprimir, descargar, eliminar y restaurar el comprobante de Carta de invitación con logotipo
+- [x] Preparar una réplica de agencia Kasega Tour con identidad separada y ruta propia
+- [x] Cubrir los nuevos flujos con pruebas, migración y compilación de producción

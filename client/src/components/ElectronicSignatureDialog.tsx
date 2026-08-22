@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Eraser, PenLine, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/PhoneInput";
 import { parseSignatureStrokes, serializeSignatureStrokes, signatureViewBox, type SignaturePoint, type SignatureStroke } from "../../../shared/signature";
 
 type ElectronicSignatureDialogProps = {
@@ -147,7 +148,7 @@ export default function ElectronicSignatureDialog({
             </div>
             <div>
               <label htmlFor="signature-signer-phone" className="mb-2 block text-sm font-semibold text-slate-700">Teléfono del firmante (opcional)</label>
-              <Input id="signature-signer-phone" value={signerPhone} onChange={event => setSignerPhone(event.target.value)} placeholder="+51 970 188 447" autoComplete="tel" />
+              <PhoneInput id="signature-signer-phone" value={signerPhone} onChange={setSignerPhone} placeholder="970 188 447" />
             </div>
           </div>
 
@@ -162,7 +163,8 @@ export default function ElectronicSignatureDialog({
                 ref={canvasRef}
                 width={signatureViewBox.width}
                 height={signatureViewBox.height}
-                className="block h-44 w-full touch-none cursor-crosshair"
+                className="block h-44 w-full touch-none"
+                style={{ cursor: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M5 23 19 9l3 3L8 26 4 27z' fill='%230B2B5E' stroke='white' stroke-width='1.5'/%3E%3C/svg%3E\") 4 24, crosshair" }}
                 onPointerDown={handlePointerDown}
                 onPointerMove={handlePointerMove}
                 onPointerUp={finishStroke}

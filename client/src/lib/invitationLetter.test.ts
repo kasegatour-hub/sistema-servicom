@@ -13,7 +13,7 @@ describe("carta de invitación", () => {
   });
 
   it("differentiates the downloaded filename once the invitation letter is signed", () => {
-    expect(buildInvitationLetterFilename(data, { status: "signed", signerName: "ELISABETH", signedAt: "2026-08-20" })).toBe("carta-invitacion-maria-rossi-2026-08-19-firmada");
+    expect(buildInvitationLetterFilename(data, { status: "signed", signerName: "ELISABETH", signedAt: "2026-08-20T10:15:30.000Z" })).toBe("carta-invitacion-maria-rossi-2026-08-19-firmada-20260820-101530");
   });
 
   it("reproduces the supplied Italian and English template blocks without extra text", () => {

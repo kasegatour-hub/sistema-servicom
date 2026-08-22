@@ -42,6 +42,10 @@ const invitationItalianSchema = z.object({
   purpose: z.string(),
   city: z.string(),
 });
+export const invitationLetterPricingSchema = z.object({
+  manualPriceEur: z.number().finite().min(0).max(10000).nullable().optional(),
+  extras: z.array(z.object({ description: z.string().trim().max(255), amountEur: z.number().finite().min(0).max(10000) })).max(12).default([]),
+}).default({ extras: [] });
 const invitationPersonSchema = z.object({
   firstName: z.string().trim().min(1).max(255),
   lastName: z.string().trim().min(1).max(255),
@@ -92,15 +96,14 @@ export const invitationLetterDataSchema = z.object({
 
 const ITALIAN_OCCUPATIONS = ["BADANTE", "MUSICISTA", "COLF", "INFERMIERE", "INFERMIERA", "CAMERIERE", "CAMERIERA", "AUTISTA"];
 const preserveItalianOccupation = (source: string, translated: string) => ITALIAN_OCCUPATIONS.some(term => new RegExp(`\\b${term}\\b`, "i").test(source)) ? source : translated;
-const localItalianText = (value: string) => value.trim().toUpperCase().replace(/PERU\b/g, "PERÙ");
+const localItalianText = (value: string) => value.trim().toUpperCase().replace(/PERÚ(?=\s|,|$)/g, "PERÙ").replace(/PERU(?=\s|,|$)/g, "PERÙ");
 const translateKnownInvitationQuickly = (input: z.infer<typeof invitationItalianSchema>) => {
-  if (!ITALIAN_OCCUPATIONS.includes(localItalianText(input.inviter.occupation))) return null;
-  const nationality = (value: string) => ["PERUANA", "PERUVIANA"].includes(localItalianText(value)) ? "PERUVIANA" : localItalianText(value);
-  const occupation = (value: string) => ({ "ESTUDIANTE": "STUDENTE", "ESTUDIANTE UNIVERSITARIO": "STUDENTE UNIVERSITARIO", "COMERCIANTE": "COMMERCIANTE" }[localItalianText(value)] || localItalianText(value));
-  const residencePermit = localItalianText(input.inviter.residencePermit) === "PERMISO" ? "PERMESSO" : input.inviter.residencePermit;
+  const nationality = (value: string) => ["PERUANA", "PERUVIANA", "PERÙANA"].includes(value.trim().toUpperCase()) ? "PERUVIANA" : localItalianText(value);
+  const occupation = (value: string) => ({ "ESTUDIANTE": "STUDENTE", "ESTUDIANTE UNIVERSITARIO": "STUDENTE UNIVERSITARIO", "COMERCIANTE": "COMMERCIANTE", "AMA DE CASA": "CASALINGA" }[localItalianText(value)] || localItalianText(value));
+  const residencePermit = localItalianText(input.inviter.residencePermit).replace(/^PERMISO\b/, "PERMESSO");
   return {
-    inviter: { birthPlace: localItalianText(input.inviter.birthPlace), nationality: nationality(input.inviter.nationality), residencePermit, address: input.inviter.address, occupation: input.inviter.occupation },
-    invitee: { birthPlace: localItalianText(input.invitee.birthPlace), nationality: nationality(input.invitee.nationality), address: input.invitee.address, occupation: occupation(input.invitee.occupation) },
+    inviter: { birthPlace: localItalianText(input.inviter.birthPlace), nationality: nationality(input.inviter.nationality), residencePermit, address: localItalianText(input.inviter.address), occupation: occupation(input.inviter.occupation) },
+    invitee: { birthPlace: localItalianText(input.invitee.birthPlace), nationality: nationality(input.invitee.nationality), address: localItalianText(input.invitee.address), occupation: occupation(input.invitee.occupation) },
     relationship: localItalianText(input.relationship) === "FAMILIAR" ? "FAMILIARE" : localItalianText(input.relationship),
     purpose: localItalianText(input.purpose).replace("VISITA FAMILIAR", "VISITA FAMILIARE"),
     city: localItalianText(input.city),
@@ -521,7 +524,7 @@ export const adminRouter = router({
     .mutation(async ({ input }) => translateInvitationToItalian(input)),
 
   saveInvitationLetter: adminProcedure
-    .input(z.object({ data: invitationLetterDataSchema, italian: invitationItalianSchema }))
+    .input(z.object({ data: invitationLetterDataSchema, italian: invitationItalianSchema, pricing: invitationLetterPricingSchema }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       const [admin] = db ? await db.select({ name: admins.name, email: admins.email }).from(admins).where(eq(admins.id, ctx.adminSession.adminId)).limit(1) : [];
@@ -554,6 +557,9 @@ export const adminRouter = router({
         clientAccountId,
         letterData: input.data,
         italianData: input.italian,
+        basePriceEur: 15,
+        manualPriceEur: input.pricing.manualPriceEur ?? null,
+        extraItems: input.pricing.extras,
       });
       if (!record) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No se pudo guardar la Carta de invitación." });
       return { ...record, account: { email: inviterEmail || null, created: accountCreated, temporaryPassword: temporaryPassword || null } };

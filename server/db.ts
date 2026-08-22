@@ -390,12 +390,19 @@ export async function createInvitationLetterRecord(input: {
   clientAccountId?: number | null;
   letterData: unknown;
   italianData: unknown;
+  basePriceEur?: number;
+  manualPriceEur?: number | null;
+  extraItems?: Array<{ description: string; amountEur: number }>;
 }) {
   const db = await getDb();
   if (!db) return undefined;
   const createdAt = new Date();
   const letterData = JSON.stringify(input.letterData);
   const italianData = JSON.stringify(input.italianData);
+  const basePriceEur = Number.isFinite(input.basePriceEur) ? Number(input.basePriceEur) : 15;
+  const manualPriceEur = Number.isFinite(input.manualPriceEur) ? Number(input.manualPriceEur) : null;
+  const extraItems = (input.extraItems || []).filter(item => item.description.trim() || item.amountEur > 0).map(item => ({ description: item.description.trim().slice(0, 255), amountEur: Number(item.amountEur.toFixed(2)) }));
+  const extraPriceEur = extraItems.reduce((total, item) => total + item.amountEur, 0);
   const result = await db.insert(invitationLetters).values({
     createdByAdminId: input.createdByAdminId,
     createdByAdminLabel: input.createdByAdminLabel,
@@ -406,6 +413,10 @@ export async function createInvitationLetterRecord(input: {
     clientAccountId: input.clientAccountId ?? null,
     letterData,
     italianData,
+    basePriceEur: basePriceEur.toFixed(2),
+    manualPriceEur: manualPriceEur === null ? null : manualPriceEur.toFixed(2),
+    extraPriceEur: extraPriceEur.toFixed(2),
+    extraItems: JSON.stringify(extraItems),
     createdAt,
   });
   const insertHeader = Array.isArray(result) ? result[0] : result;

@@ -15,23 +15,17 @@ const input = {
 };
 
 describe("translateInvitationToItalian", () => {
-  it("solicita una salida estructurada y conserva una carta preparada en italiano", async () => {
-    const italian = {
-      inviter: { birthPlace: "LIMA", nationality: "PERUVIANA", residencePermit: "PERMESSO VALIDO", address: "VIA MURIAGLIO 12", occupation: "COMMERCIANTE" },
-      invitee: { birthPlace: "LIMA", nationality: "PERUVIANA", address: "LIMA, PERÙ", occupation: "STUDENTESSA" },
+  it("prepara la versión italiana localmente sin bloquear la creación de la Carta", async () => {
+    await expect(translateInvitationToItalian(input)).resolves.toMatchObject({
+      inviter: { nationality: "PERUVIANA", residencePermit: "PERMESSO VIGENTE", occupation: "COMMERCIANTE" },
+      invitee: { nationality: "PERUVIANA", address: "LIMA, PERÙ", occupation: "STUDENTE" },
       relationship: "FAMILIARE",
       purpose: "TURISMO / VISITA FAMILIARE",
-      city: "TORINO",
-    };
-    llmMocks.invokeLLM.mockResolvedValue({ choices: [{ message: { content: JSON.stringify(italian) } }] });
-
-    await expect(translateInvitationToItalian(input)).resolves.toEqual(italian);
-    expect(llmMocks.invokeLLM).toHaveBeenCalledWith(expect.objectContaining({ model: "gpt-5-mini", response_format: expect.objectContaining({ type: "json_schema" }) }));
+    });
+    expect(llmMocks.invokeLLM).not.toHaveBeenCalled();
   });
 
-  it("conserva una ocupación ya italiana aunque la respuesta de traducción intente modificarla", async () => {
-    const italian = { inviter: { birthPlace: "LIMA", nationality: "PERUVIANA", residencePermit: "PERMESSO", address: "VIA ROMA 1", occupation: "ASISTENTE" }, invitee: { birthPlace: "LIMA", nationality: "PERUVIANA", address: "LIMA", occupation: "STUDENTESSA" }, relationship: "FAMILIARE", purpose: "TURISMO", city: "TORINO" };
-    llmMocks.invokeLLM.mockResolvedValue({ choices: [{ message: { content: JSON.stringify(italian) } }] });
+  it("conserva una ocupación ya italiana en la preparación local", async () => {
     const translated = await translateInvitationToItalian({ ...input, inviter: { ...input.inviter, occupation: "BADANTE" } });
     expect(translated.inviter.occupation).toBe("BADANTE");
   });

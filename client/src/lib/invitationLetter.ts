@@ -77,7 +77,17 @@ const buildInvitationSignatureMarkup = (signature?: InvitationLetterSignatureVie
   }
 };
 
-export const buildInvitationLetterFilename = (data: InvitationLetterData, signature?: InvitationLetterSignatureView | null) => `carta-invitacion-${safeName(personName(data.invitee))}-${data.date || "sin-fecha"}${signature?.status === "signed" ? "-firmada" : ""}`;
+const signatureDownloadSuffix = (signature?: InvitationLetterSignatureView | null) => {
+  const isSigned = signature?.status === "signed" || Boolean(signature?.signedAt);
+  if (!isSigned) return "";
+  const signedAt = signature?.signedAt ? new Date(signature.signedAt) : null;
+  const timestamp = signedAt && !Number.isNaN(signedAt.getTime())
+    ? `${signedAt.getUTCFullYear()}${String(signedAt.getUTCMonth() + 1).padStart(2, "0")}${String(signedAt.getUTCDate()).padStart(2, "0")}-${String(signedAt.getUTCHours()).padStart(2, "0")}${String(signedAt.getUTCMinutes()).padStart(2, "0")}${String(signedAt.getUTCSeconds()).padStart(2, "0")}`
+    : "firmada";
+  return `-firmada-${timestamp}`;
+};
+
+export const buildInvitationLetterFilename = (data: InvitationLetterData, signature?: InvitationLetterSignatureView | null) => `carta-invitacion-${safeName(personName(data.invitee))}-${data.date || "sin-fecha"}${signatureDownloadSuffix(signature)}`;
 
 export function buildInvitationLetterItalianFallback(data: InvitationLetterData): InvitationLetterItalian {
   const upper = (value: string) => value.toLocaleUpperCase("it-IT");
@@ -129,11 +139,12 @@ const templateStyles = `
     .template-page-three { padding-top: 17mm; }
     .footer-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; margin: 18mm 3mm 8mm; font-size: 8.4pt; }
     .footer-grid span:nth-child(2) { text-align: center; }
-    .footer-grid span:nth-child(3) { text-align: right; padding-top: 9mm; }
-    .invitation-signature-pending { display:block; min-height:15mm; padding-top:7mm; border-bottom:.25mm solid #111; color:#555; font-size:8pt; }
-    .invitation-signature-signed { display:block; min-height:15mm; padding-top:1mm; border-bottom:.25mm solid #111; }
-    .invitation-signature-svg { display:block; width:48mm; height:12mm; margin-left:auto; }
-    .invitation-signature-signed small { display:block; font-size:6.5pt; color:#444; }
+    .signature-cell { display:flex; flex-direction:column; align-items:center; text-align:center; }
+    .invitation-signature-pending { display:block; width:54mm; min-height:15mm; padding-top:7mm; border-bottom:.25mm solid #111; color:#555; font-size:8pt; }
+    .invitation-signature-signed { display:block; width:54mm; min-height:15mm; padding-top:1mm; border-bottom:.25mm solid #111; }
+    .invitation-signature-svg { display:block; width:48mm; height:12mm; margin:0 auto; }
+    .invitation-signature-signed small { display:block; font-size:6.5pt; color:#444; line-height:1.1; }
+    .signature-label { display:block; margin-top:2.2mm; font-size:9pt; }
     .annexes { margin: 0 3mm; font-size: 8.5pt; line-height: 1.45; }
     .annexes .line { display: inline-block; width: 88mm; border-bottom: .25mm solid #111; transform: translateY(-1mm); }
     .annexes-company { margin-top: 6mm; }
@@ -170,7 +181,7 @@ export function buildInvitationLetterHtml(data: InvitationLetterData, italian: I
     </section>
     <section class="invitation-paper-page template-page-three">
       <div class="privacy-grid"><div class="privacy-box"><h3>INFORMATIVA SUL TRATTAMENTO DEI<br/>DATI PERSONALI:</h3>${privacyItalian}</div><div class="privacy-box"><h3>INFORMATION ON THE PROCESSING OF<br/>PERSONAL DATA</h3>${privacyEnglish}</div></div>
-      <div class="footer-grid"><span>Luogo/Place &nbsp;<b>${display(italian.city)}</b></span><span>Data/ Date &nbsp; <b>${display(titleCaseDate(data.date))}</b></span><span>Firma/ Signature${buildInvitationSignatureMarkup(signature)}</span></div>
+      <div class="footer-grid"><span>Luogo/Place &nbsp;<b>${display(italian.city)}</b></span><span>Data/ Date &nbsp; <b>${display(titleCaseDate(data.date))}</b></span><span class="signature-cell">${buildInvitationSignatureMarkup(signature)}<strong class="signature-label">Firma/ Signature</strong></span></div>
       <div class="annexes">Allegati/Annexes:<br/><span>${check(data.inviteeIdAttached)}</span> documento d’identità dell’invitante/ identity card of the person issuing the invitation<br/><span>${check(data.financialGuaranteeAttached)}</span> fideiussione bancaria / financial guarantee<br/><span>${check(Boolean(data.otherAnnexes?.trim()))}</span> altri documenti/ other documents: <span class="line">${display(data.otherAnnexes)}</span><div class="annexes-company">Allegati per le Società-Enti / Annexes for${buildCompanyAnnexLines(data.companyAnnexes)}</div></div>
     </section>
   </div>`;

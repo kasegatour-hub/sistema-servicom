@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { invitationLetterDataSchema } from "./admin.router";
+import { invitationLetterDataSchema, invitationLetterPricingSchema } from "./admin.router";
 
 const inviter = { firstName: "ANA", lastName: "ROSSI", birthDate: "01/01/1970", birthPlace: "LIMA", nationality: "PERUANA", identityCard: "AA12345", passport: "AB123456", residencePermit: "PERMISO", address: "VIA ROMA 1", occupation: "COMERCIANTE", phone: "+39 351 278 7962", email: "ana@example.com" };
 const invitee = { firstName: "MARÍA", lastName: "BIANCHI", birthDate: "01/01/1995", birthPlace: "LIMA", nationality: "PERUANA", identityCard: "", passport: "AB765432", residencePermit: "", address: "LIMA", occupation: "ESTUDIANTE", phone: "", email: "" };
@@ -16,5 +16,11 @@ describe("invitationLetterDataSchema", () => {
 
     expect(result.success).toBe(false);
     expect(result.error?.issues[0]?.message).toMatch(/deben ser distintas/i);
+  });
+
+  it("acepta precio manual y extras detallados, pero no importes negativos", () => {
+    expect(invitationLetterPricingSchema.safeParse({ manualPriceEur: 20, extras: [{ description: "TRÁMITE URGENTE", amountEur: 5 }] }).success).toBe(true);
+    expect(invitationLetterPricingSchema.safeParse({ manualPriceEur: -1, extras: [] }).success).toBe(false);
+    expect(invitationLetterPricingSchema.safeParse({ extras: [{ description: "EXTRA", amountEur: -2 }] }).success).toBe(false);
   });
 });
