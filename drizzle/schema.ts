@@ -104,6 +104,7 @@ export const admins = mysqlTable("admins", {
   name: varchar("name", { length: 255 }).notNull(),
   role: mysqlEnum("role", ["registrador", "superadmin"]).default("registrador").notNull(),
   isActive: int("isActive").default(1).notNull(),
+  isWorkspaceIsolated: int("isWorkspaceIsolated").default(0).notNull(),
   failedPasswordAttempts: int("failedPasswordAttempts").default(0).notNull(),
   passwordLockedUntil: timestamp("passwordLockedUntil"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

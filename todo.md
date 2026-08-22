@@ -815,3 +815,9 @@
 - [x] Identificar la consulta de /movil que recibe HTML en lugar de JSON
 - [x] Corregir la ruta o configuración tRPC responsable de la respuesta incorrecta
 - [x] Validar /movil, pruebas, compilación y publicación
+
+## Recuperación segura de registros visibles
+- [x] Auditar los registros existentes y la regla de aislamiento que los oculta
+- [x] Restaurar la visibilidad autorizada de datos históricos sin eliminar información
+- [x] Mantener aislados los nuevos espacios administrativos y validar la recuperación
+- [x] Ejecutar pruebas, compilación y publicar la corrección

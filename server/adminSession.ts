@@ -12,6 +12,7 @@ export type AdminRole = "registrador" | "superadmin";
 export type AdminSessionPayload = {
   adminId: number;
   role: AdminRole;
+  isWorkspaceIsolated: boolean;
   exp: number;
   iat: number;
   authTime: number;
@@ -63,13 +64,14 @@ function sign(input: string): string {
   return createHmac("sha256", secret()).update(input).digest("base64url");
 }
 
-function createJwt(adminId: number, role: AdminRole, remembered = false, authTimeMs = Date.now()): string {
+function createJwt(adminId: number, role: AdminRole, remembered = false, authTimeMs = Date.now(), isWorkspaceIsolated = false): string {
   const issuedAt = Math.floor(authTimeMs / 1000);
   const header = encodePart({ alg: "HS256", typ: "JWT" });
   const payload = encodePart({
     sub: String(adminId),
     adminId,
     role,
+    is_workspace_isolated: isWorkspaceIsolated,
     iat: issuedAt,
     auth_time: issuedAt,
     remembered,
@@ -108,6 +110,7 @@ function verifyJwt(token: string | undefined | null): AdminSessionPayload | null
     return {
       adminId,
       role,
+      isWorkspaceIsolated: payload.is_workspace_isolated === true,
       exp,
       iat,
       authTime,
@@ -119,8 +122,8 @@ function verifyJwt(token: string | undefined | null): AdminSessionPayload | null
   }
 }
 
-export function createAdminSession(adminId: number, role: AdminRole, remembered = false, authTimeMs = Date.now()): string {
-  return createJwt(adminId, role, remembered, authTimeMs);
+export function createAdminSession(adminId: number, role: AdminRole, remembered = false, authTimeMs = Date.now(), isWorkspaceIsolated = false): string {
+  return createJwt(adminId, role, remembered, authTimeMs, isWorkspaceIsolated);
 }
 
 export function getAdminSession(req: Request): AdminSessionPayload | null {
@@ -128,8 +131,8 @@ export function getAdminSession(req: Request): AdminSessionPayload | null {
   return verifyJwt(raw);
 }
 
-export function setAdminSession(req: Request, res: Response, adminId: number, role: AdminRole, remembered = false): void {
-  res.cookie(COOKIE_NAME, createAdminSession(adminId, role, remembered), {
+export function setAdminSession(req: Request, res: Response, adminId: number, role: AdminRole, remembered = false, isWorkspaceIsolated = false): void {
+  res.cookie(COOKIE_NAME, createAdminSession(adminId, role, remembered, Date.now(), isWorkspaceIsolated), {
     ...getSessionCookieOptions(req),
     maxAge: (remembered ? getRememberedAdminSessionTtlSeconds() : getAdminSessionTtlSeconds()) * 1000,
   });

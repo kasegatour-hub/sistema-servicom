@@ -106,4 +106,12 @@ describe("JWT local sessions", () => {
     const tampered = `${token.slice(0, -1)}${token.endsWith("a") ? "b" : "a"}`;
     expect(getAdminSession(requestWithCookie("servicom_admin_session", tampered))).toBeNull();
   });
+
+  it("preserva el aislamiento únicamente cuando la sesión administrativa lo indica", () => {
+    const isolatedToken = createAdminSession(210001, "superadmin", false, Date.now(), true);
+    const sharedToken = createAdminSession(90001, "registrador");
+
+    expect(getAdminSession(requestWithCookie("servicom_admin_session", isolatedToken))).toMatchObject({ adminId: 210001, isWorkspaceIsolated: true });
+    expect(getAdminSession(requestWithCookie("servicom_admin_session", sharedToken))).toMatchObject({ adminId: 90001, isWorkspaceIsolated: false });
+  });
 });

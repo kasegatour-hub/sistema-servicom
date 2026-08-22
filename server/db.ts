@@ -918,7 +918,7 @@ export async function updateDiscountCoupon(input: {
   appliesTo: "ambos" | "documento" | "encomienda";
   startsAt: Date;
   endsAt: Date;
-  ownerAdminId: number;
+  ownerAdminId?: number;
 }) {
   const db = await getDb();
   if (!db) return false;
@@ -929,7 +929,9 @@ export async function updateDiscountCoupon(input: {
     startsAt: input.startsAt,
     endsAt: input.endsAt,
     updatedAt: new Date(),
-  }).where(and(eq(discountCoupons.id, input.id), eq(discountCoupons.createdByAdminId, input.ownerAdminId)));
+  }).where(input.ownerAdminId === undefined
+    ? eq(discountCoupons.id, input.id)
+    : and(eq(discountCoupons.id, input.id), eq(discountCoupons.createdByAdminId, input.ownerAdminId)));
   return true;
 }
 

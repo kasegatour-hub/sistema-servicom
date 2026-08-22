@@ -44,7 +44,7 @@ describe("admin.searchClients", () => {
     const result = await caller.admin.searchClients({ query: "71234567", limit: 8 });
 
     expect(result[0]).toMatchObject({ id: 21, name: "Ana", lastName: "Pérez", dni: "71234567" });
-    expect(dbMocks.searchClients).toHaveBeenCalledWith("71234567", 8, 9);
+    expect(dbMocks.searchClients).toHaveBeenCalledWith("71234567", 8, undefined);
   });
 
   it("rejects queries shorter than two characters", async () => {

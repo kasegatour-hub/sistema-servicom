@@ -21,10 +21,10 @@ vi.mock("./db", async () => {
 import { appRouter } from "./routers";
 import { createAdminSession } from "./adminSession";
 
-function adminContext(role: "registrador" | "superadmin", adminId = 9): TrpcContext {
+function adminContext(role: "registrador" | "superadmin", adminId = 9, isWorkspaceIsolated = false): TrpcContext {
   return {
     user: null,
-    req: { protocol: "https", headers: { cookie: `servicom_admin_session=${encodeURIComponent(createAdminSession(adminId, role))}` } } as TrpcContext["req"],
+    req: { protocol: "https", headers: { cookie: `servicom_admin_session=${encodeURIComponent(createAdminSession(adminId, role, false, Date.now(), isWorkspaceIsolated))}` } } as TrpcContext["req"],
     res: { cookie: () => {}, clearCookie: () => {} } as TrpcContext["res"],
   };
 }
@@ -48,7 +48,7 @@ describe("shipment trash and restoration", () => {
 
     const caller = appRouter.createCaller(adminContext("superadmin", 9));
     await expect(caller.admin.restoreShipment({ shipmentId: 42 })).resolves.toEqual({ success: true });
-    expect(dbMocks.getDeletedShipments).toHaveBeenCalledWith(undefined, 9);
+    expect(dbMocks.getDeletedShipments).toHaveBeenCalledWith(undefined, undefined);
     expect(dbMocks.restoreShipment).toHaveBeenCalledWith(42, expect.objectContaining({ actorType: "admin", actorId: 9 }));
     expect(dbMocks.recordInteractionEvent).toHaveBeenCalledWith(expect.objectContaining({ eventName: "trash_restored" }));
   });
@@ -101,14 +101,18 @@ describe("shipment trash and restoration", () => {
     await expect(registrador.admin.setShipmentRegistradorVisibility({ shipmentId: 42, hidden: false })).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
-  it("filters hidden shipments only from the Registrador list", async () => {
+  it("mantiene visibles los registros históricos para el equipo y limita solo el espacio aislado", async () => {
     dbMocks.getAllShipments.mockResolvedValue([]);
     const registrador = appRouter.createCaller(adminContext("registrador", 9));
     await registrador.admin.getAllShipments();
-    expect(dbMocks.getAllShipments).toHaveBeenLastCalledWith(undefined, { excludeHiddenForRegistradores: true, ownerAdminId: 9 });
+    expect(dbMocks.getAllShipments).toHaveBeenLastCalledWith(undefined, { excludeHiddenForRegistradores: true, ownerAdminId: undefined });
 
     const master = appRouter.createCaller(adminContext("superadmin", 1));
     await master.admin.getAllShipments();
-    expect(dbMocks.getAllShipments).toHaveBeenLastCalledWith(undefined, { excludeHiddenForRegistradores: false, ownerAdminId: 1 });
+    expect(dbMocks.getAllShipments).toHaveBeenLastCalledWith(undefined, { excludeHiddenForRegistradores: false, ownerAdminId: undefined });
+
+    const isolatedMaster = appRouter.createCaller(adminContext("superadmin", 210001, true));
+    await isolatedMaster.admin.getAllShipments();
+    expect(dbMocks.getAllShipments).toHaveBeenLastCalledWith(undefined, { excludeHiddenForRegistradores: false, ownerAdminId: 210001 });
   });
 });

@@ -1,0 +1,1 @@
+ALTER TABLE `admins` ADD `isWorkspaceIsolated` int DEFAULT 0 NOT NULL;

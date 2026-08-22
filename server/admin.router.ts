@@ -179,7 +179,7 @@ const adminProcedure = publicProcedure.use(async ({ ctx, next }) => {
   if (adminSession.reauthRequired) {
     throw new TRPCError({ code: "UNAUTHORIZED", message: ADMIN_REAUTH_REQUIRED_MESSAGE });
   }
-  return next({ ctx: { ...ctx, adminSession } });
+  return next({ ctx: { ...ctx, adminSession, adminWorkspaceIsolated: adminSession.isWorkspaceIsolated } });
 });
 
 const staleAdminSessionProcedure = publicProcedure.use(async ({ ctx, next }) => {
@@ -197,8 +197,12 @@ const masterAdminProcedure = adminProcedure.use(({ ctx, next }) => {
   return next({ ctx });
 });
 
-function belongsToAdminWorkspace(shipment: { registeredByType: string; registeredById: number | null }, adminId: number) {
-  return shipment.registeredByType === "admin" && shipment.registeredById === adminId;
+function belongsToAdminWorkspace(shipment: { registeredByType: string; registeredById: number | null }, adminId: number, isWorkspaceIsolated: boolean) {
+  return !isWorkspaceIsolated || (shipment.registeredByType === "admin" && shipment.registeredById === adminId);
+}
+
+function isolatedOwnerAdminId(adminId: number, isWorkspaceIsolated: boolean) {
+  return isWorkspaceIsolated ? adminId : undefined;
 }
 
 export const adminRouter = router({
@@ -267,7 +271,7 @@ export const adminRouter = router({
 
       await clearAdminPasswordFailures(admin.id);
       const role = admin.role === "superadmin" ? "superadmin" : "registrador";
-      setAdminSession(ctx.req, ctx.res, admin.id, role, input.rememberDevice);
+      setAdminSession(ctx.req, ctx.res, admin.id, role, input.rememberDevice, admin.isWorkspaceIsolated === 1);
       return { id: admin.id, email: admin.email, name: admin.name, role };
     }),
 
@@ -338,7 +342,7 @@ export const adminRouter = router({
         throw new TRPCError({ code: "UNAUTHORIZED", message: "La contraseña actual no es correcta." });
       }
       await clearAdminPasswordFailures(admin.id);
-      setAdminSession(ctx.req, ctx.res, admin.id, ctx.adminSession.role, ctx.adminSession.remembered);
+      setAdminSession(ctx.req, ctx.res, admin.id, ctx.adminSession.role, ctx.adminSession.remembered, ctx.adminSession.isWorkspaceIsolated);
       return { success: true, message: "Identidad verificada. Puedes continuar." };
     }),
 
@@ -371,7 +375,7 @@ export const adminRouter = router({
       return { success: true, message: "Contraseña administrativa actualizada correctamente." };
     }),
 
-  listCoupons: adminProcedure.query(async ({ ctx }) => listDiscountCoupons(ctx.adminSession.adminId)),
+  listCoupons: adminProcedure.query(async ({ ctx }) => listDiscountCoupons(isolatedOwnerAdminId(ctx.adminSession.adminId, ctx.adminWorkspaceIsolated))),
 
   createCoupon: adminProcedure
     .input(z.object({
@@ -416,7 +420,7 @@ export const adminRouter = router({
       const code = normalizeCouponCode(input.code);
       if (!/^[A-Z0-9_-]{4,64}$/.test(code)) throw new TRPCError({ code: "BAD_REQUEST", message: "El código de cupón no es válido." });
       try {
-        await updateDiscountCoupon({ id: input.id, code, discountPercent: input.discountPercent, appliesTo: input.appliesTo, startsAt, endsAt, ownerAdminId: ctx.adminSession.adminId });
+        await updateDiscountCoupon({ id: input.id, code, discountPercent: input.discountPercent, appliesTo: input.appliesTo, startsAt, endsAt, ownerAdminId: isolatedOwnerAdminId(ctx.adminSession.adminId, ctx.adminWorkspaceIsolated) });
       } catch {
         throw new TRPCError({ code: "BAD_REQUEST", message: "No se pudo actualizar el cupón. Verifica que el código sea único." });
       }
@@ -426,7 +430,7 @@ export const adminRouter = router({
   deactivateCoupon: adminProcedure
     .input(z.object({ id: z.number().int().positive() }))
     .mutation(async ({ input, ctx }) => {
-      await deactivateDiscountCoupon(input.id, ctx.adminSession.adminId);
+      await deactivateDiscountCoupon(input.id, isolatedOwnerAdminId(ctx.adminSession.adminId, ctx.adminWorkspaceIsolated));
       return { success: true };
     }),
 
@@ -449,7 +453,7 @@ export const adminRouter = router({
   getAllShipments: adminProcedure
     .input(z.object({ shipmentType: z.enum(["documento", "encomienda"]).optional() }).optional())
     .query(async ({ input, ctx }) => {
-      const shipments = await getAllShipments(input?.shipmentType, { excludeHiddenForRegistradores: ctx.adminSession.role !== "superadmin", ownerAdminId: ctx.adminSession.adminId });
+      const shipments = await getAllShipments(input?.shipmentType, { excludeHiddenForRegistradores: ctx.adminSession.role !== "superadmin", ownerAdminId: isolatedOwnerAdminId(ctx.adminSession.adminId, ctx.adminWorkspaceIsolated) });
       return shipments.map(s => ({
         ...s,
         events: JSON.parse(s.events),
@@ -460,7 +464,7 @@ export const adminRouter = router({
     .input(z.object({ orderNumber: z.string().trim().min(1).max(64), code: z.string().trim().min(1).max(64) }))
     .query(async ({ input, ctx }) => {
       const shipment = await getShipmentByOrderAndCode(input.orderNumber, input.code);
-      if (!shipment || !belongsToAdminWorkspace(shipment, ctx.adminSession.adminId) || (ctx.adminSession.role !== "superadmin" && shipment.hiddenFromRegistradoresAt)) {
+      if (!shipment || !belongsToAdminWorkspace(shipment, ctx.adminSession.adminId, ctx.adminWorkspaceIsolated) || (ctx.adminSession.role !== "superadmin" && shipment.hiddenFromRegistradoresAt)) {
         throw new TRPCError({ code: "NOT_FOUND", message: "No se encontró un envío activo disponible para el código escaneado." });
       }
       return { ...shipment, events: JSON.parse(shipment.events) };
@@ -469,7 +473,7 @@ export const adminRouter = router({
   listDeletedShipments: adminProcedure
     .input(z.object({ shipmentType: z.enum(["documento", "encomienda"]).optional() }).optional())
     .query(async ({ input, ctx }) => {
-      const visible = await getDeletedShipments(input?.shipmentType, ctx.adminSession.adminId);
+      const visible = await getDeletedShipments(input?.shipmentType, isolatedOwnerAdminId(ctx.adminSession.adminId, ctx.adminWorkspaceIsolated));
       await recordInteractionEvent({ actorType: "admin", actorId: ctx.adminSession.adminId, eventName: "trash_viewed", surface: "admin", metadata: { count: visible.length } });
       const labeledActors = await attachShipmentAuditActorLabels(visible.map(shipment => ({
         actorType: shipment.deletedByType === "account" ? "account" : shipment.deletedByType === "admin" ? "admin" : "system",
@@ -481,10 +485,10 @@ export const adminRouter = router({
   restoreShipment: adminProcedure
     .input(z.object({ shipmentId: z.number() }))
     .mutation(async ({ input, ctx }) => {
-      const deleted = await getDeletedShipments(undefined, ctx.adminSession.adminId);
+      const deleted = await getDeletedShipments(undefined, isolatedOwnerAdminId(ctx.adminSession.adminId, ctx.adminWorkspaceIsolated));
       const shipment = deleted.find(item => item.id === input.shipmentId);
       if (!shipment) throw new TRPCError({ code: "NOT_FOUND", message: "El envío no está en la papelera." });
-      if (shipment.deletedByType !== "admin" || shipment.deletedById !== ctx.adminSession.adminId) {
+      if ((ctx.adminWorkspaceIsolated || ctx.adminSession.role !== "superadmin") && (shipment.deletedByType !== "admin" || shipment.deletedById !== ctx.adminSession.adminId)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Solo puedes restaurar envíos que tú eliminaste." });
       }
       const restored = await restoreShipment(input.shipmentId, { actorType: "admin", actorId: ctx.adminSession.adminId, actorLabel: ctx.adminSession.role });
@@ -500,7 +504,7 @@ export const adminRouter = router({
         throw new TRPCError({ code: "FORBIDDEN", message: "Solo el Master Admin puede consultar quién realizó cambios en un envío." });
       }
       const shipment = await getShipmentById(input.shipmentId);
-      if (!shipment || !belongsToAdminWorkspace(shipment, ctx.adminSession.adminId)) {
+      if (!shipment || !belongsToAdminWorkspace(shipment, ctx.adminSession.adminId, ctx.adminWorkspaceIsolated)) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Envío no encontrado." });
       }
       const logs = await getShipmentAuditLogs(input.shipmentId);
@@ -511,7 +515,7 @@ export const adminRouter = router({
     .input(z.object({ shipmentId: z.number().int().positive(), hidden: z.boolean(), reason: z.string().trim().max(500).optional() }))
     .mutation(async ({ input, ctx }) => {
       const shipment = await getShipmentById(input.shipmentId);
-      if (!shipment || !belongsToAdminWorkspace(shipment, ctx.adminSession.adminId)) {
+      if (!shipment || !belongsToAdminWorkspace(shipment, ctx.adminSession.adminId, ctx.adminWorkspaceIsolated)) {
         throw new TRPCError({ code: "NOT_FOUND", message: "El envío no existe o no pertenece a tu espacio operativo." });
       }
       const updated = await setShipmentRegistradorVisibility(
@@ -526,7 +530,7 @@ export const adminRouter = router({
 
   searchClients: adminProcedure
     .input(z.object({ query: z.string().trim().min(2), limit: z.number().int().min(1).max(20).default(8) }))
-    .query(async ({ input, ctx }) => searchClients(input.query, input.limit, ctx.adminSession.adminId)),
+    .query(async ({ input, ctx }) => searchClients(input.query, input.limit, isolatedOwnerAdminId(ctx.adminSession.adminId, ctx.adminWorkspaceIsolated))),
 
   translateInvitationLetter: adminProcedure
     .input(invitationItalianSchema)
@@ -578,7 +582,7 @@ export const adminRouter = router({
     .input(z.object({ id: z.number().int().positive() }))
     .mutation(async ({ input, ctx }) => {
       const record = await getInvitationLetterById(input.id);
-      if (!record || record.deletedAt || record.createdByAdminId !== ctx.adminSession.adminId) throw new TRPCError({ code: "NOT_FOUND", message: "Carta no encontrada." });
+      if (!record || record.deletedAt || (ctx.adminWorkspaceIsolated && record.createdByAdminId !== ctx.adminSession.adminId)) throw new TRPCError({ code: "NOT_FOUND", message: "Carta no encontrada." });
       const data = invitationLetterDataSchema.parse(JSON.parse(record.letterData));
       const token = createSignatureToken();
       token.expiresAt = new Date(Date.now() + INVITATION_SIGNATURE_TTL_MS);
@@ -591,7 +595,7 @@ export const adminRouter = router({
     .input(z.object({ id: z.number().int().positive() }))
     .mutation(async ({ input, ctx }) => {
       const record = await getInvitationLetterById(input.id);
-      if (!record || record.deletedAt || record.createdByAdminId !== ctx.adminSession.adminId) throw new TRPCError({ code: "NOT_FOUND", message: "Carta no encontrada." });
+      if (!record || record.deletedAt || (ctx.adminWorkspaceIsolated && record.createdByAdminId !== ctx.adminSession.adminId)) throw new TRPCError({ code: "NOT_FOUND", message: "Carta no encontrada." });
       const data = invitationLetterDataSchema.parse(JSON.parse(record.letterData));
       const email = normalizeEmail(data.inviter.email);
       if (!email) throw new TRPCError({ code: "BAD_REQUEST", message: "La Carta no tiene un correo de invitante para enviar la firma." });
@@ -611,10 +615,10 @@ export const adminRouter = router({
     }),
 
   listInvitationLetters: adminProcedure
-    .query(async ({ ctx }) => listInvitationLetterRecords({ adminId: ctx.adminSession.adminId, canReviewAll: false })),
+    .query(async ({ ctx }) => listInvitationLetterRecords({ adminId: ctx.adminSession.adminId, canReviewAll: !ctx.adminWorkspaceIsolated && ctx.adminSession.role === "superadmin" })),
 
   listDeletedInvitationLetters: adminProcedure
-    .query(async ({ ctx }) => listDeletedInvitationLetterRecords({ adminId: ctx.adminSession.adminId, canReviewAll: false })),
+    .query(async ({ ctx }) => listDeletedInvitationLetterRecords({ adminId: ctx.adminSession.adminId, canReviewAll: !ctx.adminWorkspaceIsolated && ctx.adminSession.role === "superadmin" })),
 
   deleteInvitationLetter: adminProcedure
     .input(z.object({ id: z.number().int().positive(), reason: z.string().trim().max(500).optional() }))
@@ -623,7 +627,7 @@ export const adminRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No se pudo acceder a la base de datos." });
       const [actor] = await db.select({ name: admins.name, email: admins.email }).from(admins).where(eq(admins.id, ctx.adminSession.adminId)).limit(1);
       const actorLabel = actor?.name?.trim() || actor?.email || `Administrador #${ctx.adminSession.adminId}`;
-      const deleted = await moveInvitationLetterToTrash(input.id, { adminId: ctx.adminSession.adminId, label: actorLabel, canReviewAll: false }, input.reason);
+      const deleted = await moveInvitationLetterToTrash(input.id, { adminId: ctx.adminSession.adminId, label: actorLabel, canReviewAll: !ctx.adminWorkspaceIsolated && ctx.adminSession.role === "superadmin" }, input.reason);
       if (!deleted) throw new TRPCError({ code: "NOT_FOUND", message: "La carta no existe, ya fue enviada a papelera o no tienes permiso para modificarla." });
       return { success: true };
     }),
@@ -631,7 +635,7 @@ export const adminRouter = router({
   restoreInvitationLetter: adminProcedure
     .input(z.object({ id: z.number().int().positive() }))
     .mutation(async ({ input, ctx }) => {
-      const restored = await restoreInvitationLetterFromTrash(input.id, { adminId: ctx.adminSession.adminId, canReviewAll: false });
+      const restored = await restoreInvitationLetterFromTrash(input.id, { adminId: ctx.adminSession.adminId, canReviewAll: !ctx.adminWorkspaceIsolated && ctx.adminSession.role === "superadmin" });
       if (!restored) throw new TRPCError({ code: "NOT_FOUND", message: "La carta no existe, no está en papelera o no tienes permiso para restaurarla." });
       return { success: true };
     }),
@@ -641,7 +645,7 @@ export const adminRouter = router({
     .query(async ({ input, ctx }) => searchInvitationLetterPeople({
       query: input.query,
       adminId: ctx.adminSession.adminId,
-      canReviewAll: false,
+      canReviewAll: !ctx.adminWorkspaceIsolated && ctx.adminSession.role === "superadmin",
       excludeHiddenShipments: ctx.adminSession.role !== "superadmin",
     })),
 
@@ -808,7 +812,7 @@ export const adminRouter = router({
     .mutation(async ({ input, ctx }) => {
       const currentShipment = await getShipmentById(input.shipmentId);
       if (!currentShipment) throw new TRPCError({ code: "NOT_FOUND", message: "Envío no encontrado o eliminado." });
-      if (!belongsToAdminWorkspace(currentShipment, ctx.adminSession.adminId)) {
+      if (!belongsToAdminWorkspace(currentShipment, ctx.adminSession.adminId, ctx.adminWorkspaceIsolated)) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Envío no encontrado o eliminado." });
       }
       if (ctx.adminSession.role !== "superadmin" && currentShipment.hiddenFromRegistradoresAt) {
@@ -883,7 +887,7 @@ export const adminRouter = router({
     .input(z.object({ id: z.number(), reason: z.string().trim().max(500).optional() }))
     .mutation(async ({ input, ctx }) => {
       const shipment = await getShipmentById(input.id);
-      if (!shipment || !belongsToAdminWorkspace(shipment, ctx.adminSession.adminId) || (ctx.adminSession.role !== "superadmin" && shipment.hiddenFromRegistradoresAt)) {
+      if (!shipment || !belongsToAdminWorkspace(shipment, ctx.adminSession.adminId, ctx.adminWorkspaceIsolated) || (ctx.adminSession.role !== "superadmin" && shipment.hiddenFromRegistradoresAt)) {
         throw new TRPCError({ code: "NOT_FOUND", message: "El envío no existe o no está disponible." });
       }
       const result = await deleteShipment(input.id, { actorType: "admin", actorId: ctx.adminSession.adminId, actorLabel: ctx.adminSession.role }, input.reason || "Eliminación solicitada por el operador");
