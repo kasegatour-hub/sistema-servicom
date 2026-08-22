@@ -12,7 +12,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import { Lock, LogOut, Plus, RefreshCw, Download, Printer, RotateCcw, Search, Trash2, MessageSquare, Calculator, Eye, EyeOff } from "lucide-react";
+import { Lock, LogOut, Plus, RefreshCw, Download, Printer, RotateCcw, Search, Trash2, MessageSquare, Calculator, Eye, EyeOff, Send } from "lucide-react";
 import QRCode from "qrcode";
 import { buildShipmentManagementUrl, buildTrackingUrl, normalizeTrackingValue, TRACKING_QR_OPTIONS } from "@/lib/tracking";
 import { PhoneInput } from "@/components/PhoneInput";
@@ -423,6 +423,10 @@ export default function AdminDashboard() {
   });
   const createMutation = trpc.admin.createShipment.useMutation();
   const updateMutation = trpc.admin.updateStatus.useMutation();
+  const sendShipmentSignatureMutation = trpc.shipment.requestSignature.useMutation({
+    onSuccess: result => toast.success(result.status === "signed" ? "El envío ya cuenta con una firma electrónica." : `Solicitud de firma enviada al Cliente. Vence el ${new Date(result.expiresAt).toLocaleString("es-PE")}.`),
+    onError: error => toast.error(error.message),
+  });
   const deleteMutation = trpc.admin.deleteShipment.useMutation();
   const setShipmentRegistradorVisibilityMutation = trpc.admin.setShipmentRegistradorVisibility.useMutation();
   const reportPdfDownloadFailureMutation = trpc.admin.reportPdfDownloadFailure.useMutation();
@@ -2215,6 +2219,18 @@ export default function AdminDashboard() {
                             <Download className="w-4 h-4 mr-1" />
                             Descargar PDF
                           </Button>
+                          {shipment.deliveryMode === "remoto" && (
+                            <Button
+                              onClick={() => sendShipmentSignatureMutation.mutate({ orderNumber: shipment.orderNumber, code: shipment.code })}
+                              size="sm"
+                              variant="outline"
+                              disabled={sendShipmentSignatureMutation.isPending}
+                              className="border-[#0B2B5E] text-[#0B2B5E] hover:bg-blue-50"
+                            >
+                              <Send className="mr-1 h-4 w-4" />
+                              {sendShipmentSignatureMutation.isPending ? "Enviando…" : "Enviar firma"}
+                            </Button>
+                          )}
                           <Button
                             onClick={() => handleDeleteShipment(shipment.id)}
                             size="sm"

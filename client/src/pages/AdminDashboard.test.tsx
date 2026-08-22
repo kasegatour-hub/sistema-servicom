@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   logout: { isPending: false, mutateAsync: vi.fn() },
   createShipment: { isPending: false, mutateAsync: vi.fn() },
   updateStatus: { isPending: false, mutateAsync: vi.fn() },
+  requestShipmentSignature: { isPending: false, mutate: vi.fn() },
   deleteShipment: { isPending: false, mutateAsync: vi.fn() },
   setShipmentRegistradorVisibility: { isPending: false, mutateAsync: vi.fn() },
   reportPdfDownloadFailure: { isPending: false, mutate: vi.fn() },
@@ -90,6 +91,9 @@ vi.mock("@/lib/trpc", () => ({
       saveInvitationLetter: { useMutation: () => mocks.saveInvitationLetter },
       listInvitationLetters: { useQuery: () => mocks.listInvitationLetters },
       searchInvitationPeople: { useQuery: () => mocks.searchInvitationPeople },
+    },
+    shipment: {
+      requestSignature: { useMutation: () => mocks.requestShipmentSignature },
     },
     analytics: {
       adminInsights: { useQuery: () => ({ data: null }) },

@@ -4,7 +4,7 @@ import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
-import { completeInvitationLetterSignature, completeShipmentSignature, createOrRefreshShipmentSignatureRequest, getInvitationLetterById, getInvitationLetterSignatureByLetterId, getShipmentByOrderAndCode, getShipmentById, getShipmentSignatureByShipmentId, listInteractionEvents, recordInteractionEvent, recordShipmentAudit } from "./db";
+import { completeInvitationLetterSignature, completeShipmentSignature, createOrRefreshShipmentSignatureRequest, getInvitationLetterById, getInvitationLetterSignatureByLetterId, getLocalAccountById, getShipmentByOrderAndCode, getShipmentById, getShipmentSignatureByShipmentId, listInteractionEvents, recordInteractionEvent, recordShipmentAudit } from "./db";
 import { createSignatureToken, isSignatureTokenExpired, signatureTokenMatches } from "./signatureTokens";
 import { parseSignatureStrokes } from "../shared/signature";
 import { adminRouter } from "./admin.router";
@@ -13,6 +13,7 @@ import { feedbackRouter } from "./feedback.router";
 import { getAdminSession } from "./adminSession";
 import { getAccountSession } from "./localSession";
 import { deriveInteractionInsights } from "./analytics";
+import { sendShipmentSignatureEmail } from "./localAuth";
 
 export const appRouter = router({
   system: systemRouter,
@@ -140,7 +141,9 @@ export const appRouter = router({
         orderNumber: z.string().min(1, "Número de orden requerido"),
         code: z.string().min(1, "Código requerido"),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const adminSession = getAdminSession(ctx.req);
+        if (!adminSession || adminSession.reauthRequired) throw new TRPCError({ code: "UNAUTHORIZED", message: "Solo un Administrador o Registrador puede enviar una solicitud de firma." });
         const shipment = await getShipmentByOrderAndCode(input.orderNumber, input.code);
         if (!shipment) {
           throw new TRPCError({ code: "NOT_FOUND", message: "Envío no encontrado" });
@@ -148,6 +151,9 @@ export const appRouter = router({
         if (shipment.deliveryMode !== "remoto") {
           throw new TRPCError({ code: "FORBIDDEN", message: "Este envío se entrega en agencia y no requiere firma remota." });
         }
+        if (!shipment.accountId) throw new TRPCError({ code: "BAD_REQUEST", message: "El cliente debe tener una cuenta creada antes de enviar una solicitud de firma." });
+        const account = await getLocalAccountById(shipment.accountId);
+        if (!account?.email) throw new TRPCError({ code: "BAD_REQUEST", message: "No se encontró una cuenta Cliente válida para enviar la notificación de firma." });
         const currentSignature = await getShipmentSignatureByShipmentId(shipment.id);
         if (currentSignature?.status === "signed") {
           return {
@@ -164,14 +170,17 @@ export const appRouter = router({
           tokenHash: token.tokenHash,
           expiresAt: token.expiresAt,
         });
-        await recordShipmentAudit({ shipmentId: shipment.id, action: "signature_requested", actor: { actorType: "public" }, metadata: { deliveryMode: shipment.deliveryMode, consentTextVersion: "servicom-remoto-v1" } });
-        await recordInteractionEvent({ actorType: "anonymous", eventName: "signature_started", surface: "receipt", metadata: { shipmentType: shipment.shipmentType, deliveryMode: shipment.deliveryMode } });
+        await recordShipmentAudit({ shipmentId: shipment.id, action: "signature_requested", actor: { actorType: "admin", actorId: adminSession.adminId, actorLabel: adminSession.role }, metadata: { deliveryMode: shipment.deliveryMode, consentTextVersion: "servicom-remoto-v1", accountId: shipment.accountId } });
+        await recordInteractionEvent({ actorType: "admin", actorId: adminSession.adminId, eventName: "signature_started", surface: "admin", metadata: { shipmentType: shipment.shipmentType, deliveryMode: shipment.deliveryMode } });
         if (!saved) {
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No se pudo preparar la firma" });
         }
+        const origin = `${ctx.req.protocol || "https"}://${ctx.req.get?.("host") || ctx.req.headers.host || "localhost"}`;
+        const signatureUrl = `${origin}/recibo?order=${encodeURIComponent(shipment.orderNumber)}&code=${encodeURIComponent(shipment.code)}&signature=${encodeURIComponent(token.token)}`;
+        await sendShipmentSignatureEmail({ email: account.email, signerName: `${account.name || shipment.senderName || "Cliente"} ${account.lastName || shipment.senderLastName || ""}`.trim(), signatureUrl });
         return {
           status: "pending" as const,
-          token: token.token,
+          signatureUrl,
           expiresAt: token.expiresAt,
         };
       }),
@@ -187,7 +196,9 @@ export const appRouter = router({
         signerPhone: z.string().trim().min(8).max(32).optional(),
         signatureStrokes: z.string().min(20, "Dibuja tu firma antes de continuar").max(20000),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const accountSession = getAccountSession(ctx.req);
+        if (!accountSession) throw new TRPCError({ code: "UNAUTHORIZED", message: "Inicia sesión con tu cuenta Cliente para firmar el envío." });
         const shipment = await getShipmentByOrderAndCode(input.orderNumber, input.code);
         if (!shipment) {
           throw new TRPCError({ code: "NOT_FOUND", message: "Envío no encontrado" });
@@ -195,6 +206,7 @@ export const appRouter = router({
         if (shipment.deliveryMode !== "remoto") {
           throw new TRPCError({ code: "FORBIDDEN", message: "Este envío se entrega en agencia y no admite firma remota." });
         }
+        if (!shipment.accountId || shipment.accountId !== accountSession.accountId) throw new TRPCError({ code: "FORBIDDEN", message: "Esta solicitud de firma no corresponde a tu cuenta Cliente." });
         const signature = await getShipmentSignatureByShipmentId(shipment.id);
         if (!signature || signature.status === "signed") {
           throw new TRPCError({ code: "CONFLICT", message: signature?.status === "signed" ? "Este envío ya tiene una firma electrónica" : "Solicita una nueva sesión de firma" });

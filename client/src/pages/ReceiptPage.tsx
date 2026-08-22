@@ -16,19 +16,19 @@ function getReceiptQuery() {
   return {
     orderNumber: params.get("order")?.trim() ?? "",
     code: params.get("code")?.trim().toUpperCase() ?? "",
+    signature: params.get("signature")?.trim() ?? "",
   };
 }
 
 export default function ReceiptPage() {
   const [query] = useState(getReceiptQuery);
-  const { data: shipment, isLoading, error, refetch: refetchShipment } = trpc.shipment.search.useQuery(query, {
+  const shipmentQuery = { orderNumber: query.orderNumber, code: query.code };
+  const { data: shipment, isLoading, error, refetch: refetchShipment } = trpc.shipment.search.useQuery(shipmentQuery, {
     enabled: Boolean(query.orderNumber && query.code),
   });
-  const requestSignatureMutation = trpc.shipment.requestSignature.useMutation();
   const completeSignatureMutation = trpc.shipment.completeSignature.useMutation();
+  const accountQuery = trpc.account.me.useQuery();
   const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
-  const [signatureToken, setSignatureToken] = useState("");
-  const [signatureExpiresAt, setSignatureExpiresAt] = useState<string | Date | undefined>();
   const [signatureError, setSignatureError] = useState("");
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState("");
@@ -36,6 +36,7 @@ export default function ReceiptPage() {
   const paymentUi = shipment ? getPaymentStatusUi(shipment.paymentStatus) : getPaymentStatusUi(undefined);
   const priceUi = shipment ? getReceiptPricePresentation(shipment) : null;
   const routePresentation = getRoutePresentation(shipment?.route, shipment?.destinationAddress);
+  const canSignThisShipment = Boolean(query.signature && accountQuery.data?.id && shipment?.accountId === accountQuery.data.id && shipment.deliveryMode === "remoto" && shipment.signature?.status !== "signed");
 
   useEffect(() => {
     if (!shipment) return;
@@ -47,28 +48,11 @@ export default function ReceiptPage() {
     });
   }, [shipment]);
 
-  const handleRequestSignature = async () => {
-    setSignatureError("");
-    try {
-      const result = await requestSignatureMutation.mutateAsync(query);
-      if (result.status === "signed") {
-        await refetchShipment();
-        return;
-      }
-      setSignatureToken(result.token);
-      setSignatureExpiresAt(result.expiresAt);
-      setSignatureDialogOpen(true);
-    } catch (requestError: any) {
-      setSignatureError(requestError?.message || "No se pudo preparar la firma electrónica.");
-    }
-  };
-
   const handleCompleteSignature = async (input: { signerName: string; signerDni?: string; signerEmail?: string; signerPhone?: string; signatureStrokes: string }) => {
     setSignatureError("");
     try {
-      await completeSignatureMutation.mutateAsync({ ...query, token: signatureToken, ...input });
+      await completeSignatureMutation.mutateAsync({ ...shipmentQuery, token: query.signature, ...input });
       setSignatureDialogOpen(false);
-      setSignatureToken("");
       await refetchShipment();
     } catch (completeError: any) {
       setSignatureError(completeError?.message || "No se pudo guardar la firma electrónica.");
@@ -143,7 +127,7 @@ export default function ReceiptPage() {
                 <div className="md:col-span-2 rounded-md border-l-4 border-[#F28C00] bg-orange-50 px-4 py-3"><span className="block text-xs font-bold uppercase tracking-wide text-slate-600">Precio final</span><strong className="text-xl font-extrabold text-orange-700">{priceUi?.finalLabel}</strong>{priceUi?.hasDiscount && <span className="ml-2 text-xs font-medium text-slate-600">Precio base {priceUi.baseLabel} · descuento {priceUi.discountPercent.toFixed(0)}%</span>}</div>
               </div>
 
-              {shipment.deliveryMode === "remoto" ? (shipment.signature?.status === "signed" ? (
+              {shipment.deliveryMode === "remoto" && shipment.signature?.status === "signed" && (
                 <div className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-900">
                   <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" aria-hidden="true" />
                   <div>
@@ -152,17 +136,19 @@ export default function ReceiptPage() {
                     <p className="mt-1 text-xs text-emerald-800">La evidencia conserva consentimiento versionado, fecha de firma y huella criptográfica para verificación posterior.</p>
                   </div>
                 </div>
-              ) : (
+              )}
+              {canSignThisShipment && (
                 <div className="flex flex-col gap-4 rounded-lg border border-blue-200 bg-blue-50 p-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="flex items-center gap-2 font-semibold text-[#0B2B5E]"><PenLine className="h-4 w-4" aria-hidden="true" /> Firma electrónica remota</p>
-                    <p className="mt-1 text-sm text-slate-600">Este envío fue marcado como remoto. El cliente puede firmar con su orden y código; se conservará la evidencia técnica del consentimiento.</p>
+                    <p className="flex items-center gap-2 font-semibold text-[#0B2B5E]"><PenLine className="h-4 w-4" aria-hidden="true" /> Solicitud de firma recibida</p>
+                    <p className="mt-1 text-sm text-slate-600">Esta solicitud fue enviada por un Administrador o Registrador a tu cuenta Cliente.</p>
                   </div>
-                  <Button type="button" onClick={handleRequestSignature} disabled={requestSignatureMutation.isPending} className="shrink-0 bg-[#0B2B5E] text-white hover:bg-[#123d78]">
-                    <PenLine className="mr-2 h-4 w-4" aria-hidden="true" /> {requestSignatureMutation.isPending ? "Preparando…" : "Firmar electrónicamente"}
+                  <Button type="button" onClick={() => setSignatureDialogOpen(true)} disabled={completeSignatureMutation.isPending} className="shrink-0 bg-[#0B2B5E] text-white hover:bg-[#123d78]">
+                    <PenLine className="mr-2 h-4 w-4" aria-hidden="true" /> Firmar electrónicamente
                   </Button>
                 </div>
-              )) : (
+              )}
+              {shipment.deliveryMode === "agencia" && (
                 <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 text-slate-700"><CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-slate-500" aria-hidden="true" /><div><p className="font-semibold">Entrega en agencia</p><p className="text-sm">Este envío se completa presencialmente en la agencia; no requiere firma remota desde este recibo.</p></div></div>
               )}
               {signatureError && !signatureDialogOpen && <p className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800" role="alert">{signatureError}</p>}
@@ -195,7 +181,6 @@ export default function ReceiptPage() {
           open={signatureDialogOpen}
           orderNumber={query.orderNumber}
           code={query.code}
-          expiresAt={signatureExpiresAt}
           isSubmitting={completeSignatureMutation.isPending}
           errorMessage={signatureError}
           onClose={() => { setSignatureDialogOpen(false); setSignatureError(""); }}

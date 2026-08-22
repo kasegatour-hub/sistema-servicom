@@ -728,3 +728,8 @@
 - [x] Reducir el tiempo de creación preparando traducciones de forma anticipada y sin bloquear el guardado final
 - [x] Corregir la adaptación móvil, retroalimentación táctil, navegación por rol e instalación única
 - [x] Cubrir las correcciones con pruebas, validación visual y compilación de producción
+
+## Visibilidad de firma electrónica para Clientes
+- [x] Ocultar la firma electrónica genérica para clientes que no tengan una solicitud de firma válida
+- [x] Mostrar la firma únicamente a la cuenta Cliente vinculada cuando un Admin o Registrador haya enviado la solicitud
+- [x] Añadir pruebas de permisos, validar la compilación y publicar la corrección

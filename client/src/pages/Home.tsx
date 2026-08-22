@@ -447,18 +447,6 @@ export default function Home() {
               />
             </Card>
 
-            <Card className="border-0 bg-blue-50 p-4 shadow-lg md:p-6">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h3 className="flex items-center gap-2 text-lg font-semibold text-[#0B2B5E]"><PenLine className="h-5 w-5" aria-hidden="true" /> Firma electrónica remota</h3>
-                  <p className="mt-1 text-sm text-slate-600">Si el envío fue registrado por la agencia, el cliente puede abrir el recibo y firmar desde cualquier lugar.</p>
-                </div>
-                <Button asChild className="shrink-0 bg-[#0B2B5E] text-white hover:bg-[#123d78]">
-                  <a href={`/recibo?order=${encodeURIComponent(String(shipmentData.orderNumber))}&code=${encodeURIComponent(String(shipmentData.code))}`}><PenLine className="mr-2 h-4 w-4" aria-hidden="true" /> Abrir recibo y firmar</a>
-                </Button>
-              </div>
-            </Card>
-
             {/* QR Code */}
             {qrCodeUrl && (
               <Card className="p-4 md:p-6 shadow-lg border-0">

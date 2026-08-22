@@ -87,6 +87,18 @@ export async function sendInvitationLetterSignatureEmail(input: { email: string;
   });
 }
 
+export async function sendShipmentSignatureEmail(input: { email: string; signerName: string; signatureUrl: string }): Promise<void> {
+  const from = process.env.SMTP_FROM?.trim() || "peruservicom@gmail.com";
+  const transporter = getSmtpTransport();
+  await transporter.sendMail({
+    from,
+    to: input.email,
+    subject: "Firma pendiente de envío | Servicom Internacional",
+    text: `Hola ${input.signerName}. Un Administrador o Registrador de Servicom te envió una solicitud de firma electrónica. Inicia sesión con tu cuenta Cliente y abre este enlace seguro para revisar y firmar: ${input.signatureUrl}`,
+    html: `<p>Hola <strong>${input.signerName}</strong>.</p><p>Un <strong>Administrador o Registrador</strong> te envió una solicitud de firma electrónica para tu envío.</p><p>Inicia sesión con tu cuenta Cliente y luego abre el enlace seguro:</p><p><a href="${input.signatureUrl}">Revisar y firmar el envío</a></p><p>Si no reconoces esta solicitud, ignora este correo.</p>`,
+  });
+}
+
 export async function sendVerificationSms(phone: string, code: string): Promise<void> {
   const accountSid = process.env.TWILIO_ACCOUNT_SID?.trim();
   const authToken = process.env.TWILIO_AUTH_TOKEN?.trim();

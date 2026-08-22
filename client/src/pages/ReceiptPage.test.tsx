@@ -5,10 +5,10 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 
 const currentRoute = vi.hoisted(() => ({ value: "Lima - Torino" }));
 const signatureMocks = vi.hoisted(() => ({
-  request: vi.fn().mockResolvedValue({ status: "pending", token: "signature-token-12345678901234567890", expiresAt: new Date("2026-08-15T16:30:00.000Z") }),
   complete: vi.fn(),
   refetch: vi.fn(),
 }));
+const accountMock = vi.hoisted(() => ({ data: { id: 77 } }));
 const receiptMocks = vi.hoisted(() => ({
   download: vi.fn().mockResolvedValue("recibo-documento-marco-rossi-orden-3520992723.pdf"),
   print: vi.fn(),
@@ -26,6 +26,7 @@ const shipment = {
   recipientLastName: "Rossi",
   recipientPhone: "+39 351 000 000",
   deliveryMode: "remoto",
+  accountId: 77,
 };
 
 vi.mock("@/lib/trpc", () => ({
@@ -34,9 +35,9 @@ vi.mock("@/lib/trpc", () => ({
       search: {
         useQuery: () => ({ data: { ...shipment, route: currentRoute.value }, isLoading: false, error: null, refetch: signatureMocks.refetch }),
       },
-      requestSignature: { useMutation: () => ({ isPending: false, mutateAsync: signatureMocks.request }) },
       completeSignature: { useMutation: () => ({ isPending: false, mutateAsync: signatureMocks.complete }) },
     },
+    account: { me: { useQuery: () => accountMock } },
   },
 }));
 
@@ -72,11 +73,16 @@ describe("ReceiptPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Descargar Word" }));
     await waitFor(() => expect(receiptMocks.download).toHaveBeenCalledWith(expect.objectContaining({ orderNumber: "3520992723" }), "word"));
     expect(document.title).toBe("recibo-documento-marco-rossi-orden-3520992723");
+    expect(screen.queryByRole("button", { name: /Firmar electrónicamente/ })).toBeNull();
+  });
+
+  it("muestra la firma solo al Cliente autenticado que abrió su enlace enviado", async () => {
+    window.history.replaceState({}, "", "/recibo?order=3520992723&code=CA06721WB&signature=signature-token-12345678901234567890");
+    render(<ReceiptPage />);
+
     const signButton = screen.getByRole("button", { name: /Firmar electrónicamente/ });
-    expect(signButton).toBeTruthy();
     fireEvent.click(signButton);
     await waitFor(() => expect(screen.getByRole("dialog")).toBeTruthy());
-    expect(signatureMocks.request).toHaveBeenCalledWith({ orderNumber: "3520992723", code: "CA06721WB" });
     expect(screen.getByRole("heading", { name: "Firma electrónica del cliente" })).toBeTruthy();
   });
 

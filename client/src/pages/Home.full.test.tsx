@@ -74,8 +74,7 @@ describe("Home public page", () => {
     expect(screen.getByText("Lima - Torino")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Recojo en Torino, Italia" })).toBeTruthy();
     expect(screen.getAllByText(/Corso Peschiera, 162A, Zona Piazza Sabotino/).length).toBeGreaterThanOrEqual(2);
-    const receiptLink = screen.getByRole("link", { name: /Abrir recibo y firmar/ });
-    expect((receiptLink as HTMLAnchorElement).getAttribute("href")).toBe("/recibo?order=3520992723&code=CA06721WB");
+    expect(screen.queryByRole("link", { name: /Abrir recibo y firmar/ })).toBeNull();
   });
 
   it("shows the Lima pickup office for an encomienda that travels from Torino to Lima", () => {

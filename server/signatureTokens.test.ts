@@ -6,9 +6,11 @@ import { createSignatureToken, hashSignatureToken, isSignatureTokenExpired, sign
 const dbMocks = vi.hoisted(() => ({
   getShipmentByOrderAndCode: vi.fn(),
   getShipmentSignatureByShipmentId: vi.fn(),
+  getLocalAccountById: vi.fn(),
   createOrRefreshShipmentSignatureRequest: vi.fn(),
   completeShipmentSignature: vi.fn(),
 }));
+const authMocks = vi.hoisted(() => ({ getAdminSession: vi.fn(), getAccountSession: vi.fn(), sendShipmentSignatureEmail: vi.fn() }));
 
 vi.mock("./db", async () => {
   const actual = await vi.importActual<typeof import("./db")>("./db");
@@ -16,23 +18,33 @@ vi.mock("./db", async () => {
     ...actual,
     getShipmentByOrderAndCode: dbMocks.getShipmentByOrderAndCode,
     getShipmentSignatureByShipmentId: dbMocks.getShipmentSignatureByShipmentId,
+    getLocalAccountById: dbMocks.getLocalAccountById,
     createOrRefreshShipmentSignatureRequest: dbMocks.createOrRefreshShipmentSignatureRequest,
     completeShipmentSignature: dbMocks.completeShipmentSignature,
   };
 });
 
+vi.mock("./adminSession", () => ({ getAdminSession: authMocks.getAdminSession }));
+vi.mock("./localSession", () => ({ getAccountSession: authMocks.getAccountSession }));
+vi.mock("./localAuth", async () => {
+  const actual = await vi.importActual<typeof import("./localAuth")>("./localAuth");
+  return { ...actual, sendShipmentSignatureEmail: authMocks.sendShipmentSignatureEmail };
+});
+
 function publicContext(): TrpcContext {
   return {
     user: null,
-    req: { protocol: "https", headers: {} } as TrpcContext["req"],
+    req: { protocol: "https", headers: { host: "servicom.test" }, get: () => "servicom.test" } as TrpcContext["req"],
     res: { cookie: () => {}, clearCookie: () => {} } as TrpcContext["res"],
   };
 }
 
-const shipment = { id: 81, orderNumber: "3520992723", code: "CA06721WB", events: "[]", shipmentType: "documento", deliveryMode: "remoto" } as any;
+const shipment = { id: 81, accountId: 77, orderNumber: "3520992723", code: "CA06721WB", events: "[]", shipmentType: "documento", deliveryMode: "remoto" } as any;
 
 beforeEach(() => {
   vi.clearAllMocks();
+  authMocks.getAdminSession.mockReturnValue(undefined);
+  authMocks.getAccountSession.mockReturnValue(undefined);
 });
 
 describe("signature token security", () => {
@@ -48,9 +60,16 @@ describe("signature token security", () => {
     expect(isSignatureTokenExpired(result.expiresAt, new Date(result.expiresAt.getTime() + 1))).toBe(true);
   });
 
-  it("issues a public signing session for a shipment created by an operator", async () => {
+  it("rejects a public attempt to issue a signing session", async () => {
+    const caller = appRouter.createCaller(publicContext());
+    await expect(caller.shipment.requestSignature({ orderNumber: shipment.orderNumber, code: shipment.code })).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+  });
+
+  it("issues a signing session only from an authorized administrator for a linked Client account", async () => {
+    authMocks.getAdminSession.mockReturnValue({ adminId: 4, role: "registrador", reauthRequired: false });
     dbMocks.getShipmentByOrderAndCode.mockResolvedValue(shipment);
     dbMocks.getShipmentSignatureByShipmentId.mockResolvedValue(undefined);
+    dbMocks.getLocalAccountById.mockResolvedValue({ id: 77, email: "cliente@example.com", name: "Ana", lastName: "Pérez" });
     dbMocks.createOrRefreshShipmentSignatureRequest.mockImplementation(async ({ shipmentId, tokenHash, expiresAt }) => ({
       shipmentId,
       requestTokenHash: tokenHash,
@@ -62,8 +81,9 @@ describe("signature token security", () => {
     const result = await caller.shipment.requestSignature({ orderNumber: shipment.orderNumber, code: shipment.code });
 
     expect(result.status).toBe("pending");
-    expect(result.token).toBeTruthy();
+    expect(result.signatureUrl).toContain("signature=");
     expect(dbMocks.createOrRefreshShipmentSignatureRequest).toHaveBeenCalledWith(expect.objectContaining({ shipmentId: 81 }));
+    expect(authMocks.sendShipmentSignatureEmail).toHaveBeenCalledWith(expect.objectContaining({ email: "cliente@example.com" }));
   });
 
   it("rejects an invalid token before writing a signature", async () => {
@@ -88,6 +108,7 @@ describe("signature token security", () => {
 
   it("completes a valid signature and rejects a second signature state", async () => {
     const token = "token-correcto-1234567890";
+    authMocks.getAccountSession.mockReturnValue({ accountId: 77 });
     dbMocks.getShipmentByOrderAndCode.mockResolvedValue(shipment);
     dbMocks.getShipmentSignatureByShipmentId
       .mockResolvedValueOnce({
