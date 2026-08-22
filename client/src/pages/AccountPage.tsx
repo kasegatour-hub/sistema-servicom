@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { ArrowLeft, CheckCircle2, Download, Eye, EyeOff, KeyRound, Lock, LogOut, Mail, MessageSquare, Package, Plus, Printer, RotateCcw, Search, Trash2, User, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -38,6 +38,8 @@ type ClientWorkspace = "envios" | "registrar" | "papelera" | "perfil" | "segurid
 const getLockoutSecondsFromMessage = (message: string) => Number(message.match(/espera\s+(\d+)\s+segundos/i)?.[1] || 0);
 
 export default function AccountPage() {
+  const [, setLocation] = useLocation();
+  const returnToMobileApp = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("returnTo") === "/movil";
   const [mode, setMode] = useState<AccountMode>("login");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -222,15 +224,17 @@ export default function AccountPage() {
       toast.success("Cuenta creada correctamente. Sesión iniciada.");
       // La mutación ya estableció la cookie: forzar la consulta para mostrar el panel.
       await utils.account.me.invalidate();
+      if (returnToMobileApp) setLocation("/movil");
     },
     onError: error => toast.error(error.message),
   });
 
   const loginMutation = trpc.account.login.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       setLoginLockSeconds(0);
       toast.success("Sesión iniciada correctamente.");
-      utils.account.me.invalidate();
+      await utils.account.me.invalidate();
+      if (returnToMobileApp) setLocation("/movil");
     },
     onError: error => {
       const seconds = getLockoutSecondsFromMessage(error.message);

@@ -1,12 +1,14 @@
 {
   "name": "Servicom Internacional",
   "short_name": "Servicom",
-  "description": "Rastreo y gestión de documentos y encomiendas.",
+  "description": "Aplicación protegida para consultar y gestionar envíos de Servicom Internacional.",
+  "id": "/movil",
   "start_url": "/movil",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#F8FAFC",
   "theme_color": "#0B2B5E",
   "icons": [
-    { "src": "/manus-storage/servicom_logo_final_e7ce35aa.png", "sizes": "192x192", "type": "image/png", "purpose": "any" }
+    { "src": "/manus-storage/servicom_logo_final_e7ce35aa.png", "sizes": "any", "type": "image/png", "purpose": "any maskable" }
   ]
 }

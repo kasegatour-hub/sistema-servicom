@@ -749,3 +749,8 @@
 - [x] Mostrar un acceso de escaneo QR inmediato al ingresar como Administrador o Registrador
 - [x] Abrir el envío del QR escaneado directamente en la actualización de estado y operación
 - [x] Probar el flujo QR administrativo, validar la compilación y publicar la mejora
+
+## Instalación y acceso protegido de aplicación móvil
+- [x] Revisar el aviso de instalación PWA y hacerlo disponible desde la entrada móvil
+- [x] Exigir inicio de sesión antes de mostrar rastreo u otras funciones en /movil
+- [x] Probar la ruta móvil protegida, el flujo de instalación y publicar la corrección
