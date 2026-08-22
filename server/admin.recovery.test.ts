@@ -15,7 +15,7 @@ vi.mock("./db", async () => ({ ...(await vi.importActual<typeof import("./db")>(
 vi.mock("./localAuth", async () => ({ ...(await vi.importActual<typeof import("./localAuth")>("./localAuth")), ...emailMocks }));
 
 import { appRouter } from "./routers";
-import { hashVerificationCode } from "./localAuth";
+import { hashPassword, hashVerificationCode } from "./localAuth";
 
 function createPublicContext(): TrpcContext {
   return { user: null, req: { protocol: "https", headers: {} } as TrpcContext["req"], res: { cookie: () => {}, clearCookie: () => {} } as TrpcContext["res"] };
@@ -57,6 +57,16 @@ describe("admin password recovery", () => {
     expect(result.success).toBe(true);
     expect(dbMocks.updateAdminPassword).toHaveBeenCalledWith(admin.id, expect.stringMatching(/^scrypt\$/));
     expect(dbMocks.consumeAdminPasswordResetCode).toHaveBeenCalledWith(9);
+  });
+
+  it("rejects a reset that reuses the current administrative password", async () => {
+    const currentPassword = "ClaveActual#2026";
+    dbMocks.getAdminByEmail.mockResolvedValue({ ...admin, password: await hashPassword(currentPassword) });
+    dbMocks.getActiveAdminPasswordResetCode.mockResolvedValue({ id: 9, adminId: admin.id, destination: admin.email, codeHash: hashVerificationCode("123456"), expiresAt: new Date(Date.now() + 60_000), attempts: 0 });
+
+    await expect(appRouter.createCaller(createPublicContext()).admin.resetPassword({ email: admin.email, code: "123456", newPassword: currentPassword })).rejects.toMatchObject({ code: "BAD_REQUEST", message: /no puede ser igual/i });
+    expect(dbMocks.updateAdminPassword).not.toHaveBeenCalled();
+    expect(dbMocks.consumeAdminPasswordResetCode).not.toHaveBeenCalled();
   });
 
   it("counts failed code attempts and rejects the reset", async () => {

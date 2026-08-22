@@ -25,6 +25,7 @@ export async function verifyPassword(password: string, storedHash: string): Prom
   if (algorithm !== "scrypt" || !salt || !hashHex) return false;
 
   const expected = Buffer.from(hashHex, "hex");
+  if (expected.length === 0) return false;
   const actual = (await scrypt(password, salt, expected.length)) as Buffer;
   return expected.length === actual.length && timingSafeEqual(expected, actual);
 }
@@ -59,6 +60,8 @@ function getSmtpTransport() {
     host,
     port,
     secure: port === 465,
+    requireTLS: port !== 465,
+    tls: { minVersion: "TLSv1.2" },
     auth: { user, pass: password },
   });
 }

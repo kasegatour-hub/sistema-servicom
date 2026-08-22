@@ -739,3 +739,8 @@
 - [x] Corregir cabeceras, tarjetas y formularios para evitar recortes, solapamientos y desplazamientos incómodos
 - [x] Añadir retroalimentación táctil, estados de carga y errores visibles sin sobrecargar las pantallas
 - [x] Verificar adaptación en teléfonos pequeños y grandes, accesibilidad y pruebas de regresión
+
+## Seguridad de contraseñas y sesiones
+- [x] Impedir que Cliente, Registrador o Administrador reutilicen su contraseña vigente al cambiarla o restablecerla
+- [x] Revisar y reforzar el uso de hash de contraseñas, tokens y canales cifrados aplicables al acceso
+- [x] Cubrir la seguridad de recuperación y publicar la corrección validada

@@ -29,6 +29,10 @@ const ADMIN_PASSWORD_RESET_RESEND_SECONDS = 60;
 const ROUTE_VALUES = ["Lima - Torino", "Torino - Lima"] as const;
 const COUPON_SCOPE_VALUES = ["ambos", "documento", "encomienda"] as const;
 const INVITATION_SIGNATURE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const PASSWORD_REUSE_MESSAGE = "La nueva contraseña no puede ser igual a la contraseña vigente.";
+async function matchesStoredAdminPassword(password: string, storedPassword: string) {
+  return storedPassword.startsWith("scrypt$") ? verifyPassword(password, storedPassword) : password === storedPassword;
+}
 const optionalInternationalPhoneSchema = z.string().trim().optional().refine(value => !value || isValidInternationalPhone(value), "El número no coincide con la cantidad de dígitos del país seleccionado.");
 const securePasswordSchema = z.string().refine(isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE);
 const invitationItalianSchema = z.object({
@@ -300,6 +304,9 @@ export const adminRouter = router({
         await incrementAdminPasswordResetAttempts(verification.id);
         throw new TRPCError({ code: "BAD_REQUEST", message: "El código no es válido o ya venció." });
       }
+      if (await matchesStoredAdminPassword(input.newPassword, admin.password)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: PASSWORD_REUSE_MESSAGE });
+      }
       await updateAdminPassword(admin.id, await hashPassword(input.newPassword));
       await consumeAdminPasswordResetCode(verification.id);
       return { success: true, message: "Contraseña administrativa actualizada correctamente." };
@@ -349,6 +356,9 @@ export const adminRouter = router({
         : isMasterSession ? input.currentPassword === MASTER_ADMIN_PASSWORD : admin.password === input.currentPassword;
       if (!validPassword) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "La contraseña actual no es correcta." });
+      }
+      if (await matchesStoredAdminPassword(input.newPassword, admin.password)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: PASSWORD_REUSE_MESSAGE });
       }
       await db.update(admins).set({ password: await hashPassword(input.newPassword) }).where(eq(admins.id, admin.id));
       return { success: true, message: "Contraseña administrativa actualizada correctamente." };
@@ -923,12 +933,15 @@ export const adminRouter = router({
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database error" });
-      const [target] = await db.select({ id: admins.id, email: admins.email, role: admins.role }).from(admins).where(eq(admins.id, input.id)).limit(1);
+      const [target] = await db.select({ id: admins.id, email: admins.email, role: admins.role, password: admins.password }).from(admins).where(eq(admins.id, input.id)).limit(1);
       if (!target || target.email.trim().toLowerCase() !== input.email.trim().toLowerCase()) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "El correo no coincide con el Registrador seleccionado." });
       }
       if (target.role === "superadmin") {
         throw new TRPCError({ code: "FORBIDDEN", message: "El Master Admin debe cambiar su contraseña desde su propia sesión." });
+      }
+      if (await matchesStoredAdminPassword(input.newPassword, target.password)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: PASSWORD_REUSE_MESSAGE });
       }
       await db.update(admins).set({ password: await hashPassword(input.newPassword) }).where(eq(admins.id, input.id));
       return { success: true, message: "Contraseña del Registrador actualizada correctamente." };

@@ -374,6 +374,9 @@ reauthRequired: session.reauthRequired,
       if (!account || !(await verifyPassword(input.currentPassword, account.passwordHash))) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "La contraseña actual no es correcta." });
       }
+      if (await verifyPassword(input.newPassword, account.passwordHash)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "La nueva contraseña no puede ser igual a la contraseña vigente." });
+      }
       await updateLocalAccountPassword(account.id, await hashPassword(input.newPassword), "email");
       return { success: true, message: "Contraseña cambiada correctamente." };
     }),
@@ -430,6 +433,10 @@ reauthRequired: session.reauthRequired,
       if (hashVerificationCode(input.code) !== verification.codeHash) {
         await incrementVerificationAttempts(verification.id);
         throw new TRPCError({ code: "BAD_REQUEST", message: "El código no es válido o ya venció." });
+      }
+
+      if (await verifyPassword(input.newPassword, account.passwordHash)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "La nueva contraseña no puede ser igual a la contraseña vigente." });
       }
 
       await updateLocalAccountPassword(account.id, await hashPassword(input.newPassword), input.channel);
