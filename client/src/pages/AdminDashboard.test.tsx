@@ -515,6 +515,19 @@ describe("AdminDashboard Nueva Encomienda", () => {
     expect(checklistHeading.compareDocumentPosition(notesLabel) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
+  it("marca en rojo el checklist obligatorio antes de crear un documento", async () => {
+    render(<AdminDashboard />);
+    fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
+    fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
+    await screen.findByRole("button", { name: "Nuevo documento" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Nuevo documento" }));
+    fireEvent.click(screen.getByRole("button", { name: "Crear Documento" }));
+
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toMatch(/Agrega al menos un elemento/i));
+  });
+
   it("fills sender data from a persistent client match by DNI", async () => {
     render(<AdminDashboard />);
     fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });

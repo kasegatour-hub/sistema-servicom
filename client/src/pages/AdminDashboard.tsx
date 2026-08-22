@@ -297,6 +297,7 @@ export default function AdminDashboard() {
   const [recipientClientQuery, setRecipientClientQuery] = useState("");
   const [additionalDocumentItems, setAdditionalDocumentItems] = useState<Array<{ docType: "simple" | "apostillado"; sheetCount: number; manualPriceEur: string }>>([]);
   const [contentChecklist, setContentChecklist] = useState<string[]>([]);
+  const [createShipmentValidationError, setCreateShipmentValidationError] = useState("");
   const [catalogDocuments, setCatalogDocuments] = useState<CatalogDocumentItem[]>([]);
   const [showCalculator, setShowCalculator] = useState(false);
   const [showAdvancedCalculator, setShowAdvancedCalculator] = useState(false);
@@ -767,6 +768,7 @@ export default function AdminDashboard() {
       toast.message("Lima - Torino está restringida para encomiendas; se seleccionó Torino - Lima.");
     }
     setAdminWorkspace("crear");
+    setCreateShipmentValidationError("");
     setShowCreateForm(true);
   };
 
@@ -802,9 +804,11 @@ export default function AdminDashboard() {
         ? catalogDocumentsToChecklist(catalogDocuments)
         : contentChecklist.map(item => item.trim()).filter(Boolean);
       if (normalizedChecklist.length === 0) {
+        setCreateShipmentValidationError("Agrega al menos un elemento a la lista de cosas enviadas.");
         toast.error("Agrega al menos un elemento a la lista de cosas enviadas.");
         return;
       }
+      setCreateShipmentValidationError("");
       await createMutation.mutateAsync({
         ...data,
         documentItems: data.shipmentType === "documento" ? additionalDocumentItems : [],
@@ -1964,15 +1968,15 @@ export default function AdminDashboard() {
               </div>
 
               {selectedShipmentType === "documento" ? (
-                <div className="border-t pt-4"><DocumentCatalogSelector value={catalogDocuments} onChange={setCatalogDocuments} idPrefix="admin-document" /></div>
+                <div className={`border-t pt-4 ${createShipmentValidationError ? "rounded-lg border border-rose-300 bg-rose-50 p-3" : ""}`}><DocumentCatalogSelector value={catalogDocuments} onChange={items => { setCatalogDocuments(items); if (items.length) setCreateShipmentValidationError(""); }} idPrefix="admin-document" />{createShipmentValidationError && <p role="alert" className="mt-2 text-sm font-medium text-rose-700">{createShipmentValidationError}</p>}</div>
               ) : (
-                <div className="border-t pt-4">
+                <div className={`border-t pt-4 ${createShipmentValidationError ? "rounded-lg border border-rose-300 bg-rose-50 p-3" : ""}`}>
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Checklist de contenido</label>
                       <p className="mt-1 text-xs text-slate-500">Registro verificable de los artículos entregados, separado de las notas.</p>
                     </div>
-                    <Button type="button" size="sm" variant="outline" onClick={() => setContentChecklist(items => [...items, ""])}><Plus className="mr-1 h-4 w-4" /> Añadir ítem</Button>
+                    <Button type="button" size="sm" variant="outline" onClick={() => { setContentChecklist(items => [...items, ""]); setCreateShipmentValidationError(""); }}><Plus className="mr-1 h-4 w-4" /> Añadir ítem</Button>
                   </div>
                   {contentChecklist.length > 0 && <div className="mt-3 space-y-2">
                     {contentChecklist.map((item, index) => <div key={`content-check-${index}`} className="flex gap-2">
@@ -1980,6 +1984,7 @@ export default function AdminDashboard() {
                       <Button type="button" size="sm" variant="outline" onClick={() => setContentChecklist(items => items.filter((_, itemIndex) => itemIndex !== index))} className="shrink-0 border-red-200 text-red-700 hover:bg-red-50">Quitar</Button>
                     </div>)}
                   </div>}
+                  {createShipmentValidationError && <p role="alert" className="mt-2 text-sm font-medium text-rose-700">{createShipmentValidationError}</p>}
                 </div>
               )}
 

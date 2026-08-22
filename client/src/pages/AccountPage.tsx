@@ -30,6 +30,7 @@ import { AgencyDestinationPicker } from "@/components/AgencyDestinationPicker";
 import type { IdentityDocumentType } from "@shared/identityDocuments";
 import { getFuzzySearchScore } from "@shared/fuzzySearch";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "@shared/passwordPolicy";
+import { isValidInternationalPhone } from "@shared/phoneValidation";
 
 const brandLogo = "/manus-storage/servicom_logo_final_e7ce35aa.png";
 
@@ -102,6 +103,7 @@ export default function AccountPage() {
   const [notes, setNotes] = useState("");
   const [catalogDocuments, setCatalogDocuments] = useState<CatalogDocumentItem[]>([]);
   const [identityErrors, setIdentityErrors] = useState<Record<string, string>>({});
+  const [shipmentValidationErrors, setShipmentValidationErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const maximum = docType === "simple" ? 8 : 10;
@@ -305,11 +307,22 @@ export default function AccountPage() {
       setDocumentCount(1);
       setNotes("");
       setCatalogDocuments([]);
+      setShipmentValidationErrors({});
       setReceiptShipment(result.shipment);
       refetchShipments();
     },
     onError: error => toast.error(error.message),
   });
+  const validateClientShipment = () => {
+    const errors: Record<string, string> = {};
+    if (!recipientName.trim() || !isTextOnly(recipientName)) errors.recipientName = "Completa los nombres del destinatario usando solo letras.";
+    if (!recipientLastName.trim() || !isTextOnly(recipientLastName)) errors.recipientLastName = "Completa los apellidos del destinatario usando solo letras.";
+    if (!recipientDni.trim()) errors.recipientDni = "Completa el documento de identidad del destinatario.";
+    if (!isValidInternationalPhone(recipientPhone)) errors.recipientPhone = "Completa un teléfono válido con código de país.";
+    if (catalogDocumentsToChecklist(catalogDocuments).length === 0) errors.contentChecklist = "Agrega al menos un elemento a la lista de cosas enviadas.";
+    setShipmentValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
   const deleteMyShipmentMutation = trpc.account.deleteMyShipment.useMutation({
     onSuccess: async () => { toast.success("Envío enviado a la papelera; puedes restaurarlo."); await refetchShipments(); await refetchDeletedShipments(); },
     onError: error => toast.error(error.message),
@@ -598,13 +611,10 @@ export default function AccountPage() {
             </div>}
 
             {clientWorkspace === "registrar" && showNewShipment && (
-              <form onSubmit={(e) => {
+              <form noValidate onSubmit={(e) => {
                 e.preventDefault();
+                if (!validateClientShipment()) { toast.error("Revisa los campos marcados en rojo antes de registrar el envío."); return; }
                 const normalizedChecklist = catalogDocumentsToChecklist(catalogDocuments);
-                if (normalizedChecklist.length === 0) {
-                  toast.error("Agrega al menos un elemento a la lista de cosas enviadas.");
-                  return;
-                }
                 createShipmentMutation.mutate({
                   documentCount,
                    docType,
@@ -689,25 +699,26 @@ export default function AccountPage() {
                   </div>
                   <div>
                     <Label>Destinatario - Nombres</Label>
-                    <Input value={recipientName} onChange={e => updateTextValue("recipientName", e.target.value, setRecipientName, "El nombre")} placeholder="Ej: María" autoComplete="given-name" required className="mt-1 bg-white" />
+                    <Input value={recipientName} onChange={e => updateTextValue("recipientName", e.target.value, setRecipientName, "El nombre")} placeholder="Ej: María" autoComplete="given-name" required aria-invalid={Boolean(shipmentValidationErrors.recipientName || identityErrors.recipientName)} className={`mt-1 bg-white ${shipmentValidationErrors.recipientName || identityErrors.recipientName ? "border-rose-500 ring-1 ring-rose-200" : ""}`} />
                     <p className="mt-1 text-xs text-slate-500">Solo letras y espacios.</p>
-                    {identityErrors.recipientName && <p className="text-xs text-red-600">{identityErrors.recipientName}</p>}
+                    {(shipmentValidationErrors.recipientName || identityErrors.recipientName) && <p role="alert" className="text-xs text-red-600">{shipmentValidationErrors.recipientName || identityErrors.recipientName}</p>}
                   </div>
                   <div>
                     <Label>Destinatario - Apellidos</Label>
-                    <Input value={recipientLastName} onChange={e => updateTextValue("recipientLastName", e.target.value, setRecipientLastName, "El apellido")} placeholder="Ej: López" autoComplete="family-name" required className="mt-1 bg-white" />
+                    <Input value={recipientLastName} onChange={e => updateTextValue("recipientLastName", e.target.value, setRecipientLastName, "El apellido")} placeholder="Ej: López" autoComplete="family-name" required aria-invalid={Boolean(shipmentValidationErrors.recipientLastName || identityErrors.recipientLastName)} className={`mt-1 bg-white ${shipmentValidationErrors.recipientLastName || identityErrors.recipientLastName ? "border-rose-500 ring-1 ring-rose-200" : ""}`} />
                     <p className="mt-1 text-xs text-slate-500">Solo letras y espacios.</p>
-                    {identityErrors.recipientLastName && <p className="text-xs text-red-600">{identityErrors.recipientLastName}</p>}
+                    {(shipmentValidationErrors.recipientLastName || identityErrors.recipientLastName) && <p role="alert" className="text-xs text-red-600">{shipmentValidationErrors.recipientLastName || identityErrors.recipientLastName}</p>}
                   </div>
-                  <IdentityDocumentField id="recipient-document" label="Destinatario - documento de identidad" documentType={recipientDocumentType} onDocumentTypeChange={setRecipientDocumentType} value={recipientDni} onValueChange={setRecipientDni} required />
+                  <IdentityDocumentField id="recipient-document" label="Destinatario - documento de identidad" documentType={recipientDocumentType} onDocumentTypeChange={setRecipientDocumentType} value={recipientDni} onValueChange={setRecipientDni} required error={shipmentValidationErrors.recipientDni || ""} />
                   <div>
                     <Label>Destinatario - Teléfono</Label>
                     <div className="mt-1">
-                      <PhoneInput value={recipientPhone} onChange={setRecipientPhone} placeholder="987654321" required />
+                      <PhoneInput value={recipientPhone} onChange={setRecipientPhone} placeholder="987654321" required className={shipmentValidationErrors.recipientPhone ? "rounded-md ring-1 ring-rose-300" : ""} />
                     </div>
+                    {shipmentValidationErrors.recipientPhone && <p role="alert" className="mt-1 text-xs text-rose-700">{shipmentValidationErrors.recipientPhone}</p>}
                   </div>
                   <div className="md:col-span-2">
-                    <DocumentCatalogSelector value={catalogDocuments} onChange={setCatalogDocuments} idPrefix="account-document" />
+                    <div className={shipmentValidationErrors.contentChecklist ? "rounded-lg border border-rose-300 bg-rose-50 p-3" : ""}><DocumentCatalogSelector value={catalogDocuments} onChange={items => { setCatalogDocuments(items); if (items.length) setShipmentValidationErrors(current => ({ ...current, contentChecklist: "" })); }} idPrefix="account-document" />{shipmentValidationErrors.contentChecklist && <p role="alert" className="mt-2 text-sm font-medium text-rose-700">{shipmentValidationErrors.contentChecklist}</p>}</div>
                   </div>
                   <div className="md:col-span-2">
                     <Label>Notas (opcional)</Label>

@@ -121,7 +121,17 @@ describe("InvitationLetterWorkspace", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Crear carta" }));
     expect(translationMutation.mutate).not.toHaveBeenCalled();
-    expect(screen.getByRole("alert").textContent).toMatch(/deben ser distintas/i);
+    expect(screen.getAllByRole("alert").some(alert => /deben ser distintas/i.test(alert.textContent || ""))).toBe(true);
+  });
+
+  it("muestra cada campo faltante en rojo antes de crear la carta", () => {
+    render(<InvitationLetterWorkspace />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Crear carta" }));
+
+    expect(screen.getAllByRole("alert").some(alert => /campos marcados en rojo/i.test(alert.textContent || ""))).toBe(true);
+    expect(document.getElementById("invitante-firstName")?.getAttribute("aria-invalid")).toBe("true");
+    expect(document.getElementById("invitation-arrival")?.getAttribute("aria-invalid")).toBe("true");
   });
 
   it("reconcilia el historial y no muestra un falso error si la Carta ya fue creada", async () => {
@@ -150,7 +160,7 @@ describe("InvitationLetterWorkspace", () => {
     const italian = { inviter: { birthPlace: "LIMA", nationality: "PERUVIANA", residencePermit: "PERMESSO", address: "VIA 1", occupation: "COMMERCIANTE" }, invitee: { birthPlace: "LIMA", nationality: "PERUVIANA", address: "LIMA", occupation: "STUDENTESSA" }, relationship: "FAMILIARE", purpose: "TURISMO", city: "TORINO" };
     lettersQuery.data = Array.from({ length: 7 }, (_, index) => ({ id: index + 1, inviterName: "ANA", inviterLastName: "ROSSI", inviteeName: `INVITADO${index + 1}`, inviteeLastName: "BIANCHI", createdAt: new Date(2026, 7, index + 1), letterData: JSON.stringify(recordData), italianData: JSON.stringify(italian) }));
     render(<InvitationLetterWorkspace />);
-    expect(screen.getByRole("tab", { name: "Crear carta" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Crear carta nueva" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Crear carta" })).toBeTruthy();
     fireEvent.click(screen.getByRole("tab", { name: /Cartas generadas \(7\)/ }));
     expect(screen.getByText(/INVITADO7/)).toBeTruthy();
@@ -160,6 +170,8 @@ describe("InvitationLetterWorkspace", () => {
     fireEvent.click(screen.getByRole("button", { name: "Abrir" }));
     expect((document.getElementById("invitante-firstName") as HTMLInputElement).value).toBe("ANA");
     expect(screen.getByLabelText(/Buscar invitante guardado/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: "Crear carta nueva" }));
+    expect((document.getElementById("invitante-firstName") as HTMLInputElement).value).toBe("");
   });
 
   it("muestra una pestaña de papelera y permite restaurar una carta eliminada", () => {

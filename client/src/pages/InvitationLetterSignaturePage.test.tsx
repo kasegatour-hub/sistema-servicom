@@ -42,13 +42,11 @@ describe("InvitationLetterSignaturePage", () => {
     expect(letterQuery.refetch).toHaveBeenCalledTimes(1);
   });
 
-  it("permite cerrar la pestaña de firma y ofrece un regreso alternativo al panel", () => {
-    const close = vi.spyOn(window, "close").mockImplementation(() => undefined);
+  it("redirige al rastreo público al salir de la firma", () => {
     render(<InvitationLetterSignaturePage />);
     fireEvent.click(screen.getByRole("button", { name: "Cerrar ventana" }));
-    expect(close).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole("link", { name: /Volver al panel administrativo/ }).getAttribute("href")).toBe("/admin");
-    close.mockRestore();
+    expect(window.location.pathname).toBe("/");
+    expect(screen.getByRole("link", { name: /Ir al rastreo de envíos/ }).getAttribute("href")).toBe("/");
   });
 
   it("muestra un estado claro cuando el enlace no tiene credenciales válidas", () => {

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { CheckCircle2, FileSignature, Loader2, ShieldCheck, X } from "lucide-react";
+import { useLocation } from "wouter";
 import ElectronicSignatureDialog from "@/components/ElectronicSignatureDialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -11,6 +12,7 @@ function getSignatureQuery() {
 }
 
 export default function InvitationLetterSignaturePage() {
+  const [, setLocation] = useLocation();
   const query = getSignatureQuery();
   const enabled = Number.isInteger(query.letterId) && query.letterId > 0 && query.token.length >= 20;
   const letterQuery = trpc.invitationSignature.get.useQuery(query, { enabled });
@@ -20,8 +22,7 @@ export default function InvitationLetterSignaturePage() {
   const letter = letterQuery.data;
 
   const closeSignaturePage = () => {
-    if (window.opener && !window.opener.closed) window.opener.focus();
-    window.close();
+    setLocation("/");
   };
 
   const sign = async (input: { signatureStrokes: string }) => {
@@ -36,7 +37,7 @@ export default function InvitationLetterSignaturePage() {
   };
 
   if (!enabled) {
-    return <main className="min-h-screen bg-slate-50 p-6"><Card className="mx-auto max-w-xl p-6 text-center"><h1 className="text-xl font-bold text-[#0B2B5E]">Enlace de firma no válido</h1><p className="mt-2 text-slate-600">Solicita a Servicom Internacional un nuevo enlace de firma.</p><a href="/admin" className="mt-5 inline-flex text-sm font-semibold text-[#0B2B5E] underline underline-offset-4">Volver al panel administrativo</a></Card></main>;
+    return <main className="min-h-screen bg-slate-50 p-6"><Card className="mx-auto max-w-xl p-6 text-center"><h1 className="text-xl font-bold text-[#0B2B5E]">Enlace de firma no válido</h1><p className="mt-2 text-slate-600">Solicita a Servicom Internacional un nuevo enlace de firma.</p><a href="/" className="mt-5 inline-flex text-sm font-semibold text-[#0B2B5E] underline underline-offset-4">Ir al rastreo de envíos</a></Card></main>;
   }
 
   if (letterQuery.isLoading) {
@@ -44,7 +45,7 @@ export default function InvitationLetterSignaturePage() {
   }
 
   if (!letter) {
-    return <main className="min-h-screen bg-slate-50 p-6"><Card className="mx-auto max-w-xl p-6 text-center"><h1 className="text-xl font-bold text-rose-700">No se pudo abrir la Carta</h1><p className="mt-2 text-slate-600">El enlace pudo haber vencido. Solicita uno nuevo al equipo de Servicom Internacional.</p><a href="/admin" className="mt-5 inline-flex text-sm font-semibold text-[#0B2B5E] underline underline-offset-4">Volver al panel administrativo</a></Card></main>;
+    return <main className="min-h-screen bg-slate-50 p-6"><Card className="mx-auto max-w-xl p-6 text-center"><h1 className="text-xl font-bold text-rose-700">No se pudo abrir la Carta</h1><p className="mt-2 text-slate-600">El enlace pudo haber vencido. Solicita uno nuevo al equipo de Servicom Internacional.</p><a href="/" className="mt-5 inline-flex text-sm font-semibold text-[#0B2B5E] underline underline-offset-4">Ir al rastreo de envíos</a></Card></main>;
   }
 
   const signed = letter.status === "signed";
@@ -62,7 +63,7 @@ export default function InvitationLetterSignaturePage() {
         <section className="rounded-xl border border-slate-200 bg-white p-4"><div className="flex items-start gap-3"><ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-[#0B2B5E]" /><p className="text-sm text-slate-600">Al firmar, confirmas que revisaste la Carta de invitación. El trazo, el consentimiento y la fecha quedan asociados a esta solicitud.</p></div></section>
         {error && <p className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
         {!signed && <Button type="button" className="w-full bg-[#0B2B5E] text-white hover:bg-[#123d78]" onClick={() => setDialogOpen(true)} disabled={completeMutation.isPending}><FileSignature className="mr-2 h-4 w-4" />Firmar ahora</Button>}
-        <div className="border-t border-slate-200 pt-4 text-center"><p className="text-xs text-slate-500">Al cerrar esta pestaña regresarás a la pantalla desde la que se abrió la firma.</p><a href="/admin" className="mt-2 inline-flex text-sm font-semibold text-[#0B2B5E] underline underline-offset-4">¿La ventana no se cerró? Volver al panel administrativo</a></div>
+        <div className="border-t border-slate-200 pt-4 text-center"><p className="text-xs text-slate-500">Al cerrar esta pestaña volverás al rastreo público de Servicom Internacional.</p><a href="/" className="mt-2 inline-flex text-sm font-semibold text-[#0B2B5E] underline underline-offset-4">Ir al rastreo de envíos</a></div>
       </div>
     </Card>
     <ElectronicSignatureDialog open={dialogOpen} orderNumber={`Carta ${letter.id}`} code="INVITACIÓN" isSubmitting={completeMutation.isPending} errorMessage={error} onClose={() => { setDialogOpen(false); setError(""); }} onSubmit={(input) => void sign(input)} />

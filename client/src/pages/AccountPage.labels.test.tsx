@@ -89,6 +89,18 @@ describe("AccountPage client labels", () => {
     expect(screen.getByLabelText("Acta de nacimiento")).toBeTruthy();
   });
 
+  it("marca en rojo los datos y la lista requeridos antes de registrar un documento", async () => {
+    render(<AccountPage />);
+    fireEvent.click(screen.getByRole("button", { name: /Registrar Nuevo Documento/ }));
+    await screen.findByRole("button", { name: "Guardar envío" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Guardar envío" }));
+
+    await waitFor(() => expect((screen.getByPlaceholderText("Ej: María") as HTMLInputElement).getAttribute("aria-invalid")).toBe("true"));
+    expect(screen.getByText(/Completa los nombres del destinatario/i)).toBeTruthy();
+    expect(screen.getByText(/Agrega al menos un elemento a la lista de cosas enviadas/i)).toBeTruthy();
+  });
+
   it("finds a previous recipient by a fuzzy name and completes the recipient fields", async () => {
     accountMocks.shipments = [{ id: 8, orderNumber: "3520992728", code: "DOC-LUC", recipientName: "Lucía", recipientLastName: "Sánchez", recipientDni: "71234567", recipientDocumentType: "dni_peru", recipientPhone: "+51 970188447", status: "En agencia", paymentStatus: "Falta cancelar", createdAt: new Date("2026-08-17T10:00:00.000Z") }];
     render(<AccountPage />);

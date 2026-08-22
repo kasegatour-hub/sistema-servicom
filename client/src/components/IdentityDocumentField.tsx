@@ -12,9 +12,10 @@ type IdentityDocumentFieldProps = {
   onValueChange: (value: string) => void;
   required?: boolean;
   className?: string;
+  error?: string;
 };
 
-export function IdentityDocumentField({ id, label, documentType, onDocumentTypeChange, value, onValueChange, required, className }: IdentityDocumentFieldProps) {
+export function IdentityDocumentField({ id, label, documentType, onDocumentTypeChange, value, onValueChange, required, className, error = "" }: IdentityDocumentFieldProps) {
   const definition = IDENTITY_DOCUMENT_DEFINITIONS[documentType];
   return <div className={className}>
     <Label htmlFor={`${id}-number`}>{label}</Label>
@@ -23,11 +24,12 @@ export function IdentityDocumentField({ id, label, documentType, onDocumentTypeC
         const nextType = event.target.value as IdentityDocumentType;
         onDocumentTypeChange(nextType);
         onValueChange(normalizeIdentityDocument(value, nextType));
-      }} className="h-10 rounded-md border border-slate-300 bg-white px-2 text-sm font-medium text-slate-700">
+      }} className={`h-10 rounded-md border bg-white px-2 text-sm font-medium text-slate-700 ${error ? "border-rose-500 ring-1 ring-rose-200" : "border-slate-300"}`}>
         {IDENTITY_DOCUMENT_TYPES.map(type => <option key={type} value={type}>{IDENTITY_DOCUMENT_DEFINITIONS[type].label}</option>)}
       </select>
-      <Input id={`${id}-number`} aria-label={`${label} - número de identificación`} value={value} onChange={(event) => onValueChange(normalizeIdentityDocument(event.target.value, documentType))} placeholder={definition.placeholder} inputMode={definition.inputMode} maxLength={definition.maxLength} required={required} className="bg-white" />
+      <Input id={`${id}-number`} aria-label={`${label} - número de identificación`} value={value} onChange={(event) => onValueChange(normalizeIdentityDocument(event.target.value, documentType))} placeholder={definition.placeholder} inputMode={definition.inputMode} maxLength={definition.maxLength} required={required} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : undefined} className={`bg-white ${error ? "border-rose-500 ring-1 ring-rose-200" : ""}`} />
     </div>
     <p className="mt-1 text-xs text-slate-500">{definition.helpText}</p>
+    {error && <p id={`${id}-error`} role="alert" className="mt-1 text-xs text-rose-700">{error}</p>}
   </div>;
 }

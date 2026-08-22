@@ -771,3 +771,9 @@
 - [x] Agregar un importe extra con valor inicial de 0 para documentos y encomiendas
 - [x] Reflejar el importe extra en el precio final, edición y comprobantes correspondientes
 - [x] Probar descargas, cálculos y formularios antes de publicar
+
+## Flujo de cartas y validaciones visibles
+- [x] Limpiar completamente el formulario al iniciar una Carta de invitación nueva
+- [x] Devolver al Cliente firmante al rastreo público, no al panel administrativo
+- [x] Resaltar en rojo y explicar los campos faltantes o inválidos en Carta, Administrador y Cliente
+- [x] Probar los flujos de validación y publicar las correcciones
