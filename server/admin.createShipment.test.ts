@@ -59,11 +59,12 @@ describe("admin.createShipment", () => {
     expect(args[13]).toBe("documento");
     expect(args[14]).toBe(1);
     expect(args[15]).toBeNull();
+    expect(args[16]).toBe(0);
     expect(args[11]).toContain("Documento simple (6 hojas): 49 EUR");
-    expect(JSON.parse(args[25])).toMatchObject([{ docType: "apostillado", sheetCount: 2, finalPriceEur: 35, usesManualPrice: true }]);
-    expect(JSON.parse(args[26])).toEqual(["Documento principal", "Copia apostillada"]);
-    expect(args[31]).toBe("simple");
-    expect(args[32]).toBe(6);
+    expect(JSON.parse(args[26])).toMatchObject([{ docType: "apostillado", sheetCount: 2, finalPriceEur: 35, usesManualPrice: true }]);
+    expect(JSON.parse(args[27])).toEqual(["Documento principal", "Copia apostillada"]);
+    expect(args[32]).toBe("simple");
+    expect(args[33]).toBe(6);
   });
 
   it("creates an encomienda with an ENC code, weight and manual tariff", async () => {
@@ -90,6 +91,7 @@ describe("admin.createShipment", () => {
     expect(args[13]).toBe("encomienda");
     expect(args[14]).toBe(2.5);
     expect(args[15]).toBe(40);
+    expect(args[16]).toBe(0);
     expect(args[11]).toContain("Encomienda (2.5 kg, tarifa manual): 40.00 EUR");
   });
 

@@ -111,6 +111,7 @@ export function buildClientShipmentPersistenceArgs(
     "documento",
     1,
     null,
+    0,
     CLIENT_PAYMENT_DEFAULTS.status,
     input.route,
     "",

@@ -7,6 +7,7 @@ export type AdminShipmentPricingInput = {
   documentItems?: AdditionalDocumentItemInput[];
   weightKg?: number;
   manualPriceEur?: string | number | null;
+  extraPriceEur?: string | number | null;
   notes?: string;
 };
 
@@ -19,6 +20,9 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
     ? ""
     : String(input.manualPriceEur).trim();
   const manualPrice = rawManualPrice === "" ? null : Number(rawManualPrice);
+  const rawExtraPrice = input.extraPriceEur === undefined || input.extraPriceEur === null ? "0" : String(input.extraPriceEur).trim();
+  const parsedExtraPrice = Number(rawExtraPrice);
+  const extraPriceEur = Number.isFinite(parsedExtraPrice) && parsedExtraPrice >= 0 ? parsedExtraPrice : 0;
 
   let totalEur: number;
   let tariffDescription: string;
@@ -42,14 +46,17 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
     tariffDescription = `Documento apostillado (${sheetCount} hoja${sheetCount > 1 ? "s" : ""}): ${basePrice} EUR${additionalDocuments.items.length ? `. Adicionales: ${additionalDocuments.items.map(item => item.description).join("; ")}` : ""}`;
   }
 
+  const totalWithExtraEur = totalEur + extraPriceEur;
+  const extraDescription = extraPriceEur > 0 ? ` Importe extra: +${extraPriceEur.toFixed(2)} EUR.` : "";
   return {
     shipmentType,
     docType,
     sheetCount,
     weightKg,
     manualPrice,
-    totalEur,
+    extraPriceEur,
+    totalEur: totalWithExtraEur,
     additionalDocuments,
-    notes: `Tarifa: ${tariffDescription}. ${input.notes || ""}`.trim(),
+    notes: `Tarifa: ${tariffDescription}.${extraDescription} ${input.notes || ""}`.trim(),
   };
 }

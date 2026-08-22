@@ -503,6 +503,7 @@ describe("AdminDashboard Nueva Encomienda", () => {
     expect(screen.queryByDisplayValue("Documentos")).toBeNull();
     expect(screen.getByText("Tipo de Documento")).toBeTruthy();
     expect(screen.getByText("Precio manual en EUR (opcional)")).toBeTruthy();
+    expect((screen.getByLabelText("Importe extra en EUR") as HTMLInputElement).value).toBe("0");
 
     fireEvent.click(screen.getByRole("button", { name: "Nueva encomienda" }));
     expect(screen.getAllByText("Nueva encomienda").length).toBeGreaterThan(0);
@@ -554,6 +555,7 @@ describe("AdminDashboard Nueva Encomienda", () => {
       sheetCount: 1,
       weightKg: 1,
       manualPriceEur: "",
+      extraPriceEur: 0,
       paymentStatus: "Pagado",
       contentChecklist: ["1 × Acta de nacimiento"],
     });
@@ -570,6 +572,7 @@ describe("AdminDashboard Nueva Encomienda", () => {
       shipmentType: "encomienda",
       weightKg: 2.5,
       manualPriceEur: "40",
+      extraPriceEur: 0,
     });
   });
 

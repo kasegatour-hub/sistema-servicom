@@ -12,6 +12,10 @@ describe("carta de invitación", () => {
     expect(buildInvitationLetterFilename(data)).toBe("carta-invitacion-maria-rossi-2026-08-19");
   });
 
+  it("differentiates the downloaded filename once the invitation letter is signed", () => {
+    expect(buildInvitationLetterFilename(data, { status: "signed", signerName: "ELISABETH", signedAt: "2026-08-20" })).toBe("carta-invitacion-maria-rossi-2026-08-19-firmada");
+  });
+
   it("reproduces the supplied Italian and English template blocks without extra text", () => {
     const letter = buildInvitationLetterText(data);
     const html = buildInvitationLetterHtml(data);

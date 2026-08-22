@@ -17,4 +17,8 @@ describe("getDocumentPricePreview", () => {
     expect(getDocumentPricePreview({ docType: "simple", sheetCount: 6, additionalTotalEur: 50 })).toMatchObject({ totalEur: 99, usesManualPrice: false });
     expect(getDocumentPricePreview({ docType: "simple", sheetCount: 6, additionalTotalEur: 50, manualPriceEur: "70" })).toMatchObject({ totalEur: 70, usesManualPrice: true });
   });
+
+  it("adds the configured extra amount without replacing the calculated tariff", () => {
+    expect(getDocumentPricePreview({ docType: "simple", sheetCount: 4, extraPriceEur: 7.5 })).toMatchObject({ totalEur: 52.5, extraPriceEur: 7.5 });
+  });
 });

@@ -654,6 +654,7 @@ export const adminRouter = router({
       })).max(10).default([]),
       weightKg: z.number().min(0.1).default(1),
       manualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
+      extraPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
       paymentStatus: z.enum(["Pagado", "Falta cancelar"]).default("Falta cancelar"),
       route: z.enum(ROUTE_VALUES).default("Lima - Torino"),
       originAddress: z.string().optional(),
@@ -691,7 +692,7 @@ export const adminRouter = router({
       }
       const discount = applyCouponDiscount(pricing.totalEur, coupon);
       const calculatedNotes = `${pricing.notes}${coupon ? ` Cupón ${coupon.code}: descuento del ${discount.discountPercent}% (-${discount.discountAmountEur.toFixed(2)} EUR). Total final: ${discount.finalPriceEur.toFixed(2)} EUR.` : ""}`;
-      const { shipmentType, weightKg, manualPrice } = pricing;
+      const { shipmentType, weightKg, manualPrice, extraPriceEur } = pricing;
       const db = await getDb();
       const [creator] = db ? await db.select({ name: admins.name }).from(admins).where(eq(admins.id, ctx.adminSession.adminId)).limit(1) : [];
 
@@ -712,6 +713,7 @@ export const adminRouter = router({
         shipmentType,
         weightKg,
         manualPrice,
+        extraPriceEur,
         input.paymentStatus,
         input.route,
         input.originAddress,
@@ -772,6 +774,7 @@ export const adminRouter = router({
       sheetCount: z.number().int().min(1).max(10).optional(),
       weightKg: z.number().optional(),
       manualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
+      extraPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
       paymentStatus: z.enum(["Pagado", "Falta cancelar"]).optional(),
       route: z.string().optional(),
       originAddress: z.string().optional(),
@@ -794,9 +797,10 @@ export const adminRouter = router({
       const effectiveWeight = input.weightKg ?? Number(currentShipment.weightKg ?? 1);
       const effectiveDocumentKind = input.docType ?? currentShipment.documentKind ?? "apostillado";
       const effectiveDocumentSheetCount = input.sheetCount ?? currentShipment.documentSheetCount ?? 1;
-      const pricing = isParcel ? calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: effectiveWeight, manualPriceEur: input.pricingMode === "manual" ? input.manualPriceEur : null }) : null;
+      const effectiveExtraPrice = input.extraPriceEur ?? currentShipment.extraPriceEur ?? 0;
+      const pricing = isParcel ? calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: effectiveWeight, manualPriceEur: input.pricingMode === "manual" ? input.manualPriceEur : null, extraPriceEur: effectiveExtraPrice }) : null;
       const documentPricing = !isParcel
-        ? calculateAdminShipmentPricing({ shipmentType: "documento", docType: effectiveDocumentKind, sheetCount: effectiveDocumentSheetCount, manualPriceEur: input.pricingMode === "manual" ? input.manualPriceEur : null })
+        ? calculateAdminShipmentPricing({ shipmentType: "documento", docType: effectiveDocumentKind, sheetCount: effectiveDocumentSheetCount, manualPriceEur: input.pricingMode === "manual" ? input.manualPriceEur : null, extraPriceEur: effectiveExtraPrice })
         : null;
       const updatedPricing = pricing || documentPricing;
       const result = await updateShipmentStatus(
@@ -815,6 +819,7 @@ export const adminRouter = router({
         input.shipmentType,
         input.weightKg,
         updatedPricing ? updatedPricing.manualPrice : input.manualPriceEur,
+        updatedPricing ? updatedPricing.extraPriceEur : input.extraPriceEur,
         input.paymentStatus,
         input.route,
         input.originAddress,

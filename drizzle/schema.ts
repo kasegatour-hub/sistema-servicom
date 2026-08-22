@@ -242,6 +242,7 @@ export const shipments = mysqlTable("shipments", {
   documentSheetCount: int("documentSheetCount").default(1).notNull(),
   weightKg: decimal("weightKg", { precision: 10, scale: 2 }).default("1.00"),
   manualPriceEur: decimal("manualPriceEur", { precision: 10, scale: 2 }),
+  extraPriceEur: decimal("extraPriceEur", { precision: 10, scale: 2 }).default("0.00").notNull(),
   couponCode: varchar("couponCode", { length: 64 }),
   basePriceEur: decimal("basePriceEur", { precision: 10, scale: 2 }),
   discountPercent: decimal("discountPercent", { precision: 5, scale: 2 }).default("0.00").notNull(),

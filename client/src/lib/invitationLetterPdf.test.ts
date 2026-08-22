@@ -27,11 +27,11 @@ describe("downloadInvitationLetterPdf", () => {
     };
     vi.spyOn(window, "open").mockReturnValue(printWindow as unknown as Window);
 
-    await expect(downloadInvitationLetterPdf(data)).resolves.toBe("carta-invitacion-juan-chavez-rondinel-2026-08-19.pdf");
+    await expect(downloadInvitationLetterPdf(data, undefined, { status: "signed", signerName: "ELISABETH", signedAt: "2026-08-20" })).resolves.toBe("carta-invitacion-juan-chavez-rondinel-2026-08-19-firmada.pdf");
 
     expect(printWindow.document.write).toHaveBeenCalledWith(expect.stringContaining("DICHIARAZIONE GARANZIA E/O"));
     printWindow.onload?.();
     expect(printWindow.print).toHaveBeenCalledTimes(1);
-    expect(printWindow.document.title).toBe("carta-invitacion-juan-chavez-rondinel-2026-08-19");
+    expect(printWindow.document.title).toBe("carta-invitacion-juan-chavez-rondinel-2026-08-19-firmada");
   });
 });

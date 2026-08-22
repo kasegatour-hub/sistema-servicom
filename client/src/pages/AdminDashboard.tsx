@@ -208,6 +208,7 @@ const createShipmentSchema = z.object({
   sheetCount: z.number().min(1).default(1),
   weightKg: z.number().min(0.1).default(1),
   manualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
+  extraPriceEur: z.union([z.string(), z.number()]).default(0),
   paymentStatus: z.enum(["Pagado", "Falta cancelar"]).default("Falta cancelar"),
   route: z.string().default("Lima - Torino"),
   originAddress: z.string().optional(),
@@ -244,6 +245,7 @@ const updateStatusSchema = z.object({
   destinationAddress: z.string().optional(),
   weightKg: z.number().min(0.1).optional(),
   manualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
+  extraPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
   deliveryMode: z.enum(["agencia", "remoto"]).optional(),
   pricingMode: z.enum(["estandar", "manual"]).optional(),
 });
@@ -505,6 +507,7 @@ export default function AdminDashboard() {
       sheetCount: 1,
       weightKg: 1,
       manualPriceEur: '',
+      extraPriceEur: 0,
       paymentStatus: 'Falta cancelar',
       route: 'Lima - Torino',
     },
@@ -572,6 +575,7 @@ export default function AdminDashboard() {
       destinationAddress: '',
       weightKg: 1,
       manualPriceEur: '',
+      extraPriceEur: 0,
       deliveryMode: 'agencia',
       pricingMode: 'estandar',
     },
@@ -601,6 +605,7 @@ export default function AdminDashboard() {
       destinationAddress: shipment.destinationAddress || "",
       weightKg: Number(shipment.weightKg || 1),
       manualPriceEur: shipment.manualPriceEur || "",
+      extraPriceEur: Number(shipment.extraPriceEur || 0),
       deliveryMode: shipment.deliveryMode || "agencia",
       pricingMode: "estandar",
     });
@@ -830,6 +835,7 @@ export default function AdminDashboard() {
         sheetCount: 1,
         weightKg: 1,
         manualPriceEur: "",
+        extraPriceEur: 0,
         paymentStatus: "Falta cancelar",
         route: "Lima - Torino",
         couponCode: "",
@@ -1745,6 +1751,11 @@ export default function AdminDashboard() {
                     />
                     <p className="mt-1 text-xs text-slate-500">Si lo completas, reemplaza la tarifa automática.</p>
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Importe extra en EUR</label>
+                    <Input type="number" min="0" step="0.01" aria-label="Importe extra en EUR" {...createForm.register("extraPriceEur")} />
+                    <p className="mt-1 text-xs text-slate-500">Por defecto es 0. Se suma al precio final, incluso con tarifa manual.</p>
+                  </div>
                 </div>
                 <AgencyDestinationPicker route={selectedRoute} value={createForm.watch("destinationAddress") || ""} onChange={(destinationAddress) => createForm.setValue("destinationAddress", destinationAddress, { shouldValidate: true, shouldDirty: true })} />
 
@@ -1786,7 +1797,7 @@ export default function AdminDashboard() {
                       onChange={(nextValue) => createForm.setValue("sheetCount", nextValue, { shouldValidate: true, shouldDirty: true })}
                       description={createForm.watch("docType") === "simple" ? "Máximo 8 hojas por registro." : "Máximo 10 hojas por registro."}
                     />
-                    <DocumentPricePreview docType={selectedDocType} sheetCount={Number(createForm.watch("sheetCount")) || 1} additionalTotalEur={additionalDocumentAutoTotal} manualPriceEur={createForm.watch("manualPriceEur")} />
+                    <DocumentPricePreview docType={selectedDocType} sheetCount={Number(createForm.watch("sheetCount")) || 1} additionalTotalEur={additionalDocumentAutoTotal} manualPriceEur={createForm.watch("manualPriceEur")} extraPriceEur={createForm.watch("extraPriceEur")} />
                   </div>
                   <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50/60 p-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1839,7 +1850,7 @@ export default function AdminDashboard() {
                       <p className="mt-1 text-xs text-slate-500">Tarifa automática: 13,5 €/kg.</p>
                     </div>
                     <div className="flex items-end rounded-md bg-white p-3 text-sm font-semibold text-[#0B2B5E] ring-1 ring-slate-200">
-                      Total automático: {((Number(createForm.watch("weightKg")) || 0) * 13.5).toFixed(2)} €
+                      Total automático: {(((Number(createForm.watch("weightKg")) || 0) * 13.5) + Math.max(0, Number(createForm.watch("extraPriceEur")) || 0)).toFixed(2)} €
                     </div>
                     <div className="flex items-end rounded-md bg-amber-50 p-3 text-xs text-amber-900 ring-1 ring-amber-200">
                       Puedes reemplazar el total usando Precio manual en EUR.
@@ -2498,7 +2509,8 @@ export default function AdminDashboard() {
                     </div>
                   </>}
                   {updateForm.watch("pricingMode") === "manual" && <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Precio manual (EUR)</label><Input type="number" min="0" step="0.01" {...updateForm.register("manualPriceEur")} placeholder="Ej.: 25.00" /><p className="mt-1 text-xs text-slate-500">Guarda una tarifa para que los pagos de este envío se contabilicen correctamente.</p></div>}
-                  {updateForm.watch("shipmentType") === "documento" && <div className="md:col-span-2"><DocumentPricePreview docType={(updateForm.watch("docType") || "apostillado") as "simple" | "apostillado"} sheetCount={Number(updateForm.watch("sheetCount") || 1)} manualPriceEur={updateForm.watch("pricingMode") === "manual" ? updateForm.watch("manualPriceEur") : null} /></div>}
+                  <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Importe extra (EUR)</label><Input type="number" min="0" step="0.01" aria-label="Importe extra de actualización" {...updateForm.register("extraPriceEur")} /><p className="mt-1 text-xs text-slate-500">Por defecto es 0 y se suma al total de documento o encomienda.</p></div>
+                  {updateForm.watch("shipmentType") === "documento" && <div className="md:col-span-2"><DocumentPricePreview docType={(updateForm.watch("docType") || "apostillado") as "simple" | "apostillado"} sheetCount={Number(updateForm.watch("sheetCount") || 1)} manualPriceEur={updateForm.watch("pricingMode") === "manual" ? updateForm.watch("manualPriceEur") : null} extraPriceEur={updateForm.watch("extraPriceEur")} /></div>}
                 </div>
 
                 <div className="border-t pt-4">

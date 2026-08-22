@@ -121,11 +121,12 @@ describe("admin coupons", () => {
     expect(result.finalPriceEur).toBe(37.5);
     expect(result.discountPercent).toBe(25);
     const args = dbMocks.createShipment.mock.calls[0];
-    expect(args[20]).toBe("SERVI25-REDES");
-    expect(args[21]).toBe(50);
-    expect(args[22]).toBe(25);
-    expect(args[23]).toBe(12.5);
-    expect(args[24]).toBe(37.5);
+    expect(args[16]).toBe(0);
+    expect(args[21]).toBe("SERVI25-REDES");
+    expect(args[22]).toBe(50);
+    expect(args[23]).toBe(25);
+    expect(args[24]).toBe(12.5);
+    expect(args[25]).toBe(37.5);
     expect(dbMocks.incrementDiscountCouponRedemption).toHaveBeenCalledWith(12);
   });
 });

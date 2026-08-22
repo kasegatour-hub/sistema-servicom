@@ -77,7 +77,7 @@ const buildInvitationSignatureMarkup = (signature?: InvitationLetterSignatureVie
   }
 };
 
-export const buildInvitationLetterFilename = (data: InvitationLetterData) => `carta-invitacion-${safeName(personName(data.invitee))}-${data.date || "sin-fecha"}`;
+export const buildInvitationLetterFilename = (data: InvitationLetterData, signature?: InvitationLetterSignatureView | null) => `carta-invitacion-${safeName(personName(data.invitee))}-${data.date || "sin-fecha"}${signature?.status === "signed" ? "-firmada" : ""}`;
 
 export function buildInvitationLetterItalianFallback(data: InvitationLetterData): InvitationLetterItalian {
   const upper = (value: string) => value.toLocaleUpperCase("it-IT");
@@ -194,7 +194,7 @@ async function createLetterContainer(data: InvitationLetterData, italian: Invita
 }
 
 function openInvitationLetterPrintDialog(data: InvitationLetterData, italian: InvitationLetterItalian, signature?: InvitationLetterSignatureView | null) {
-  const filename = buildInvitationLetterFilename(data);
+  const filename = buildInvitationLetterFilename(data, signature);
   const printWindow = window.open("", "_blank", "width=900,height=900");
   if (!printWindow) throw new Error("Permite las ventanas emergentes para imprimir la carta.");
   let hasPrinted = false;

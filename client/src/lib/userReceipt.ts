@@ -53,6 +53,8 @@ export function buildReceiptMarkdown(shipment: any): string {
   const payment = getPaymentStatusPresentation(shipment.paymentStatus);
   const rawPrice = Number(shipment.finalPriceEur ?? shipment.basePriceEur ?? 0);
   const price = Number.isFinite(rawPrice) ? `${rawPrice.toFixed(2)} EUR` : "No especificado";
+  const rawExtraPrice = Number(shipment.extraPriceEur ?? 0);
+  const extraPrice = Number.isFinite(rawExtraPrice) ? `${rawExtraPrice.toFixed(2)} EUR` : "0.00 EUR";
   const checklist = receiptChecklist(shipment);
   const trackingUrl = buildTrackingUrl(String(shipment.orderNumber), String(shipment.code));
   const shipmentLabel = shipment.shipmentType === "encomienda" ? "ENCOMIENDA" : "DOCUMENTO";
@@ -64,6 +66,7 @@ export function buildReceiptMarkdown(shipment: any): string {
 **Código de envío:** ${shipment.code}  
 **Estado:** ${shipment.status || "No especificado"}  
 **Estado de pago:** ${payment.label}  
+**Importe extra:** ${extraPrice}  
 **Precio final:** ${price}
 
 ## Ruta y sedes
@@ -223,6 +226,8 @@ export async function downloadUserShipmentReceiptPdf(shipment: any): Promise<str
   const payment = getPaymentStatusPresentation(shipment.paymentStatus);
   const rawPrice = Number(shipment.finalPriceEur ?? shipment.basePriceEur ?? 0);
   const price = Number.isFinite(rawPrice) ? `${rawPrice.toFixed(2)} EUR` : "No especificado";
+  const rawExtraPrice = Number(shipment.extraPriceEur ?? 0);
+  const extraPrice = Number.isFinite(rawExtraPrice) ? `${rawExtraPrice.toFixed(2)} EUR` : "0.00 EUR";
   const qrDataUrl = await QRCode.toDataURL(buildTrackingUrl(String(shipment.orderNumber), String(shipment.code)), {
     ...TRACKING_QR_OPTIONS,
     width: 180,
@@ -295,6 +300,7 @@ export async function downloadUserShipmentReceiptPdf(shipment: any): Promise<str
   row("Código", String(shipment.code));
   row("Estado del envío", String(shipment.status || "No especificado"));
   row("Estado de pago", payment.label);
+  row("Importe extra", extraPrice);
   row("Precio final", price);
   row("Notas", String(shipment.notes || "Sin notas"));
   ensureSpace(42);

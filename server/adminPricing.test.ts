@@ -18,6 +18,11 @@ describe("calculateAdminShipmentPricing", () => {
     expect(pricing.notes).toContain("tarifa manual");
   });
 
+  it("adds an extra amount to both automatic and manual shipment prices", () => {
+    expect(calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 2, extraPriceEur: "5.50" })).toMatchObject({ totalEur: 32.5, extraPriceEur: 5.5 });
+    expect(calculateAdminShipmentPricing({ shipmentType: "documento", manualPriceEur: "50", extraPriceEur: 3 })).toMatchObject({ totalEur: 53, extraPriceEur: 3 });
+  });
+
   it("preserves an explicitly entered manual price for a document", () => {
     const pricing = calculateAdminShipmentPricing({ shipmentType: "documento", manualPriceEur: "50" });
 

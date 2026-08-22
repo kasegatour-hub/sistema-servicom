@@ -765,3 +765,9 @@
 - [x] Reproducir el fallo de creación e identificar la validación o persistencia que lo bloquea
 - [x] Corregir el guardado de cartas y presentar el motivo exacto ante un error recuperable
 - [x] Añadir pruebas de creación, validar la compilación y publicar la corrección
+
+## Cartas firmadas e importe extra de envíos
+- [x] Diferenciar el nombre de descarga de una carta firmada respecto de la carta sin firma
+- [x] Agregar un importe extra con valor inicial de 0 para documentos y encomiendas
+- [x] Reflejar el importe extra en el precio final, edición y comprobantes correspondientes
+- [x] Probar descargas, cálculos y formularios antes de publicar

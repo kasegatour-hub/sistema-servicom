@@ -1,5 +1,6 @@
 export type ReceiptPriceData = {
   manualPriceEur?: string | number | null;
+  extraPriceEur?: string | number | null;
   basePriceEur?: string | number | null;
   discountPercent?: string | number | null;
   discountAmountEur?: string | number | null;
@@ -15,11 +16,13 @@ function finiteNumber(value: unknown): number | null {
 export function getReceiptPricePresentation(data: ReceiptPriceData) {
   const basePrice = finiteNumber(data.basePriceEur) ?? finiteNumber(data.manualPriceEur);
   const finalPrice = finiteNumber(data.finalPriceEur) ?? basePrice;
+  const extraPrice = finiteNumber(data.extraPriceEur) ?? 0;
   const discountPercent = finiteNumber(data.discountPercent) ?? 0;
   const discountAmount = finiteNumber(data.discountAmountEur) ?? 0;
   return {
     basePrice,
     finalPrice,
+    extraPrice,
     discountPercent,
     discountAmount,
     hasDiscount: discountPercent > 0 && discountAmount > 0 && basePrice !== null && finalPrice !== null,
@@ -30,5 +33,5 @@ export function getReceiptPricePresentation(data: ReceiptPriceData) {
 
 export function buildReceiptPriceHtml(data: ReceiptPriceData) {
   const price = getReceiptPricePresentation(data);
-  return `<div class="price-highlight"><span class="price-label">PRECIO FINAL</span><strong class="price-value">${price.finalLabel}</strong>${price.hasDiscount ? `<span class="price-base">Precio base: ${price.baseLabel} · Descuento ${price.discountPercent.toFixed(0)}% (-${price.discountAmount.toFixed(2)} EUR)</span>` : ""}</div>`;
+  return `<div class="price-highlight"><span class="price-label">PRECIO FINAL</span><strong class="price-value">${price.finalLabel}</strong>${price.extraPrice > 0 ? `<span class="price-base">Importe extra: +${price.extraPrice.toFixed(2)} EUR</span>` : ""}${price.hasDiscount ? `<span class="price-base">Precio base: ${price.baseLabel} · Descuento ${price.discountPercent.toFixed(0)}% (-${price.discountAmount.toFixed(2)} EUR)</span>` : ""}</div>`;
 }
