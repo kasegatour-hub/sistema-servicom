@@ -14,6 +14,7 @@ import { getAdminSession } from "./adminSession";
 import { getAccountSession } from "./localSession";
 import { deriveInteractionInsights } from "./analytics";
 import { sendShipmentSignatureEmail } from "./localAuth";
+import { searchOfficialOlvaAgencies } from "./agencyDirectory";
 
 export const appRouter = router({
   system: systemRouter,
@@ -31,6 +32,16 @@ export const appRouter = router({
   admin: adminRouter,
   account: accountRouter,
   feedback: feedbackRouter,
+  agencies: router({
+    olva: publicProcedure.input(z.object({ query: z.string().max(120).default("") })).query(async ({ input }) => {
+      try {
+        const agencies = await searchOfficialOlvaAgencies(input.query);
+        return { agencies, sourceUrl: "https://www.olvacourier.com/ubicanos/", refreshedAt: new Date() };
+      } catch (error: any) {
+        throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: error?.message || "No fue posible consultar las agencias de Olva por el momento." });
+      }
+    }),
+  }),
 
   invitationSignature: router({
     get: publicProcedure

@@ -786,3 +786,9 @@
 - [x] Generar, imprimir, descargar, eliminar y restaurar el comprobante de Carta de invitación con logotipo
 - [x] Preparar una réplica de agencia Kasega Tour con identidad separada y ruta propia
 - [x] Cubrir los nuevos flujos con pruebas, migración y compilación de producción
+
+## Explorador de destinos por agencia
+- [x] Verificar fuentes públicas de sedes vigentes de Shalom y Olva Courier
+- [x] Normalizar las agencias verificadas con nombre, dirección, ciudad, proveedor y fuente
+- [x] Diseñar buscador de agencias con listado, mapa y selección de destino aplicable al envío
+- [x] Probar la búsqueda, selección, compilación y publicar el explorador
