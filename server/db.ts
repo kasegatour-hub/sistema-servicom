@@ -1040,6 +1040,7 @@ export async function createShipment(
   recipientDocumentType?: "dni_peru" | "pasaporte" | "carta_identita_italia",
   documentKind?: "simple" | "apostillado",
   documentSheetCount?: number,
+  requiresApostilleService?: boolean,
 ) {
   const db = await getDb();
   if (!db) {
@@ -1050,6 +1051,9 @@ export async function createShipment(
   // Normalizar los parámetros
   const normalizedOrder = normalizeOrderCode(orderNumber);
   const normalizedCode = normalizeOrderCode(code);
+  const normalizedShipmentType = shipmentType || "documento";
+  const normalizedRoute = route || "Lima - Torino";
+  const canRequireApostilleService = normalizedShipmentType === "documento" && normalizedRoute === "Torino - Lima";
 
   const events = [
     {
@@ -1076,9 +1080,10 @@ export async function createShipment(
     recipientDocumentType: recipientDocumentType || "dni_peru",
     recipientPhone,
     notes,
-    shipmentType: shipmentType || "documento",
+    shipmentType: normalizedShipmentType,
     documentKind: documentKind || "apostillado",
     documentSheetCount: Math.max(1, Math.min(10, Math.round(Number(documentSheetCount) || 1))),
+    requiresApostilleService: requiresApostilleService && canRequireApostilleService ? 1 : 0,
     weightKg: String(weightKg ?? "1.00"),
     manualPriceEur: manualPriceEur !== undefined && manualPriceEur !== null && String(manualPriceEur).trim() !== "" ? String(manualPriceEur) : null,
     extraPriceEur: extraPriceEur !== undefined && extraPriceEur !== null && String(extraPriceEur).trim() !== "" ? String(Math.max(0, Number(extraPriceEur) || 0)) : "0.00",
@@ -1088,7 +1093,7 @@ export async function createShipment(
     discountAmountEur: discountAmountEur !== undefined && discountAmountEur !== null && String(discountAmountEur).trim() !== "" ? String(discountAmountEur) : "0.00",
     finalPriceEur: finalPriceEur !== undefined && finalPriceEur !== null && String(finalPriceEur).trim() !== "" ? String(finalPriceEur) : null,
     paymentStatus: paymentStatus || "Falta cancelar",
-    route: route || "Lima - Torino",
+    route: normalizedRoute,
     originAddress: originAddress || "",
     destinationAddress: destinationAddress || "",
     documentItems: documentItems || null,
@@ -1154,6 +1159,7 @@ export async function updateShipmentStatus(
   deliveryMode?: "agencia" | "remoto",
   documentKind?: "simple" | "apostillado",
   documentSheetCount?: number,
+  requiresApostilleService?: boolean,
 ) {
   const db = await getDb();
   if (!db) {
@@ -1164,6 +1170,10 @@ export async function updateShipmentStatus(
   try {
     const shipment = await getShipmentById(id);
     if (!shipment) return undefined;
+    const updatedShipmentType = shipmentType ?? shipment.shipmentType ?? "documento";
+    const updatedRoute = route ?? shipment.route ?? "Lima - Torino";
+    const shouldRequireApostilleService = requiresApostilleService ?? shipment.requiresApostilleService === 1;
+    const canRequireApostilleService = updatedShipmentType === "documento" && updatedRoute === "Torino - Lima";
 
     let events = [];
     try {
@@ -1196,9 +1206,10 @@ export async function updateShipmentStatus(
         recipientDni,
         recipientPhone,
         notes,
-        shipmentType: shipmentType ?? shipment.shipmentType ?? "documento",
+        shipmentType: updatedShipmentType,
         documentKind: documentKind ?? shipment.documentKind ?? "apostillado",
         documentSheetCount: documentSheetCount !== undefined ? Math.max(1, Math.min(10, Math.round(Number(documentSheetCount) || 1))) : shipment.documentSheetCount ?? 1,
+        requiresApostilleService: shouldRequireApostilleService && canRequireApostilleService ? 1 : 0,
         weightKg: weightKg !== undefined ? String(weightKg) : shipment.weightKg ?? "1.00",
         manualPriceEur: manualPriceEur !== undefined ? (manualPriceEur !== null && String(manualPriceEur).trim() !== "" ? String(manualPriceEur) : null) : shipment.manualPriceEur,
         extraPriceEur: extraPriceEur !== undefined ? String(Math.max(0, Number(extraPriceEur) || 0)) : shipment.extraPriceEur ?? "0.00",
@@ -1208,7 +1219,7 @@ export async function updateShipmentStatus(
         discountAmountEur: discountAmountEur !== undefined ? (discountAmountEur !== null && String(discountAmountEur).trim() !== "" ? String(discountAmountEur) : "0.00") : shipment.discountAmountEur,
         finalPriceEur: finalPriceEur !== undefined ? (finalPriceEur !== null && String(finalPriceEur).trim() !== "" ? String(finalPriceEur) : null) : shipment.finalPriceEur,
         paymentStatus: paymentStatus ?? shipment.paymentStatus ?? "Falta cancelar",
-        route: route ?? shipment.route ?? "Lima - Torino",
+        route: updatedRoute,
         originAddress: originAddress ?? shipment.originAddress ?? "",
         destinationAddress: destinationAddress ?? shipment.destinationAddress ?? "",
         deliveryMode: deliveryMode ?? shipment.deliveryMode ?? "agencia",

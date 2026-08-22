@@ -11,6 +11,7 @@ const brandLogoPath = "/manus-storage/servicom_logo_final_e7ce35aa.png";
 
 const escapeHtml = (value: unknown) => String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/'/g, "&#039;");
 const fullName = (name?: string | null, lastName?: string | null) => `${name ?? ""} ${lastName ?? ""}`.trim() || "No especificado";
+export const hasApostilleServiceRequest = (shipment: any) => shipment?.requiresApostilleService === true || Number(shipment?.requiresApostilleService) === 1;
 
 export const resolveReceiptAssetUrl = (path: string, origin: string) => new URL(path, origin).href;
 export const buildReceiptUrl = (origin: string, order: string, code: string) => {
@@ -58,6 +59,7 @@ export function buildReceiptMarkdown(shipment: any): string {
   const checklist = receiptChecklist(shipment);
   const trackingUrl = buildTrackingUrl(String(shipment.orderNumber), String(shipment.code));
   const shipmentLabel = shipment.shipmentType === "encomienda" ? "ENCOMIENDA" : "DOCUMENTO";
+  const apostilleService = hasApostilleServiceRequest(shipment) ? "\n**Servicio solicitado:** Documentos para apostillar" : "";
   return `# SERVICOM INTERNACIONAL
 
 ## COMPROBANTE DE ENVÍO DE ${shipmentLabel}
@@ -67,7 +69,7 @@ export function buildReceiptMarkdown(shipment: any): string {
 **Estado:** ${shipment.status || "No especificado"}  
 **Estado de pago:** ${payment.label}  
 **Importe extra:** ${extraPrice}  
-**Precio final:** ${price}
+**Precio final:** ${price}${apostilleService}
 
 ## Ruta y sedes
 
@@ -198,6 +200,7 @@ export function buildReceiptTicketHtml(data: {
   route?: string | null;
   destinationAddress?: string | null;
   contentChecklist?: string[];
+  requiresApostilleService?: boolean | number;
 }) {
   const route = getRoutePresentation(data.route, data.destinationAddress);
   const shipmentLabel = data.shipmentType === "encomienda" ? "ENCOMIENDA" : "DOCUMENTO";
@@ -206,7 +209,8 @@ export function buildReceiptTicketHtml(data: {
   const checklistHtml = checklist.length
     ? `<br><strong>LISTA DE COSAS ENVIADAS:</strong><ul style="margin:4px 0;padding-left:18px">${checklist.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`
     : "";
-  return `<div class="ticket"><div class="ticket-title">CONTROL DE ENTREGA — ${route.deliveryTitle} (${shipmentLabel})</div><div class="ticket-grid"><div><strong>INFORMACIÓN DE ENVÍO DE ${shipmentLabel}</strong><br><strong>ORDEN:</strong> ${data.order}<br><strong>CÓDIGO:</strong> ${data.code}<br><strong>RUTA:</strong> ${route.route}<br><strong>ORIGEN:</strong> ${route.originPrintLabel}<br><strong>DESTINO:</strong> ${route.destinationPrintLabel}<br><strong>SEDE DE ENTREGA:</strong> ${route.destination.officeLabel}<br><strong>DIRECCIÓN:</strong> ${route.destination.address}<br><strong>REMITENTE:</strong> ${data.sender || "No especificado"}<br><strong>CELULAR REMITENTE:</strong> ${data.senderPhone || "No especificado"}<br><strong>DNI REMITENTE:</strong> ${data.senderDni || "No especificado"}<br><strong>DESTINATARIO:</strong> ${data.recipient}<br><strong>CELULAR DESTINATARIA:</strong> ${data.recipientPhone}<br><strong>DNI DESTINATARIO:</strong> ${data.recipientDni || "No especificado"}<br><strong>NOTAS:</strong> ${escapeHtml(data.notes || "Sin notas")}${checklistHtml}${priceHtml}</div><div class="ticket-code">${data.code}</div></div></div>`;
+  const apostilleHtml = (data.requiresApostilleService === true || Number(data.requiresApostilleService) === 1) ? `<br><strong>SERVICIO SOLICITADO:</strong> Documentos para apostillar` : "";
+  return `<div class="ticket"><div class="ticket-title">CONTROL DE ENTREGA — ${route.deliveryTitle} (${shipmentLabel})</div><div class="ticket-grid"><div><strong>INFORMACIÓN DE ENVÍO DE ${shipmentLabel}</strong><br><strong>ORDEN:</strong> ${data.order}<br><strong>CÓDIGO:</strong> ${data.code}<br><strong>RUTA:</strong> ${route.route}<br><strong>ORIGEN:</strong> ${route.originPrintLabel}<br><strong>DESTINO:</strong> ${route.destinationPrintLabel}<br><strong>SEDE DE ENTREGA:</strong> ${route.destination.officeLabel}<br><strong>DIRECCIÓN:</strong> ${route.destination.address}<br><strong>REMITENTE:</strong> ${data.sender || "No especificado"}<br><strong>CELULAR REMITENTE:</strong> ${data.senderPhone || "No especificado"}<br><strong>DNI REMITENTE:</strong> ${data.senderDni || "No especificado"}<br><strong>DESTINATARIO:</strong> ${data.recipient}<br><strong>CELULAR DESTINATARIA:</strong> ${data.recipientPhone}<br><strong>DNI DESTINATARIO:</strong> ${data.recipientDni || "No especificado"}<br><strong>NOTAS:</strong> ${escapeHtml(data.notes || "Sin notas")}${apostilleHtml}${checklistHtml}${priceHtml}</div><div class="ticket-code">${data.code}</div></div></div>`;
 }
 
 export async function downloadUserShipmentReceiptPdf(shipment: any): Promise<string> {
@@ -300,6 +304,7 @@ export async function downloadUserShipmentReceiptPdf(shipment: any): Promise<str
   row("Código", String(shipment.code));
   row("Estado del envío", String(shipment.status || "No especificado"));
   row("Estado de pago", payment.label);
+  if (hasApostilleServiceRequest(shipment)) row("Servicio solicitado", "Documentos para apostillar");
   row("Importe extra", extraPrice);
   row("Precio final", price);
   row("Notas", String(shipment.notes || "Sin notas"));

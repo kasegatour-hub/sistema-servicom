@@ -87,6 +87,7 @@ export default function AccountPage() {
   const [documentCount, setDocumentCount] = useState(1);
   const [docType, setDocType] = useState<"simple" | "apostillado">("simple");
   const [shipmentRoute, setShipmentRoute] = useState<"Lima - Torino" | "Torino - Lima">("Lima - Torino");
+  const [requiresApostilleService, setRequiresApostilleService] = useState(false);
   const [destinationAddress, setDestinationAddress] = useState("");
   const [sheetCount, setSheetCount] = useState(1);
   const [senderName, setSenderName] = useState("");
@@ -109,6 +110,10 @@ export default function AccountPage() {
     const maximum = docType === "simple" ? 8 : 10;
     if (sheetCount > maximum) setSheetCount(maximum);
   }, [docType]);
+
+  useEffect(() => {
+    if (shipmentRoute !== "Torino - Lima") setRequiresApostilleService(false);
+  }, [shipmentRoute]);
 
   const updateTextValue = (field: string, rawValue: string, setter: (value: string) => void, label: string) => {
     if (rawValue && !isTextOnly(rawValue)) setIdentityErrors(previous => ({ ...previous, [field]: `${label} solo puede contener letras y espacios.` }));
@@ -305,6 +310,7 @@ export default function AccountPage() {
       setShowNewShipment(false);
       setClientWorkspace("envios");
       setDocumentCount(1);
+      setRequiresApostilleService(false);
       setNotes("");
       setCatalogDocuments([]);
       setShipmentValidationErrors({});
@@ -430,6 +436,7 @@ export default function AccountPage() {
                       <div><strong>Cel. Destinataria:</strong> {formatPhoneNumber(receiptShipment.recipientPhone) || '-'}</div>
                       <div><strong>Fecha:</strong> {new Date(receiptShipment.createdAt || Date.now()).toLocaleDateString()}</div>
                       <div className="col-span-2"><strong>Estado de Pago:</strong> <span className={`inline-flex rounded px-2 py-0.5 font-semibold ${receiptPaymentUi?.badgeClass}`}>{receiptPaymentUi?.label}</span></div>
+                      {(receiptShipment.requiresApostilleService === true || Number(receiptShipment.requiresApostilleService) === 1) && <div className="col-span-2 rounded-md border border-[#0B2B5E]/20 bg-blue-50 px-2 py-1 font-semibold text-[#0B2B5E]"><strong>Servicio solicitado:</strong> Documentos para apostillar</div>}
                       <div className="col-span-2"><strong>Descripción / Notas:</strong> {receiptShipment.notes || "Documentación lícita"}</div>
                     </div>
                   </div>
@@ -620,6 +627,7 @@ export default function AccountPage() {
                    docType,
                    sheetCount,
                    route: shipmentRoute,
+                  requiresApostilleService,
                   destinationAddress,
                   senderName: profileName || senderName,
                   senderLastName: profileLastName || senderLastName,
@@ -662,6 +670,12 @@ export default function AccountPage() {
                       <option value="apostillado">Documentos Apostillados (50 € base hasta 5 hojas, +10 € adicionales)</option>
                     </select>
                   </div>
+                  {shipmentRoute === "Torino - Lima" && (
+                    <label className="md:col-span-2 flex cursor-pointer items-start gap-3 rounded-xl border-2 border-[#0B2B5E] bg-blue-50 p-4 text-sm shadow-sm transition hover:bg-blue-100/70">
+                      <input type="checkbox" aria-label="Documentos para apostillar" checked={requiresApostilleService} onChange={event => setRequiresApostilleService(event.target.checked)} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-[#0B2B5E] focus:ring-[#0B2B5E]" />
+                      <span><strong className="block text-base text-[#0B2B5E]">Documentos para apostillar</strong><span className="mt-1 block text-slate-700">Marca esta opción si los documentos serán entregados para su trámite de apostilla. Disponible solo para la ruta Torino – Lima.</span></span>
+                    </label>
+                  )}
                   <div className="md:col-span-2"><AgencyDestinationPicker route={shipmentRoute} value={destinationAddress} onChange={setDestinationAddress} /></div>
                   <QuantityStepper
                     id="account-sheet-count"

@@ -10,6 +10,7 @@ describe("account.createMyShipment persistence policy", () => {
       docType: "simple",
       sheetCount: 1,
       route: "Torino - Lima",
+      requiresApostilleService: true,
       contentChecklist: ["Documento principal"],
     });
     const args = buildClientShipmentPersistenceArgs(input, "1234567890", "DOC-2026-ABCDE", "Documento Simple (1 hoja): 45 EUR.", 42);
@@ -24,6 +25,18 @@ describe("account.createMyShipment persistence policy", () => {
     expect(args[18]).toBe("Torino - Lima");
     expect(args[32]).toBe("simple");
     expect(args[33]).toBe(1);
+    expect(args[34]).toBe(true);
+  });
+
+  it("only accepts the apostille service for Torino - Lima", () => {
+    expect(() => clientShipmentInputSchema.parse({
+      recipientName: "María",
+      recipientLastName: "López",
+      recipientDni: "71234567",
+      route: "Lima - Torino",
+      requiresApostilleService: true,
+      contentChecklist: ["Documento principal"],
+    })).toThrow(/Torino - Lima/);
   });
 
   it("rejects payment condition from the client input", () => {

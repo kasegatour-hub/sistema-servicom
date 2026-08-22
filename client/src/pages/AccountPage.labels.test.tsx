@@ -89,6 +89,21 @@ describe("AccountPage client labels", () => {
     expect(screen.getByLabelText("Acta de nacimiento")).toBeTruthy();
   });
 
+  it("muestra y limpia la opción de apostilla solo al seleccionar Torino – Lima", async () => {
+    render(<AccountPage />);
+    fireEvent.click(screen.getByRole("button", { name: /Registrar Nuevo Documento/ }));
+    const routeSelect = await screen.findByRole("combobox", { name: "Ruta de envío" });
+
+    expect(screen.queryByLabelText("Documentos para apostillar")).toBeNull();
+    fireEvent.change(routeSelect, { target: { value: "Torino - Lima" } });
+    const apostilleOption = await screen.findByLabelText("Documentos para apostillar") as HTMLInputElement;
+    fireEvent.click(apostilleOption);
+    expect(apostilleOption.checked).toBe(true);
+
+    fireEvent.change(routeSelect, { target: { value: "Lima - Torino" } });
+    await waitFor(() => expect(screen.queryByLabelText("Documentos para apostillar")).toBeNull());
+  });
+
   it("marca en rojo los datos y la lista requeridos antes de registrar un documento", async () => {
     render(<AccountPage />);
     fireEvent.click(screen.getByRole("button", { name: /Registrar Nuevo Documento/ }));

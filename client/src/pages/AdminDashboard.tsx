@@ -206,6 +206,7 @@ const createShipmentSchema = z.object({
   documentCount: z.number().min(1).default(1),
   docType: z.enum(["simple", "apostillado"]).default("apostillado"),
   sheetCount: z.number().min(1).default(1),
+  requiresApostilleService: z.boolean().default(false),
   weightKg: z.number().min(0.1).default(1),
   manualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
   extraPriceEur: z.union([z.string(), z.number()]).default(0),
@@ -239,6 +240,7 @@ const updateStatusSchema = z.object({
   shipmentType: z.enum(["documento", "encomienda"]).optional(),
   docType: z.enum(["simple", "apostillado"]).optional(),
   sheetCount: z.number().int().min(1).max(10).optional(),
+  requiresApostilleService: z.boolean().optional(),
   paymentStatus: z.enum(["Pagado", "Falta cancelar"]).optional(),
   route: z.string().optional(),
   originAddress: z.string().optional(),
@@ -506,6 +508,7 @@ export default function AdminDashboard() {
       documentCount: 1,
       docType: 'apostillado',
       sheetCount: 1,
+      requiresApostilleService: false,
       weightKg: 1,
       manualPriceEur: '',
       extraPriceEur: 0,
@@ -530,6 +533,12 @@ export default function AdminDashboard() {
     const currentCount = Number(createForm.getValues("sheetCount")) || 1;
     if (currentCount > maximum) createForm.setValue("sheetCount", maximum, { shouldValidate: true, shouldDirty: true });
   }, [selectedDocType]);
+
+  useEffect(() => {
+    if ((selectedShipmentType !== "documento" || selectedRoute !== "Torino - Lima") && createForm.getValues("requiresApostilleService")) {
+      createForm.setValue("requiresApostilleService", false, { shouldValidate: true, shouldDirty: true });
+    }
+  }, [selectedShipmentType, selectedRoute]);
 
   const fillShipmentPerson = (prefix: "sender" | "recipient", client: ClientLookupRecord) => {
     createForm.setValue(`${prefix}Name`, client.name, { shouldDirty: true });
@@ -570,6 +579,7 @@ export default function AdminDashboard() {
       shipmentType: 'documento',
       docType: 'apostillado',
       sheetCount: 1,
+      requiresApostilleService: false,
       paymentStatus: 'Falta cancelar',
       route: 'Lima - Torino',
       originAddress: '',
@@ -581,6 +591,14 @@ export default function AdminDashboard() {
       pricingMode: 'estandar',
     },
   });
+  const updateShipmentType = updateForm.watch("shipmentType") || "documento";
+  const updateShipmentRoute = updateForm.watch("route") || "Lima - Torino";
+
+  useEffect(() => {
+    if ((updateShipmentType !== "documento" || updateShipmentRoute !== "Torino - Lima") && updateForm.getValues("requiresApostilleService")) {
+      updateForm.setValue("requiresApostilleService", false, { shouldValidate: true, shouldDirty: true });
+    }
+  }, [updateShipmentType, updateShipmentRoute]);
 
   const openShipmentUpdate = (shipment: any) => {
     setSelectedShipmentId(shipment.id);
@@ -600,6 +618,7 @@ export default function AdminDashboard() {
       shipmentType: shipment.shipmentType || "documento",
       docType: shipment.documentKind || "apostillado",
       sheetCount: Number(shipment.documentSheetCount || 1),
+      requiresApostilleService: shipment.requiresApostilleService === 1,
       paymentStatus: shipment.paymentStatus || "Falta cancelar",
       route: shipment.route || "Lima - Torino",
       originAddress: shipment.originAddress || "",
@@ -837,6 +856,7 @@ export default function AdminDashboard() {
         documentCount: 1,
         docType: "apostillado",
         sheetCount: 1,
+        requiresApostilleService: false,
         weightKg: 1,
         manualPriceEur: "",
         extraPriceEur: 0,
@@ -1803,6 +1823,12 @@ export default function AdminDashboard() {
                     />
                     <DocumentPricePreview docType={selectedDocType} sheetCount={Number(createForm.watch("sheetCount")) || 1} additionalTotalEur={additionalDocumentAutoTotal} manualPriceEur={createForm.watch("manualPriceEur")} extraPriceEur={createForm.watch("extraPriceEur")} />
                   </div>
+                  {selectedRoute === "Torino - Lima" && (
+                    <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border-2 border-[#0B2B5E] bg-blue-50 p-4 text-sm shadow-sm transition hover:bg-blue-100/70">
+                      <input type="checkbox" aria-label="Documentos para apostillar" {...createForm.register("requiresApostilleService")} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-[#0B2B5E] focus:ring-[#0B2B5E]" />
+                      <span><strong className="block text-base text-[#0B2B5E]">Documentos para apostillar</strong><span className="mt-1 block text-slate-700">Marca esta opción si los documentos serán entregados para su trámite de apostilla. Disponible solo para la ruta Torino – Lima.</span></span>
+                    </label>
+                  )}
                   <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50/60 p-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
@@ -2512,6 +2538,12 @@ export default function AdminDashboard() {
                         <option value="manual">Precio manual en EUR</option>
                       </select>
                     </div>
+                    {updateForm.watch("route") === "Torino - Lima" && (
+                      <label className="md:col-span-2 flex cursor-pointer items-start gap-3 rounded-xl border-2 border-[#0B2B5E] bg-blue-50 p-4 text-sm shadow-sm transition hover:bg-blue-100/70">
+                        <input type="checkbox" aria-label="Documentos para apostillar" {...updateForm.register("requiresApostilleService")} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-[#0B2B5E] focus:ring-[#0B2B5E]" />
+                        <span><strong className="block text-base text-[#0B2B5E]">Documentos para apostillar</strong><span className="mt-1 block text-slate-700">Se conserva esta solicitud únicamente para documentos en la ruta Torino – Lima.</span></span>
+                      </label>
+                    )}
                   </>}
                   {updateForm.watch("pricingMode") === "manual" && <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Precio manual (EUR)</label><Input type="number" min="0" step="0.01" {...updateForm.register("manualPriceEur")} placeholder="Ej.: 25.00" /><p className="mt-1 text-xs text-slate-500">Guarda una tarifa para que los pagos de este envío se contabilicen correctamente.</p></div>}
                   <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Importe extra (EUR)</label><Input type="number" min="0" step="0.01" aria-label="Importe extra de actualización" {...updateForm.register("extraPriceEur")} /><p className="mt-1 text-xs text-slate-500">Por defecto es 0 y se suma al total de documento o encomienda.</p></div>

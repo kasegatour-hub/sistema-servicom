@@ -792,3 +792,8 @@
 - [x] Normalizar las agencias verificadas con nombre, dirección, ciudad, proveedor y fuente
 - [x] Diseñar buscador de agencias con listado, mapa y selección de destino aplicable al envío
 - [x] Probar la búsqueda, selección, compilación y publicar el explorador
+
+## Apostilla exclusiva para Torino–Lima
+- [x] Añadir un indicador de documentos para apostillar disponible solo en la ruta Torino–Lima
+- [x] Conservar y presentar la indicación de apostilla en el registro y comprobante
+- [x] Probar la restricción de ruta, compilación y publicar la mejora

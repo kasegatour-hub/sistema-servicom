@@ -73,6 +73,7 @@ interface ShipmentData {
   paymentStatus?: string | null;
   route?: string | null;
   destinationAddress?: string | null;
+  requiresApostilleService?: number | boolean | null;
 }
 
 export function LocationsSection() {
@@ -404,6 +405,14 @@ export default function Home() {
                 </div>
               </div>
             </Card>}
+
+            {(shipmentData.requiresApostilleService === true || Number(shipmentData.requiresApostilleService) === 1) && (
+              <Card aria-label="Servicio solicitado" className="border-0 bg-gradient-to-r from-blue-50 to-white p-4 shadow-lg ring-1 ring-[#0B2B5E]/20 md:p-6">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[#0B2B5E]">Servicio solicitado</p>
+                <p className="mt-1 text-lg font-bold text-[#0B2B5E]">Documentos para apostillar</p>
+                <p className="mt-1 text-sm text-slate-700">Registro confirmado para la ruta Torino – Lima.</p>
+              </Card>
+            )}
 
             {/* Sender and recipient */}
             {(shipmentData.senderName || shipmentData.recipientName) && (

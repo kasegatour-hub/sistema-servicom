@@ -1,0 +1,1 @@
+ALTER TABLE `shipments` ADD `requiresApostilleService` int DEFAULT 0 NOT NULL;

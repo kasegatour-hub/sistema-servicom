@@ -65,6 +65,48 @@ describe("admin.createShipment", () => {
     expect(JSON.parse(args[27])).toEqual(["Documento principal", "Copia apostillada"]);
     expect(args[32]).toBe("simple");
     expect(args[33]).toBe(6);
+    expect(args[34]).toBe(false);
+  });
+
+  it("persists the apostille service only for a Torino–Lima document", async () => {
+    const caller = appRouter.createCaller(createAdminContext());
+    await caller.admin.createShipment({
+      status: "En agencia",
+      senderName: "Ana",
+      senderLastName: "Pérez",
+      recipientName: "Marco",
+      recipientLastName: "Rossi",
+      shipmentType: "documento",
+      docType: "simple",
+      sheetCount: 1,
+      weightKg: 1,
+      paymentStatus: "Falta cancelar",
+      route: "Torino - Lima",
+      requiresApostilleService: true,
+      contentChecklist: ["Documento principal"],
+    });
+
+    expect(dbMocks.createShipment.mock.calls[0][34]).toBe(true);
+  });
+
+  it("rejects the apostille service outside the Torino–Lima document route", async () => {
+    const caller = appRouter.createCaller(createAdminContext());
+    await expect(caller.admin.createShipment({
+      status: "En agencia",
+      senderName: "Ana",
+      senderLastName: "Pérez",
+      recipientName: "Marco",
+      recipientLastName: "Rossi",
+      shipmentType: "documento",
+      docType: "simple",
+      sheetCount: 1,
+      weightKg: 1,
+      paymentStatus: "Falta cancelar",
+      route: "Lima - Torino",
+      requiresApostilleService: true,
+      contentChecklist: ["Documento principal"],
+    })).rejects.toThrow(/Torino - Lima/);
+    expect(dbMocks.createShipment).not.toHaveBeenCalled();
   });
 
   it("creates an encomienda with an ENC code, weight and manual tariff", async () => {

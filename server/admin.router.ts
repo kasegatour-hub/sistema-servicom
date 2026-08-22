@@ -653,6 +653,7 @@ export const adminRouter = router({
       shipmentType: z.enum(["documento", "encomienda"]).default("documento"),
       docType: z.enum(["simple", "apostillado"]).default("apostillado"),
       sheetCount: z.number().min(1).default(1),
+      requiresApostilleService: z.boolean().default(false),
       documentItems: z.array(z.object({
         docType: z.enum(["simple", "apostillado"]),
         sheetCount: z.number().int().min(1).max(10),
@@ -671,6 +672,7 @@ export const adminRouter = router({
     }).superRefine((input, ctx) => {
       if (input.senderDni && !isIdentityDocumentValid(input.senderDni, input.senderDocumentType)) ctx.addIssue({ code: "custom", path: ["senderDni"], message: identityDocumentValidationMessage(input.senderDocumentType) });
       if (input.recipientDni && !isIdentityDocumentValid(input.recipientDni, input.recipientDocumentType)) ctx.addIssue({ code: "custom", path: ["recipientDni"], message: identityDocumentValidationMessage(input.recipientDocumentType) });
+      if (input.requiresApostilleService && (input.shipmentType !== "documento" || input.route !== "Torino - Lima")) ctx.addIssue({ code: "custom", path: ["requiresApostilleService"], message: "La opción «Documentos para apostillar» solo está disponible para documentos en la ruta Torino - Lima." });
     }))
     .mutation(async ({ input, ctx }) => {
       if (input.shipmentType === "encomienda" && input.route === "Lima - Torino" && !await isEncomiendaEnabledForRoute(input.route)) {
@@ -737,6 +739,7 @@ export const adminRouter = router({
         input.recipientDocumentType,
         input.docType,
         input.sheetCount,
+        input.requiresApostilleService,
       );
       if (!result) {
         throw new TRPCError({
@@ -778,6 +781,7 @@ export const adminRouter = router({
       shipmentType: z.enum(["documento", "encomienda"]).optional(),
       docType: z.enum(["simple", "apostillado"]).optional(),
       sheetCount: z.number().int().min(1).max(10).optional(),
+      requiresApostilleService: z.boolean().optional(),
       weightKg: z.number().optional(),
       manualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
       extraPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
@@ -799,6 +803,11 @@ export const adminRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Envío no encontrado." });
       }
       const effectiveType = input.shipmentType ?? currentShipment.shipmentType;
+      const effectiveRoute = input.route ?? currentShipment.route ?? "Lima - Torino";
+      const effectiveRequiresApostilleService = input.requiresApostilleService ?? currentShipment.requiresApostilleService === 1;
+      if (effectiveRequiresApostilleService && (effectiveType !== "documento" || effectiveRoute !== "Torino - Lima")) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "La opción «Documentos para apostillar» solo está disponible para documentos en la ruta Torino - Lima." });
+      }
       const isParcel = effectiveType === "encomienda";
       const effectiveWeight = input.weightKg ?? Number(currentShipment.weightKg ?? 1);
       const effectiveDocumentKind = input.docType ?? currentShipment.documentKind ?? "apostillado";
@@ -838,6 +847,7 @@ export const adminRouter = router({
         input.deliveryMode,
         effectiveDocumentKind,
         effectiveDocumentSheetCount,
+        effectiveRequiresApostilleService,
       );
       if (!result) {
         throw new TRPCError({

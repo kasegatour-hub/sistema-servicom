@@ -45,4 +45,22 @@ describe("maqueta compartida del comprobante administrativo", () => {
     expect(document.contentHtml).not.toContain('id="deliveryControlQR"');
     expect(document.html).toContain("@media print");
   });
+
+  it("identifies documents requested for apostille in the receipt and delivery control", async () => {
+    const document = await buildAdminReceiptDocument({
+      origin: "https://servicominternacional.manus.space",
+      shipment: {
+        orderNumber: "8582224586",
+        code: "DOC-2026-APOST",
+        shipmentType: "documento",
+        route: "Torino - Lima",
+        recipientName: "Alessandro",
+        recipientLastName: "Gallo",
+        requiresApostilleService: 1,
+      },
+    });
+
+    expect(document.contentHtml).toContain("Servicio solicitado:</strong> Documentos para apostillar");
+    expect(document.contentHtml).toContain("SERVICIO:</div><div class=\"value\"><strong>Documentos para apostillar");
+  });
 });
