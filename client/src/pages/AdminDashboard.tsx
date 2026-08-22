@@ -12,7 +12,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import { Lock, LogOut, Plus, RefreshCw, Download, Printer, RotateCcw, Search, Trash2, MessageSquare, Calculator, Eye, EyeOff, Send } from "lucide-react";
+import { Lock, LogOut, Plus, RefreshCw, Download, Printer, RotateCcw, Search, Trash2, MessageSquare, Calculator, Eye, EyeOff, Send, QrCode } from "lucide-react";
 import QRCode from "qrcode";
 import { buildShipmentManagementUrl, buildTrackingUrl, normalizeTrackingValue, TRACKING_QR_OPTIONS } from "@/lib/tracking";
 import { PhoneInput } from "@/components/PhoneInput";
@@ -41,6 +41,7 @@ import { ShipmentTrendCharts } from "@/components/ShipmentTrendCharts";
 import { InvitationLetterWorkspace } from "@/components/InvitationLetterWorkspace";
 import { PasswordRequirements } from "@/components/PasswordRequirements";
 import { AgencyDestinationPicker } from "@/components/AgencyDestinationPicker";
+import { QRScanner } from "@/components/QRScanner";
 import { normalizeIdentityDocument, type IdentityDocumentType } from "@shared/identityDocuments";
 import { getFuzzySearchScore } from "@shared/fuzzySearch";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "@shared/passwordPolicy";
@@ -305,13 +306,14 @@ export default function AdminDashboard() {
   const [adminRecoveryCode, setAdminRecoveryCode] = useState("");
   const [adminRecoveryPassword, setAdminRecoveryPassword] = useState("");
   const [adminRecoveryResendSeconds, setAdminRecoveryResendSeconds] = useState(0);
+  const [deliveryScannerOpen, setDeliveryScannerOpen] = useState(false);
   const [consumedDeliveryQr, setConsumedDeliveryQr] = useState(false);
-  const [deliveryQrMode] = useState<"status" | "update" | null>(() => {
+  const [deliveryQrMode, setDeliveryQrMode] = useState<"status" | "update" | null>(() => {
     if (typeof window === "undefined") return null;
     const open = new URLSearchParams(window.location.search).get("open");
     return open === "status" || open === "update" ? open : null;
   });
-  const [deliveryQrTarget] = useState<{ orderNumber: string; code: string } | null>(() => {
+  const [deliveryQrTarget, setDeliveryQrTarget] = useState<{ orderNumber: string; code: string } | null>(() => {
     if (typeof window === "undefined") return null;
     const params = new URLSearchParams(window.location.search);
     if (params.get("open") !== "update" && params.get("open") !== "status") return null;
@@ -1319,6 +1321,30 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleDeliveryControlScan = (scannedData: string) => {
+    try {
+      const scannedUrl = new URL(scannedData, window.location.origin);
+      const orderNumber = normalizeTrackingValue(scannedUrl.searchParams.get("order") || "");
+      const code = normalizeTrackingValue(scannedUrl.searchParams.get("code") || "");
+      const isDeliveryControlQr = scannedUrl.pathname === "/admin" && ["status", "update"].includes(scannedUrl.searchParams.get("open") || "");
+
+      if (!isDeliveryControlQr || !orderNumber || !code) {
+        toast.error("El QR no corresponde a un control de entrega válido.");
+        return;
+      }
+
+      setDeliveryScannerOpen(false);
+      setConsumedDeliveryQr(false);
+      setDeliveryQrMode("update");
+      setDeliveryQrTarget({ orderNumber, code });
+      setAdminWorkspace("registros");
+      window.history.replaceState({}, "", buildShipmentManagementUrl(orderNumber, code));
+      toast.success("QR de control leído. Abriendo la actualización autorizada...");
+    } catch {
+      toast.error("No se pudo leer un enlace QR de control válido.");
+    }
+  };
+
   if (loadingAdminSession && !isLoggedIn) {
     return <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-blue-50 to-white text-primary"><Spinner className="mr-2 h-5 w-5" /> Verificando sesión...</div>;
   }
@@ -1428,6 +1454,9 @@ export default function AdminDashboard() {
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2 md:gap-4">
             <a href="/" className="rounded-md border border-white/70 px-3 py-2 text-sm font-semibold text-white transition hover:bg-white/20">Inicio</a>
+            <Button type="button" onClick={() => setDeliveryScannerOpen(true)} variant="outline" className="border-white bg-white text-primary hover:bg-blue-50" aria-label="Escanear QR de control para actualizar un envío">
+              <QrCode className="mr-2 h-4 w-4" /> Escanear QR de control
+            </Button>
             <Button type="button" onClick={() => setShowGeneralFeedback(true)} variant="outline" className="border-white text-white hover:bg-white/20"><MessageSquare className="mr-2 h-4 w-4" /> Comentarios</Button>
             <div className="text-right">
               <span className="block text-sm">{admin?.name}</span>
@@ -2328,6 +2357,12 @@ export default function AdminDashboard() {
             </Card>
           </div>
         )}
+
+        <QRScanner
+          isOpen={deliveryScannerOpen}
+          onClose={() => setDeliveryScannerOpen(false)}
+          onScan={handleDeliveryControlScan}
+        />
 
         {/* Update Status Modal */}
         <UpdateShipmentModal

@@ -54,6 +54,9 @@ const adminReceiptDocumentMocks = vi.hoisted(() => ({
   download: vi.fn().mockResolvedValue("recibo-documento-giselle-garcia-orden-6352627659.pdf"),
   build: vi.fn().mockResolvedValue({ filename: "recibo-documento-giselle-garcia-orden-6352627659", html: "<!doctype html><html><body>recibo</body></html>" }),
 }));
+const qrScannerMocks = vi.hoisted(() => ({
+  onScan: null as ((value: string) => void) | null,
+}));
 
 vi.mock("@/lib/trpc", () => ({
   trpc: {
@@ -116,6 +119,13 @@ vi.mock("@/lib/adminReceiptDocument", () => ({
   printAdminReceiptPdf: vi.fn().mockResolvedValue("recibo-prueba.pdf"),
 }));
 
+vi.mock("@/components/QRScanner", () => ({
+  QRScanner: ({ isOpen, onScan }: { isOpen: boolean; onScan: (value: string) => void }) => {
+    qrScannerMocks.onScan = onScan;
+    return isOpen ? React.createElement("div", { role: "dialog", "aria-label": "Lector QR administrativo" }, "Lector QR administrativo") : null;
+  },
+}));
+
 import AdminDashboard from "./AdminDashboard";
 
 afterEach(() => {
@@ -129,6 +139,7 @@ beforeEach(() => {
   mocks.shipments = [];
   mocks.deletedShipments = [];
   mocks.deliveryShipment = { data: null, isLoading: false, error: null };
+  qrScannerMocks.onScan = null;
   mocks.login.mutateAsync.mockResolvedValue({ id: 1, email: "admin@servicom.pe", name: "Operador", role: "registrador" });
 });
 
@@ -177,6 +188,34 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.change(search, { target: { value: "sanches ar" } });
     expect(screen.getByText("Luisa Ramos")).toBeTruthy();
     expect(screen.queryByText("Ana López")).toBeNull();
+  });
+
+  it("permite al Registrador escanear un control y abrir directamente la actualización del envío", async () => {
+    const shipment = { id: 87, shipmentType: "documento", senderName: "Mirian", senderLastName: "Astete", recipientName: "Miguel", recipientLastName: "Díaz", status: "En destino", paymentStatus: "Pagado", createdAt: new Date("2026-08-20T10:00:00.000Z"), orderNumber: "3289150504", code: "07900824", events: [] };
+    mocks.deliveryShipment = { data: shipment, isLoading: false, error: null };
+    render(<AdminDashboard />);
+    fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "operador@servicom.pe" } });
+    fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
+
+    const scanButton = await screen.findByRole("button", { name: "Escanear QR de control para actualizar un envío" });
+    fireEvent.click(scanButton);
+    expect(screen.getByRole("dialog", { name: "Lector QR administrativo" })).toBeTruthy();
+    qrScannerMocks.onScan?.("https://servicom.test/admin?order=3289150504&code=07900824&open=status");
+
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Actualizar Estado de Documento" })).toBeTruthy());
+    expect(window.location.pathname).toBe("/admin");
+    expect(window.location.search).toBe("");
+  });
+
+  it("mantiene el acceso de escaneo QR disponible para el Master Admin", async () => {
+    mocks.login.mutateAsync.mockResolvedValue({ id: 2, email: "master@servicom.pe", name: "Master", role: "superadmin" });
+    render(<AdminDashboard />);
+    fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "master@servicom.pe" } });
+    fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
+
+    expect(await screen.findByRole("button", { name: "Escanear QR de control para actualizar un envío" })).toBeTruthy();
   });
 
   it("abre la actualización del envío al ingresar desde el QR de control de entrega", async () => {

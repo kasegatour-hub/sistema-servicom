@@ -744,3 +744,8 @@
 - [x] Impedir que Cliente, Registrador o Administrador reutilicen su contraseña vigente al cambiarla o restablecerla
 - [x] Revisar y reforzar el uso de hash de contraseñas, tokens y canales cifrados aplicables al acceso
 - [x] Cubrir la seguridad de recuperación y publicar la corrección validada
+
+## Acceso QR operativo para personal autorizado
+- [x] Mostrar un acceso de escaneo QR inmediato al ingresar como Administrador o Registrador
+- [x] Abrir el envío del QR escaneado directamente en la actualización de estado y operación
+- [x] Probar el flujo QR administrativo, validar la compilación y publicar la mejora
