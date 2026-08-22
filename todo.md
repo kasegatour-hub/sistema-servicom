@@ -733,3 +733,9 @@
 - [x] Ocultar la firma electrónica genérica para clientes que no tengan una solicitud de firma válida
 - [x] Mostrar la firma únicamente a la cuenta Cliente vinculada cuando un Admin o Registrador haya enviado la solicitud
 - [x] Añadir pruebas de permisos, validar la compilación y publicar la corrección
+
+## Rediseño UX/UI de aplicación móvil
+- [x] Simplificar la arquitectura móvil: rastreo principal, cuenta y administración con navegación clara
+- [x] Corregir cabeceras, tarjetas y formularios para evitar recortes, solapamientos y desplazamientos incómodos
+- [x] Añadir retroalimentación táctil, estados de carga y errores visibles sin sobrecargar las pantallas
+- [x] Verificar adaptación en teléfonos pequeños y grandes, accesibilidad y pruebas de regresión

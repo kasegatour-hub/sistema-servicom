@@ -345,23 +345,23 @@ export default function AccountPage() {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#eef6fb] to-white pb-12">
         <header className="bg-[#0B2B5E] text-white shadow-md">
-          <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
-            <div className="flex items-center gap-3">
+          <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-3">
               <img src={brandLogo} alt="Servicom Internacional" className="h-12 w-auto rounded bg-white p-1" />
-              <div>
-                <h1 className="text-xl font-bold">Mi Cuenta — Servicom Internacional</h1>
-                <p className="text-xs text-blue-200">{me.email}</p>
+              <div className="min-w-0">
+                <h1 className="text-lg font-bold leading-tight sm:text-xl">Mi Cuenta — Servicom Internacional</h1>
+                <p className="truncate text-xs text-blue-200">{me.email}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Link href="/" className="rounded bg-white/10 px-3 py-1.5 text-sm font-medium transition hover:bg-white/20">
-                Ir a Rastreo Público
+            <div className="grid w-full grid-cols-3 gap-2 sm:flex sm:w-auto">
+              <Link href="/" className="rounded bg-white/10 px-2 py-2 text-center text-xs font-medium transition hover:bg-white/20 sm:px-3 sm:text-sm">
+                <span className="sm:hidden">Rastrear</span><span className="hidden sm:inline">Ir a Rastreo Público</span>
               </Link>
-              <Button onClick={() => setShowGeneralFeedback(true)} variant="outline" className="border-white/30 bg-transparent text-white hover:bg-white/20">
-                <MessageSquare className="mr-2 h-4 w-4" /> Comentarios
+              <Button aria-label="Comentarios" onClick={() => setShowGeneralFeedback(true)} variant="outline" className="border-white/30 bg-transparent px-2 text-xs text-white hover:bg-white/20 sm:px-3 sm:text-sm">
+                <MessageSquare className="h-4 w-4 sm:mr-2" /><span className="hidden sm:inline">Comentarios</span><span className="sm:hidden">Ayuda</span>
               </Button>
-              <Button onClick={() => logoutMutation.mutate()} variant="outline" className="border-white/30 bg-transparent text-white hover:bg-white/20">
-                <LogOut className="mr-2 h-4 w-4" /> Salir
+              <Button onClick={() => logoutMutation.mutate()} variant="outline" className="border-white/30 bg-transparent px-2 text-xs text-white hover:bg-white/20 sm:px-3 sm:text-sm">
+                <LogOut className="h-4 w-4 sm:mr-2" /><span>Salir</span>
               </Button>
             </div>
           </div>
@@ -457,9 +457,10 @@ export default function AccountPage() {
                 ["seguridad", "Seguridad"],
                 ["resumen", "Resumen"],
                 ["analitica", "Analítica"],
-              ] as Array<[ClientWorkspace, string]>).map(([workspace, label]) => <Button key={workspace} type="button" size="sm" variant={clientWorkspace === workspace ? "default" : "outline"} onClick={() => { setClientWorkspace(workspace); if (workspace === "registrar") setShowNewShipment(true); }} className={clientWorkspace === workspace ? "bg-[#0B2B5E] text-white" : "border-slate-300 text-slate-700"}>{label}</Button>)}
+              ] as Array<[ClientWorkspace, string]>).map(([workspace, label]) => <Button key={workspace} type="button" size="sm" variant={clientWorkspace === workspace ? "default" : "outline"} onClick={() => { setClientWorkspace(workspace); if (workspace === "registrar") setShowNewShipment(true); }} className={`${workspace === "resumen" || workspace === "analitica" ? "hidden sm:inline-flex" : ""} ${clientWorkspace === workspace ? "bg-[#0B2B5E] text-white" : "border-slate-300 text-slate-700"}`}>{label}</Button>)}
             </div>
-            <p className="mt-2 text-xs text-slate-500">Elige la tarea que necesitas para trabajar con menos desplazamiento en pantalla.</p>
+            <details className="mt-3 sm:hidden"><summary className="cursor-pointer text-xs font-semibold text-[#0B2B5E]">Más opciones de cuenta</summary><div className="mt-2 flex flex-wrap gap-2">{([["resumen", "Resumen"], ["analitica", "Analítica"]] as Array<[ClientWorkspace, string]>).map(([workspace, label]) => <Button key={workspace} type="button" size="sm" variant={clientWorkspace === workspace ? "default" : "outline"} onClick={() => setClientWorkspace(workspace)} className={clientWorkspace === workspace ? "bg-[#0B2B5E] text-white" : "border-slate-300 text-slate-700"}>{label}</Button>)}</div></details>
+            <p className="mt-2 text-xs text-slate-500">Elige una tarea principal; las opciones menos usadas quedan disponibles en «Más opciones».</p>
           </Card>
 
           {me.mustChangePassword && <Card className="border border-amber-300 bg-amber-50 p-4 shadow-sm"><div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm font-medium text-amber-950">Tu cuenta fue creada con una contraseña temporal. Cámbiala ahora para continuar con un acceso seguro.</p><Button type="button" size="sm" className="bg-[#0B2B5E] text-white hover:bg-[#123d78]" onClick={() => setClientWorkspace("seguridad")}>Cambiar contraseña</Button></div></Card>}

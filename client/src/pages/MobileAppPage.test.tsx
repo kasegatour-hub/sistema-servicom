@@ -33,8 +33,15 @@ describe("MobileAppPage", () => {
     render(<MobileAppPage />);
     fireEvent.change(screen.getByLabelText("Número de orden móvil"), { target: { value: "3520992723" } });
     fireEvent.change(screen.getByLabelText("Código de envío móvil"), { target: { value: "ca06721wb" } });
-    fireEvent.click(screen.getByRole("button", { name: "Rastrear envío" }));
+    fireEvent.click(screen.getByRole("button", { name: "Buscar" }));
 
     expect(searchMock).toHaveBeenLastCalledWith({ orderNumber: "3520992723", code: "CA06721WB" }, { enabled: true });
+  });
+
+  it("muestra una confirmación visible mientras busca el envío", () => {
+    searchMock.mockReturnValue({ data: undefined, isLoading: true, error: null });
+    render(<MobileAppPage />);
+
+    expect(screen.getByRole("status").textContent).toContain("Buscando tu envío");
   });
 });
