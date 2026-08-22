@@ -797,3 +797,9 @@
 - [x] Añadir un indicador de documentos para apostillar disponible solo en la ruta Torino–Lima
 - [x] Conservar y presentar la indicación de apostilla en el registro y comprobante
 - [x] Probar la restricción de ruta, compilación y publicar la mejora
+
+## Directorio operativo de agencias Olva y Shalom
+- [x] Verificar las fuentes oficiales disponibles de Olva y Shalom y sus datos de sede
+- [x] Rediseñar el selector con listados por empresa, búsqueda por ubicación y vista de detalle
+- [x] Autocompletar el destino al elegir una sede y mantener una opción de sede manual
+- [x] Cubrir filtros, selección y entrada manual con pruebas, compilación y publicación
