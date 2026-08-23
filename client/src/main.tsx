@@ -6,6 +6,7 @@ import { createRoot } from "react-dom/client";
 import superjson from "superjson";
 import App from "./App";
 import { getLoginUrl } from "./const";
+import { registerPwaForUpdates } from "./lib/pwaUpdate";
 import "./index.css";
 
 const queryClient = new QueryClient();
@@ -81,5 +82,5 @@ createRoot(document.getElementById("root")!).render(
 );
 
 if ("serviceWorker" in navigator && import.meta.env.PROD) {
-  window.addEventListener("load", () => navigator.serviceWorker.register("/service-worker.js").catch(() => undefined));
+  window.addEventListener("load", () => registerPwaForUpdates().catch(() => undefined));
 }

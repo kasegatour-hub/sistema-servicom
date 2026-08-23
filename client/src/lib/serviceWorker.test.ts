@@ -11,7 +11,8 @@ describe("service worker móvil", () => {
   });
 
   it("renueva y limpia la caché para sustituir la versión que podía responder HTML", () => {
-    expect(serviceWorkerSource).toContain('const CACHE_NAME = "servicom-mobile-v2"');
+    expect(serviceWorkerSource).toContain('const CACHE_NAME = "servicom-mobile-v3"');
+    expect(serviceWorkerSource).toContain('event.data?.type === "SKIP_WAITING"');
     expect(serviceWorkerSource).toContain("caches.delete(key)");
   });
 });

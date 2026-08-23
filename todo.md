@@ -833,3 +833,9 @@
 - [x] Hacer que el botón use la instalación nativa cuando esté disponible y muestre feedback claro
 - [x] Mantener la navegación «Volver al rastreo» dentro de la experiencia móvil
 - [x] Validar botones, instalación, navegación, pruebas, compilación y publicación
+
+## Aviso de nueva versión PWA
+- [x] Detectar cuando el service worker tenga una versión nueva disponible
+- [x] Mostrar un aviso visible con la acción «Actualizar aplicación»
+- [x] Actualizar de forma segura conservando sesión y contexto de rastreo
+- [x] Añadir pruebas de detección, aviso y actualización; validar compilación y publicación
