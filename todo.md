@@ -821,3 +821,15 @@
 - [x] Restaurar la visibilidad autorizada de datos históricos sin eliminar información
 - [x] Mantener aislados los nuevos espacios administrativos y validar la recuperación
 - [x] Ejecutar pruebas, compilación y publicar la corrección
+
+## Corrección de publicación, agencias y PWA móvil
+- [x] Auditar por qué la versión visible aparece como no publicada
+- [x] Cerrar el listado de agencias y conservar solo la sede seleccionada
+- [x] Añadir feedback táctil visible a los botones móviles
+- [x] Corregir el flujo de instalación y validar pruebas, compilación y publicación
+
+## Mejora de PWA móvil: logo, instalación y retorno al rastreo
+- [x] Aumentar el tamaño y presencia del logo en la pantalla móvil inicial
+- [x] Hacer que el botón use la instalación nativa cuando esté disponible y muestre feedback claro
+- [x] Mantener la navegación «Volver al rastreo» dentro de la experiencia móvil
+- [x] Validar botones, instalación, navegación, pruebas, compilación y publicación

@@ -14,7 +14,7 @@ type Agency = { id: string; provider: "OLVA COURIER" | "SHALOM"; name: string; a
 function defaultDestination(route: string) { return route === "Torino - Lima" ? SERVICOM_LIMA : SERVICOM_TORINO; }
 function formatDestination(provider: string, name: string, address: string) { return `${provider} — ${name}${address && address !== name ? ` · ${address}` : ""}`; }
 
-function AgencyDirectoryExplorer({ onSelect, onMessage }: { onSelect: (value: string) => void; onMessage: (value: string) => void }) {
+function AgencyDirectoryExplorer({ onSelect, onMessage, onClose }: { onSelect: (value: string) => void; onMessage: (value: string) => void; onClose: () => void }) {
   const [query, setQuery] = useState("");
   const [provider, setProvider] = useState<ProviderFilter>("olva");
   const [visibleCount, setVisibleCount] = useState(25);
@@ -43,11 +43,11 @@ function AgencyDirectoryExplorer({ onSelect, onMessage }: { onSelect: (value: st
     if (markerRef.current) markerRef.current.map = null;
     markerRef.current = new google.maps.marker.AdvancedMarkerElement({ map: mapRef.current, position: { lat: agency.latitude, lng: agency.longitude }, title: agency.name });
   };
-  const selectAgency = (agency: Agency) => { const destination = formatDestination(agency.provider, agency.name, agency.address); setSelectedAgency(agency); onSelect(destination); onMessage(`${agency.provider} seleccionada como agencia de destino.`); setLocationMarker(agency); };
+  const selectAgency = (agency: Agency) => { const destination = formatDestination(agency.provider, agency.name, agency.address); setSelectedAgency(agency); onSelect(destination); onMessage(`${agency.provider} seleccionada como agencia de destino.`); setLocationMarker(agency); onClose(); };
   const selectManual = () => {
     const address = manualAddress.trim(); if (!address) return;
     const destination = formatDestination("SEDE MANUAL", manualName.trim() || "Sede de destino", address);
-    onSelect(destination); onMessage("La sede manual se guardó como destino del envío.");
+    onSelect(destination); onMessage("La sede manual se guardó como destino del envío."); onClose();
   };
   const detailLocation = selectedAgency ? [selectedAgency.district, selectedAgency.province, selectedAgency.department].filter(Boolean).join(" / ") : "";
 
@@ -58,6 +58,6 @@ export function AgencyDestinationPicker({ route, value, onChange }: { route: str
   const [showExplorer, setShowExplorer] = useState(false);
   const [message, setMessage] = useState("");
   useEffect(() => { if (!value.trim()) onChange(defaultDestination(route)); }, [route, value, onChange]);
-  const selectServicom = () => { onChange(defaultDestination(route)); setMessage("Se seleccionó la sede propia de Servicom Internacional."); };
-  return <section className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 via-white to-slate-50 p-4 shadow-sm md:col-span-3"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><h4 className="flex items-center gap-2 font-semibold text-[#0B2B5E]"><Building2 className="h-4 w-4" />Agencia de destino</h4><p className="mt-1 max-w-3xl text-xs text-slate-600">Elige una sede del directorio oficial de <strong>Olva Courier</strong> o <strong>Shalom</strong>. También puedes registrar una sede indicada por el cliente escribiendo su dirección.</p></div><Button type="button" size="sm" variant="outline" onClick={() => setShowExplorer(open => !open)} className="border-[#0B2B5E] bg-white text-[#0B2B5E]"><MapPin className="mr-1 h-4 w-4" />{showExplorer ? "Cerrar directorio" : "Elegir agencia"}</Button></div><div className="mt-3 flex flex-col gap-2 sm:flex-row"><Button type="button" size="sm" variant="outline" onClick={selectServicom} className="border-blue-300 bg-white text-[#0B2B5E]">Usar sede Servicom</Button><output aria-live="polite" className="min-h-9 flex-1 rounded-md border border-blue-200 bg-white px-3 py-2 text-sm font-medium text-slate-700">{value || defaultDestination(route)}</output></div>{showExplorer && <AgencyDirectoryExplorer onSelect={onChange} onMessage={setMessage} />}{message && <p role="status" className="mt-2 rounded-lg bg-blue-50 px-3 py-2 text-sm font-medium text-[#0B2B5E]">{message}</p>}</section>;
+  const selectServicom = () => { onChange(defaultDestination(route)); setMessage("Se seleccionó la sede propia de Servicom Internacional."); setShowExplorer(false); };
+  return <section className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 via-white to-slate-50 p-4 shadow-sm md:col-span-3"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><h4 className="flex items-center gap-2 font-semibold text-[#0B2B5E]"><Building2 className="h-4 w-4" />Agencia de destino</h4><p className="mt-1 max-w-3xl text-xs text-slate-600">Elige una sede del directorio oficial de <strong>Olva Courier</strong> o <strong>Shalom</strong>. También puedes registrar una sede indicada por el cliente escribiendo su dirección.</p></div><Button type="button" size="sm" variant="outline" onClick={() => setShowExplorer(open => !open)} className="border-[#0B2B5E] bg-white text-[#0B2B5E]"><MapPin className="mr-1 h-4 w-4" />{showExplorer ? "Cerrar directorio" : "Elegir agencia"}</Button></div><div className="mt-3 flex flex-col gap-2 sm:flex-row"><Button type="button" size="sm" variant="outline" onClick={selectServicom} className="border-blue-300 bg-white text-[#0B2B5E]">Usar sede Servicom</Button><output aria-live="polite" className="min-h-9 flex-1 rounded-md border border-blue-200 bg-white px-3 py-2 text-sm font-medium text-slate-700">{value || defaultDestination(route)}</output></div>{showExplorer && <AgencyDirectoryExplorer onSelect={onChange} onMessage={setMessage} onClose={() => setShowExplorer(false)} />}{message && <p role="status" className="mt-2 rounded-lg bg-blue-50 px-3 py-2 text-sm font-medium text-[#0B2B5E]">{message}</p>}</section>;
 }

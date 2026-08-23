@@ -35,8 +35,9 @@ describe("AgencyDestinationPicker", () => {
     fireEvent.click(screen.getByRole("button", { name: "Shalom" }));
     fireEvent.click(screen.getByRole("button", { name: /JR\. RAYMONDI/i }));
     expect(onChange).toHaveBeenCalledWith("SHALOM — JR. RAYMONDI · JR. ANTONIO RAYMONDI NRO. 113");
-    expect(screen.getByText("015007878")).toBeTruthy();
-    expect(screen.getByText(/08:00 AM A 08:00 PM/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Elegir agencia" })).toBeTruthy();
+    expect(screen.queryByText("015007878")).toBeNull();
+    expect(screen.getAllByRole("status").some(element => element.textContent?.includes("SHALOM seleccionada"))).toBe(true);
   });
 
   it("permite guardar una sede manual cuando no se dispone del directorio", () => {

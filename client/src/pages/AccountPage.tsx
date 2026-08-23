@@ -830,13 +830,13 @@ export default function AccountPage() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-[#eef6fb] to-white px-4 py-8">
       <div className="mx-auto max-w-md">
-        <Link href="/" className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-[#0B2B5E] hover:text-[#F28C00]">
+        <Link href={returnToMobileApp ? "/movil" : "/"} className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-[#0B2B5E] hover:text-[#F28C00]">
           <ArrowLeft className="h-4 w-4" /> Volver al rastreo
         </Link>
 
         <Card className="overflow-hidden border-0 shadow-xl">
           <div className="bg-[#0B2B5E] px-6 py-6 text-white">
-            <img src={brandLogo} alt="Servicom Internacional" className="mb-5 h-14 w-auto rounded bg-white p-1" />
+            <img src={brandLogo} alt="Servicom Internacional" className="mb-5 h-24 w-24 rounded-2xl bg-white p-2 object-contain shadow-lg" />
             <div className="flex items-center gap-3">
               {mode === "register" ? <UserPlus className="h-7 w-7 text-[#F28C00]" /> : mode === "request" || mode === "reset" ? <KeyRound className="h-7 w-7 text-[#F28C00]" /> : <Lock className="h-7 w-7 text-[#F28C00]" />}
               <div>

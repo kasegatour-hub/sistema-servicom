@@ -33,7 +33,7 @@ describe("MobileAppPage", () => {
     render(<MobileAppPage />);
 
     expect(screen.getByRole("heading", { name: "Tu oficina de envíos, en el bolsillo." })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Ver cómo instalar" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Instalar aplicación" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Iniciar sesión" }).getAttribute("href")).toBe("/cuenta?returnTo=%2Fmovil");
     expect(screen.queryByRole("heading", { name: "Rastrear envío" })).toBeNull();
     expect(screen.queryByRole("button", { name: /Escanear QR/ })).toBeNull();
@@ -41,7 +41,7 @@ describe("MobileAppPage", () => {
 
   it("explica cómo instalar en Android y iPhone cuando el navegador no ofrece el aviso nativo", () => {
     render(<MobileAppPage />);
-    fireEvent.click(screen.getByRole("button", { name: "Ver cómo instalar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Instalar aplicación" }));
 
     expect(screen.getByText(/Android:/)).toBeTruthy();
     expect(screen.getByText(/iPhone\/iPad:/)).toBeTruthy();
