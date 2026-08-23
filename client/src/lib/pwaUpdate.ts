@@ -31,13 +31,22 @@ export function watchPwaRegistration(registration: PwaRegistrationLike) {
   return registration;
 }
 
+export async function checkPwaForUpdates(registration: PwaRegistrationLike) {
+  await registration.update().catch(() => undefined);
+  if (registration.waiting) notifyPwaUpdateAvailable();
+}
+
 export async function registerPwaForUpdates() {
   if (!("serviceWorker" in navigator) || !import.meta.env.PROD) return null;
   const registration = await navigator.serviceWorker.register("/service-worker.js");
   watchPwaRegistration(registration);
-  const refresh = () => registration.update().catch(() => undefined);
+  void checkPwaForUpdates(registration);
+
+  const refresh = () => void checkPwaForUpdates(registration);
   window.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") refresh();
   });
+  window.addEventListener("online", refresh);
+  window.setInterval(refresh, 60_000);
   return registration;
 }

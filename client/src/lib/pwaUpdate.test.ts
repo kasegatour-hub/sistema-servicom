@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { PWA_UPDATE_EVENT, requestPwaUpdate, watchPwaRegistration } from "./pwaUpdate";
+import { PWA_UPDATE_EVENT, checkPwaForUpdates, requestPwaUpdate, watchPwaRegistration, type PwaRegistrationLike } from "./pwaUpdate";
 
 describe("PWA update flow", () => {
   it("notifies when a waiting service worker already exists", () => {
@@ -30,5 +30,20 @@ describe("PWA update flow", () => {
   it("does not attempt activation when no update is waiting", () => {
     const registration = { waiting: null } as ServiceWorkerRegistration & { waiting: ServiceWorker | null };
     expect(requestPwaUpdate(registration)).toBe(false);
+  });
+
+  it("announces a waiting worker discovered by a later update check", async () => {
+    const browserEvents = new EventTarget();
+    vi.stubGlobal("window", browserEvents);
+    const listener = vi.fn();
+    window.addEventListener(PWA_UPDATE_EVENT, listener);
+    const registration = { waiting: { postMessage: vi.fn() }, update: vi.fn().mockResolvedValue(undefined) } as unknown as PwaRegistrationLike;
+
+    await checkPwaForUpdates(registration);
+
+    expect(registration.update).toHaveBeenCalledTimes(1);
+    expect(listener).toHaveBeenCalledTimes(1);
+    window.removeEventListener(PWA_UPDATE_EVENT, listener);
+    vi.unstubAllGlobals();
   });
 });

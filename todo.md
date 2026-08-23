@@ -846,3 +846,9 @@
 - [x] Dejar al Cliente únicamente Registrar, Rastrear y Cambiar contraseña
 - [x] Ocultar analítica y herramientas administrativas al Cliente
 - [x] Añadir pruebas de permisos, validar móvil, compilación y publicar
+
+## Corrección del aviso de actualización PWA
+- [x] Hacer visible el aviso también en instalaciones existentes con service worker registrado
+- [x] Reforzar la comprobación periódica y al volver a la aplicación
+- [x] Añadir una comprobación manual de nueva versión con feedback
+- [x] Añadir pruebas de regresión, validar móvil, compilación y publicar
