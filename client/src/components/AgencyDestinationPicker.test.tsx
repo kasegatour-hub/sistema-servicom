@@ -40,6 +40,18 @@ describe("AgencyDestinationPicker", () => {
     expect(screen.getAllByRole("status").some(element => element.textContent?.includes("SHALOM seleccionada"))).toBe(true);
   });
 
+  it("ofrece FedEx y DHL con acceso a sus localizadores mundiales oficiales", () => {
+    render(<AgencyDestinationPicker route="Torino - Lima" value="DESTINO ACTUAL" onChange={() => undefined} />);
+    fireEvent.click(screen.getByRole("button", { name: "Elegir agencia" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "FedEx" }));
+    expect(screen.getByText(/Consulta todas las sedes actuales/i)).toBeTruthy();
+    expect(screen.getByRole("link", { name: /Abrir localizador de FedEx/i }).getAttribute("href")).toBe("https://local.fedex.com/en");
+
+    fireEvent.click(screen.getByRole("button", { name: "DHL" }));
+    expect(screen.getByRole("link", { name: /Abrir localizador de DHL/i }).getAttribute("href")).toBe("https://locator.dhl.com/?l=en");
+  });
+
   it("permite guardar una sede manual cuando no se dispone del directorio", () => {
     const onChange = vi.fn();
     render(<AgencyDestinationPicker route="Torino - Lima" value="DESTINO ACTUAL" onChange={onChange} />);

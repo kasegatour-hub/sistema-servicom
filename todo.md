@@ -852,3 +852,16 @@
 - [x] Reforzar la comprobación periódica y al volver a la aplicación
 - [x] Añadir una comprobación manual de nueva versión con feedback
 - [x] Añadir pruebas de regresión, validar móvil, compilación y publicar
+
+## Directorio de sedes FedEx y DHL
+- [x] Verificar las fuentes oficiales y el alcance geográfico de las sedes FedEx y DHL
+- [x] Añadir FedEx y DHL como proveedores del selector de destinos
+- [x] Mostrar búsqueda, dirección, ciudad, contacto, horarios y fuente de cada sede disponible
+- [x] Autocompletar el destino al seleccionar una sede y conservar la opción manual
+- [x] Añadir pruebas, validar responsive, compilación y publicar
+
+## Ampliación mundial FedEx y DHL
+- [x] Diseñar búsqueda mundial por país, ciudad, código postal y dirección para FedEx y DHL
+- [x] Integrar enlaces y consulta de los localizadores oficiales mundiales sin inventar sedes
+- [x] Mostrar claramente la fecha/fuente de los datos y permitir sede manual cuando el localizador no responda
+- [x] Añadir pruebas de proveedores, selección y manejo de errores; validar compilación y publicar
