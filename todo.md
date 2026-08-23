@@ -839,3 +839,10 @@
 - [x] Mostrar un aviso visible con la acción «Actualizar aplicación»
 - [x] Actualizar de forma segura conservando sesión y contexto de rastreo
 - [x] Añadir pruebas de detección, aviso y actualización; validar compilación y publicación
+
+## Acceso móvil único y permisos por cuenta
+- [x] Unificar el inicio de sesión móvil para Cliente, Registrador y Master Admin
+- [x] Mostrar las funciones móviles según el rol/permisos de la cuenta autenticada
+- [x] Dejar al Cliente únicamente Registrar, Rastrear y Cambiar contraseña
+- [x] Ocultar analítica y herramientas administrativas al Cliente
+- [x] Añadir pruebas de permisos, validar móvil, compilación y publicar

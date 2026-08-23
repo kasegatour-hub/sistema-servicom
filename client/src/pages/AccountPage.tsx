@@ -41,6 +41,7 @@ const getLockoutSecondsFromMessage = (message: string) => Number(message.match(/
 export default function AccountPage() {
   const [, setLocation] = useLocation();
   const returnToMobileApp = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("returnTo") === "/movil";
+  const mobileClientMode = returnToMobileApp || (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("mobile") === "1");
   const [mode, setMode] = useState<AccountMode>("login");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -473,18 +474,10 @@ export default function AccountPage() {
 
           <Card className="border-0 p-4 shadow-sm" aria-label="Áreas de mi cuenta">
             <div className="flex flex-wrap items-center gap-2">
-              {([
-                ["envios", "Mis envíos"],
-                ["registrar", "Registrar documento"],
-                ["papelera", `Papelera (${myDeletedShipments?.length || 0})`],
-                ["perfil", "Mi perfil"],
-                ["seguridad", "Seguridad"],
-                ["resumen", "Resumen"],
-                ["analitica", "Analítica"],
-              ] as Array<[ClientWorkspace, string]>).map(([workspace, label]) => <Button key={workspace} type="button" size="sm" variant={clientWorkspace === workspace ? "default" : "outline"} onClick={() => { setClientWorkspace(workspace); if (workspace === "registrar") setShowNewShipment(true); }} className={`${workspace === "resumen" || workspace === "analitica" ? "hidden sm:inline-flex" : ""} ${clientWorkspace === workspace ? "bg-[#0B2B5E] text-white" : "border-slate-300 text-slate-700"}`}>{label}</Button>)}
+              {((mobileClientMode ? [["envios", "Rastrear"], ["registrar", "Registrar"], ["seguridad", "Cambiar contraseña"]] : [["envios", "Mis envíos"], ["registrar", "Registrar documento"], ["papelera", `Papelera (${myDeletedShipments?.length || 0})`], ["perfil", "Mi perfil"], ["seguridad", "Seguridad"], ["resumen", "Resumen"], ["analitica", "Analítica"]]) as Array<[ClientWorkspace, string]>).map(([workspace, label]) => <Button key={workspace} type="button" size="sm" variant={clientWorkspace === workspace ? "default" : "outline"} onClick={() => { setClientWorkspace(workspace); if (workspace === "registrar") setShowNewShipment(true); }} className={`${!mobileClientMode && (workspace === "resumen" || workspace === "analitica") ? "hidden sm:inline-flex" : ""} ${clientWorkspace === workspace ? "bg-[#0B2B5E] text-white" : "border-slate-300 text-slate-700"}`}>{label}</Button>)}
             </div>
-            <details className="mt-3 sm:hidden"><summary className="cursor-pointer text-xs font-semibold text-[#0B2B5E]">Más opciones de cuenta</summary><div className="mt-2 flex flex-wrap gap-2">{([["resumen", "Resumen"], ["analitica", "Analítica"]] as Array<[ClientWorkspace, string]>).map(([workspace, label]) => <Button key={workspace} type="button" size="sm" variant={clientWorkspace === workspace ? "default" : "outline"} onClick={() => setClientWorkspace(workspace)} className={clientWorkspace === workspace ? "bg-[#0B2B5E] text-white" : "border-slate-300 text-slate-700"}>{label}</Button>)}</div></details>
-            <p className="mt-2 text-xs text-slate-500">Elige una tarea principal; las opciones menos usadas quedan disponibles en «Más opciones».</p>
+            {!mobileClientMode && <details className="mt-3 sm:hidden"><summary className="cursor-pointer text-xs font-semibold text-[#0B2B5E]">Más opciones de cuenta</summary><div className="mt-2 flex flex-wrap gap-2">{([["resumen", "Resumen"], ["analitica", "Analítica"]] as Array<[ClientWorkspace, string]>).map(([workspace, label]) => <Button key={workspace} type="button" size="sm" variant={clientWorkspace === workspace ? "default" : "outline"} onClick={() => setClientWorkspace(workspace)} className={clientWorkspace === workspace ? "bg-[#0B2B5E] text-white" : "border-slate-300 text-slate-700"}>{label}</Button>)}</div></details>}
+            <p className="mt-2 text-xs text-slate-500">{mobileClientMode ? "En la aplicación móvil del Cliente solo están disponibles registrar, rastrear y cambiar contraseña." : "Elige una tarea principal; las opciones menos usadas quedan disponibles en «Más opciones»."}</p>
           </Card>
 
           {me.mustChangePassword && <Card className="border border-amber-300 bg-amber-50 p-4 shadow-sm"><div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm font-medium text-amber-950">Tu cuenta fue creada con una contraseña temporal. Cámbiala ahora para continuar con un acceso seguro.</p><Button type="button" size="sm" className="bg-[#0B2B5E] text-white hover:bg-[#123d78]" onClick={() => setClientWorkspace("seguridad")}>Cambiar contraseña</Button></div></Card>}
@@ -595,7 +588,7 @@ export default function AccountPage() {
             <details className="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3"><summary className="cursor-pointer text-sm font-semibold text-[#0B2B5E]">Ver detalle de mis pagos</summary><div className="mt-3 grid grid-cols-2 gap-3 text-sm md:grid-cols-4"><div><span className="block text-xs text-slate-500">Envíos pagados</span><strong>{clientRevenue.paidCount}</strong></div><div><span className="block text-xs text-slate-500">Pendiente</span><strong>{clientRevenue.pendingEur.toLocaleString("es-PE", { style: "currency", currency: "EUR" })}</strong></div><div><span className="block text-xs text-slate-500">Registros pendientes</span><strong>{clientRevenue.pendingCount}</strong></div><div><span className="block text-xs text-slate-500">Total de envíos</span><strong>{clientRevenue.totalCount}</strong></div></div></details>
           </Card>
 
-          {clientWorkspace === "analitica" && (
+          {!mobileClientMode && clientWorkspace === "analitica" && (
             <Card className="border-0 p-6 shadow-md">
               <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-bold text-[#0B2B5E]">Analítica de interacción y tendencias</h2><p className="mt-1 text-xs text-slate-500">Esta área se abre solo cuando deseas revisar la operación. No analiza nombres, documentos, teléfonos ni notas.</p></div>{myInsights && <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-bold text-[#0B2B5E]">Puntaje {myInsights.engagementScore}/100</span>}</div>
               {myInsights && <><div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4"><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Interacciones</p><strong>{myInsights.totalEvents}</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Sesiones</p><strong>{myInsights.uniqueSessions}</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Continuidad</p><strong>{Math.round(myInsights.completionRate * 100)}%</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Actividad atípica</p><strong>{myInsights.anomalyScore}/100</strong></div></div><ul className="mt-4 space-y-1 text-sm text-slate-700">{myInsights.insights.map((insight: string) => <li key={insight}>• {insight}</li>)}</ul></>}

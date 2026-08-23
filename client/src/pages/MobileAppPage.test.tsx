@@ -62,6 +62,17 @@ describe("MobileAppPage", () => {
     expect(searchMock).toHaveBeenLastCalledWith({ orderNumber: "3520992723", code: "CA06721WB" }, { enabled: true });
   });
 
+  it("mantiene al Cliente dentro de las tres funciones permitidas y no expone administración", () => {
+    accountMocks.session = { id: 7, email: "cliente@servicom.pe", name: "Cliente", reauthRequired: false };
+    render(<MobileAppPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Mi cuenta" }));
+
+    expect(screen.getByText("Funciones disponibles:")).toBeTruthy();
+    expect(screen.getByText(/registrar envíos, rastrear y cambiar contraseña/i)).toBeTruthy();
+    expect(screen.queryByText("Acceso de operador")).toBeNull();
+    expect(screen.getByRole("link", { name: "Abrir mi cuenta" }).getAttribute("href")).toBe("/cuenta?returnTo=%2Fmovil");
+  });
+
   it("muestra una confirmación visible mientras busca el envío autenticado", () => {
     accountMocks.session = { id: 7, email: "cliente@servicom.pe", reauthRequired: false };
     searchMock.mockReturnValue({ data: undefined, isLoading: true, error: null });
