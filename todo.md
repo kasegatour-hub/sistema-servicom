@@ -1124,11 +1124,11 @@
 - [x] Validar móvil/escritorio y publicar
 
 ## Aislamiento crítico del espacio de Magdalena
-- [ ] Auditar consultas, rastreo, panel, papelera, ingresos y acciones administrativas
-- [ ] Impedir acceso a usuarios, Registradores y Admin Perú Servicom
-- [ ] Permitir acceso únicamente a la cuenta de Magdalena
-- [ ] Añadir pruebas de autorización y ausencia de filtración entre espacios
-- [ ] Validar y publicar
+- [x] Auditar consultas, rastreo, panel, papelera, ingresos y acciones administrativas
+- [x] Impedir acceso a usuarios, Registradores y Admin Perú Servicom
+- [x] Permitir acceso únicamente a la cuenta de Magdalena
+- [x] Añadir pruebas de autorización y ausencia de filtración entre espacios
+- [x] Validar y publicar
 
 ## Aislamiento de espacios administrativos
 - [x] Aislamiento estricto de los registros de Magdalena Barreto frente a listados, papelera, auditoría, actualización, eliminación y resúmenes administrativos
