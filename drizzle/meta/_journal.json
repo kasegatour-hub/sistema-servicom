@@ -239,6 +239,13 @@
       "when": 1787594151439,
       "tag": "0033_colossal_northstar",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "5",
+      "when": 1787595300559,
+      "tag": "0034_magenta_fixer",
+      "breakpoints": true
     }
   ]
 }

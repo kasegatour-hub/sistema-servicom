@@ -683,6 +683,10 @@ export const adminRouter = router({
       route: z.enum(ROUTE_VALUES).default("Lima - Torino"),
       originAddress: z.string().optional(),
       destinationAddress: z.string().optional(),
+      isProvinceDelivery: z.boolean().default(false),
+      provinceCustomerPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
+      provinceOperationalCostSoles: z.union([z.string(), z.number()]).optional().nullable(),
+      provinceCarrier: z.enum(["olva", "shalom"]).default("shalom"),
       couponCode: z.string().trim().max(64).optional(),
       contentChecklist: z.array(z.string().trim().min(1).max(160)).max(24).min(1, "La lista de cosas enviadas es obligatoria."),
       isIncomplete: z.boolean().default(false),
@@ -693,6 +697,7 @@ export const adminRouter = router({
       if (input.recipientDni && !isIdentityDocumentValid(input.recipientDni, input.recipientDocumentType)) ctx.addIssue({ code: "custom", path: ["recipientDni"], message: identityDocumentValidationMessage(input.recipientDocumentType) });
       if (input.requiresApostilleService && (input.shipmentType !== "documento" || input.route !== "Torino - Lima")) ctx.addIssue({ code: "custom", path: ["requiresApostilleService"], message: "La opción «Documentos para apostillar» solo está disponible para documentos en la ruta Torino - Lima." });
       if (input.requiresTranslationService && (input.shipmentType !== "documento" || input.route !== "Torino - Lima")) ctx.addIssue({ code: "custom", path: ["requiresTranslationService"], message: "La traducción solo está disponible para documentos en la ruta Torino - Lima." });
+      if (input.isProvinceDelivery && input.route !== "Torino - Lima") ctx.addIssue({ code: "custom", path: ["isProvinceDelivery"], message: "El envío a provincia solo está disponible para la ruta Italia–Lima." });
     }))
     .mutation(async ({ input, ctx }) => {
       if (input.shipmentType === "encomienda" && input.route === "Lima - Torino" && !await isEncomiendaEnabledForRoute(input.route)) {
@@ -765,6 +770,10 @@ export const adminRouter = router({
         pricing.serviceManualPriceSoles,
         input.isIncomplete,
         input.incompleteReason,
+        pricing.isProvinceDelivery,
+        pricing.provinceCustomerPriceEur,
+        pricing.provinceOperationalCostSoles,
+        pricing.provinceCarrier,
       );
       if (!result) {
         throw new TRPCError({
@@ -786,6 +795,9 @@ export const adminRouter = router({
         discountPercent: discount.discountPercent,
         discountAmountEur: discount.discountAmountEur,
         finalPriceEur: discount.finalPriceEur,
+        provinceCustomerPriceEur: pricing.provinceCustomerPriceEur,
+        provinceOperationalCostSoles: pricing.provinceOperationalCostSoles,
+        provinceCarrier: pricing.provinceCarrier,
         shipmentId: Number((result as any)?.insertId || 0),
       };
     }),

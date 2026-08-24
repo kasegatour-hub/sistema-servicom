@@ -249,9 +249,9 @@ export default function Home() {
                 App móvil
               </button>
               <button onClick={() => window.location.href = '/cuenta'} className="rounded px-2 py-2 text-xs font-medium text-white transition active:scale-[0.97] hover:bg-white/20 sm:px-3 sm:text-sm">
-                Mi cuenta
+                Cliente
               </button>
-              <button onClick={() => window.location.href = '/admin'} className="rounded px-2 py-2 text-xs font-medium text-white transition active:scale-[0.97] hover:bg-white/20 sm:px-3 sm:text-sm">
+              <button onClick={() => window.location.href = '/admin'} className="rounded bg-[#F28C00] px-2 py-2 text-xs font-bold text-white transition active:scale-[0.97] hover:bg-[#d97800] sm:px-3 sm:text-sm">
                 Admin
               </button>
             </div>

@@ -1067,6 +1067,10 @@ export async function createShipment(
   serviceManualPriceSoles?: string | number | null,
   isIncomplete?: boolean,
   incompleteReason?: string | null,
+  isProvinceDelivery?: boolean,
+  provinceCustomerPriceEur?: string | number | null,
+  provinceOperationalCostSoles?: string | number | null,
+  provinceCarrier?: "olva" | "shalom" | null,
 ) {
   const db = await getDb();
   if (!db) {
@@ -1080,6 +1084,7 @@ export async function createShipment(
   const normalizedShipmentType = shipmentType || "documento";
   const normalizedRoute = route || "Lima - Torino";
   const canRequireApostilleService = normalizedShipmentType === "documento" && normalizedRoute === "Torino - Lima";
+  const provinceDelivery = Boolean(isProvinceDelivery) && normalizedRoute === "Torino - Lima";
 
   const events = [
     {
@@ -1127,6 +1132,10 @@ export async function createShipment(
     route: normalizedRoute,
     originAddress: originAddress || "",
     destinationAddress: destinationAddress || "",
+    isProvinceDelivery: provinceDelivery ? 1 : 0,
+    provinceCustomerPriceEur: provinceDelivery && provinceCustomerPriceEur !== undefined && provinceCustomerPriceEur !== null && String(provinceCustomerPriceEur).trim() !== "" ? String(provinceCustomerPriceEur) : null,
+    provinceOperationalCostSoles: provinceDelivery && provinceOperationalCostSoles !== undefined && provinceOperationalCostSoles !== null && String(provinceOperationalCostSoles).trim() !== "" ? String(provinceOperationalCostSoles) : null,
+    provinceCarrier: provinceDelivery ? provinceCarrier || "shalom" : null,
     documentItems: documentItems || null,
     contentChecklist: contentChecklist || null,
     deliveryMode: deliveryMode || "agencia",

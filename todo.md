@@ -886,3 +886,11 @@
 - [x] Añadir indicador y detalle opcional de envío incompleto para documentos y encomiendas
 - [x] Permitir cargar y consultar fotos asociadas a cada envío con almacenamiento seguro
 - [x] Añadir pruebas, validar permisos, compilación y publicar
+
+## Accesos y costos de provincia Italia–Lima
+- [x] Mostrar dos opciones separadas de inicio de sesión: Admin y Cliente
+- [x] Añadir precio cobrado al cliente en EUR para envío a provincia
+- [x] Añadir costo operativo separado de Olva/Shalom para envío a provincia
+- [x] Aplicar costo operativo fijo de S/ 8 a documentos enviados a provincia
+- [x] Reflejar precio, costo, ingresos y gastos en formularios y reportes autorizados
+- [x] Añadir pruebas de accesos, rutas, costos y publicación

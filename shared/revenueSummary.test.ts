@@ -7,7 +7,7 @@ describe("revenue summary", () => {
       { finalPriceEur: "45", paymentStatus: "Pagado", shipmentType: "documento" },
       { finalPriceEur: 27, paymentStatus: "Pagado", shipmentType: "encomienda" },
       { finalPriceEur: "50", paymentStatus: "Falta cancelar", shipmentType: "documento" },
-    ])).toEqual({ confirmedEur: 72, pendingEur: 50, paidCount: 2, pendingCount: 1, documentsEur: 45, parcelsEur: 27, unpricedPaidCount: 0, totalCount: 3 });
+    ])).toEqual({ confirmedEur: 72, pendingEur: 50, paidCount: 2, pendingCount: 1, documentsEur: 45, parcelsEur: 27, unpricedPaidCount: 0, totalCount: 3, provinceShipmentCount: 0, provinceOperationalCostSoles: 0 });
   });
 
   it("excludes deleted and hidden shipments and flags paid records that have no price", () => {

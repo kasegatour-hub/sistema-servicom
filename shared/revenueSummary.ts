@@ -5,6 +5,8 @@ export type RevenueShipment = {
   shipmentType?: "documento" | "encomienda" | string | null;
   deletedAt?: string | Date | null;
   hiddenFromRegistradoresAt?: string | Date | null;
+  isProvinceDelivery?: boolean | number | null;
+  provinceOperationalCostSoles?: string | number | null;
 };
 
 const money = (value: string | number | null | undefined) => {
@@ -21,8 +23,14 @@ export function summarizeRevenue(shipments: RevenueShipment[] | null | undefined
   let documentsEur = 0;
   let parcelsEur = 0;
   let unpricedPaidCount = 0;
+  let provinceOperationalCostSoles = 0;
+  let provinceShipmentCount = 0;
 
   for (const shipment of rows) {
+    if (Boolean(shipment.isProvinceDelivery) && money(shipment.provinceOperationalCostSoles) > 0) {
+      provinceShipmentCount += 1;
+      provinceOperationalCostSoles += money(shipment.provinceOperationalCostSoles);
+    }
     const storedPrice = shipment.finalPriceEur ?? shipment.basePriceEur;
     const hasStoredPrice = storedPrice !== null && storedPrice !== undefined && String(storedPrice).trim() !== "";
     const amount = money(storedPrice);
@@ -50,5 +58,7 @@ export function summarizeRevenue(shipments: RevenueShipment[] | null | undefined
     parcelsEur: Math.round(parcelsEur * 100) / 100,
     unpricedPaidCount,
     totalCount: rows.length,
+    provinceShipmentCount,
+    provinceOperationalCostSoles: Math.round(provinceOperationalCostSoles * 100) / 100,
   };
 }

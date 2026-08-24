@@ -264,6 +264,10 @@ export const shipments = mysqlTable("shipments", {
   route: varchar("route", { length: 100 }).default("Lima - Torino").notNull(),
   originAddress: text("originAddress"),
   destinationAddress: text("destinationAddress"),
+  isProvinceDelivery: int("isProvinceDelivery").default(0).notNull(),
+  provinceCustomerPriceEur: decimal("provinceCustomerPriceEur", { precision: 10, scale: 2 }),
+  provinceOperationalCostSoles: decimal("provinceOperationalCostSoles", { precision: 10, scale: 2 }),
+  provinceCarrier: mysqlEnum("provinceCarrier", ["olva", "shalom"]).default("shalom"),
   deliveryMode: mysqlEnum("deliveryMode", ["agencia", "remoto"]).default("agencia").notNull(),
   documentItems: longtext("documentItems"), // JSON con documentos adicionales y sus recargos/manuales
   contentChecklist: longtext("contentChecklist"), // JSON con la lista de contenido verificado

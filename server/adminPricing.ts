@@ -13,6 +13,10 @@ export type AdminShipmentPricingInput = {
   requiresTranslationService?: boolean;
   serviceManualPriceEur?: string | number | null;
   serviceManualPriceSoles?: string | number | null;
+  isProvinceDelivery?: boolean;
+  provinceCustomerPriceEur?: string | number | null;
+  provinceOperationalCostSoles?: string | number | null;
+  provinceCarrier?: "olva" | "shalom";
   notes?: string;
 };
 
@@ -35,6 +39,14 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
   const requiresTranslationService = Boolean(input.requiresTranslationService) && servicesAllowed;
   const servicePriceEur = requiresApostilleService ? serviceManualPriceEur ?? 40 : 0;
   const servicePriceSoles = (requiresApostilleService ? serviceManualPriceSoles ?? 160 : 0) + (requiresTranslationService ? serviceManualPriceSoles ?? 200 : 0);
+  const provinceEnabled = Boolean(input.isProvinceDelivery) && route === "Torino - Lima";
+  const rawProvinceCustomerPrice = input.provinceCustomerPriceEur === undefined || input.provinceCustomerPriceEur === null ? "" : String(input.provinceCustomerPriceEur).trim();
+  const parsedProvinceCustomerPrice = Number(rawProvinceCustomerPrice);
+  const provinceCustomerPriceEur = provinceEnabled && rawProvinceCustomerPrice !== "" && Number.isFinite(parsedProvinceCustomerPrice) && parsedProvinceCustomerPrice >= 0 ? parsedProvinceCustomerPrice : 0;
+  const rawProvinceOperationalCost = input.provinceOperationalCostSoles === undefined || input.provinceOperationalCostSoles === null ? "" : String(input.provinceOperationalCostSoles).trim();
+  const parsedProvinceOperationalCost = Number(rawProvinceOperationalCost);
+  const provinceOperationalCostSoles = provinceEnabled ? (rawProvinceOperationalCost !== "" && Number.isFinite(parsedProvinceOperationalCost) && parsedProvinceOperationalCost >= 0 ? parsedProvinceOperationalCost : shipmentType === "documento" ? 8 : 0) : 0;
+  const provinceCarrier = provinceEnabled ? input.provinceCarrier || "shalom" : null;
   const rawExtraPrice = input.extraPriceEur === undefined || input.extraPriceEur === null ? "0" : String(input.extraPriceEur).trim();
   const parsedExtraPrice = Number(rawExtraPrice);
   const extraPriceEur = Number.isFinite(parsedExtraPrice) && parsedExtraPrice >= 0 ? parsedExtraPrice : 0;
@@ -61,7 +73,8 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
     tariffDescription = `Documento apostillado (${sheetCount} hoja${sheetCount > 1 ? "s" : ""}): ${basePrice} EUR${additionalDocuments.items.length ? `. Adicionales: ${additionalDocuments.items.map(item => item.description).join("; ")}` : ""}`;
   }
 
-  const totalWithExtraEur = totalEur + extraPriceEur + servicePriceEur;
+  const totalWithExtraEur = totalEur + extraPriceEur + servicePriceEur + provinceCustomerPriceEur;
+  const provinceDescription = provinceEnabled ? ` Envío a provincia (${provinceCarrier === "olva" ? "Olva" : "Shalom"}): cliente +${provinceCustomerPriceEur.toFixed(2)} EUR; costo operativo S/${provinceOperationalCostSoles.toFixed(2)}.` : "";
   const extraDescription = extraPriceEur > 0 ? ` Importe extra: +${extraPriceEur.toFixed(2)} EUR.` : "";
   const serviceDescription = `${requiresApostilleService ? ` Servicio de apostilla Italia–Lima: +${servicePriceEur.toFixed(2)} EUR y +${(serviceManualPriceSoles ?? 160).toFixed(2)} soles.` : ""}${requiresTranslationService ? ` Servicio de traducción Italia–Lima: +${(serviceManualPriceSoles ?? 200).toFixed(2)} soles.` : ""}`;
   return {
@@ -78,8 +91,12 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
     serviceManualPriceSoles,
     servicePriceEur,
     servicePriceSoles,
+    isProvinceDelivery: provinceEnabled,
+    provinceCustomerPriceEur,
+    provinceOperationalCostSoles,
+    provinceCarrier,
     totalEur: totalWithExtraEur,
     additionalDocuments,
-    notes: `Tarifa: ${tariffDescription}.${serviceDescription}${extraDescription} ${input.notes || ""}`.trim(),
+    notes: `Tarifa: ${tariffDescription}.${serviceDescription}${provinceDescription}${extraDescription} ${input.notes || ""}`.trim(),
   };
 }
