@@ -1019,3 +1019,11 @@
 - [x] Retirar el botón «Ocultar a Registradores» de sus registros
 - [x] Mantener el aislamiento por cuenta y las acciones administrativas restantes
 - [x] Añadir pruebas, validar la interfaz y publicar
+
+## Agencias completas y reglas provinciales refinadas
+- [x] Ampliar el catálogo de sedes de Shalom, Olva, DHL y FedEx
+- [x] Aplicar el peso real del envío provincial al cálculo automático
+- [x] Separar el cargo provincial del precio base Italia → Lima
+- [x] Calcular sobre 10 kg un extra proporcional editable y obligatorio
+- [x] Usar para Magda el origen Via Muriaglio 12, Torino, sus contactos y logo Kasega
+- [x] Añadir pruebas, validar recibos y publicar

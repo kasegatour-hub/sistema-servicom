@@ -686,6 +686,7 @@ export const adminRouter = router({
       destinationAddress: z.string().optional(),
       isProvinceDelivery: z.boolean().default(false),
       provinceCustomerPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
+      provinceExtraPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
       provinceOperationalCostSoles: z.union([z.string(), z.number()]).optional().nullable(),
       provinceCarrier: z.enum(["olva", "shalom"]).default("shalom"),
       couponCode: z.string().trim().max(64).optional(),
@@ -773,6 +774,7 @@ export const adminRouter = router({
         input.incompleteReason,
         pricing.isProvinceDelivery,
         pricing.provinceCustomerPriceEur,
+        pricing.provinceExtraPriceEur,
         pricing.provinceOperationalCostSoles,
         pricing.provinceCarrier,
       );
@@ -797,6 +799,7 @@ export const adminRouter = router({
         discountAmountEur: discount.discountAmountEur,
         finalPriceEur: discount.finalPriceEur,
         provinceCustomerPriceEur: pricing.provinceCustomerPriceEur,
+        provinceExtraPriceEur: pricing.provinceExtraPriceEur,
         provinceOperationalCostSoles: pricing.provinceOperationalCostSoles,
         provinceCarrier: pricing.provinceCarrier,
         shipmentId: Number((result as any)?.insertId || 0),
@@ -856,6 +859,7 @@ export const adminRouter = router({
       pricingMode: z.enum(["estandar", "manual"]).default("estandar"),
       isProvinceDelivery: z.boolean().optional(),
       provinceCustomerPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
+      provinceExtraPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
       provinceOperationalCostSoles: z.union([z.string(), z.number()]).optional().nullable(),
       provinceCarrier: z.enum(["olva", "shalom"]).optional(),
     }).superRefine((input, ctx) => {
@@ -883,7 +887,7 @@ export const adminRouter = router({
       const effectiveDocumentKind = input.docType ?? currentShipment.documentKind ?? "apostillado";
       const effectiveDocumentSheetCount = input.sheetCount ?? currentShipment.documentSheetCount ?? 1;
       const effectiveExtraPrice = input.extraPriceEur ?? currentShipment.extraPriceEur ?? 0;
-      const pricing = isParcel ? calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: effectiveWeight, manualPriceEur: input.pricingMode === "manual" ? input.manualPriceEur : null, extraPriceEur: effectiveExtraPrice, route: effectiveRoute, isProvinceDelivery: input.isProvinceDelivery ?? Boolean(currentShipment.isProvinceDelivery), provinceCustomerPriceEur: input.provinceCustomerPriceEur ?? currentShipment.provinceCustomerPriceEur, provinceOperationalCostSoles: input.provinceOperationalCostSoles ?? currentShipment.provinceOperationalCostSoles, provinceCarrier: input.provinceCarrier ?? currentShipment.provinceCarrier }) : null;
+      const pricing = isParcel ? calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: effectiveWeight, manualPriceEur: input.pricingMode === "manual" ? input.manualPriceEur : null, extraPriceEur: effectiveExtraPrice, route: effectiveRoute, isProvinceDelivery: input.isProvinceDelivery ?? Boolean(currentShipment.isProvinceDelivery), provinceCustomerPriceEur: input.provinceCustomerPriceEur ?? currentShipment.provinceCustomerPriceEur, provinceExtraPriceEur: input.provinceExtraPriceEur ?? currentShipment.provinceExtraPriceEur, provinceOperationalCostSoles: input.provinceOperationalCostSoles ?? currentShipment.provinceOperationalCostSoles, provinceCarrier: input.provinceCarrier ?? currentShipment.provinceCarrier }) : null;
       const documentPricing = !isParcel
         ? calculateAdminShipmentPricing({ shipmentType: "documento", docType: effectiveDocumentKind, sheetCount: effectiveDocumentSheetCount, manualPriceEur: input.pricingMode === "manual" ? input.manualPriceEur : null, extraPriceEur: effectiveExtraPrice })
         : null;
@@ -920,6 +924,7 @@ export const adminRouter = router({
         effectiveRequiresApostilleService,
         input.isProvinceDelivery,
         input.provinceCustomerPriceEur,
+        input.provinceExtraPriceEur,
         input.provinceOperationalCostSoles,
         input.provinceCarrier,
       );

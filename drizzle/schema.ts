@@ -266,6 +266,7 @@ export const shipments = mysqlTable("shipments", {
   destinationAddress: text("destinationAddress"),
   isProvinceDelivery: int("isProvinceDelivery").default(0).notNull(),
   provinceCustomerPriceEur: decimal("provinceCustomerPriceEur", { precision: 10, scale: 2 }),
+  provinceExtraPriceEur: decimal("provinceExtraPriceEur", { precision: 10, scale: 2 }).default("0.00").notNull(),
   provinceOperationalCostSoles: decimal("provinceOperationalCostSoles", { precision: 10, scale: 2 }),
   provinceCarrier: mysqlEnum("provinceCarrier", ["olva", "shalom"]).default("shalom"),
   deliveryMode: mysqlEnum("deliveryMode", ["agencia", "remoto"]).default("agencia").notNull(),

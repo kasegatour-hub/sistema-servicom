@@ -15,6 +15,7 @@ export type AdminShipmentPricingInput = {
   serviceManualPriceSoles?: string | number | null;
   isProvinceDelivery?: boolean;
   provinceCustomerPriceEur?: string | number | null;
+  provinceExtraPriceEur?: string | number | null;
   provinceOperationalCostSoles?: string | number | null;
   provinceCarrier?: "olva" | "shalom" | null;
   notes?: string;
@@ -58,7 +59,11 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
   const rawProvinceCustomerPrice = input.provinceCustomerPriceEur === undefined || input.provinceCustomerPriceEur === null ? "" : String(input.provinceCustomerPriceEur).trim();
   const parsedProvinceCustomerPrice = Number(rawProvinceCustomerPrice);
   const automaticProvincePrice = provinceEnabled ? (weightKg <= 5 ? 10 : weightKg <= 10 ? 15 : 0) : 0;
-  const provinceCustomerPriceEur = provinceEnabled && rawProvinceCustomerPrice !== "" && Number.isFinite(parsedProvinceCustomerPrice) && parsedProvinceCustomerPrice >= 0 ? parsedProvinceCustomerPrice : automaticProvincePrice;
+  const provinceCustomerPriceEur = provinceEnabled ? (rawProvinceCustomerPrice !== "" && Number.isFinite(parsedProvinceCustomerPrice) && parsedProvinceCustomerPrice >= 0 ? parsedProvinceCustomerPrice : (automaticProvincePrice || (weightKg > 10 ? 15 : 0))) : 0;
+  const rawProvinceExtraPrice = input.provinceExtraPriceEur === undefined || input.provinceExtraPriceEur === null ? "" : String(input.provinceExtraPriceEur).trim();
+  const parsedProvinceExtraPrice = Number(rawProvinceExtraPrice);
+  const automaticProvinceExtraPrice = provinceEnabled && weightKg > 10 ? Math.round((weightKg - 10) * 1.5 * 100) / 100 : 0;
+  const provinceExtraPriceEur = provinceEnabled && rawProvinceExtraPrice !== "" && Number.isFinite(parsedProvinceExtraPrice) && parsedProvinceExtraPrice >= 0 ? parsedProvinceExtraPrice : automaticProvinceExtraPrice;
   const rawProvinceOperationalCost = input.provinceOperationalCostSoles === undefined || input.provinceOperationalCostSoles === null ? "" : String(input.provinceOperationalCostSoles).trim();
   const parsedProvinceOperationalCost = Number(rawProvinceOperationalCost);
   const provinceOperationalCostSoles = provinceEnabled ? (rawProvinceOperationalCost !== "" && Number.isFinite(parsedProvinceOperationalCost) && parsedProvinceOperationalCost >= 0 ? parsedProvinceOperationalCost : shipmentType === "documento" ? 8 : 0) : 0;
@@ -90,8 +95,8 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
     tariffDescription = `Documento apostillado (${sheetCount} hoja${sheetCount > 1 ? "s" : ""}): ${basePrice} EUR${additionalDocuments.items.length ? `. Adicionales: ${additionalDocuments.items.map(item => item.description).join("; ")}` : ""}`;
   }
 
-  const totalWithExtraEur = totalEur + extraPriceEur + servicePriceEur + provinceCustomerPriceEur;
-  const provinceDescription = provinceEnabled ? ` Envío a provincia (${provinceCarrier === "olva" ? "Olva" : "Shalom"}): cliente +${provinceCustomerPriceEur.toFixed(2)} EUR; costo operativo S/${provinceOperationalCostSoles.toFixed(2)}.` : "";
+  const totalWithExtraEur = totalEur + extraPriceEur + servicePriceEur + provinceCustomerPriceEur + provinceExtraPriceEur;
+  const provinceDescription = provinceEnabled ? ` Envío a provincia (${provinceCarrier === "olva" ? "Olva" : "Shalom"}): base cliente +${provinceCustomerPriceEur.toFixed(2)} EUR${provinceExtraPriceEur > 0 ? `; extra provincial +${provinceExtraPriceEur.toFixed(2)} EUR` : ""}; costo operativo S/${provinceOperationalCostSoles.toFixed(2)}.` : "";
   const extraDescription = extraPriceEur > 0 ? ` Importe extra: +${extraPriceEur.toFixed(2)} EUR.` : "";
   const serviceDescription = `${requiresApostilleService ? ` Servicio de apostilla Italia–Lima: +${servicePriceEur.toFixed(2)} EUR y +${(serviceManualPriceSoles ?? 160).toFixed(2)} soles.` : ""}${requiresTranslationService ? ` Servicio de traducción Italia–Lima: +${(serviceManualPriceSoles ?? 200).toFixed(2)} soles.` : ""}`;
   return {
@@ -110,6 +115,7 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
     servicePriceSoles,
     isProvinceDelivery: provinceEnabled,
     provinceCustomerPriceEur,
+    provinceExtraPriceEur,
     provinceOperationalCostSoles,
     provinceCarrier,
     totalEur: totalWithExtraEur,

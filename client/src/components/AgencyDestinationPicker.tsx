@@ -53,7 +53,7 @@ function AgencyDirectoryExplorer({ onSelect, onMessage, onClose }: { onSelect: (
   const providerName = provider === "olva" ? "Olva Courier" : provider === "shalom" ? "Shalom" : provider === "fedex" ? "FedEx" : "DHL";
   const isGlobalCarrier = provider === "fedex" || provider === "dhl";
   useEffect(() => {
-    if (!isGlobalCarrier || query.trim().length < 2) {
+    if (!isGlobalCarrier) {
       setCarrierAgencies([]);
       setCarrierLoading(false);
       setCarrierError(false);
@@ -65,7 +65,8 @@ function AgencyDirectoryExplorer({ onSelect, onMessage, onClose }: { onSelect: (
     const timer = window.setTimeout(() => {
       if (!active) return;
       const service = new google.maps.places.PlacesService(document.createElement("div"));
-      service.textSearch({ query: `${providerName} ${query.trim()}` }, (results, status) => {
+      const searchTerm = query.trim() || "Perú";
+      service.textSearch({ query: `${providerName} ${searchTerm}` }, (results, status) => {
       if (!active) return;
       if (status !== google.maps.places.PlacesServiceStatus.OK || !results?.length) {
         setCarrierAgencies([]);
@@ -76,7 +77,7 @@ function AgencyDirectoryExplorer({ onSelect, onMessage, onClose }: { onSelect: (
       setCarrierAgencies(results.map(result => normalizeCarrierPlace(result, provider as "fedex" | "dhl")).filter((agency): agency is Agency => Boolean(agency)));
         setCarrierLoading(false);
       });
-    }, 350);
+    }, query.trim() ? 350 : 50);
     return () => { active = false; window.clearTimeout(timer); };
   }, [isGlobalCarrier, provider, providerName, query]);
   const agencies = (isGlobalCarrier ? carrierAgencies : currentQuery.data?.agencies || []) as Agency[];

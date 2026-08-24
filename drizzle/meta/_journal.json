@@ -246,6 +246,13 @@
       "when": 1787595300559,
       "tag": "0034_magenta_fixer",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "5",
+      "when": 1787606242026,
+      "tag": "0035_flowery_madripoor",
+      "breakpoints": true
     }
   ]
 }
