@@ -15,6 +15,7 @@ import { buildTrackingPath, buildTrackingUrl, TRACKING_QR_OPTIONS, normalizeTrac
 import { getPaymentStatusUi } from "@/lib/paymentStatus";
 import { formatPhoneNumber } from "@/lib/phoneFormatting";
 import { getRoutePresentation } from "@/lib/routeDetails";
+import { SHIPMENT_CODE_HELP, SHIPMENT_CODE_EXAMPLE, SHIPMENT_ORDER_HELP } from "@/../../shared/shipmentIdentifiers";
 
 const searchSchema = z.object({
   orderNumber: z.string().min(1, "Número de orden requerido"),
@@ -35,6 +36,8 @@ export const LOCATION_DETAILS = {
     whatsappHref: "https://wa.me/51970188447",
     whatsappSecondHref: "https://wa.me/51908722617",
     mapsUrl: "https://share.google/F5wrStU2oICvKgIWx",
+    image: "/manus-storage/lima-jr-union_35c786ca.webp",
+    imageAlt: "Entrada de la sede Servicom Internacional en Jr. de la Unión 518, Lima",
   },
   torino: {
     label: "Corso Peschiera",
@@ -46,6 +49,8 @@ export const LOCATION_DETAILS = {
     whatsappSecondaryHref: "https://wa.me/393509025271",
     whatsappTertiaryHref: "https://wa.me/393897663723",
     mapsUrl: "https://www.google.com/maps/search/?api=1&query=Corso+Peschiera+162A%2C+Zona+Piazza+Sabotino%2C+Torino%2C+Italia",
+    image: "/manus-storage/torino-corso-peschiera_d5f689f8.png",
+    imageAlt: "Fachada de la sede de servicios de envío en Corso Peschiera, Torino",
   },
 } as const;
 
@@ -90,6 +95,7 @@ export function LocationsSection() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Card className="overflow-hidden rounded-3xl border-0 bg-white shadow-[0_18px_50px_-24px_rgba(11,43,94,0.45)] ring-1 ring-slate-200 transition duration-200 hover:-translate-y-1 hover:shadow-[0_24px_55px_-24px_rgba(11,43,94,0.5)]">
           <div className="h-2.5 bg-[#F28C00]" />
+          <img src={LOCATION_DETAILS.lima.image} alt={LOCATION_DETAILS.lima.imageAlt} className="h-56 w-full object-cover object-center sm:h-64" loading="lazy" />
           <div className="p-6 md:p-8">
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
@@ -112,6 +118,7 @@ export function LocationsSection() {
 
         <Card className="overflow-hidden rounded-3xl border-0 bg-white shadow-[0_18px_50px_-24px_rgba(11,43,94,0.45)] ring-1 ring-slate-200 transition duration-200 hover:-translate-y-1 hover:shadow-[0_24px_55px_-24px_rgba(11,43,94,0.5)]">
           <div className="h-2.5 bg-[#0B2B5E]" />
+          <img src={LOCATION_DETAILS.torino.image} alt={LOCATION_DETAILS.torino.imageAlt} className="h-56 w-full object-cover object-center sm:h-64" loading="lazy" />
           <div className="p-6 md:p-8">
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
@@ -280,15 +287,15 @@ export default function Home() {
               <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
                 <div>
                   <label className="mb-2 block text-base font-bold text-slate-800" htmlFor="orderNumber">Número de orden</label>
-                  <p className="mb-2 text-sm text-slate-500">10 dígitos, sin espacios</p>
-                  <Input id="orderNumber" placeholder="Ej.: 3520992723" {...register("orderNumber")} className="h-14 rounded-xl border-2 border-slate-200 px-4 text-base shadow-sm focus:border-[#0B2B5E] focus:ring-4 focus:ring-[#0B2B5E]/10 sm:text-lg" />
+                  <p className="mb-2 text-sm text-slate-500">{SHIPMENT_ORDER_HELP}</p>
+                  <Input id="orderNumber" placeholder="Ej.: 35209927" {...register("orderNumber")} className="h-14 rounded-xl border-2 border-slate-200 px-4 text-base shadow-sm focus:border-[#0B2B5E] focus:ring-4 focus:ring-[#0B2B5E]/10 sm:text-lg" />
                   {errors.orderNumber && <p className="mt-2 text-sm font-semibold text-red-600">{errors.orderNumber.message}</p>}
                 </div>
 
                 <div>
                   <label className="mb-2 block text-base font-bold text-slate-800" htmlFor="code">Código de envío</label>
-                  <p className="mb-2 text-sm text-slate-500">El código aparece en tu comprobante</p>
-                  <Input id="code" placeholder="Ej.: CA06721WB" {...register("code")} className="h-14 rounded-xl border-2 border-slate-200 px-4 text-base uppercase shadow-sm focus:border-[#0B2B5E] focus:ring-4 focus:ring-[#0B2B5E]/10 sm:text-lg" />
+                  <p className="mb-2 text-sm text-slate-500">{SHIPMENT_CODE_HELP}; ejemplo: {SHIPMENT_CODE_EXAMPLE}</p>
+                  <Input id="code" placeholder={`Ej.: ${SHIPMENT_CODE_EXAMPLE}`} {...register("code")} className="h-14 rounded-xl border-2 border-slate-200 px-4 text-base uppercase shadow-sm focus:border-[#0B2B5E] focus:ring-4 focus:ring-[#0B2B5E]/10 sm:text-lg" />
                   {errors.code && <p className="mt-2 text-sm font-semibold text-red-600">{errors.code.message}</p>}
                 </div>
               </div>

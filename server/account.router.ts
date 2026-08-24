@@ -39,6 +39,7 @@ import { AccountSessionPayload, clearAccountSession, getAccountSession, setAccou
 import { identityDocumentNumberSchema, identityDocumentTypeSchema, isIdentityDocumentValid, identityDocumentValidationMessage, optionalIdentityDocumentNumberSchema, optionalPersonNameSchema, personNameSchema } from "./inputValidation";
 import { isValidInternationalPhone } from "../shared/phoneValidation";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "../shared/passwordPolicy";
+import { generateShipmentCode, generateShipmentOrderNumber } from "../shared/shipmentIdentifiers";
 import { storagePut } from "./storage";
 import { shipments } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
@@ -362,9 +363,8 @@ reauthRequired: session.reauthRequired,
     .mutation(async ({ input, ctx }) => {
       const session = await requireFreshAccountSession(ctx.req, "registrar un envío");
       // Generación automática estricta: Orden de 10 dígitos y código de envío alfanumérico único
-      const orderNumber = Math.floor(1000000000 + Math.random() * 9000000000).toString();
-      const randomSuffix = Math.random().toString(36).substring(2, 7).toUpperCase();
-      const code = `DOC-${new Date().getFullYear()}-${randomSuffix}`;
+      const orderNumber = generateShipmentOrderNumber();
+      const code = generateShipmentCode();
       
       const docType = input.docType || 'apostillado';
       const sheetCount = input.sheetCount || 1;

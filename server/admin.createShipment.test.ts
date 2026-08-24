@@ -32,7 +32,7 @@ describe("admin.createShipment", () => {
     dbMocks.isEncomiendaEnabledForRoute.mockResolvedValue(true);
   });
 
-  it("creates a document with an automatic DOC code and document tariff notes", async () => {
+  it("creates a document with an automatic short code and document tariff notes", async () => {
     const caller = appRouter.createCaller(createAdminContext());
     const result = await caller.admin.createShipment({
       status: "En agencia",
@@ -51,7 +51,7 @@ describe("admin.createShipment", () => {
       contentChecklist: ["Documento principal", "Copia apostillada"],
     });
 
-    expect(result.code).toMatch(/^DOC-\d{4}-[A-Z0-9]{5}$/);
+    expect(result.code).toMatch(/^\d[A-Z]{3}$/);
     expect(result.trackingUrl).toContain(`order=${result.orderNumber}`);
     expect(result.trackingUrl).toContain(`code=${result.code}`);
     expect(dbMocks.createShipment).toHaveBeenCalledTimes(1);
@@ -110,7 +110,7 @@ describe("admin.createShipment", () => {
     expect(dbMocks.createShipment).not.toHaveBeenCalled();
   });
 
-  it("creates an encomienda with an ENC code, weight and manual tariff", async () => {
+  it("creates an encomienda with a short code, weight and manual tariff", async () => {
     const caller = appRouter.createCaller(createAdminContext());
     const result = await caller.admin.createShipment({
       status: "Por entregar en agencia",
@@ -128,7 +128,7 @@ describe("admin.createShipment", () => {
       contentChecklist: ["Paquete sellado"],
     });
 
-    expect(result.code).toMatch(/^ENC-\d{4}-[A-Z0-9]{5}$/);
+    expect(result.code).toMatch(/^\d[A-Z]{3}$/);
     expect(dbMocks.createShipment).toHaveBeenCalledTimes(1);
     const args = dbMocks.createShipment.mock.calls[0];
     expect(args[13]).toBe("encomienda");

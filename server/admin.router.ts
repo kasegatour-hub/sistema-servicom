@@ -19,6 +19,7 @@ import { calculateAdminShipmentPricing } from "./adminPricing";
 import { applyCouponDiscount, isCouponCurrentlyValid, normalizeCouponCode } from "./couponPricing";
 import { isValidInternationalPhone } from "../shared/phoneValidation";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "../shared/passwordPolicy";
+import { generateShipmentCode, generateShipmentOrderNumber } from "../shared/shipmentIdentifiers";
 import { invokeLLM } from "./_core/llm";
 import { createSignatureToken } from "./signatureTokens";
 import { storagePut } from "./storage";
@@ -706,10 +707,8 @@ export const adminRouter = router({
           message: "Las encomiendas de Lima a Torino están desactivadas temporalmente por control de seguridad. Registra únicamente documentos o selecciona Torino - Lima.",
         });
       }
-      const orderNumber = Math.floor(1000000000 + Math.random() * 9000000000).toString();
-      const randomSuffix = Math.random().toString(36).substring(2, 7).toUpperCase();
-      const prefix = input.shipmentType === "encomienda" ? "ENC" : "DOC";
-      const code = `${prefix}-${new Date().getFullYear()}-${randomSuffix}`;
+      const orderNumber = generateShipmentOrderNumber();
+      const code = generateShipmentCode();
       
       const pricing = calculateAdminShipmentPricing(input);
       const couponCode = normalizeCouponCode(input.couponCode);

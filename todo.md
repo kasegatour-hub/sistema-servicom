@@ -926,3 +926,10 @@
 - [x] Mostrar nombre, apellidos y correo en el perfil del Cliente
 - [x] Añadir estado de carga y fallback claro si faltan datos de perfil
 - [x] Añadir pruebas y publicar la corrección
+
+## Formato de identificadores, recepción y fotos de sedes
+- [x] Cambiar las nuevas órdenes a exactamente 8 dígitos
+- [x] Cambiar los nuevos códigos a exactamente 4 caracteres: 1 dígito y 3 letras
+- [x] Aclarar visualmente cómo entrega el remitente y cómo recibe la agencia el paquete
+- [x] Incorporar las fotografías reales de las sedes con la asignación correcta
+- [x] Añadir pruebas de formato y sedes, validar móvil y publicar

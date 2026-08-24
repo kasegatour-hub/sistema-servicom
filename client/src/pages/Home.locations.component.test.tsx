@@ -13,6 +13,8 @@ describe("LocationsSection", () => {
     expect(screen.getByRole("heading", { name: "Ubícanos" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Jr. de la Unión 518" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Corso Peschiera" })).toBeTruthy();
+    expect(screen.getByRole("img", { name: /Entrada de la sede Servicom Internacional en Jr\. de la Unión 518/ }).getAttribute("src")).toBe("/manus-storage/lima-jr-union_35c786ca.webp");
+    expect(screen.getByRole("img", { name: /Fachada de la sede de servicios de envío en Corso Peschiera/ }).getAttribute("src")).toBe("/manus-storage/torino-corso-peschiera_d5f689f8.png");
     expect(screen.getByText(/Jr\. de la Unión Nro\. 518 Int\. S101/)).toBeTruthy();
     expect(screen.getByText(/Corso Peschiera, 162A/)).toBeTruthy();
     expect(screen.getByText("Referencia: es una galería y está en el sótano - Frente a Saga Falabella")).toBeTruthy();
