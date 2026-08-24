@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 
 const mocks = vi.hoisted(() => ({
   login: {
@@ -192,6 +192,28 @@ describe("AdminDashboard Nueva Encomienda", () => {
     expect(screen.queryByText("Ana López")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Limpiar búsqueda" }));
     expect((search as HTMLInputElement).value).toBe("");
+  });
+
+  it("abre la ficha completa del envío y permite copiar sus datos rápidamente", async () => {
+    mocks.shipments = [{ id: 91, shipmentType: "documento", senderName: "Ana", senderLastName: "Pérez", senderDni: "71234567", senderPhone: "+51 970188447", recipientName: "Miguel", recipientLastName: "Díaz", recipientDni: "44556677", recipientPhone: "+39 3509025271", route: "Torino - Lima", originAddress: "Via Muriaglio 12, Torino", destinationAddress: "Jr. de la Unión 518, Lima", provinceCarrier: "fedex", weightKg: 10, finalPriceEur: 150, status: "En destino", paymentStatus: "Pagado", notes: "Precio actualizado", contentChecklist: ["Una mochila"], createdAt: new Date("2026-08-20T10:00:00.000Z"), orderNumber: "63526276", code: "ENC-2026-ABCD" }];
+    render(<AdminDashboard />);
+    fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "operador@servicom.pe" } });
+    fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
+    await screen.findByRole("textbox", { name: "Buscar registros" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Ver datos completos" }));
+    const detailsDialog = screen.getByRole("dialog", { name: "Datos completos" });
+    expect(detailsDialog).toBeTruthy();
+    expect(within(detailsDialog).getByText("Ana Pérez")).toBeTruthy();
+    expect(within(detailsDialog).getAllByText("Miguel Díaz").length).toBeGreaterThanOrEqual(1);
+    expect(within(detailsDialog).getByText("Via Muriaglio 12, Torino")).toBeTruthy();
+    expect(within(detailsDialog).getByText("Precio actualizado")).toBeTruthy();
+
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+    fireEvent.click(screen.getByRole("button", { name: "Copiar / extraer datos" }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(expect.stringContaining("Remitente: Ana Pérez")));
   });
 
   it("permite al Registrador escanear un control y abrir directamente la actualización del envío", async () => {

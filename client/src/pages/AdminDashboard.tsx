@@ -275,6 +275,11 @@ type PasswordInputProps = Omit<React.ComponentProps<typeof Input>, "type"> & { r
 
 const getLockoutSecondsFromMessage = (message: string) => Number(message.match(/espera\s+(\d+)\s+segundos/i)?.[1] || 0);
 
+function DetailRow({ label, value }: { label: string; value: unknown }) {
+  const displayValue = value === null || value === undefined || String(value).trim() === "" ? "No indicado" : String(value);
+  return <div className="rounded-xl border border-slate-200 bg-white p-3"><dt className="text-[11px] font-bold uppercase tracking-wide text-slate-500">{label}</dt><dd className="mt-1 break-words text-sm font-semibold text-[#0B2B5E]">{displayValue}</dd></div>;
+}
+
 function PasswordInput({ className, revealLabel = "contraseña", ...inputProps }: PasswordInputProps) {
   const [isVisible, setIsVisible] = React.useState(false);
   const actionLabel = `${isVisible ? "Ocultar" : "Mostrar"} ${revealLabel}`;
@@ -321,6 +326,8 @@ export default function AdminDashboard() {
   const [calculatorExpression, setCalculatorExpression] = useState("");
   const [calculatorResult, setCalculatorResult] = useState("");
   const [auditShipmentId, setAuditShipmentId] = useState<number | null>(null);
+  const [detailShipment, setDetailShipment] = useState<any>(null);
+  const [detailCopied, setDetailCopied] = useState(false);
   const [adminAuthMode, setAdminAuthMode] = useState<"login" | "request" | "reset">("login");
   const [adminRecoveryEmail, setAdminRecoveryEmail] = useState("");
   const [adminRecoveryCode, setAdminRecoveryCode] = useState("");
@@ -840,6 +847,22 @@ export default function AdminDashboard() {
       refetchAdminUsers();
     } catch (error: any) {
       toast.error(error.message || "No se pudo desactivar el Registrador");
+    }
+  };
+
+  const shipmentDetailsText = (shipment: any) => {
+    const checklist = Array.isArray(shipment.contentChecklist) ? shipment.contentChecklist : (() => { try { return JSON.parse(shipment.contentChecklist || "[]"); } catch { return []; } })();
+    return [`ENVÍO ${shipment.shipmentType === "encomienda" ? "ENCOMIENDA" : "DOCUMENTO"}`, `Orden: ${shipment.orderNumber || "No indicado"}`, `Código: ${shipment.code || "No indicado"}`, `Estado: ${shipment.status || "No indicado"}`, `Estado de pago: ${shipment.paymentStatus || "No indicado"}`, `Ruta: ${shipment.route || "No indicado"}`, `Remitente: ${[shipment.senderName, shipment.senderLastName].filter(Boolean).join(" ") || "No indicado"}`, `Teléfono remitente: ${shipment.senderPhone || "No indicado"}`, `Documento remitente: ${shipment.senderDni || "No indicado"}`, `Destinatario: ${[shipment.recipientName, shipment.recipientLastName].filter(Boolean).join(" ") || "No indicado"}`, `Teléfono destinatario: ${shipment.recipientPhone || "No indicado"}`, `Documento destinatario: ${shipment.recipientDni || "No indicado"}`, `Origen: ${shipment.originAddress || "No indicado"}`, `Destino / sede: ${shipment.destinationAddress || "No indicado"}`, `Operador provincial: ${shipment.provinceCarrier || "No aplica"}`, `Peso: ${shipment.weightKg ? `${shipment.weightKg} kg` : "No aplica"}`, `Precio final: ${shipment.finalPriceEur ?? shipment.basePriceEur ?? shipment.manualPriceEur ?? "No indicado"} EUR`, `Notas: ${shipment.notes || "Sin notas"}`, `Checklist: ${checklist.length ? checklist.join(", ") : "Sin checklist"}`].join("\n");
+  };
+  const handleCopyShipmentDetails = async () => {
+    if (!detailShipment) return;
+    try {
+      await navigator.clipboard.writeText(shipmentDetailsText(detailShipment));
+      setDetailCopied(true);
+      toast.success("Datos completos copiados");
+      window.setTimeout(() => setDetailCopied(false), 1800);
+    } catch {
+      toast.error("No se pudieron copiar los datos. Puedes seleccionarlos manualmente.");
     }
   };
 
@@ -2395,6 +2418,9 @@ export default function AdminDashboard() {
                       <TableCell className="whitespace-nowrap"><div>{new Date(shipment.createdAt).toLocaleDateString()}</div><p className="mt-1 whitespace-normal text-xs text-slate-500"><strong>Registrado por:</strong> {shipment.registeredByLabel || "Registro anterior"}</p></TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-2">
+                          <Button type="button" onClick={() => setDetailShipment(shipment)} size="sm" variant="outline" className="border-[#0B2B5E] text-[#0B2B5E] hover:bg-blue-50">
+                            <Eye className="mr-1 h-4 w-4" /> Ver datos completos
+                          </Button>
                           <Button
                             onClick={() => openShipmentUpdate(shipment)}
                             size="sm"
@@ -2506,6 +2532,24 @@ export default function AdminDashboard() {
           <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-lg font-bold text-[#0B2B5E]">Historial de cambios del envío</h2><p className="mt-1 text-xs text-slate-500">Visible únicamente para el Master Admin. Incluye quién eliminó, actualizó, restauró o completó una firma.</p></div><Button size="sm" variant="outline" onClick={() => setAuditShipmentId(null)}>Cerrar historial</Button></div>
           {isLoadingShipmentAudit ? <p className="mt-4 text-sm text-slate-500">Cargando historial…</p> : shipmentAudit.length === 0 ? <p className="mt-4 text-sm text-slate-500">No hay registros de auditoría disponibles para este envío.</p> : <ol className="mt-4 space-y-3">{shipmentAudit.map((entry: any) => <li key={entry.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3"><p className="text-sm font-semibold text-[#0B2B5E]">{({ created: "Registro creado", updated: "Datos o estado actualizado", deleted: "Envío eliminado", restored: "Envío restaurado", price_updated: "Precio actualizado", signature_requested: "Firma solicitada", signature_completed: "Firma completada", feedback_added: "Retroalimentación añadida", hidden_from_registradores: "Envío oculto para Registradores", shown_to_registradores: "Envío mostrado a Registradores" } as Record<string, string>)[entry.action] || entry.action}</p><p className="mt-1 text-xs text-slate-600">Realizado por: <strong>{entry.actorDisplayName || "No indicado"}</strong> · {entry.createdAt ? new Date(entry.createdAt).toLocaleString() : "sin fecha"}</p>{entry.reason && <p className="mt-1 text-xs text-slate-600">Motivo: {entry.reason}</p>}</li>)}</ol>}
         </Card>}
+
+        {detailShipment && (
+          <div className="fixed inset-0 z-60 flex items-center justify-center bg-slate-950/60 p-4" role="dialog" aria-modal="true" aria-labelledby="shipment-details-title">
+            <Card className="max-h-[92dvh] w-full max-w-4xl overflow-y-auto border-0 p-5 shadow-2xl sm:p-7">
+              <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 pb-4">
+                <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#F28C00]">Ficha rápida del envío</p><h2 id="shipment-details-title" className="mt-1 text-2xl font-extrabold text-[#0B2B5E]">Datos completos</h2><p className="mt-1 text-sm text-slate-600">Consulta la información completa del remitente, destinatario y operación.</p></div>
+                <Button type="button" variant="outline" aria-label="Cerrar datos completos" onClick={() => { setDetailShipment(null); setDetailCopied(false); }}>×</Button>
+              </div>
+              <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="rounded-2xl bg-[#0B2B5E] p-4 text-white sm:col-span-2 lg:col-span-3"><p className="text-xs font-bold uppercase tracking-wide text-orange-200">Identificación del envío</p><div className="mt-2 grid gap-3 sm:grid-cols-3"><div><p className="text-xs text-blue-100">Destinatario</p><p className="text-lg font-extrabold">{[detailShipment.recipientName, detailShipment.recipientLastName].filter(Boolean).join(" ") || "No indicado"}</p></div><div><p className="text-xs text-blue-100">Orden</p><p className="break-all text-lg font-extrabold">{detailShipment.orderNumber || "No indicado"}</p></div><div><p className="text-xs text-blue-100">Código</p><p className="break-all text-lg font-extrabold">{detailShipment.code || "No indicado"}</p></div></div></div>
+                <section className="sm:col-span-2 lg:col-span-3"><h3 className="mb-2 text-lg font-bold text-[#0B2B5E]">Remitente y destinatario</h3><dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"><DetailRow label="Remitente" value={[detailShipment.senderName, detailShipment.senderLastName].filter(Boolean).join(" ")} /><DetailRow label="Documento del remitente" value={detailShipment.senderDni} /><DetailRow label="Teléfono del remitente" value={detailShipment.senderPhone} /><DetailRow label="Destinatario" value={[detailShipment.recipientName, detailShipment.recipientLastName].filter(Boolean).join(" ")} /><DetailRow label="Documento del destinatario" value={detailShipment.recipientDni} /><DetailRow label="Teléfono del destinatario" value={detailShipment.recipientPhone} /></dl></section>
+                <section className="sm:col-span-2 lg:col-span-3"><h3 className="mb-2 text-lg font-bold text-[#0B2B5E]">Operación y precio</h3><dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><DetailRow label="Tipo" value={detailShipment.shipmentType === "encomienda" ? "Encomienda" : "Documento"} /><DetailRow label="Ruta" value={detailShipment.route} /><DetailRow label="Estado" value={detailShipment.status} /><DetailRow label="Estado de pago" value={detailShipment.paymentStatus} /><DetailRow label="Origen" value={detailShipment.originAddress} /><DetailRow label="Sede / destino" value={detailShipment.destinationAddress} /><DetailRow label="Operador provincial" value={detailShipment.provinceCarrier} /><DetailRow label="Peso" value={detailShipment.weightKg ? `${detailShipment.weightKg} kg` : "No aplica"} /><DetailRow label="Precio final" value={(detailShipment.finalPriceEur ?? detailShipment.basePriceEur ?? detailShipment.manualPriceEur) !== undefined ? `${detailShipment.finalPriceEur ?? detailShipment.basePriceEur ?? detailShipment.manualPriceEur} EUR` : "No indicado"} /><DetailRow label="Registrado por" value={detailShipment.registeredByLabel || "Registro anterior"} /><DetailRow label="Fecha de creación" value={detailShipment.createdAt ? new Date(detailShipment.createdAt).toLocaleString() : null} /></dl></section>
+                <section className="sm:col-span-2 lg:col-span-3"><h3 className="mb-2 text-lg font-bold text-[#0B2B5E]">Notas y checklist</h3><div className="grid gap-3 lg:grid-cols-2"><div className="whitespace-pre-wrap rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">{detailShipment.notes || "Sin notas"}</div><div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"><p className="font-bold text-[#0B2B5E]">Contenido registrado</p><ul className="mt-2 list-disc space-y-1 pl-5">{(Array.isArray(detailShipment.contentChecklist) ? detailShipment.contentChecklist : (() => { try { return JSON.parse(detailShipment.contentChecklist || "[]"); } catch { return []; } })()).length ? (Array.isArray(detailShipment.contentChecklist) ? detailShipment.contentChecklist : JSON.parse(detailShipment.contentChecklist || "[]")).map((item: string) => <li key={item}>{item}</li>) : <li>Sin checklist registrado</li>}</ul></div></div></section>
+              </div>
+              <div className="mt-6 flex flex-wrap justify-end gap-3 border-t border-slate-200 pt-4"><Button type="button" variant="outline" onClick={() => { setDetailShipment(null); setDetailCopied(false); }}>Cerrar</Button><Button type="button" onClick={() => void handleCopyShipmentDetails()} className="bg-[#0B2B5E] text-white hover:bg-[#123d78]"><Download className="mr-2 h-4 w-4" />{detailCopied ? "Datos copiados" : "Copiar / extraer datos"}</Button></div>
+            </Card>
+          </div>
+        )}
 
         {deliveryStatusShipment && (
           <div className="fixed inset-0 z-60 flex items-center justify-center bg-slate-950/55 p-4" role="dialog" aria-modal="true" aria-labelledby="delivery-status-title">

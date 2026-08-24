@@ -1161,3 +1161,9 @@
 - [x] Recalcular y mostrar al cliente y usuario el precio actualizado en azul cuando cambien peso o sede
 - [x] Actualizar las notas con el nuevo precio y conservar el precio anterior como referencia histórica
 - [x] Añadir pruebas de regresión para navegación, sede, precio y notas sincronizadas
+
+## Vista completa y extracción rápida de registros
+- [x] Añadir una acción visible para abrir todos los datos del envío desde la tabla
+- [x] Mostrar remitente, destinatario, ruta, sede, estado, precio, notas y checklist en una ventana ordenada
+- [x] Permitir extraer o copiar rápidamente los datos completos con feedback claro
+- [x] Añadir pruebas de apertura, contenido, copia y diseño responsive de la ventana
