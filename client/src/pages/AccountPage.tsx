@@ -387,13 +387,13 @@ export default function AccountPage() {
     const receiptRoute = receiptShipment ? getRoutePresentation(receiptShipment.route, receiptShipment.destinationAddress) : null;
 
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#eef6fb] to-white pb-12">
+      <div className="account-surface min-h-screen bg-gradient-to-b from-[#eef6fb] to-white pb-12">
         <header className="bg-[#0B2B5E] text-white shadow-md">
-          <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mx-auto flex w-[min(96vw,1560px)] flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-center gap-3">
               <img src={brandLogo} alt="Servicom Internacional" className="h-12 w-auto rounded bg-white p-1" />
               <div className="min-w-0">
-<h1 className="text-lg font-bold leading-tight sm:text-xl">Hola, {[me.name, me.lastName].filter(Boolean).join(" ") || "Cliente"}</h1>
+<h1 className="text-xl font-extrabold leading-tight sm:text-2xl">Hola, {[me.name, me.lastName].filter(Boolean).join(" ") || "Cliente"}</h1>
                  <p className="truncate text-xs text-blue-200">{me.email}</p>
                  <p className="text-[11px] text-blue-100">Mi cuenta de Cliente · datos personales y envíos</p>
               </div>
@@ -412,7 +412,7 @@ export default function AccountPage() {
           </div>
         </header>
 
-        <main className="mx-auto max-w-5xl px-4 py-8 space-y-8">
+        <main className="mx-auto w-[min(96vw,1560px)] space-y-8 px-5 py-10">
           {me.reauthRequired && (
             <Dialog open>
               <DialogContent className="max-w-md" onPointerDownOutside={(event) => event.preventDefault()} onEscapeKeyDown={(event) => event.preventDefault()}>

@@ -196,3 +196,45 @@
   .shipment-form select,
   .shipment-form textarea { min-height: 3.25rem; }
 }
+
+/* Escala de accesibilidad y uso de pantalla para la experiencia Servicom. */
+@layer base {
+  html { font-size: 17px; }
+  body { min-width: 320px; line-height: 1.55; }
+  button, input, select, textarea { font-size: 1rem; }
+  button:not([data-size="icon"]), [role="button"] { min-height: 2.75rem; }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), select, textarea { min-height: 3rem; }
+  :focus-visible { outline-width: 3px; outline-offset: 3px; }
+}
+
+/* Los paneles de operación aprovechan el escritorio sin encoger el contenido. */
+.admin-surface, .account-surface { width: min(96vw, 1560px); margin-inline: auto; }
+.admin-surface > .surface-card, .account-surface > .surface-card { border-radius: 1.25rem; box-shadow: 0 14px 38px rgba(11, 43, 94, 0.10); }
+@media (max-width: 640px) {
+  html { font-size: 16px; }
+  .admin-surface, .account-surface { width: 100%; }
+  button:not([data-size="icon"]), [role="button"] { min-height: 3rem; }
+}
+
+.public-surface { width: 100%; min-height: 100dvh; }
+.public-surface h1, .public-surface h2, .public-surface h3 { letter-spacing: -0.02em; }
+.public-surface input, .public-surface select { border-width: 2px; }
+.public-surface button, .public-surface a[role="button"] { font-weight: 700; }
+@media (min-width: 1024px) {
+  .public-surface section { max-width: 1440px; margin-inline: auto; }
+}
+
+.admin-surface label, .account-surface label { font-size: 1rem; line-height: 1.4; font-weight: 700; }
+.admin-surface input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+.admin-surface select, .admin-surface textarea,
+.account-surface input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+.account-surface select, .account-surface textarea { min-height: 3.15rem; font-size: 1rem; }
+.admin-surface button, .account-surface button { letter-spacing: 0.005em; }
+.admin-surface h1, .account-surface h1 { font-size: clamp(1.5rem, 2vw, 2.25rem); }
+.admin-surface h2, .account-surface h2 { font-size: clamp(1.35rem, 1.8vw, 1.9rem); }
+.admin-surface h3, .account-surface h3 { font-size: clamp(1.15rem, 1.5vw, 1.5rem); }
+@media (max-width: 640px) {
+  .admin-surface, .account-surface { font-size: 1rem; }
+  .admin-surface h1, .account-surface h1 { font-size: 1.5rem; }
+  .admin-surface h2, .account-surface h2 { font-size: 1.35rem; }
+}

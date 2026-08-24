@@ -245,10 +245,10 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+    <div className="public-surface min-h-screen bg-gradient-to-b from-gray-50 to-white">
       {/* Header */}
       <header className="sticky top-0 z-40 border-b-4 border-[#F28C00] bg-[#0B2B5E] text-white shadow-xl">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
+        <div className="mx-auto w-[min(96vw,1560px)] px-5 sm:px-7 lg:px-10">
           <div className="flex min-h-[96px] flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between lg:min-h-[112px] lg:py-5">
             <a href="/" className="flex items-center gap-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#F28C00] focus:ring-offset-2 focus:ring-offset-[#0B2B5E]">
               <img src="/manus-storage/servicom_logo_final_e7ce35aa.png" alt="Servicom Internacional" className="h-16 w-16 rounded-xl bg-white p-1.5 object-contain shadow-md sm:h-20 sm:w-20" />
@@ -499,7 +499,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="mt-16 bg-[#0B2B5E] py-12 text-white">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
+        <div className="mx-auto w-[min(96vw,1560px)] px-5 sm:px-7 lg:px-10">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
             <div>
               <h3 className="text-lg font-bold mb-2">Servicom Internacional</h3>

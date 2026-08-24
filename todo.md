@@ -960,3 +960,11 @@
 - [x] Conectar el acceso Admin con el panel administrativo y conservar el acceso Cliente separado
 - [x] Validar permisos, retorno, feedback y adaptación móvil
 - [x] Añadir pruebas y publicar la corrección
+
+## Rediseño integral web y app
+- [x] Aumentar globalmente la escala de tipografía, controles, botones y áreas táctiles
+- [x] Hacer que la web aproveche mejor el ancho de pantalla sin perder legibilidad
+- [x] Mejorar la navegación de web y app con jerarquía, iconos, estados activos y salidas claras
+- [x] Aplicar una experiencia más atractiva y usable a Inicio, Rastreo, Sedes, Admin, Cliente y formularios
+- [x] Mantener identidad Servicom, accesibilidad, responsive y feedback de interacción
+- [x] Crear o actualizar pruebas de las áreas rediseñadas, validar capturas y publicar

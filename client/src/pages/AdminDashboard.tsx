@@ -1479,7 +1479,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+    <div className="admin-surface min-h-screen bg-gradient-to-b from-blue-50 to-white">
       {admin?.reauthRequired && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4" role="dialog" aria-modal="true" aria-labelledby="admin-reauth-title">
           <Card className="w-full max-w-md border-0 p-6 shadow-2xl">
@@ -1505,7 +1505,7 @@ export default function AdminDashboard() {
 
       {/* Header */}
       <header className="bg-primary text-white shadow-md sticky top-0 z-40">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+        <div className="mx-auto flex w-[min(96vw,1560px)] items-center justify-between px-5 py-5">
           <div>
             <h1 className="text-2xl font-bold">Panel de Administración</h1>
             <p className="text-sm opacity-90">Servicom Internacional - Gestión de Encomiendas</p>
