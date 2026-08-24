@@ -17,6 +17,14 @@ describe("calculateAdminShipmentPricing", () => {
     expect(calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 10, route: "Torino - Lima" }).totalEur).toBe(15);
   });
 
+  it("requires a manual price for Torino–Lima above 10 kg", () => {
+    const pricing = calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 11, route: "Torino - Lima" });
+
+    expect(pricing.totalEur).toBe(0);
+    expect(pricing.notes).toContain("requiere Precio manual en EUR");
+    expect(calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 11, route: "Torino - Lima", manualPriceEur: "120" }).totalEur).toBe(120);
+  });
+
   it("uses the manual price for an encomienda when provided", () => {
     const pricing = calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 2.5, manualPriceEur: "40" });
 

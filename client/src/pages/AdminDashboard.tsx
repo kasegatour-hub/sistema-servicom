@@ -538,11 +538,13 @@ export default function AdminDashboard() {
   const limaTorinoEncomiendasEnabled = limaTorinoPolicy?.encomiendasEnabled !== false;
   const watchedWeightKg = Number(createForm.watch("weightKg")) || 0.1;
   const automaticParcelBaseEur = selectedRoute === "Torino - Lima"
-    ? watchedWeightKg <= 5 ? 10 : watchedWeightKg <= 10 ? 15 : watchedWeightKg * 13.5
+    ? watchedWeightKg <= 5 ? 10 : watchedWeightKg <= 10 ? 15 : null
     : watchedWeightKg * 13.5;
   const automaticParcelDescription = selectedRoute === "Torino - Lima"
-    ? watchedWeightKg <= 5 ? "10 EUR para 1–5 kg" : watchedWeightKg <= 10 ? "15 EUR para 6–10 kg" : "13,5 EUR/kg para más de 10 kg"
+    ? watchedWeightKg <= 5 ? "10 EUR para 1–5 kg" : watchedWeightKg <= 10 ? "15 EUR para 6–10 kg" : "Sin tarifa automática: usa Precio manual en EUR para más de 10 kg"
     : "13,5 EUR/kg";
+  const manualParcelPrice = Number(createForm.watch("manualPriceEur"));
+  const hasValidManualParcelPrice = String(createForm.watch("manualPriceEur") || "").trim() !== "" && Number.isFinite(manualParcelPrice) && manualParcelPrice >= 0;
   const additionalDocumentAutoTotal = additionalDocumentItems.reduce((total, item) => {
     const automaticPrice = item.docType === "simple"
       ? (item.sheetCount <= 4 ? 45 : 45 + (item.sheetCount - 4) * 2)
@@ -1910,13 +1912,13 @@ export default function AdminDashboard() {
                         {...createForm.register("weightKg", { valueAsNumber: true })}
                         className="border-2 focus:border-primary"
                       />
-                      <p className="mt-1 text-base font-semibold text-[#0B2B5E]">Tarifa automática Torino–Lima: {automaticParcelDescription}.</p>
+                      <p className={`mt-1 text-base font-semibold ${automaticParcelBaseEur === null ? "text-amber-900" : "text-[#0B2B5E]"}`}>Tarifa automática {selectedRoute === "Torino - Lima" ? "Torino–Lima" : "Lima–Torino"}: {automaticParcelDescription}.</p>
                     </div>
-                    <div className="flex items-end rounded-md bg-emerald-50 p-4 text-lg font-bold text-[#0B2B5E] ring-1 ring-emerald-200">
-                      Total automático: {(automaticParcelBaseEur + Math.max(0, Number(createForm.watch("extraPriceEur")) || 0)).toFixed(2)} €
+                    <div className={`flex items-end rounded-md p-4 text-lg font-bold ring-1 ${automaticParcelBaseEur === null && !hasValidManualParcelPrice ? "bg-amber-50 text-amber-900 ring-amber-200" : "bg-emerald-50 text-[#0B2B5E] ring-emerald-200"}`}>
+                      {hasValidManualParcelPrice ? `Total manual: ${(manualParcelPrice + Math.max(0, Number(createForm.watch("extraPriceEur")) || 0)).toFixed(2)} €` : automaticParcelBaseEur === null ? "Precio manual requerido" : `Total automático: ${(automaticParcelBaseEur + Math.max(0, Number(createForm.watch("extraPriceEur")) || 0)).toFixed(2)} €`}
                     </div>
                     <div className="flex items-end rounded-md bg-amber-50 p-3 text-xs text-amber-900 ring-1 ring-amber-200">
-                      Puedes reemplazar el total usando Precio manual en EUR.
+                      {automaticParcelBaseEur === null ? "Para más de 10 kg, ingresa un Precio manual en EUR antes de guardar." : "Puedes reemplazar el total usando Precio manual en EUR."}
                     </div>
                   </div>
                 )}

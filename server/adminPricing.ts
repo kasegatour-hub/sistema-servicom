@@ -28,6 +28,9 @@ export function calculateAutomaticParcelPriceEur(weightKg: number, route?: strin
   if (route === "Torino - Lima" && normalizedWeight <= 10) {
     return { totalEur: 15, description: `Encomienda Torino–Lima (${normalizedWeight} kg): tarifa automática 15.00 EUR para 6–10 kg.` };
   }
+  if (route === "Torino - Lima") {
+    return { totalEur: 0, description: `Encomienda Torino–Lima (${normalizedWeight} kg): supera el límite automático de 10 kg; requiere Precio manual en EUR.` };
+  }
   const totalEur = normalizedWeight * 13.5;
   return { totalEur, description: `Encomienda por peso (${normalizedWeight} kg @ 13.5 EUR/kg): ${totalEur.toFixed(2)} EUR` };
 }

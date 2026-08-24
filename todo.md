@@ -975,3 +975,10 @@
 - [x] Añadir botón Limpiar al filtro de Admin/Usuario
 - [x] Añadir botón Limpiar al filtro del Cliente
 - [x] Añadir pruebas, validar móvil y escritorio, y publicar
+
+## Límite de tarifa automática sobre 10 kg
+- [x] Mantener tarifa automática Torino–Lima solo entre 1 y 10 kg
+- [x] Mostrar 10 EUR para 1–5 kg y 15 EUR para 6–10 kg
+- [x] Exigir Precio manual en EUR para pesos superiores a 10 kg
+- [x] Evitar que se muestre 13,5 EUR/kg como cálculo automático sobre 10 kg
+- [x] Añadir pruebas, validar formulario y publicar
