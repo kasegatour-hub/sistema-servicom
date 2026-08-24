@@ -46,6 +46,15 @@ afterEach(() => {
 });
 
 describe("Home public page", () => {
+  it("renders the prominent tracking hierarchy and public navigation", () => {
+    render(<Home />);
+
+    expect(screen.getByRole("heading", { name: "Sigue tu envío en todo momento" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Rastrea" }).getAttribute("href")).toBe("#rastreo");
+    expect(screen.getByRole("link", { name: "Sedes" }).getAttribute("href")).toBe("#sedes");
+    expect(screen.getByRole("button", { name: /Rastrear envío/ })).toBeTruthy();
+  });
+
   it("renders Ubícanos with both office cards and all visible contact details", () => {
     render(<Home />);
 
@@ -69,7 +78,7 @@ describe("Home public page", () => {
   it("shows the persisted payment status after the client tracks a shipment", async () => {
     render(<Home />);
 
-    expect(await screen.findByText("Estado de Pago")).toBeTruthy();
+    expect(await screen.findByText("Estado de pago")).toBeTruthy();
     expect(screen.getByText("Pagado")).toBeTruthy();
     expect(screen.getByText("Lima - Torino")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Recojo en Torino, Italia" })).toBeTruthy();

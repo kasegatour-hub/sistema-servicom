@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Package, QrCode, AlertCircle, MapPin, Clock3, Phone, ExternalLink, PenLine } from "lucide-react";
+import { Package, QrCode, AlertCircle, MapPin, Clock3, Phone, ExternalLink, Search, ShieldCheck, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -78,53 +78,55 @@ interface ShipmentData {
 
 export function LocationsSection() {
   return (
-    <section aria-labelledby="locations-title" className="mt-4 md:mt-8">
-      <div className="mb-5 text-center md:text-left">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#F28C00]">Atención presencial</p>
-        <h2 id="locations-title" className="mt-1 text-2xl font-bold text-[#0B2B5E]">Ubícanos</h2>
-        <p className="mt-2 text-sm text-slate-600">Visítanos en nuestras sedes de Lima y Torino.</p>
+    <section id="sedes" aria-labelledby="locations-title" className="mt-12 scroll-mt-28 md:mt-20">
+      <div className="mb-7 flex flex-col gap-3 md:mb-9 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="text-sm font-bold uppercase tracking-[0.22em] text-[#F28C00]">Atención presencial</p>
+          <h2 id="locations-title" className="mt-2 text-3xl font-extrabold tracking-tight text-[#0B2B5E] md:text-4xl">Ubícanos</h2>
+        </div>
+        <p className="max-w-md text-base leading-7 text-slate-600 md:text-right">Encuentra la sede que necesitas y abre la ruta directamente en Google Maps.</p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Card className="overflow-hidden border-0 bg-white shadow-lg ring-1 ring-slate-200">
-          <div className="h-2 bg-[#F28C00]" />
-          <div className="p-5 md:p-6">
-            <div className="mb-4 flex items-start justify-between gap-3">
+        <Card className="overflow-hidden rounded-3xl border-0 bg-white shadow-[0_18px_50px_-24px_rgba(11,43,94,0.45)] ring-1 ring-slate-200 transition duration-200 hover:-translate-y-1 hover:shadow-[0_24px_55px_-24px_rgba(11,43,94,0.5)]">
+          <div className="h-2.5 bg-[#F28C00]" />
+          <div className="p-6 md:p-8">
+            <div className="mb-6 flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-[#F28C00]">Sede Lima</p>
-                <h3 className="mt-1 text-xl font-bold text-[#0B2B5E]">{LOCATION_DETAILS.lima.label}</h3>
+                <p className="text-sm font-bold uppercase tracking-wider text-[#F28C00]">Sede Lima</p>
+                <h3 className="mt-2 text-2xl font-extrabold text-[#0B2B5E]">{LOCATION_DETAILS.lima.label}</h3>
               </div>
-              <div className="rounded-full bg-orange-50 p-2 text-[#F28C00]" aria-hidden="true"><MapPin className="h-5 w-5" /></div>
+              <div className="rounded-2xl bg-orange-50 p-3 text-[#F28C00]" aria-hidden="true"><MapPin className="h-6 w-6" /></div>
             </div>
-            <div className="space-y-3 text-sm text-slate-700">
-              <p className="flex gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#F28C00]" aria-hidden="true" /><span>{LOCATION_DETAILS.lima.address}</span></p>
-              <p className="flex gap-2"><span className="mt-0.5 h-4 w-4 shrink-0 text-center text-xs font-bold text-[#F28C00]" aria-hidden="true">R</span><span>{LOCATION_DETAILS.lima.reference}</span></p>
-              <p className="flex gap-2"><Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-[#F28C00]" aria-hidden="true" /><span>{LOCATION_DETAILS.lima.hours}</span></p>
-              <p className="flex gap-2"><Phone className="mt-0.5 h-4 w-4 shrink-0 text-[#F28C00]" aria-hidden="true" /><span className="space-y-1"><a className="block font-semibold text-[#0B2B5E] hover:underline" href={LOCATION_DETAILS.lima.phoneHref} aria-label={`Teléfono fijo ${LOCATION_DETAILS.lima.phone}`}>Teléfono fijo: {LOCATION_DETAILS.lima.phone}</a><span className="block"><span className="font-medium">Celular / WhatsApp: </span><a className="font-semibold text-[#0B2B5E] hover:underline" href={LOCATION_DETAILS.lima.whatsappHref} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp +51 970 188 447">+51 970 188 447</a><span> / </span><a className="font-semibold text-[#0B2B5E] hover:underline" href={LOCATION_DETAILS.lima.whatsappSecondHref} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp +51 908 722 617">+51 908 722 617</a></span></span></p>
+            <div className="space-y-5 text-base leading-7 text-slate-700">
+              <p className="flex gap-3"><MapPin className="mt-0.5 h-5 w-5 shrink-0 text-[#F28C00]" aria-hidden="true" /><span>{LOCATION_DETAILS.lima.address}</span></p>
+              <p className="flex gap-3"><span className="mt-0.5 h-5 w-5 shrink-0 text-center text-sm font-bold text-[#F28C00]" aria-hidden="true">R</span><span>{LOCATION_DETAILS.lima.reference}</span></p>
+              <p className="flex gap-3"><Clock3 className="mt-0.5 h-5 w-5 shrink-0 text-[#F28C00]" aria-hidden="true" /><span>{LOCATION_DETAILS.lima.hours}</span></p>
+              <p className="flex gap-3"><Phone className="mt-0.5 h-5 w-5 shrink-0 text-[#F28C00]" aria-hidden="true" /><span className="space-y-1"><a className="block font-semibold text-[#0B2B5E] hover:underline" href={LOCATION_DETAILS.lima.phoneHref} aria-label={`Teléfono fijo ${LOCATION_DETAILS.lima.phone}`}>Teléfono fijo: {LOCATION_DETAILS.lima.phone}</a><span className="block"><span className="font-medium">Celular / WhatsApp: </span><a className="font-semibold text-[#0B2B5E] hover:underline" href={LOCATION_DETAILS.lima.whatsappHref} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp +51 970 188 447">+51 970 188 447</a><span> / </span><a className="font-semibold text-[#0B2B5E] hover:underline" href={LOCATION_DETAILS.lima.whatsappSecondHref} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp +51 908 722 617">+51 908 722 617</a></span></span></p>
             </div>
-            <a href={LOCATION_DETAILS.lima.mapsUrl} target="_blank" rel="noopener noreferrer" className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#0B2B5E] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#123b78] focus:outline-none focus:ring-2 focus:ring-[#F28C00] focus:ring-offset-2">
+            <a href={LOCATION_DETAILS.lima.mapsUrl} target="_blank" rel="noopener noreferrer" className="mt-7 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#0B2B5E] px-5 py-3 text-base font-bold text-white transition hover:bg-[#123b78] focus:outline-none focus:ring-2 focus:ring-[#F28C00] focus:ring-offset-2">
               Abrir Lima en Google Maps <ExternalLink className="h-4 w-4" aria-hidden="true" />
             </a>
           </div>
         </Card>
 
-        <Card className="overflow-hidden border-0 bg-white shadow-lg ring-1 ring-slate-200">
-          <div className="h-2 bg-[#0B2B5E]" />
-          <div className="p-5 md:p-6">
-            <div className="mb-4 flex items-start justify-between gap-3">
+        <Card className="overflow-hidden rounded-3xl border-0 bg-white shadow-[0_18px_50px_-24px_rgba(11,43,94,0.45)] ring-1 ring-slate-200 transition duration-200 hover:-translate-y-1 hover:shadow-[0_24px_55px_-24px_rgba(11,43,94,0.5)]">
+          <div className="h-2.5 bg-[#0B2B5E]" />
+          <div className="p-6 md:p-8">
+            <div className="mb-6 flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-[#0B2B5E]">Sede Torino</p>
-                <h3 className="mt-1 text-xl font-bold text-[#0B2B5E]">{LOCATION_DETAILS.torino.label}</h3>
+                <p className="text-sm font-bold uppercase tracking-wider text-[#0B2B5E]">Sede Torino</p>
+                <h3 className="mt-2 text-2xl font-extrabold text-[#0B2B5E]">{LOCATION_DETAILS.torino.label}</h3>
               </div>
-              <div className="rounded-full bg-blue-50 p-2 text-[#0B2B5E]" aria-hidden="true"><MapPin className="h-5 w-5" /></div>
+              <div className="rounded-2xl bg-blue-50 p-3 text-[#0B2B5E]" aria-hidden="true"><MapPin className="h-6 w-6" /></div>
             </div>
-            <div className="space-y-3 text-sm text-slate-700">
-              <p className="flex gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#0B2B5E]" aria-hidden="true" /><span>{LOCATION_DETAILS.torino.address}</span></p>
-              <p className="flex gap-2"><span className="mt-0.5 h-4 w-4 shrink-0 text-center text-xs font-bold text-[#0B2B5E]" aria-hidden="true">R</span><span>{LOCATION_DETAILS.torino.reference}</span></p>
-              <p className="flex gap-2"><Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-[#0B2B5E]" aria-hidden="true" /><span>{LOCATION_DETAILS.torino.hours}</span></p>
-              <p className="flex gap-2"><Phone className="mt-0.5 h-4 w-4 shrink-0 text-[#0B2B5E]" aria-hidden="true" /><span className="space-y-1"><span className="block font-medium">WhatsApp Torino:</span><span className="block"><a className="font-semibold text-[#0B2B5E] hover:underline" href={LOCATION_DETAILS.torino.whatsappPrimaryHref} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp Torino +39 351 278 7962">+39 351 278 7962</a><span> / </span><a className="font-semibold text-[#0B2B5E] hover:underline" href={LOCATION_DETAILS.torino.whatsappSecondaryHref} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp Torino +39 350 902 5271">+39 350 902 5271</a><span> / </span><a className="font-semibold text-[#0B2B5E] hover:underline" href={LOCATION_DETAILS.torino.whatsappTertiaryHref} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp Torino +39 389 766 3723">+39 389 766 3723</a></span></span></p>
+            <div className="space-y-5 text-base leading-7 text-slate-700">
+              <p className="flex gap-3"><MapPin className="mt-0.5 h-5 w-5 shrink-0 text-[#0B2B5E]" aria-hidden="true" /><span>{LOCATION_DETAILS.torino.address}</span></p>
+              <p className="flex gap-3"><span className="mt-0.5 h-5 w-5 shrink-0 text-center text-sm font-bold text-[#0B2B5E]" aria-hidden="true">R</span><span>{LOCATION_DETAILS.torino.reference}</span></p>
+              <p className="flex gap-3"><Clock3 className="mt-0.5 h-5 w-5 shrink-0 text-[#0B2B5E]" aria-hidden="true" /><span>{LOCATION_DETAILS.torino.hours}</span></p>
+              <p className="flex gap-3"><Phone className="mt-0.5 h-5 w-5 shrink-0 text-[#0B2B5E]" aria-hidden="true" /><span className="space-y-1"><span className="block font-medium">WhatsApp Torino:</span><span className="block"><a className="font-semibold text-[#0B2B5E] hover:underline" href={LOCATION_DETAILS.torino.whatsappPrimaryHref} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp Torino +39 351 278 7962">+39 351 278 7962</a><span> / </span><a className="font-semibold text-[#0B2B5E] hover:underline" href={LOCATION_DETAILS.torino.whatsappSecondaryHref} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp Torino +39 350 902 5271">+39 350 902 5271</a><span> / </span><a className="font-semibold text-[#0B2B5E] hover:underline" href={LOCATION_DETAILS.torino.whatsappTertiaryHref} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp Torino +39 389 766 3723">+39 389 766 3723</a></span></span></p>
             </div>
-            <a href={LOCATION_DETAILS.torino.mapsUrl} target="_blank" rel="noopener noreferrer" className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#0B2B5E] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#123b78] focus:outline-none focus:ring-2 focus:ring-[#F28C00] focus:ring-offset-2">
+            <a href={LOCATION_DETAILS.torino.mapsUrl} target="_blank" rel="noopener noreferrer" className="mt-7 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#0B2B5E] px-5 py-3 text-base font-bold text-white transition hover:bg-[#123b78] focus:outline-none focus:ring-2 focus:ring-[#F28C00] focus:ring-offset-2">
               Abrir Torino en Google Maps <ExternalLink className="h-4 w-4" aria-hidden="true" />
             </a>
           </div>
@@ -238,147 +240,113 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       {/* Header */}
-      <header className="bg-primary text-white shadow-md sticky top-0 z-40">
-        <div className="max-w-4xl mx-auto px-4 py-4 md:py-6">
-          <div className="mb-2 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex items-center gap-2 md:gap-3">
-              <img src="/manus-storage/servicom_logo_final_e7ce35aa.png" alt="Servicom Internacional" className="h-16 md:h-20 w-auto object-contain bg-white rounded-md p-1" />
-            </div>
-            <div className="flex flex-wrap items-center gap-1 self-start sm:self-auto">
-              <button onClick={() => window.location.href = '/movil'} className="rounded px-2 py-2 text-xs font-medium text-white transition active:scale-[0.97] hover:bg-white/20 sm:px-3 sm:text-sm">
-                App móvil
-              </button>
-              <button onClick={() => window.location.href = '/cuenta'} className="rounded px-2 py-2 text-xs font-medium text-white transition active:scale-[0.97] hover:bg-white/20 sm:px-3 sm:text-sm">
-                Cliente
-              </button>
-              <button onClick={() => window.location.href = '/admin'} className="rounded bg-[#F28C00] px-2 py-2 text-xs font-bold text-white transition active:scale-[0.97] hover:bg-[#d97800] sm:px-3 sm:text-sm">
-                Admin
-              </button>
-            </div>
+      <header className="sticky top-0 z-40 border-b-4 border-[#F28C00] bg-[#0B2B5E] text-white shadow-xl">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
+          <div className="flex min-h-[96px] flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between lg:min-h-[112px] lg:py-5">
+            <a href="/" className="flex items-center gap-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#F28C00] focus:ring-offset-2 focus:ring-offset-[#0B2B5E]">
+              <img src="/manus-storage/servicom_logo_final_e7ce35aa.png" alt="Servicom Internacional" className="h-16 w-16 rounded-xl bg-white p-1.5 object-contain shadow-md sm:h-20 sm:w-20" />
+              <span>
+                <span className="block text-xl font-extrabold tracking-tight sm:text-2xl lg:text-3xl">Servicom Internacional</span>
+                <span className="mt-1 block text-sm font-semibold text-blue-100 sm:text-base">Rastreo seguro de tus envíos</span>
+                <span className="mt-1 block text-xs text-blue-200 sm:text-sm">Documentos y encomiendas · RUC 20615004708</span>
+              </span>
+            </a>
+            <nav aria-label="Navegación principal" className="flex w-full items-center gap-0 overflow-x-auto pb-1 sm:w-auto sm:justify-end sm:gap-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <a href="#rastreo" className="shrink-0 rounded-lg px-2.5 py-2.5 text-sm font-bold text-white transition hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-[#F28C00] sm:px-4">Rastrea</a>
+              <a href="#sedes" className="shrink-0 rounded-lg px-2.5 py-2.5 text-sm font-bold text-white transition hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-[#F28C00] sm:px-4">Sedes</a>
+              <a href="/movil" className="shrink-0 rounded-lg px-2.5 py-2.5 text-sm font-bold text-white transition hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-[#F28C00] sm:px-4">App móvil</a>
+              <a href="/cuenta" className="shrink-0 rounded-lg px-2.5 py-2.5 text-sm font-bold text-white transition hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-[#F28C00] sm:px-4">Cliente</a>
+              <a href="/admin" className="shrink-0 rounded-lg bg-[#F28C00] px-3.5 py-2.5 text-sm font-extrabold text-white shadow-md transition hover:bg-[#d97800] focus:outline-none focus:ring-2 focus:ring-white sm:px-5">Admin</a>
+            </nav>
           </div>
-            <p className="text-primary-foreground opacity-90 text-sm md:text-base font-bold">
-            Rastreo de envíos de documentos en tiempo real
-            </p>
-            <p className="text-primary-foreground/80 text-xs md:text-sm mt-1">
-              Servicom Internacional · RUC 20615004708
-            </p>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-6 md:py-8">
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 md:py-12 lg:px-10">
         {/* Search Form */}
-        <Card className="p-4 md:p-6 mb-6 md:mb-8 shadow-lg border-0">
-          <h2 className="text-lg md:text-xl font-semibold mb-4 md:mb-6 text-gray-900">
-            Rastrear tu envío de documento
-          </h2>
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-              <div>
-                <label className="block text-xs md:text-sm font-medium text-gray-700 mb-2">
-                  Número de Orden
-                </label>
-                <div className="h-4 mb-1">
-                  <p className="text-[10px] text-gray-500 italic">El número de orden tiene 10 dígitos</p>
-                </div>
-                <Input
-                  placeholder="Ej: 3520992723"
-                  {...register("orderNumber")}
-                  className="border-2 focus:border-primary text-sm"
-                />
-                {errors.orderNumber && (
-                  <p className="text-red-600 text-xs md:text-sm mt-1">
-                    {errors.orderNumber.message}
-                  </p>
-                )}
+        <section id="rastreo" className="relative scroll-mt-28 overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#d9eff9] via-[#f1f8fb] to-white p-1 shadow-[0_24px_70px_-32px_rgba(11,43,94,0.55)]">
+          <div className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-[#F28C00]/15 blur-2xl" aria-hidden="true" />
+          <Card className="relative rounded-[1.75rem] border-0 bg-white/95 p-6 shadow-none sm:p-9 lg:p-12">
+            <div className="max-w-3xl">
+              <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-[#0B2B5E]/8 px-4 py-2 text-sm font-bold text-[#0B2B5E]">
+                <Search className="h-4 w-4" aria-hidden="true" />
+                Rastreo en línea
               </div>
-
-              <div>
-                <label className="block text-xs md:text-sm font-medium text-gray-700 mb-2">
-                  Código de Envío
-                </label>
-                <div className="h-4 mb-1">
-                  <span className="text-[10px] text-transparent select-none">&nbsp;</span>
-                </div>
-                <Input
-                  placeholder="Ej: CA06721WB"
-                  {...register("code")}
-                  className="border-2 focus:border-primary text-sm"
-                />
-                {errors.code && (
-                  <p className="text-red-600 text-xs md:text-sm mt-1">
-                    {errors.code.message}
-                  </p>
-                )}
-              </div>
+              <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-[#0B2B5E] sm:text-4xl lg:text-5xl">Sigue tu envío en todo momento</h1>
+              <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">Ingresa tu número de orden y código de envío. Verás el estado actual, la ruta y la sede donde podrás recogerlo.</p>
             </div>
 
-            {searchError && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 md:p-4 flex gap-2 md:gap-3">
-                <AlertCircle className="w-4 md:w-5 h-4 md:h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                <p className="text-red-700 text-xs md:text-sm">{searchError}</p>
+            <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-5">
+              <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-base font-bold text-slate-800" htmlFor="orderNumber">Número de orden</label>
+                  <p className="mb-2 text-sm text-slate-500">10 dígitos, sin espacios</p>
+                  <Input id="orderNumber" placeholder="Ej.: 3520992723" {...register("orderNumber")} className="h-14 rounded-xl border-2 border-slate-200 px-4 text-base shadow-sm focus:border-[#0B2B5E] focus:ring-4 focus:ring-[#0B2B5E]/10 sm:text-lg" />
+                  {errors.orderNumber && <p className="mt-2 text-sm font-semibold text-red-600">{errors.orderNumber.message}</p>}
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-base font-bold text-slate-800" htmlFor="code">Código de envío</label>
+                  <p className="mb-2 text-sm text-slate-500">El código aparece en tu comprobante</p>
+                  <Input id="code" placeholder="Ej.: CA06721WB" {...register("code")} className="h-14 rounded-xl border-2 border-slate-200 px-4 text-base uppercase shadow-sm focus:border-[#0B2B5E] focus:ring-4 focus:ring-[#0B2B5E]/10 sm:text-lg" />
+                  {errors.code && <p className="mt-2 text-sm font-semibold text-red-600">{errors.code.message}</p>}
+                </div>
               </div>
-            )}
 
-            <div className="flex flex-col md:flex-row gap-2 md:gap-3 pt-2">
-              <Button
-                type="submit"
-                disabled={isSearching}
-                className="flex-1 bg-primary hover:bg-primary/90 text-white font-semibold py-2 text-sm md:text-base"
-              >
-                {isSearching ? (
-                  <>
-                    <Spinner className="w-4 h-4 mr-2" />
-                    Buscando...
-                  </>
-                ) : (
-                  "Rastrear Envío"
-                )}
-              </Button>
+              {searchError && (
+                <div className="flex gap-3 rounded-xl border border-red-200 bg-red-50 p-4" role="alert">
+                  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+                  <p className="text-sm font-semibold leading-6 text-red-700">{searchError}</p>
+                </div>
+              )}
 
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setScannerOpen(true)}
-                className="border-2 border-primary text-primary hover:bg-primary/5 text-sm md:text-base"
-              >
-                <QrCode className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Escanear QR</span>
-                <span className="sm:hidden">QR</span>
-              </Button>
+              <div className="flex flex-col gap-3 pt-2 sm:flex-row">
+                <Button type="submit" disabled={isSearching} className="min-h-14 flex-1 rounded-xl bg-[#0B2B5E] px-6 text-base font-extrabold text-white shadow-lg shadow-[#0B2B5E]/20 transition hover:bg-[#123b78] sm:text-lg">
+                  {isSearching ? <><Spinner className="mr-2 h-5 w-5" /> Buscando envío...</> : <><Search className="mr-2 h-5 w-5" /> Rastrear envío <ArrowRight className="ml-2 h-5 w-5" /></>}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => setScannerOpen(true)} className="min-h-14 rounded-xl border-2 border-[#0B2B5E] bg-white px-6 text-base font-extrabold text-[#0B2B5E] transition hover:bg-[#0B2B5E]/5 sm:text-lg">
+                  <QrCode className="mr-2 h-5 w-5" /> <span>Escanear QR</span>
+                </Button>
+              </div>
+            </form>
+
+            <div className="mt-8 grid gap-3 border-t border-slate-200 pt-6 sm:grid-cols-3">
+              <div className="flex items-center gap-3 text-sm font-semibold text-slate-600"><ShieldCheck className="h-5 w-5 shrink-0 text-[#F28C00]" /> Información clara y segura</div>
+              <div className="flex items-center gap-3 text-sm font-semibold text-slate-600"><Clock3 className="h-5 w-5 shrink-0 text-[#F28C00]" /> Estado actualizado</div>
+              <div className="flex items-center gap-3 text-sm font-semibold text-slate-600"><MapPin className="h-5 w-5 shrink-0 text-[#F28C00]" /> Ruta y sede de recojo</div>
             </div>
-          </form>
-        </Card>
+          </Card>
+        </section>
 
         {/* Results */}
         {shipmentData && (
           <div className="space-y-8">
             {/* Shipment Info Card */}
-            <Card className="p-4 md:p-6 shadow-lg border-0 bg-gradient-to-r from-primary/5 to-transparent">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            <Card className="rounded-3xl border-0 bg-gradient-to-br from-[#0B2B5E]/8 via-white to-white p-5 shadow-[0_18px_50px_-24px_rgba(11,43,94,0.45)] ring-1 ring-[#0B2B5E]/10 sm:p-7 lg:p-8">
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-4 md:gap-6">
                 <div>
-                  <p className="text-xs md:text-sm text-gray-600 mb-1">Número de Orden</p>
-                  <p className="text-base md:text-lg font-bold text-gray-900">
+                  <p className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-500">Número de orden</p>
+                  <p className="break-all text-xl font-extrabold tracking-tight text-gray-900 sm:text-2xl">
                     {shipmentData.orderNumber}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs md:text-sm text-gray-600 mb-1">Código de Envío</p>
-                  <p className="text-base md:text-lg font-bold text-gray-900">
+                  <p className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-500">Código de envío</p>
+                  <p className="break-all text-xl font-extrabold tracking-tight text-gray-900 sm:text-2xl">
                     {shipmentData.code}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs md:text-sm text-gray-600 mb-1">Estado Actual</p>
+                  <p className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-500">Estado actual</p>
                   <div className="flex items-center gap-2">
-                    <div className="w-2 md:w-3 h-2 md:h-3 bg-primary rounded-full" />
-                    <p className="text-base md:text-lg font-bold text-primary">
+                    <div className="h-3 w-3 rounded-full bg-[#F28C00] shadow-[0_0_0_5px_rgba(242,140,0,0.15)]" />
+                    <p className="text-xl font-extrabold text-[#0B2B5E] sm:text-2xl">
                       {shipmentData.status}
                     </p>
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs md:text-sm text-gray-600 mb-1">Estado de Pago</p>
+                  <p className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-500">Estado de pago</p>
                   <span className={`inline-flex rounded-md px-2.5 py-1 text-sm font-semibold ${getPaymentStatusUi(shipmentData.paymentStatus).badgeClass}`}>
                     {getPaymentStatusUi(shipmentData.paymentStatus).label}
                   </span>
@@ -386,21 +354,21 @@ export default function Home() {
               </div>
             </Card>
 
-            {pickupRoute && <Card aria-label="Ruta y sede de recojo" className="border-0 bg-gradient-to-r from-amber-50 to-white p-4 shadow-lg ring-1 ring-amber-200 md:p-6">
+            {pickupRoute && <Card aria-label="Ruta y sede de recojo" className="rounded-3xl border-0 bg-gradient-to-r from-amber-50 to-white p-5 shadow-[0_18px_50px_-24px_rgba(180,83,9,0.35)] ring-1 ring-amber-200 sm:p-7 lg:p-8">
               <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                <div className="flex gap-3">
-                  <div className="rounded-full bg-amber-100 p-2 text-[#F28C00]" aria-hidden="true"><MapPin className="h-5 w-5" /></div>
+                <div className="flex gap-4">
+                  <div className="rounded-2xl bg-amber-100 p-3 text-[#F28C00]" aria-hidden="true"><MapPin className="h-6 w-6" /></div>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-[#A85F00]">Ruta del envío</p>
-                    <h3 className="mt-1 text-xl font-bold text-[#0B2B5E]">{pickupRoute.route}</h3>
-                    <p className="mt-1 text-sm text-slate-700">Origen: <strong>{pickupRoute.originLabel}</strong> · Destino: <strong>{pickupRoute.destinationLabel}</strong></p>
+                    <p className="text-sm font-bold uppercase tracking-wide text-[#A85F00]">Ruta del envío</p>
+                    <h3 className="mt-2 text-2xl font-extrabold text-[#0B2B5E] sm:text-3xl">{pickupRoute.route}</h3>
+                    <p className="mt-2 text-base leading-7 text-slate-700">Origen: <strong>{pickupRoute.originLabel}</strong> · Destino: <strong>{pickupRoute.destinationLabel}</strong></p>
                   </div>
                 </div>
-                <div className="rounded-lg border border-amber-200 bg-white p-4 md:max-w-md">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[#A85F00]">Sede de recojo</p>
-                  <h4 className="mt-1 text-lg font-bold text-[#0B2B5E]">Recojo en {pickupRoute.destinationLabel}</h4>
+                <div className="rounded-2xl border border-amber-200 bg-white p-5 md:max-w-md">
+                  <p className="text-sm font-bold uppercase tracking-wide text-[#A85F00]">Sede de recojo</p>
+                  <h4 className="mt-2 text-xl font-extrabold text-[#0B2B5E]">Recojo en {pickupRoute.destinationLabel}</h4>
                   <p className="mt-2 text-sm font-semibold text-slate-800">{pickupRoute.destination.officeLabel}</p>
-                  <p className="mt-1 text-sm leading-6 text-slate-700">{pickupRoute.destination.address}</p>
+                  <p className="mt-2 text-base leading-7 text-slate-700">{pickupRoute.destination.address}</p>
                   <p className="mt-2 text-xs text-slate-600">Contacto: {pickupRoute.destination.phone}</p>
                 </div>
               </div>
@@ -416,13 +384,13 @@ export default function Home() {
 
             {/* Sender and recipient */}
             {(shipmentData.senderName || shipmentData.recipientName) && (
-              <Card className="p-4 md:p-6 shadow-lg border-0">
-                <h3 className="text-lg md:text-xl font-semibold mb-4 text-gray-900">Información de las personas</h3>
+              <Card className="rounded-3xl border-0 p-5 shadow-[0_18px_50px_-24px_rgba(11,43,94,0.35)] sm:p-7 lg:p-8">
+                <h3 className="mb-5 text-2xl font-extrabold tracking-tight text-gray-900 sm:text-3xl">Información de las personas</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {shipmentData.senderName && (
                     <div className="rounded-lg bg-blue-50 p-4">
                       <p className="text-xs font-semibold uppercase tracking-wide text-blue-700 mb-2">Remitente</p>
-                      <p className="font-semibold text-gray-900">{shipmentData.senderName} {shipmentData.senderLastName || ""}</p>
+                      <p className="text-lg font-extrabold text-gray-900">{shipmentData.senderName} {shipmentData.senderLastName || ""}</p>
                       {shipmentData.senderDni && <p className="text-sm text-gray-600 mt-1">DNI: {shipmentData.senderDni}</p>}
                       {shipmentData.senderPhone && <p className="text-sm text-gray-600">Celular: {formatPhoneNumber(shipmentData.senderPhone)}</p>}
                     </div>
@@ -430,7 +398,7 @@ export default function Home() {
                   {shipmentData.recipientName && (
                     <div className="rounded-lg bg-orange-50 p-4">
                       <p className="text-xs font-semibold uppercase tracking-wide text-orange-700 mb-2">Destinatario</p>
-                      <p className="font-semibold text-gray-900">{shipmentData.recipientName} {shipmentData.recipientLastName || ""}</p>
+                      <p className="text-lg font-extrabold text-gray-900">{shipmentData.recipientName} {shipmentData.recipientLastName || ""}</p>
                       {shipmentData.recipientDni && <p className="text-sm text-gray-600 mt-1">DNI: {shipmentData.recipientDni}</p>}
                       {shipmentData.recipientPhone && <p className="text-sm text-gray-600">Celular: {formatPhoneNumber(shipmentData.recipientPhone)}</p>}
                     </div>
@@ -446,10 +414,9 @@ export default function Home() {
             )}
 
             {/* Timeline */}
-            <Card className="p-4 md:p-6 shadow-lg border-0">
-              <h3 className="text-lg md:text-xl font-semibold mb-4 md:mb-6 text-gray-900">
-                Historial de Seguimiento
-              </h3>
+            <Card className="rounded-3xl border-0 p-5 shadow-[0_18px_50px_-24px_rgba(11,43,94,0.35)] sm:p-7 lg:p-8">
+              <h3 className="mb-2 text-2xl font-extrabold tracking-tight text-gray-900 sm:text-3xl">Historial de seguimiento</h3>
+              <p className="mb-3 text-base text-slate-600">Consulta cada etapa de tu envío de origen a destino.</p>
               <ShipmentTimeline
                 events={shipmentData.events}
                 currentStatus={shipmentData.status}
@@ -458,10 +425,8 @@ export default function Home() {
 
             {/* QR Code */}
             {qrCodeUrl && (
-              <Card className="p-4 md:p-6 shadow-lg border-0">
-                <h3 className="text-lg md:text-xl font-semibold mb-4 text-gray-900">
-                  Código QR de Rastreo
-                </h3>
+              <Card className="rounded-3xl border-0 p-5 shadow-[0_18px_50px_-24px_rgba(11,43,94,0.35)] sm:p-7 lg:p-8">
+                <h3 className="mb-5 text-2xl font-extrabold tracking-tight text-gray-900 sm:text-3xl">Código QR de rastreo</h3>
                 <div className="flex flex-col items-center gap-4">
                   <img
                     src={qrCodeUrl}
@@ -487,7 +452,7 @@ export default function Home() {
             )}
 
             {/* New Search Button */}
-            <div className="flex justify-center">
+            <div className="flex justify-center py-2">
               <Button
                 onClick={() => {
                   reset();
@@ -508,11 +473,10 @@ export default function Home() {
 
         {/* Empty State */}
         {!shipmentData && !isSearching && (
-          <div className="text-center py-12 md:py-16">
-            <Package className="w-12 md:w-16 h-12 md:h-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500 text-base md:text-lg">
-              Ingresa los datos de tu envío para comenzar el rastreo
-            </p>
+          <div className="mx-auto my-12 max-w-2xl rounded-3xl border border-dashed border-slate-300 bg-white/80 px-6 py-14 text-center shadow-sm md:my-16">
+            <Package className="mx-auto mb-5 h-16 w-16 text-slate-300" />
+            <p className="text-lg font-semibold text-slate-600 sm:text-xl">Ingresa los datos de tu envío para comenzar el rastreo</p>
+            <p className="mt-2 text-sm text-slate-500">También puedes escanear el QR de tu comprobante.</p>
           </div>
         )}
 
@@ -527,8 +491,8 @@ export default function Home() {
       />
 
       {/* Footer */}
-      <footer className="bg-[#0B2B5E] text-white mt-12 py-8">
-        <div className="max-w-4xl mx-auto px-4">
+      <footer className="mt-16 bg-[#0B2B5E] py-12 text-white">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
             <div>
               <h3 className="text-lg font-bold mb-2">Servicom Internacional</h3>

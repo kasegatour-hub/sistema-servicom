@@ -17,8 +17,8 @@ export function ShipmentTimeline({ events, currentStatus }: ShipmentTimelineProp
   const currentStageIndex = STAGES_ORDER.indexOf(currentStatus);
 
   return (
-    <div className="w-full py-8">
-      <div className="space-y-6">
+    <div className="w-full py-7 sm:py-9">
+      <div className="space-y-7 sm:space-y-8">
         {STAGES_ORDER.map((stage, index) => {
           const isCompleted = index <= currentStageIndex;
           const isCurrent = index === currentStageIndex;
@@ -26,11 +26,11 @@ export function ShipmentTimeline({ events, currentStatus }: ShipmentTimelineProp
           const event = stageEvents[stageEvents.length - 1];
 
           return (
-            <div key={stage} className="flex gap-4">
+            <div key={stage} className="flex gap-4 sm:gap-5">
               {/* Timeline dot and line */}
               <div className="flex flex-col items-center">
                 <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                  className={`flex h-12 w-12 items-center justify-center rounded-full transition-all sm:h-14 sm:w-14 ${
                     isCompleted
                       ? stage === "Entregado"
                         ? "bg-blue-600 text-white"
@@ -39,14 +39,14 @@ export function ShipmentTimeline({ events, currentStatus }: ShipmentTimelineProp
                   }`}
                 >
                   {isCompleted ? (
-                    <CheckCircle2 className="w-6 h-6" />
+                    <CheckCircle2 className="h-7 w-7 sm:h-8 sm:w-8" />
                   ) : (
-                    <Clock className="w-6 h-6" />
+                    <Clock className="h-7 w-7 sm:h-8 sm:w-8" />
                   )}
                 </div>
                 {index < STAGES_ORDER.length - 1 && (
                   <div
-                    className={`w-1 h-16 my-2 transition-all ${
+                      className={`my-2 h-16 w-1.5 rounded-full transition-all ${
                       isCompleted ? "bg-primary" : "bg-gray-200"
                     }`}
                   />
@@ -54,24 +54,24 @@ export function ShipmentTimeline({ events, currentStatus }: ShipmentTimelineProp
               </div>
 
               {/* Content */}
-              <div className="flex-1 pt-1">
-                <div className="flex items-baseline gap-2">
+              <div className="min-w-0 flex-1 pt-1">
+                <div className="flex flex-wrap items-center gap-2">
                   <h3
-                    className={`font-semibold text-lg ${
+                    className={`text-xl font-extrabold tracking-tight sm:text-2xl ${
                       isCompleted ? "text-gray-900" : "text-gray-400"
                     }`}
                   >
                     {stage}
                   </h3>
                   {isCurrent && (
-                    <span className="inline-block px-3 py-1 bg-primary text-white text-xs font-semibold rounded-full">
+                    <span className="inline-flex rounded-full bg-[#F28C00] px-3 py-1.5 text-xs font-extrabold uppercase tracking-wide text-white shadow-sm">
                       Actual
                     </span>
                   )}
                 </div>
                 {event && (
                   <>
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className="mt-2 text-sm font-semibold text-slate-600 sm:text-base">
                       {new Date(event.date).toLocaleDateString("es-ES", {
                         weekday: "long",
                         year: "numeric",
@@ -81,7 +81,7 @@ export function ShipmentTimeline({ events, currentStatus }: ShipmentTimelineProp
                         minute: "2-digit",
                       })}
                     </p>
-                    <p className="text-sm text-gray-700 mt-2">{event.description}</p>
+                    <p className="mt-2 text-base leading-7 text-slate-700 sm:text-lg">{event.description}</p>
                   </>
                 )}
               </div>

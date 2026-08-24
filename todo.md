@@ -901,3 +901,10 @@
 - [x] Aplicar la condición solo a registros Lima–Torino creados por el Master Admin Magda
 - [x] Mantener Servicom y las sedes actuales para todas las demás cuentas y rutas
 - [x] Añadir pruebas de recibo, validar logo, impresión, compilación y publicar
+
+## Rediseño público inspirado en Shalom
+- [x] Aumentar escala visual de logotipo, navegación, títulos, campos y botones de la pantalla pública
+- [x] Rediseñar la cabecera y la búsqueda para una jerarquía más clara y una acción principal evidente
+- [x] Mejorar tarjetas de sedes, estados, contraste, espaciado y feedback interactivo
+- [x] Mantener la identidad Servicom y asegurar adaptación usable en móvil y escritorio
+- [x] Añadir pruebas de interfaz y validar visualmente antes de publicar
