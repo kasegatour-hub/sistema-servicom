@@ -76,6 +76,21 @@ describe("MobileAppPage", () => {
     expect(screen.getByRole("link", { name: "Abrir mi cuenta" }).getAttribute("href")).toBe("/cuenta?returnTo=%2Fmovil");
   });
 
+  it("muestra la orden y el código claramente en el resultado móvil", () => {
+    accountMocks.session = { id: 7, email: "cliente@servicom.pe", name: "Ana", lastName: "López", reauthRequired: false };
+    searchMock.mockImplementation((input: { orderNumber: string }) => input.orderNumber ? { data: { orderNumber: "35209927", code: "7ABC", status: "En agencia", paymentStatus: "Falta cancelar", recipientName: "María", recipientLastName: "Ramos", route: "Lima - Torino", destinationAddress: "Jr. de la Unión 518" }, isLoading: false, error: null } : { data: undefined, isLoading: false, error: null });
+    render(<MobileAppPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Rastrear" }));
+    fireEvent.change(screen.getByLabelText("Número de orden móvil"), { target: { value: "35209927" } });
+    fireEvent.change(screen.getByLabelText("Código de envío móvil"), { target: { value: "7abc" } });
+    fireEvent.click(screen.getByRole("button", { name: "Buscar envío" }));
+
+    expect(screen.getAllByText("Número de orden").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("35209927").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Código de envío").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("7ABC").length).toBeGreaterThan(0);
+  });
+
   it("muestra una confirmación visible mientras busca el envío autenticado", () => {
     accountMocks.session = { id: 7, email: "cliente@servicom.pe", reauthRequired: false };
     searchMock.mockReturnValue({ data: undefined, isLoading: true, error: null });

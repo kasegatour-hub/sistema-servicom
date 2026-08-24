@@ -968,3 +968,10 @@
 - [x] Aplicar una experiencia más atractiva y usable a Inicio, Rastreo, Sedes, Admin, Cliente y formularios
 - [x] Mantener identidad Servicom, accesibilidad, responsive y feedback de interacción
 - [x] Crear o actualizar pruebas de las áreas rediseñadas, validar capturas y publicar
+
+## Identificadores visibles y filtros limpiables
+- [x] Mostrar número de orden y código en cada envío dentro de la app
+- [x] Mostrar los identificadores también en el detalle o recibo del Cliente
+- [x] Añadir botón Limpiar al filtro de Admin/Usuario
+- [x] Añadir botón Limpiar al filtro del Cliente
+- [x] Añadir pruebas, validar móvil y escritorio, y publicar

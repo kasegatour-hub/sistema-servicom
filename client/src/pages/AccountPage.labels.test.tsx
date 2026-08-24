@@ -82,6 +82,8 @@ describe("AccountPage client labels", () => {
     fireEvent.change(search, { target: { value: "sanches" } });
     expect(screen.getByText(/Lucía Sánchez/)).toBeTruthy();
     expect(screen.queryByText(/María Ramos/)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Limpiar" }));
+    expect((search as HTMLInputElement).value).toBe("");
   });
 
   it("shows the two shipment route options when the client starts a document registration", async () => {

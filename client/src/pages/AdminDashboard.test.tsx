@@ -190,6 +190,8 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.change(search, { target: { value: "sanches ar" } });
     expect(screen.getByText("Luisa Ramos")).toBeTruthy();
     expect(screen.queryByText("Ana López")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Limpiar búsqueda" }));
+    expect((search as HTMLInputElement).value).toBe("");
   });
 
   it("permite al Registrador escanear un control y abrir directamente la actualización del envío", async () => {

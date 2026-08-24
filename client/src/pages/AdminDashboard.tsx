@@ -2230,6 +2230,11 @@ export default function AdminDashboard() {
                   className="h-14 w-full bg-white pl-11 pr-4 text-base shadow-sm ring-1 ring-slate-200 focus-visible:ring-2 focus-visible:ring-[#0B2B5E]"
                 />
               </div>
+              <div className="mt-2 flex justify-end">
+                <Button type="button" variant="outline" size="sm" onClick={() => setSearchTerm("")} disabled={!searchTerm} className="min-h-10 border-[#0B2B5E]/30 text-[#0B2B5E]">
+                  <RotateCcw className="mr-2 h-4 w-4" /> Limpiar búsqueda
+                </Button>
+              </div>
               <p id="admin-shipment-search-help" role="status" className="mt-2 text-sm leading-5 text-slate-600">Busca por orden, código, DNI, nombre o apellido. Se muestran coincidencias similares aunque falten tildes o haya errores menores.</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
