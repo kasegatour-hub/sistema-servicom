@@ -10,18 +10,24 @@ describe("calculateAdminShipmentPricing", () => {
     expect(pricing.notes).toContain("2.5 kg @ 13.5 EUR/kg");
   });
 
-  it("applies the Torino–Lima automatic tiers from 1 to 5 kg and from 6 to 10 kg", () => {
-    expect(calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 1, route: "Torino - Lima" }).totalEur).toBe(10);
-    expect(calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 5, route: "Torino - Lima" }).totalEur).toBe(10);
-    expect(calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 6, route: "Torino - Lima" }).totalEur).toBe(15);
-    expect(calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 10, route: "Torino - Lima" }).totalEur).toBe(15);
+  it("uses 13.5 EUR per kilogram as the normal Torino–Lima base", () => {
+    expect(calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 1, route: "Torino - Lima" }).totalEur).toBe(13.5);
+    expect(calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 5, route: "Torino - Lima" }).totalEur).toBe(67.5);
+    expect(calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 10, route: "Torino - Lima" }).totalEur).toBe(135);
   });
 
-  it("requires a manual price for Torino–Lima above 10 kg", () => {
-    const pricing = calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 11, route: "Torino - Lima" });
+  it("applies provincial tiers only when province is enabled", () => {
+    const normal = calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 10, route: "Torino - Lima" });
+    const provincial = calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 10, route: "Torino - Lima", isProvinceDelivery: true });
+    expect(normal.totalEur).toBe(135);
+    expect(provincial.provinceCustomerPriceEur).toBe(15);
+    expect(provincial.totalEur).toBe(150);
+  });
 
-    expect(pricing.totalEur).toBe(0);
-    expect(pricing.notes).toContain("requiere Precio manual en EUR");
+  it("uses the 13.5 EUR/kg base above 10 kg and keeps manual base pricing available", () => {
+    const pricing = calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 11, route: "Torino - Lima" });
+    expect(pricing.totalEur).toBe(148.5);
+    expect(pricing.notes).toContain("11 kg @ 13.5 EUR/kg");
     expect(calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 11, route: "Torino - Lima", manualPriceEur: "120" }).totalEur).toBe(120);
   });
 

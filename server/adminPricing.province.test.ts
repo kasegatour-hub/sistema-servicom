@@ -36,13 +36,13 @@ describe("calculateAdminShipmentPricing — provincia Italia–Lima", () => {
     const result = calculateAdminShipmentPricing({ shipmentType: "encomienda", route: "Torino - Lima", weightKg: 10.1, isProvinceDelivery: true });
     expect(result.provinceCustomerPriceEur).toBe(15);
     expect(result.provinceExtraPriceEur).toBe(0.15);
-    expect(result.totalEur).toBe(15.15);
+    expect(result.totalEur).toBe(151.5);
     expect(result.notes).toContain("extra provincial +0.15 EUR");
 
     const manual = calculateAdminShipmentPricing({ shipmentType: "encomienda", route: "Torino - Lima", weightKg: 12, isProvinceDelivery: true, provinceExtraPriceEur: 9.5 });
     expect(manual.provinceCustomerPriceEur).toBe(15);
     expect(manual.provinceExtraPriceEur).toBe(9.5);
-    expect(manual.totalEur).toBe(24.5);
+    expect(manual.totalEur).toBe(186.5);
   });
 
   it("no activa provincia fuera de Italia–Lima", () => {

@@ -23,17 +23,9 @@ export type AdminShipmentPricingInput = {
 
 export function calculateAutomaticParcelPriceEur(weightKg: number, route?: string): { totalEur: number; description: string } {
   const normalizedWeight = Math.max(0.1, Number(weightKg || 1));
-  if (route === "Torino - Lima" && normalizedWeight <= 5) {
-    return { totalEur: 10, description: `Encomienda Torino–Lima (${normalizedWeight} kg): tarifa automática 10.00 EUR para 1–5 kg.` };
-  }
-  if (route === "Torino - Lima" && normalizedWeight <= 10) {
-    return { totalEur: 15, description: `Encomienda Torino–Lima (${normalizedWeight} kg): tarifa automática 15.00 EUR para 6–10 kg.` };
-  }
-  if (route === "Torino - Lima") {
-    return { totalEur: 0, description: `Encomienda Torino–Lima (${normalizedWeight} kg): supera el límite automático de 10 kg; requiere Precio manual en EUR.` };
-  }
   const totalEur = normalizedWeight * 13.5;
-  return { totalEur, description: `Encomienda por peso (${normalizedWeight} kg @ 13.5 EUR/kg): ${totalEur.toFixed(2)} EUR` };
+  const routeLabel = route === "Torino - Lima" ? "Torino–Lima" : "por peso";
+  return { totalEur, description: `Encomienda ${routeLabel} (${normalizedWeight} kg @ 13.5 EUR/kg): ${totalEur.toFixed(2)} EUR` };
 }
 
 export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) {

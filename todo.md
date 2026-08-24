@@ -1033,3 +1033,9 @@
 - [x] Mostrar logo, dirección y contactos Kasega únicamente para magda.barreto.alv@gmail.com
 - [x] Mantener Servicom Internacional en recibos de las demás cuentas
 - [x] Validar impresión y descarga, añadir pruebas y publicar
+
+## Separación de tarifa base y provincia
+- [x] Restaurar 13,50 EUR/kg como tarifa normal Italia → Lima
+- [x] Aplicar 10/15 EUR solo al activar envío a provincia
+- [x] Corregir total, etiquetas, notas y recibos
+- [x] Añadir pruebas de escenarios con y sin provincia y publicar
