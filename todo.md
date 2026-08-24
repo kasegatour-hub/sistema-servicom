@@ -1114,3 +1114,11 @@
 - [x] Permitir crear la encomienda sin modificar el valor sugerido
 - [x] Reemplazar el error técnico por una confirmación informativa
 - [x] Añadir pruebas, validar y publicar
+
+## Validación guiada y navegación al error
+- [x] Convertir errores técnicos en mensajes humanos por campo
+- [x] Desplazar y enfocar automáticamente el primer campo inválido
+- [x] Mostrar en rojo qué dato falta y dónde corregirlo
+- [x] Mantener el mensaje hasta que el campo se corrija
+- [x] Añadir pruebas para precio, checklist, sede y campos obligatorios
+- [x] Validar móvil/escritorio y publicar

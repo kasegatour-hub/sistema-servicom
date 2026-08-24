@@ -889,6 +889,22 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleCreateShipmentInvalid = (errors: Record<string, any>) => {
+    const fieldOrder = ["senderName", "senderLastName", "senderDni", "senderPhone", "recipientName", "recipientLastName", "recipientDni", "recipientPhone", "weightKg", "provinceCustomerPriceEur", "provinceExtraPriceEur", "destinationAddress", "contentChecklist"];
+    const firstField = fieldOrder.find(field => errors[field]);
+    const fieldLabels: Record<string, string> = { senderName: "nombre del remitente", senderLastName: "apellido del remitente", senderDni: "documento del remitente", senderPhone: "celular del remitente", recipientName: "nombre del destinatario", recipientLastName: "apellido del destinatario", recipientDni: "documento del destinatario", recipientPhone: "celular del destinatario", weightKg: "peso del envío", provinceCustomerPriceEur: "precio al cliente para provincia", provinceExtraPriceEur: "extra provincial", destinationAddress: "sede de destino", contentChecklist: "lista de cosas enviadas" };
+    const message = firstField ? `Revisa el campo «${fieldLabels[firstField] || firstField}». ${String(errors[firstField]?.message || "Completa este dato para continuar.")}` : "Revisa los campos señalados en rojo antes de continuar.";
+    setCreateShipmentValidationError(message);
+    if (firstField) {
+      window.setTimeout(() => {
+        const selector = `[name="${firstField}"]`;
+        const element = document.querySelector(selector) as HTMLElement | null;
+        element?.scrollIntoView({ behavior: "smooth", block: "center" });
+        element?.focus({ preventScroll: true });
+      }, 0);
+    }
+  };
+
   const handleCreateShipment = async (data: any) => {
     try {
       const normalizedChecklist = data.shipmentType === "documento"
@@ -1788,7 +1804,8 @@ export default function AdminDashboard() {
           )}
 
           {showCreateForm && (
-            <form onSubmit={createForm.handleSubmit(handleCreateShipment)} className="space-y-4">
+            <form onSubmit={createForm.handleSubmit(handleCreateShipment, handleCreateShipmentInvalid)} className="space-y-4">
+                {createShipmentValidationError && <div role="status" aria-live="assertive" className="sticky top-2 z-10 rounded-xl border-2 border-rose-300 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-800 shadow-sm"><strong className="block text-base">Revisa este dato antes de continuar</strong><span>{createShipmentValidationError}</span></div>}
               {/* Tarifa y estado del registro; el tipo ya lo define el botón de entrada */}
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3">
