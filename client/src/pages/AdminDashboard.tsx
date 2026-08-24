@@ -2414,6 +2414,19 @@ export default function AdminDashboard() {
                             <Download className="w-4 h-4 mr-1" />
                             Descargar PDF
                           </Button>
+                          {admin?.role === "superadmin" && (
+                            <Button
+                              type="button"
+                              onClick={() => void handleToggleRegistradorVisibility(shipment)}
+                              size="sm"
+                              variant="outline"
+                              className="border-violet-600 text-violet-700 hover:bg-violet-50"
+                              disabled={setShipmentRegistradorVisibilityMutation.isPending}
+                              title={shipment.hiddenFromRegistradoresAt ? "Volver a mostrar este registro a los Registradores" : "Ocultar este registro a los Registradores"}
+                            >
+                              {shipment.hiddenFromRegistradoresAt ? "Mostrar a Registradores" : "Ocultar a Registradores"}
+                            </Button>
+                          )}
                           {shipment.deliveryMode === "remoto" && (
                             <Button
                               onClick={() => sendShipmentSignatureMutation.mutate({ orderNumber: shipment.orderNumber, code: shipment.code })}

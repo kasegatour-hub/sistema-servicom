@@ -1133,3 +1133,8 @@
 ## Aislamiento de espacios administrativos
 - [x] Aislamiento estricto de los registros de Magdalena Barreto frente a listados, papelera, auditoría, actualización, eliminación y resúmenes administrativos
 - [x] Pruebas de regresión para impedir exposición del espacio aislado al Master Admin y registradores generales
+
+## Visibilidad de registros del Master Admin aislado
+- [x] Mostrar al Master Admin de Kasega/Magdalena la acción Ocultar registro en sus propios envíos
+- [x] Permitir alternar Ocultar/Mostrar sin exponer ni modificar registros de otros espacios
+- [x] Añadir pruebas de autorización y de visibilidad del botón
