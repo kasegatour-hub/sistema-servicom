@@ -1046,3 +1046,9 @@
 - [x] Activar Kasega solo para magda.barreto.alv@gmail.com
 - [x] Confirmar Servicom Internacional para Madalena y demás cuentas
 - [x] Añadir pruebas de ambos casos, validar impresión/descarga y publicar
+
+## Visibilidad de agencia provincial
+- [x] Ocultar agencia de destino mientras Envío a provincia esté desactivado
+- [x] Mostrar selector y sede después de activar provincia
+- [x] Ocultar y limpiar la sección al desactivar, cancelar o limpiar
+- [x] Añadir pruebas, validar móvil/escritorio y publicar

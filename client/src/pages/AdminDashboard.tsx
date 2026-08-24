@@ -558,17 +558,17 @@ export default function AdminDashboard() {
   const watchedWeightKg = Number(createForm.watch("weightKg")) || 0.1;
   const watchedProvinceEnabled = Boolean(createForm.watch("isProvinceDelivery"));
   const automaticProvincePrice = watchedWeightKg <= 5 ? 10 : watchedWeightKg <= 10 ? 15 : 0;
+  const watchedProvinceCustomerPrice = Number(createForm.watch("provinceCustomerPriceEur")) || (watchedProvinceEnabled ? automaticProvincePrice : 0);
+  const watchedProvinceExtraPrice = Number(createForm.watch("provinceExtraPriceEur")) || (watchedProvinceEnabled && watchedWeightKg > 10 ? Math.round((watchedWeightKg - 10) * 1.5 * 100) / 100 : 0);
+  const provincePreviewEur = watchedProvinceEnabled ? watchedProvinceCustomerPrice + watchedProvinceExtraPrice : 0;
   useEffect(() => {
     if (watchedProvinceEnabled && selectedRoute === "Torino - Lima" && !String(createForm.getValues("provinceCustomerPriceEur") ?? "").trim() && automaticProvincePrice > 0) {
       createForm.setValue("provinceCustomerPriceEur", automaticProvincePrice, { shouldDirty: true });
     }
   }, [watchedProvinceEnabled, selectedRoute, watchedWeightKg, automaticProvincePrice]);
-  const automaticParcelBaseEur = selectedRoute === "Torino - Lima"
-    ? watchedWeightKg <= 5 ? 10 : watchedWeightKg <= 10 ? 15 : null
-    : watchedWeightKg * 13.5;
-  const automaticParcelDescription = selectedRoute === "Torino - Lima"
-    ? watchedWeightKg <= 5 ? "10 EUR para 1–5 kg" : watchedWeightKg <= 10 ? "15 EUR para 6–10 kg" : "Sin tarifa automática: usa Precio manual en EUR para más de 10 kg"
-    : "13,5 EUR/kg";
+  const automaticParcelBaseEur = watchedWeightKg * 13.5;
+  const automaticParcelDescription = `${watchedWeightKg.toFixed(1)} kg × 13,5 EUR/kg como tarifa base normal`;
+  const automaticProvinceDescription = watchedWeightKg <= 5 ? "10 EUR adicionales para 0,1–5 kg" : watchedWeightKg <= 10 ? "15 EUR adicionales para más de 5–10 kg" : "15 EUR base provincial más extra proporcional editable sobre 10 kg";
   const manualParcelPrice = Number(createForm.watch("manualPriceEur"));
   const hasValidManualParcelPrice = String(createForm.watch("manualPriceEur") || "").trim() !== "" && Number.isFinite(manualParcelPrice) && manualParcelPrice >= 0;
   const additionalDocumentAutoTotal = additionalDocumentItems.reduce((total, item) => {
@@ -1855,7 +1855,9 @@ export default function AdminDashboard() {
                     <p className="mt-1 text-xs text-slate-500">Por defecto es 0. Se suma al precio final, incluso con tarifa manual.</p>
                   </div>
                 </div>
-                <AgencyDestinationPicker route={selectedRoute} value={createForm.watch("destinationAddress") || ""} onChange={(destinationAddress) => createForm.setValue("destinationAddress", destinationAddress, { shouldValidate: true, shouldDirty: true })} />
+                {selectedRoute === "Torino - Lima" && watchedProvinceEnabled && (
+                  <AgencyDestinationPicker route={selectedRoute} value={createForm.watch("destinationAddress") || ""} onChange={(destinationAddress) => createForm.setValue("destinationAddress", destinationAddress, { shouldValidate: true, shouldDirty: true })} />
+                )}
 
 
                 {selectedShipmentType === "encomienda" && selectedRoute === "Lima - Torino" && !limaTorinoEncomiendasEnabled && (
@@ -1956,10 +1958,10 @@ export default function AdminDashboard() {
                         {...createForm.register("weightKg", { valueAsNumber: true })}
                         className="border-2 focus:border-primary"
                       />
-                      <p className={`mt-1 text-base font-semibold ${automaticParcelBaseEur === null ? "text-amber-900" : "text-[#0B2B5E]"}`}>Tarifa automática {selectedRoute === "Torino - Lima" ? "Torino–Lima" : "Lima–Torino"}: {automaticParcelDescription}.</p>
+                      <p className={`mt-1 text-base font-semibold ${automaticParcelBaseEur === null ? "text-amber-900" : "text-[#0B2B5E]"}`}>Tarifa automática {selectedRoute === "Torino - Lima" ? "Torino–Lima" : "Lima–Torino"}: {automaticParcelDescription}{watchedProvinceEnabled ? ` · Provincia: ${automaticProvinceDescription}` : ""}.</p>
                     </div>
                     <div className={`flex items-end rounded-md p-4 text-lg font-bold ring-1 ${automaticParcelBaseEur === null && !hasValidManualParcelPrice ? "bg-amber-50 text-amber-900 ring-amber-200" : "bg-emerald-50 text-[#0B2B5E] ring-emerald-200"}`}>
-                      {hasValidManualParcelPrice ? `Total manual: ${(manualParcelPrice + Math.max(0, Number(createForm.watch("extraPriceEur")) || 0)).toFixed(2)} €` : automaticParcelBaseEur === null ? "Precio manual requerido" : `Total automático: ${(automaticParcelBaseEur + Math.max(0, Number(createForm.watch("extraPriceEur")) || 0)).toFixed(2)} €`}
+                      {hasValidManualParcelPrice ? `Total manual: ${(manualParcelPrice + Math.max(0, Number(createForm.watch("extraPriceEur")) || 0) + provincePreviewEur).toFixed(2)} €` : automaticParcelBaseEur === null ? "Precio manual requerido" : `Total automático: ${(automaticParcelBaseEur + Math.max(0, Number(createForm.watch("extraPriceEur")) || 0) + provincePreviewEur).toFixed(2)} €`}
                     </div>
                     <div className="flex items-end rounded-md bg-amber-50 p-3 text-xs text-amber-900 ring-1 ring-amber-200">
                       {automaticParcelBaseEur === null ? "Para más de 10 kg, ingresa un Precio manual en EUR antes de guardar." : "Puedes reemplazar el total usando Precio manual en EUR."}
