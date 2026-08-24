@@ -989,3 +989,9 @@
 - [x] Mantener disponibles acciones de limpieza para campos individuales
 - [x] Evitar que un nuevo documento o encomienda herede datos anteriores
 - [x] Añadir pruebas, validar móvil y escritorio, y publicar
+
+## Información contextual compacta del envío
+- [x] Reemplazar el bloque permanente sobre recepción por un botón Más información
+- [x] Mostrar el detalle de entrega en agencia y envío remoto al abrirlo
+- [x] Mantener el botón accesible y usable en Admin, Usuario y Cliente
+- [x] Añadir pruebas, validar móvil y escritorio, y publicar

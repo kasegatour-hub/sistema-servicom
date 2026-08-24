@@ -279,6 +279,7 @@ export default function AdminDashboard() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [admin, setAdmin] = useState<any>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showDeliveryInfo, setShowDeliveryInfo] = useState(false);
   const [adminWorkspace, setAdminWorkspace] = useState<AdminWorkspace>("registros");
   const [selectedShipmentId, setSelectedShipmentId] = useState<number | null>(null);
   const [showUpdateForm, setShowUpdateForm] = useState(false);
@@ -543,6 +544,7 @@ export default function AdminDashboard() {
     setCatalogDocuments([]);
     setShipmentPhoto(null);
     setCreateShipmentValidationError("");
+    setShowDeliveryInfo(false);
   };
   const selectedDocType = createForm.watch("docType") || "apostillado";
   const selectedRoute = createForm.watch("route") || "Lima - Torino";
@@ -1770,7 +1772,8 @@ export default function AdminDashboard() {
                       <SelectTrigger className="border-2 focus:border-primary"><SelectValue /></SelectTrigger>
                       <SelectContent><SelectItem value="agencia">Entrega en agencia</SelectItem><SelectItem value="remoto">Envío remoto: firma electrónica</SelectItem></SelectContent>
                     </Select>
-                    <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50/70 p-3 text-sm text-slate-700"><p className="font-bold text-[#0B2B5E]">¿Cómo recibirá la agencia este envío?</p><p className="mt-1 leading-5"><strong>Entrega en agencia:</strong> el remitente entrega el paquete directamente en la sede indicada y el personal de la agencia lo recibe allí. El cliente lo recogerá en la sede de destino.</p><p className="mt-2 leading-5"><strong>Envío remoto:</strong> el paquete se envía sin entrega presencial del remitente; el cliente debe completar la firma electrónica desde su recibo.</p></div>
+                    <button type="button" onClick={() => setShowDeliveryInfo(value => !value)} aria-expanded={showDeliveryInfo} className="mt-3 inline-flex min-h-10 items-center rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-[#0B2B5E] transition hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F28C00]">{showDeliveryInfo ? "Ocultar información" : "Más información: recepción del envío"}</button>
+                    {showDeliveryInfo && <div className="mt-2 rounded-xl border border-blue-100 bg-blue-50/70 p-3 text-sm text-slate-700" role="region" aria-label="Información sobre la recepción del envío"><p className="font-bold text-[#0B2B5E]">¿Cómo recibirá la agencia este envío?</p><p className="mt-1 leading-5"><strong>Entrega en agencia:</strong> el remitente entrega el paquete directamente en la sede indicada y el personal de la agencia lo recibe allí. El cliente lo recogerá en la sede de destino.</p><p className="mt-2 leading-5"><strong>Envío remoto:</strong> el paquete se envía sin entrega presencial del remitente; el cliente debe completar la firma electrónica desde su recibo.</p></div>}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Estado Inicial</label>
