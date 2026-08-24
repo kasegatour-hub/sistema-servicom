@@ -1964,8 +1964,10 @@ export default function AdminDashboard() {
                     <div className={`flex items-end rounded-md p-4 text-lg font-bold ring-1 ${needsManualParcelPrice && !hasValidManualParcelPrice ? "bg-amber-50 text-amber-900 ring-amber-200" : "bg-emerald-50 text-[#0B2B5E] ring-emerald-200"}`}>
                       {hasValidManualParcelPrice ? `Total manual: ${(manualParcelPrice + Math.max(0, Number(createForm.watch("extraPriceEur")) || 0) + provincePreviewEur).toFixed(2)} €` : needsManualParcelPrice ? "Precio final pendiente" : `Total automático: ${(automaticParcelBaseEur + Math.max(0, Number(createForm.watch("extraPriceEur")) || 0) + provincePreviewEur).toFixed(2)} €`}
                     </div>
-                    <div className="flex items-end rounded-md bg-amber-50 p-3 text-xs text-amber-900 ring-1 ring-amber-200">
-                      {needsManualParcelPrice ? `Base para ${watchedWeightKg.toFixed(1)} kg: ${automaticParcelBaseEur.toFixed(2)} EUR. El Admin o Usuario debe ingresar el precio final que se cobrará al cliente.` : "Puedes ingresar un Precio manual en EUR si necesitas ajustar el importe."}
+                    <div className="flex flex-col justify-center rounded-xl border-2 border-[#0B2B5E]/20 bg-blue-50 p-4 text-[#0B2B5E] shadow-sm ring-1 ring-blue-100">
+                      <span className="text-xs font-bold uppercase tracking-wide text-[#0B2B5E]/70">Precio base calculado</span>
+                      <strong className="mt-1 text-3xl font-extrabold tracking-tight">{automaticParcelBaseEur.toFixed(2)} EUR</strong>
+                      <span className="mt-1 text-sm font-medium text-[#0B2B5E]/80">{needsManualParcelPrice ? `Base para ${watchedWeightKg.toFixed(1)} kg. El Admin o Usuario debe indicar el precio final al cliente.` : "Importe calculado según el peso registrado."}</span>
                     </div>
                   </div>
                 )}

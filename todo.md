@@ -1071,3 +1071,9 @@
 - [x] Mostrar las sedes correspondientes después de elegir operador
 - [x] Limpiar operador, sede y dirección al desactivar provincia
 - [x] Añadir pruebas, validar móvil/escritorio y publicar
+
+## Rediseño visual del precio base
+- [x] Mostrar el precio base sobre 10 kg en una tarjeta azul grande y legible
+- [x] Reducir el aviso auxiliar amarillo y mantenerlo como instrucción secundaria
+- [x] Mejorar la jerarquía visual del precio al cliente y extra provincial
+- [x] Añadir pruebas, validar móvil/escritorio y publicar
