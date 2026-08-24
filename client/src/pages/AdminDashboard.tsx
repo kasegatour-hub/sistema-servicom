@@ -571,6 +571,7 @@ export default function AdminDashboard() {
   const automaticProvinceDescription = watchedWeightKg <= 5 ? "10 EUR adicionales para 0,1–5 kg" : watchedWeightKg <= 10 ? "15 EUR adicionales para más de 5–10 kg" : "15 EUR base provincial más extra proporcional editable sobre 10 kg";
   const manualParcelPrice = Number(createForm.watch("manualPriceEur"));
   const hasValidManualParcelPrice = String(createForm.watch("manualPriceEur") || "").trim() !== "" && Number.isFinite(manualParcelPrice) && manualParcelPrice >= 0;
+  const needsManualParcelPrice = selectedShipmentType === "encomienda" && watchedWeightKg > 10;
   const additionalDocumentAutoTotal = additionalDocumentItems.reduce((total, item) => {
     const automaticPrice = item.docType === "simple"
       ? (item.sheetCount <= 4 ? 45 : 45 + (item.sheetCount - 4) * 2)
@@ -1960,11 +1961,11 @@ export default function AdminDashboard() {
                       />
                       <p className={`mt-1 text-base font-semibold ${automaticParcelBaseEur === null ? "text-amber-900" : "text-[#0B2B5E]"}`}>Tarifa automática {selectedRoute === "Torino - Lima" ? "Torino–Lima" : "Lima–Torino"}: {automaticParcelDescription}{watchedProvinceEnabled ? ` · Provincia: ${automaticProvinceDescription}` : ""}.</p>
                     </div>
-                    <div className={`flex items-end rounded-md p-4 text-lg font-bold ring-1 ${automaticParcelBaseEur === null && !hasValidManualParcelPrice ? "bg-amber-50 text-amber-900 ring-amber-200" : "bg-emerald-50 text-[#0B2B5E] ring-emerald-200"}`}>
-                      {hasValidManualParcelPrice ? `Total manual: ${(manualParcelPrice + Math.max(0, Number(createForm.watch("extraPriceEur")) || 0) + provincePreviewEur).toFixed(2)} €` : automaticParcelBaseEur === null ? "Precio manual requerido" : `Total automático: ${(automaticParcelBaseEur + Math.max(0, Number(createForm.watch("extraPriceEur")) || 0) + provincePreviewEur).toFixed(2)} €`}
+                    <div className={`flex items-end rounded-md p-4 text-lg font-bold ring-1 ${needsManualParcelPrice && !hasValidManualParcelPrice ? "bg-amber-50 text-amber-900 ring-amber-200" : "bg-emerald-50 text-[#0B2B5E] ring-emerald-200"}`}>
+                      {hasValidManualParcelPrice ? `Total manual: ${(manualParcelPrice + Math.max(0, Number(createForm.watch("extraPriceEur")) || 0) + provincePreviewEur).toFixed(2)} €` : needsManualParcelPrice ? "Precio final pendiente" : `Total automático: ${(automaticParcelBaseEur + Math.max(0, Number(createForm.watch("extraPriceEur")) || 0) + provincePreviewEur).toFixed(2)} €`}
                     </div>
                     <div className="flex items-end rounded-md bg-amber-50 p-3 text-xs text-amber-900 ring-1 ring-amber-200">
-                      {automaticParcelBaseEur === null ? "Para más de 10 kg, ingresa un Precio manual en EUR antes de guardar." : "Puedes reemplazar el total usando Precio manual en EUR."}
+                      {needsManualParcelPrice ? `Base para ${watchedWeightKg.toFixed(1)} kg: ${automaticParcelBaseEur.toFixed(2)} EUR. El Admin o Usuario debe ingresar el precio final que se cobrará al cliente.` : "Puedes ingresar un Precio manual en EUR si necesitas ajustar el importe."}
                     </div>
                   </div>
                 )}

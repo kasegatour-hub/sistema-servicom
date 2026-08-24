@@ -1058,3 +1058,9 @@
 - [x] Transferir el registro al entorno aislado de Magdalena sin eliminarlo
 - [x] Verificar visibilidad, historial, recibo y rastreo
 - [x] Validar y publicar
+
+## Mensaje de precio manual sobre 10 kg
+- [x] Mostrar la base de 15 kg y solicitar al Admin o Usuario el importe final
+- [x] Evitar mostrar Total manual 0,00 EUR como precio confirmado
+- [x] Validar peso superior a 10 kg, campo manual y mensajes por rol
+- [x] Añadir pruebas, validar y publicar
