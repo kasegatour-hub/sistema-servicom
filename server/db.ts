@@ -1087,7 +1087,7 @@ export async function createShipment(
   provinceCustomerPriceEur?: string | number | null,
   provinceExtraPriceEur?: string | number | null,
   provinceOperationalCostSoles?: string | number | null,
-  provinceCarrier?: "olva" | "shalom" | null,
+  provinceCarrier?: "olva" | "shalom" | "fedex" | "dhl" | null,
 ) {
   const db = await getDb();
   if (!db) {
@@ -1224,7 +1224,7 @@ export async function updateShipmentStatus(
   provinceCustomerPriceEur?: string | number | null,
   provinceExtraPriceEur?: string | number | null,
   provinceOperationalCostSoles?: string | number | null,
-  provinceCarrier?: "olva" | "shalom" | null,
+  provinceCarrier?: "olva" | "shalom" | "fedex" | "dhl" | null,
 ) {
   const db = await getDb();
   if (!db) {

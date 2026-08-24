@@ -17,7 +17,7 @@ export type AdminShipmentPricingInput = {
   provinceCustomerPriceEur?: string | number | null;
   provinceExtraPriceEur?: string | number | null;
   provinceOperationalCostSoles?: string | number | null;
-  provinceCarrier?: "olva" | "shalom" | null;
+  provinceCarrier?: "olva" | "shalom" | "fedex" | "dhl" | null;
   notes?: string;
 };
 

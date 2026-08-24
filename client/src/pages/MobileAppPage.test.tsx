@@ -64,7 +64,7 @@ describe("MobileAppPage", () => {
     accountMocks.session = { id: 7, email: "cliente@servicom.pe", reauthRequired: false };
     render(<MobileAppPage />);
 
-    expect(screen.getByRole("button", { name: "Inicio" }).getAttribute("aria-current")).toBe("page");
+    expect(screen.getByRole("button", { name: "Inicio", current: "page" }).getAttribute("aria-current")).toBe("page");
     fireEvent.click(screen.getByRole("button", { name: "Rastrear" }));
     expect(screen.getByRole("heading", { name: "Encuentra tu envío" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Escanear QR de envío" })).toBeTruthy();

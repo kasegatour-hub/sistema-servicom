@@ -54,6 +54,16 @@ describe("calculateAdminShipmentPricing — provincia Italia–Lima", () => {
     expect(withProvince.totalEur).toBe(159);
   });
 
+  it("conserva FedEx y DHL como operadores válidos y regenera el resumen tarifario", () => {
+    for (const provinceCarrier of ["fedex", "dhl"] as const) {
+      const result = calculateAdminShipmentPricing({ shipmentType: "encomienda", route: "Torino - Lima", weightKg: 10, isProvinceDelivery: true, provinceCarrier, notes: "Cambio solicitado por el cliente" });
+      expect(result.provinceCarrier).toBe(provinceCarrier);
+      expect(result.totalEur).toBe(150);
+      expect(result.notes).toContain(`Envío a provincia (${provinceCarrier})`);
+      expect(result.notes).toContain("Cambio solicitado por el cliente");
+    }
+  });
+
   it("no activa provincia fuera de Italia–Lima", () => {
     const result = calculateAdminShipmentPricing({
       shipmentType: "documento",

@@ -1154,3 +1154,10 @@
 - [x] Reservar Mi cuenta para Perfil, cambio de contraseña, foto de datos personales y biografía
 - [x] Aumentar botones, áreas táctiles y jerarquía visual de la app móvil sin mostrar opciones administrativas al Cliente
 - [x] Añadir pruebas y verificación responsive de la nueva navegación móvil
+
+## Correcciones de actualización y navegación móvil
+- [x] Añadir un botón visible para volver a Inicio desde App móvil
+- [x] Permitir seleccionar nuevamente sedes de Shalom, Olva, FedEx, DHL y otras al actualizar un envío provincial
+- [x] Recalcular y mostrar al cliente y usuario el precio actualizado en azul cuando cambien peso o sede
+- [x] Actualizar las notas con el nuevo precio y conservar el precio anterior como referencia histórica
+- [x] Añadir pruebas de regresión para navegación, sede, precio y notas sincronizadas

@@ -1,0 +1,1 @@
+ALTER TABLE `shipments` MODIFY COLUMN `provinceCarrier` enum('olva','shalom','fedex','dhl') DEFAULT 'shalom';

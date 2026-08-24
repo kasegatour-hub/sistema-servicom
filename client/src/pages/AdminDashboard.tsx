@@ -40,7 +40,7 @@ import { IdentityDocumentField } from "@/components/IdentityDocumentField";
 import { ShipmentTrendCharts } from "@/components/ShipmentTrendCharts";
 import { InvitationLetterWorkspace } from "@/components/InvitationLetterWorkspace";
 import { PasswordRequirements } from "@/components/PasswordRequirements";
-import { AgencyDestinationPicker } from "@/components/AgencyDestinationPicker";
+import { AgencyDestinationPicker, type AgencyProvider } from "@/components/AgencyDestinationPicker";
 import { QRScanner } from "@/components/QRScanner";
 import { normalizeIdentityDocument, type IdentityDocumentType } from "@shared/identityDocuments";
 import { getFuzzySearchScore } from "@shared/fuzzySearch";
@@ -221,7 +221,7 @@ const createShipmentSchema = z.object({
   provinceCustomerPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
   provinceExtraPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
   provinceOperationalCostSoles: z.union([z.string(), z.number()]).optional().nullable(),
-  provinceCarrier: z.enum(["olva", "shalom"]).default("shalom"),
+  provinceCarrier: z.enum(["olva", "shalom", "fedex", "dhl"]).default("shalom"),
   couponCode: z.string().trim().max(64).optional(),
   documentItems: z.array(z.object({
     docType: z.enum(["simple", "apostillado"]),
@@ -262,7 +262,7 @@ const updateStatusSchema = z.object({
   provinceCustomerPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
   provinceExtraPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
   provinceOperationalCostSoles: z.union([z.string(), z.number()]).optional().nullable(),
-  provinceCarrier: z.enum(["olva", "shalom"]).optional(),
+  provinceCarrier: z.enum(["olva", "shalom", "fedex", "dhl"]).optional(),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
@@ -657,10 +657,17 @@ export default function AdminDashboard() {
   const updateProvinceEnabled = Boolean(updateForm.watch("isProvinceDelivery"));
   const updateProvinceWeight = Number(updateForm.watch("weightKg") || 0.1);
   useEffect(() => {
-    if (updateProvinceEnabled && updateShipmentRoute === "Torino - Lima" && updateProvinceWeight <= 10) {
+    if (updateProvinceEnabled && updateShipmentRoute === "Torino - Lima") {
       updateForm.setValue("provinceCustomerPriceEur", updateProvinceWeight <= 5 ? 10 : 15, { shouldDirty: true });
+      updateForm.setValue("provinceExtraPriceEur", updateProvinceWeight > 10 ? Math.round((updateProvinceWeight - 10) * 1.5 * 100) / 100 : 0, { shouldDirty: true });
     }
   }, [updateProvinceEnabled, updateShipmentRoute, updateProvinceWeight]);
+  const updateBasePriceEur = updateShipmentType === "encomienda" ? Math.min(updateProvinceWeight, 15) * 13.5 : 0;
+  const updateProvinceCustomerPrice = updateProvinceEnabled && updateShipmentRoute === "Torino - Lima" ? Number(updateForm.watch("provinceCustomerPriceEur") || 0) : 0;
+  const updateProvinceExtraPrice = updateProvinceEnabled && updateShipmentRoute === "Torino - Lima" ? Number(updateForm.watch("provinceExtraPriceEur") || 0) : 0;
+  const updateManualPrice = Number(updateForm.watch("manualPriceEur") || 0);
+  const updateExtraPrice = Number(updateForm.watch("extraPriceEur") || 0);
+  const updateVisibleParcelTotal = updateForm.watch("pricingMode") === "manual" ? updateManualPrice + updateExtraPrice + updateProvinceCustomerPrice + updateProvinceExtraPrice : updateBasePriceEur + updateExtraPrice + updateProvinceCustomerPrice + updateProvinceExtraPrice;
 
   const openShipmentUpdate = (shipment: any) => {
     setSelectedShipmentId(shipment.id);
@@ -2631,10 +2638,10 @@ export default function AdminDashboard() {
                       <option value="Torino - Lima">Torino - Lima</option>
                     </select>
                   </div>
-                  <div className="md:col-span-2">
+                    <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Sede de llegada / agencia</label>
                     <Input {...updateForm.register("destinationAddress")} placeholder="Escribe o selecciona la sede de destino" />
-                    <p className="mt-1 text-xs text-slate-500">Actualiza aquí la agencia Olva/Shalom o la dirección manual.</p>
+                    <p className="mt-1 text-xs text-slate-500">Actualiza aquí la dirección manual o utiliza el selector de agencia provincial.</p>
                   </div>
 	<div>
                      <label className="block text-sm font-medium text-gray-700 mb-1">Modalidad de entrega</label>
@@ -2687,11 +2694,38 @@ export default function AdminDashboard() {
                       </label>
                     )}
                   </>}
-                  {updateForm.watch("route") === "Torino - Lima" && <div className="md:col-span-2 rounded-xl border border-orange-200 bg-orange-50 p-4"><label className="flex items-start gap-3 text-sm font-semibold text-[#0B2B5E]"><input type="checkbox" {...updateForm.register("isProvinceDelivery")} className="mt-0.5 h-5 w-5" /><span>Envío a provincia después de Lima<span className="mt-1 block text-xs font-normal text-slate-700">Cargo automático: 10 EUR para 0,1–5 kg; 15 EUR para más de 5–10 kg.</span></span></label>{updateForm.watch("isProvinceDelivery") && <div className="mt-3 grid gap-3 sm:grid-cols-2"><div><label className="block text-sm font-medium text-gray-700 mb-1">Agencia</label><select {...updateForm.register("provinceCarrier")} className="w-full rounded-md border-2 border-slate-200 bg-white p-2 text-sm"><option value="shalom">Shalom</option><option value="olva">Olva</option></select></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Precio provincial adicional (EUR)</label>    <Input type="number" min="0" step="0.01" {...updateForm.register("provinceCustomerPriceEur")} placeholder={Number(updateForm.watch("weightKg") || 0) > 10 ? "15.00 base" : Number(updateForm.watch("weightKg") || 0) > 5 ? "15.00 automático" : "10.00 automático"} />
-<div><label className="block text-sm font-medium text-gray-700 mb-1">Extra provincial proporcional (EUR)</label><Input type="number" min="0" step="0.01" {...updateForm.register("provinceExtraPriceEur")} placeholder={Number(updateForm.watch("weightKg") || 0) > 10 ? `Automático: ${((Number(updateForm.watch("weightKg") || 0) - 10) * 1.5).toFixed(2)}` : "0.00"} /><p className="mt-1 text-xs text-slate-600">Separa este extra del importe extra internacional.</p></div><p className="mt-1 text-xs text-slate-600">Sobre 10 kg, ingresa el importe manual.</p></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Costo operativo provincial (S/)</label><Input type="number" min="0" step="0.01" {...updateForm.register("provinceOperationalCostSoles")} /></div></div>}</div>}
+                  {updateForm.watch("route") === "Torino - Lima" && (
+                    <div className="md:col-span-2 rounded-xl border border-orange-200 bg-orange-50 p-4">
+                      <label className="flex items-start gap-3 text-sm font-semibold text-[#0B2B5E]">
+                        <input type="checkbox" {...updateForm.register("isProvinceDelivery")} className="mt-0.5 h-5 w-5" />
+                        <span>Envío a provincia después de Lima<span className="mt-1 block text-xs font-normal text-slate-700">Puedes cambiar la agencia y la sede en cualquier actualización. El precio se recalcula automáticamente.</span></span>
+                      </label>
+                      {updateForm.watch("isProvinceDelivery") && (
+                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                          <div className="sm:col-span-2">
+                            <AgencyDestinationPicker route={updateShipmentRoute} value={updateForm.watch("destinationAddress") || ""} provider={(updateForm.watch("provinceCarrier") || "shalom") as AgencyProvider} onProviderChange={(provider) => updateForm.setValue("provinceCarrier", provider, { shouldDirty: true, shouldValidate: true })} onChange={(destinationAddress) => updateForm.setValue("destinationAddress", destinationAddress, { shouldDirty: true, shouldValidate: true })} />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Precio provincial adicional (EUR)</label>
+                            <Input type="number" min="0" step="0.01" {...updateForm.register("provinceCustomerPriceEur")} placeholder={Number(updateForm.watch("weightKg") || 0) > 10 ? "15.00 base" : Number(updateForm.watch("weightKg") || 0) > 5 ? "15.00 automático" : "10.00 automático"} />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Extra provincial proporcional (EUR)</label>
+                            <Input type="number" min="0" step="0.01" {...updateForm.register("provinceExtraPriceEur")} placeholder={Number(updateForm.watch("weightKg") || 0) > 10 ? `Automático: ${((Number(updateForm.watch("weightKg") || 0) - 10) * 1.5).toFixed(2)}` : "0.00"} />
+                            <p className="mt-1 text-xs text-slate-600">Separa este extra del importe extra internacional. Sobre 10 kg se calcula automáticamente.</p>
+                          </div>
+                          <div className="sm:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Costo operativo provincial (S/)</label>
+                            <Input type="number" min="0" step="0.01" {...updateForm.register("provinceOperationalCostSoles")} />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {updateForm.watch("pricingMode") === "manual" && <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Precio manual (EUR)</label><Input type="number" min="0" step="0.01" {...updateForm.register("manualPriceEur")} placeholder="Ej.: 25.00" /><p className="mt-1 text-xs text-slate-500">Guarda una tarifa para que los pagos de este envío se contabilicen correctamente.</p></div>}
                   <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Importe extra (EUR)</label><Input type="number" min="0" step="0.01" aria-label="Importe extra de actualización" {...updateForm.register("extraPriceEur")} /><p className="mt-1 text-xs text-slate-500">Por defecto es 0 y se suma al total de documento o encomienda.</p></div>
-                  {updateForm.watch("shipmentType") === "documento" && <div className="md:col-span-2"><DocumentPricePreview docType={(updateForm.watch("docType") || "apostillado") as "simple" | "apostillado"} sheetCount={Number(updateForm.watch("sheetCount") || 1)} manualPriceEur={updateForm.watch("pricingMode") === "manual" ? updateForm.watch("manualPriceEur") : null} extraPriceEur={updateForm.watch("extraPriceEur")} /></div>}
+                  {updateForm.watch("shipmentType") === "documento" && <div className="md:col-span-2 rounded-xl border-2 border-blue-200 bg-blue-50 p-3"><p className="text-xs font-bold uppercase tracking-wide text-[#0B2B5E]">Precio actualizado</p><DocumentPricePreview docType={(updateForm.watch("docType") || "apostillado") as "simple" | "apostillado"} sheetCount={Number(updateForm.watch("sheetCount") || 1)} manualPriceEur={updateForm.watch("pricingMode") === "manual" ? updateForm.watch("manualPriceEur") : null} extraPriceEur={updateForm.watch("extraPriceEur")} /></div>}
+                  {updateForm.watch("shipmentType") === "encomienda" && <div className="md:col-span-2 rounded-xl border-2 border-blue-200 bg-blue-50 p-4" aria-live="polite"><p className="text-xs font-bold uppercase tracking-wide text-[#0B2B5E]">Precio actualizado</p><p className="mt-1 text-3xl font-extrabold tabular-nums text-[#0B2B5E]">{updateVisibleParcelTotal.toFixed(2)} EUR</p><p className="mt-1 text-sm text-slate-700">Se recalcula con el peso, la tarifa, el extra provincial y la agencia seleccionada.</p></div>}
                 </div>
 
                 <div className="border-t pt-4">

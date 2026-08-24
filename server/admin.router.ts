@@ -690,7 +690,7 @@ export const adminRouter = router({
       provinceCustomerPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
       provinceExtraPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
       provinceOperationalCostSoles: z.union([z.string(), z.number()]).optional().nullable(),
-      provinceCarrier: z.enum(["olva", "shalom"]).default("shalom"),
+      provinceCarrier: z.enum(["olva", "shalom", "fedex", "dhl"]).default("shalom"),
       couponCode: z.string().trim().max(64).optional(),
       contentChecklist: z.array(z.string().trim().min(1).max(160)).max(24).min(1, "La lista de cosas enviadas es obligatoria."),
       isIncomplete: z.boolean().default(false),
@@ -849,6 +849,7 @@ export const adminRouter = router({
       docType: z.enum(["simple", "apostillado"]).optional(),
       sheetCount: z.number().int().min(1).max(10).optional(),
       requiresApostilleService: z.boolean().optional(),
+      requiresTranslationService: z.boolean().optional(),
       weightKg: z.number().optional(),
       manualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
       extraPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
@@ -862,7 +863,7 @@ export const adminRouter = router({
       provinceCustomerPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
       provinceExtraPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
       provinceOperationalCostSoles: z.union([z.string(), z.number()]).optional().nullable(),
-      provinceCarrier: z.enum(["olva", "shalom"]).optional(),
+      provinceCarrier: z.enum(["olva", "shalom", "fedex", "dhl"]).optional(),
     }).superRefine((input, ctx) => {
       if ((input.shipmentType ?? "documento") === "documento" && input.docType === "simple" && (input.sheetCount ?? 1) > 8) {
         ctx.addIssue({ code: "custom", path: ["sheetCount"], message: "Los documentos simples permiten un máximo de 8 hojas por registro." });
@@ -888,9 +889,10 @@ export const adminRouter = router({
       const effectiveDocumentKind = input.docType ?? currentShipment.documentKind ?? "apostillado";
       const effectiveDocumentSheetCount = input.sheetCount ?? currentShipment.documentSheetCount ?? 1;
       const effectiveExtraPrice = input.extraPriceEur ?? currentShipment.extraPriceEur ?? 0;
-      const pricing = isParcel ? calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: effectiveWeight, manualPriceEur: input.pricingMode === "manual" ? input.manualPriceEur : null, extraPriceEur: effectiveExtraPrice, route: effectiveRoute, isProvinceDelivery: input.isProvinceDelivery ?? Boolean(currentShipment.isProvinceDelivery), provinceCustomerPriceEur: input.provinceCustomerPriceEur ?? currentShipment.provinceCustomerPriceEur, provinceExtraPriceEur: input.provinceExtraPriceEur ?? currentShipment.provinceExtraPriceEur, provinceOperationalCostSoles: input.provinceOperationalCostSoles ?? currentShipment.provinceOperationalCostSoles, provinceCarrier: input.provinceCarrier ?? currentShipment.provinceCarrier }) : null;
+      const freeformNotes = (input.notes ?? "").trim().startsWith("Tarifa:") ? "" : (input.notes ?? "").trim();
+      const pricing = isParcel ? calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: effectiveWeight, manualPriceEur: input.pricingMode === "manual" ? input.manualPriceEur : null, extraPriceEur: effectiveExtraPrice, route: effectiveRoute, notes: freeformNotes, isProvinceDelivery: input.isProvinceDelivery ?? Boolean(currentShipment.isProvinceDelivery), provinceCustomerPriceEur: input.provinceCustomerPriceEur ?? currentShipment.provinceCustomerPriceEur, provinceExtraPriceEur: input.provinceExtraPriceEur ?? currentShipment.provinceExtraPriceEur, provinceOperationalCostSoles: input.provinceOperationalCostSoles ?? currentShipment.provinceOperationalCostSoles, provinceCarrier: input.provinceCarrier ?? currentShipment.provinceCarrier }) : null;
       const documentPricing = !isParcel
-        ? calculateAdminShipmentPricing({ shipmentType: "documento", docType: effectiveDocumentKind, sheetCount: effectiveDocumentSheetCount, manualPriceEur: input.pricingMode === "manual" ? input.manualPriceEur : null, extraPriceEur: effectiveExtraPrice })
+        ? calculateAdminShipmentPricing({ shipmentType: "documento", docType: effectiveDocumentKind, sheetCount: effectiveDocumentSheetCount, manualPriceEur: input.pricingMode === "manual" ? input.manualPriceEur : null, extraPriceEur: effectiveExtraPrice, route: effectiveRoute, notes: freeformNotes, requiresApostilleService: input.requiresApostilleService ?? Boolean(currentShipment.requiresApostilleService), requiresTranslationService: input.requiresTranslationService ?? Boolean(currentShipment.requiresTranslationService), isProvinceDelivery: input.isProvinceDelivery ?? Boolean(currentShipment.isProvinceDelivery), provinceCustomerPriceEur: input.provinceCustomerPriceEur ?? currentShipment.provinceCustomerPriceEur, provinceExtraPriceEur: input.provinceExtraPriceEur ?? currentShipment.provinceExtraPriceEur, provinceOperationalCostSoles: input.provinceOperationalCostSoles ?? currentShipment.provinceOperationalCostSoles, provinceCarrier: input.provinceCarrier ?? currentShipment.provinceCarrier })
         : null;
       const updatedPricing = pricing || documentPricing;
       const result = await updateShipmentStatus(
@@ -905,7 +907,7 @@ export const adminRouter = router({
         input.recipientLastName,
         input.recipientDni,
         input.recipientPhone,
-        input.notes,
+        updatedPricing?.notes ?? input.notes,
         input.shipmentType,
         input.weightKg,
         updatedPricing ? updatedPricing.manualPrice : input.manualPriceEur,
