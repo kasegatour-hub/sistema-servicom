@@ -20,8 +20,8 @@ describe("AgencyDestinationPicker", () => {
 
     expect(screen.getByRole("button", { name: "Usar sede Servicom" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Elegir agencia" })).toBeTruthy();
-    expect(screen.getByText(/Olva Courier/i)).toBeTruthy();
-    expect(screen.getByText(/Shalom/i)).toBeTruthy();
+    expect(screen.getAllByText(/Olva Courier/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Shalom/i).length).toBeGreaterThan(0);
   });
 
   it("muestra y selecciona una sede oficial de Olva en el explorador", () => {
@@ -36,7 +36,7 @@ describe("AgencyDestinationPicker", () => {
     const onChange = vi.fn();
     render(<AgencyDestinationPicker route="Torino - Lima" value="DESTINO ACTUAL" onChange={onChange} />);
     fireEvent.click(screen.getByRole("button", { name: "Elegir agencia" }));
-    fireEvent.click(screen.getByRole("button", { name: "Shalom" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Shalom" })[1]);
     fireEvent.click(screen.getByRole("button", { name: /JR\. RAYMONDI/i }));
     expect(onChange).toHaveBeenCalledWith("SHALOM — JR. RAYMONDI · JR. ANTONIO RAYMONDI NRO. 113");
     expect(screen.getByRole("button", { name: "Elegir agencia" })).toBeTruthy();
@@ -48,11 +48,11 @@ describe("AgencyDestinationPicker", () => {
     render(<AgencyDestinationPicker route="Torino - Lima" value="DESTINO ACTUAL" onChange={() => undefined} />);
     fireEvent.click(screen.getByRole("button", { name: "Elegir agencia" }));
 
-    fireEvent.click(screen.getByRole("button", { name: "FedEx" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "FedEx" })[1]);
     expect(screen.getByText(/Consulta todas las sedes actuales/i)).toBeTruthy();
     expect(screen.getByRole("link", { name: /Abrir localizador de FedEx/i }).getAttribute("href")).toBe("https://local.fedex.com/en");
 
-    fireEvent.click(screen.getByRole("button", { name: "DHL" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "DHL" })[1]);
     expect(screen.getByRole("link", { name: /Abrir localizador de DHL/i }).getAttribute("href")).toBe("https://locator.dhl.com/?l=en");
   });
 

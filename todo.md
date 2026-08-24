@@ -1064,3 +1064,10 @@
 - [x] Evitar mostrar Total manual 0,00 EUR como precio confirmado
 - [x] Validar peso superior a 10 kg, campo manual y mensajes por rol
 - [x] Añadir pruebas, validar y publicar
+
+## Selector de operador y agencia provincial
+- [x] Mostrar Elegir agencia solo después de marcar Envío a provincia
+- [x] Permitir seleccionar Shalom, Olva, FedEx, DHL u otro operador
+- [x] Mostrar las sedes correspondientes después de elegir operador
+- [x] Limpiar operador, sede y dirección al desactivar provincia
+- [x] Añadir pruebas, validar móvil/escritorio y publicar
