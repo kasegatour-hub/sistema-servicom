@@ -75,6 +75,7 @@ export default function AccountPage() {
 
   // Registro de encomienda por usuario
   const [showNewShipment, setShowNewShipment] = useState(false);
+  const [shipmentStep, setShipmentStep] = useState<1 | 2 | 3>(1);
   const [clientWorkspace, setClientWorkspace] = useState<ClientWorkspace>("envios");
   const [clientSearchTerm, setClientSearchTerm] = useState("");
   const [clientPaymentFilter, setClientPaymentFilter] = useState<"all" | "paid" | "unpaid">("all");
@@ -106,6 +107,9 @@ export default function AccountPage() {
   const [catalogDocuments, setCatalogDocuments] = useState<CatalogDocumentItem[]>([]);
   const [identityErrors, setIdentityErrors] = useState<Record<string, string>>({});
   const [shipmentValidationErrors, setShipmentValidationErrors] = useState<Record<string, string>>({});
+  const mobileShipmentStepVisible = (step: 1 | 2 | 3) => !mobileClientMode || shipmentStep === step;
+  const advanceMobileShipmentStep = () => setShipmentStep(step => step === 1 ? 2 : 3);
+  const previousMobileShipmentStep = () => setShipmentStep(step => step === 3 ? 2 : 1);
 
   useEffect(() => {
     const maximum = docType === "simple" ? 8 : 10;
@@ -605,7 +609,7 @@ export default function AccountPage() {
                 </h2>
                 <p className="text-xs text-slate-500">Registra envíos de documentos o consulta el estado actual de tus registros.</p>
               </div>
-              <Button onClick={() => { setClientWorkspace("registrar"); setShowNewShipment(value => !value); }} className="bg-[#F28C00] text-white hover:bg-[#d67900]">
+              <Button onClick={() => { setClientWorkspace("registrar"); setShowNewShipment(value => !value); setShipmentStep(1); }} className="bg-[#F28C00] text-white hover:bg-[#d67900]">
                 <Plus className="mr-2 h-4 w-4" /> Registrar Nuevo Documento
               </Button>
             </div>}
@@ -638,8 +642,9 @@ export default function AccountPage() {
                 });
               }} className="bg-blue-50/50 p-4 rounded-xl mb-6 space-y-4 border border-blue-100">
                         <h3 className="font-bold text-[#0B2B5E]">Detalles del envío de documentos</h3>
+                        {mobileClientMode && <div className="mt-4 rounded-xl border border-blue-100 bg-white p-3" aria-label="Pasos del registro"><div className="flex items-center justify-between gap-2 text-xs font-semibold"><span className={shipmentStep >= 1 ? "text-[#0B2B5E]" : "text-slate-400"}>1. Sede y tipo</span><span className={shipmentStep >= 2 ? "text-[#0B2B5E]" : "text-slate-400"}>2. Personas</span><span className={shipmentStep >= 3 ? "text-[#0B2B5E]" : "text-slate-400"}>3. Contenido</span></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-[#F28C00] transition-all" style={{ width: `${shipmentStep * 33.333}%` }} /></div><p className="mt-2 text-xs text-slate-500">Paso {shipmentStep} de 3. Tus datos se conservan mientras avanzas.</p></div>}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
+                  <div className={mobileShipmentStepVisible(1) ? "" : "hidden"}>
                     <Label>Ruta de envío</Label>
                     <select
                       aria-label="Ruta de envío"
@@ -652,7 +657,7 @@ export default function AccountPage() {
                     </select>
                     <p className="mt-1 text-[10px] text-gray-500">Selecciona la sede a la que llegará tu envío.</p>
                   </div>
-                  <div>
+                  <div className={mobileShipmentStepVisible(1) ? "" : "hidden"}>
                     <Label>Tipo de Documento</Label>
                     <select
                       value={docType}
@@ -664,13 +669,13 @@ export default function AccountPage() {
                     </select>
                   </div>
                   {shipmentRoute === "Torino - Lima" && (
-                    <label className="md:col-span-2 flex cursor-pointer items-start gap-3 rounded-xl border-2 border-[#0B2B5E] bg-blue-50 p-4 text-sm shadow-sm transition hover:bg-blue-100/70">
+                    <label className={`${mobileShipmentStepVisible(1) ? "" : "hidden"} md:col-span-2 flex cursor-pointer items-start gap-3 rounded-xl border-2 border-[#0B2B5E] bg-blue-50 p-4 text-sm shadow-sm transition hover:bg-blue-100/70`}>
                       <input type="checkbox" aria-label="Documentos para apostillar" checked={requiresApostilleService} onChange={event => setRequiresApostilleService(event.target.checked)} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-[#0B2B5E] focus:ring-[#0B2B5E]" />
                       <span><strong className="block text-base text-[#0B2B5E]">Documentos para apostillar</strong><span className="mt-1 block text-slate-700">Marca esta opción si los documentos serán entregados para su trámite de apostilla. Disponible solo para la ruta Torino – Lima.</span></span>
                     </label>
                   )}
-                  <div className="md:col-span-2"><AgencyDestinationPicker route={shipmentRoute} value={destinationAddress} onChange={setDestinationAddress} /></div>
-                  <QuantityStepper
+                  <div className={`${mobileShipmentStepVisible(1) ? "" : "hidden"} md:col-span-2`}><AgencyDestinationPicker route={shipmentRoute} value={destinationAddress} onChange={setDestinationAddress} /></div>
+                  <div className={mobileShipmentStepVisible(2) ? "" : "hidden"}><QuantityStepper
                     id="account-sheet-count"
                     label="Cantidad de Hojas / Documentos"
                     value={sheetCount}
@@ -679,8 +684,9 @@ export default function AccountPage() {
                     onChange={setSheetCount}
                     description={docType === "simple" ? "Máximo 8 hojas por registro." : "Máximo 10 hojas por registro."}
                   />
-                  <DocumentPricePreview docType={docType} sheetCount={sheetCount} />
-                  <div className="relative md:col-span-2">
+                  </div>
+                  <div className={mobileShipmentStepVisible(2) ? "" : "hidden"}><DocumentPricePreview docType={docType} sheetCount={sheetCount} /></div>
+                  <div className={`${mobileShipmentStepVisible(2) ? "" : "hidden"} relative md:col-span-2`}>
                     <Label htmlFor="account-recipient-search">Buscar destinatario guardado</Label>
                     <Search className="pointer-events-none absolute left-3 top-9 h-4 w-4 text-slate-400" aria-hidden="true" />
                     <Input
@@ -704,39 +710,40 @@ export default function AccountPage() {
                       </div>
                     )}
                   </div>
-                  <div>
+                  <div className={mobileShipmentStepVisible(2) ? "" : "hidden"}>
                     <Label>Destinatario - Nombres</Label>
                     <Input value={recipientName} onChange={e => updateTextValue("recipientName", e.target.value, setRecipientName, "El nombre")} placeholder="Ej: María" autoComplete="given-name" required aria-invalid={Boolean(shipmentValidationErrors.recipientName || identityErrors.recipientName)} className={`mt-1 bg-white ${shipmentValidationErrors.recipientName || identityErrors.recipientName ? "border-rose-500 ring-1 ring-rose-200" : ""}`} />
                     <p className="mt-1 text-xs text-slate-500">Solo letras y espacios.</p>
                     {(shipmentValidationErrors.recipientName || identityErrors.recipientName) && <p role="alert" className="text-xs text-red-600">{shipmentValidationErrors.recipientName || identityErrors.recipientName}</p>}
                   </div>
-                  <div>
+                  <div className={mobileShipmentStepVisible(2) ? "" : "hidden"}>
                     <Label>Destinatario - Apellidos</Label>
                     <Input value={recipientLastName} onChange={e => updateTextValue("recipientLastName", e.target.value, setRecipientLastName, "El apellido")} placeholder="Ej: López" autoComplete="family-name" required aria-invalid={Boolean(shipmentValidationErrors.recipientLastName || identityErrors.recipientLastName)} className={`mt-1 bg-white ${shipmentValidationErrors.recipientLastName || identityErrors.recipientLastName ? "border-rose-500 ring-1 ring-rose-200" : ""}`} />
                     <p className="mt-1 text-xs text-slate-500">Solo letras y espacios.</p>
                     {(shipmentValidationErrors.recipientLastName || identityErrors.recipientLastName) && <p role="alert" className="text-xs text-red-600">{shipmentValidationErrors.recipientLastName || identityErrors.recipientLastName}</p>}
                   </div>
-                  <IdentityDocumentField id="recipient-document" label="Destinatario - documento de identidad" documentType={recipientDocumentType} onDocumentTypeChange={setRecipientDocumentType} value={recipientDni} onValueChange={setRecipientDni} required error={shipmentValidationErrors.recipientDni || ""} />
-                  <div>
+                  <div className={mobileShipmentStepVisible(2) ? "" : "hidden"}><IdentityDocumentField id="recipient-document" label="Destinatario - documento de identidad" documentType={recipientDocumentType} onDocumentTypeChange={setRecipientDocumentType} value={recipientDni} onValueChange={setRecipientDni} required error={shipmentValidationErrors.recipientDni || ""} /></div>
+                  <div className={mobileShipmentStepVisible(2) ? "" : "hidden"}>
                     <Label>Destinatario - Teléfono</Label>
                     <div className="mt-1">
                       <PhoneInput value={recipientPhone} onChange={setRecipientPhone} placeholder="987654321" required className={shipmentValidationErrors.recipientPhone ? "rounded-md ring-1 ring-rose-300" : ""} />
                     </div>
                     {shipmentValidationErrors.recipientPhone && <p role="alert" className="mt-1 text-xs text-rose-700">{shipmentValidationErrors.recipientPhone}</p>}
                   </div>
-                  <div className="md:col-span-2">
+                  <div className={`${mobileShipmentStepVisible(3) ? "" : "hidden"} md:col-span-2`}>
                     <div className={shipmentValidationErrors.contentChecklist ? "rounded-lg border border-rose-300 bg-rose-50 p-3" : ""}><DocumentCatalogSelector value={catalogDocuments} onChange={items => { setCatalogDocuments(items); if (items.length) setShipmentValidationErrors(current => ({ ...current, contentChecklist: "" })); }} idPrefix="account-document" />{shipmentValidationErrors.contentChecklist && <p role="alert" className="mt-2 text-sm font-medium text-rose-700">{shipmentValidationErrors.contentChecklist}</p>}</div>
                   </div>
-                  <div className="md:col-span-2">
+                  <div className={`${mobileShipmentStepVisible(3) ? "" : "hidden"} md:col-span-2`}>
                     <Label>Notas (opcional)</Label>
                     <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Instrucciones adicionales de entrega" className="mt-1 bg-white" />
                   </div>
                 </div>
-                <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => setShowNewShipment(false)}>Cancelar</Button>
-                      <Button type="submit" disabled={createShipmentMutation.isPending} className="bg-[#0B2B5E] text-white">
+                <div className="flex flex-wrap justify-between gap-2">
+                  <Button type="button" variant="outline" onClick={() => { setShowNewShipment(false); setShipmentStep(1); }}>Cancelar</Button>
+                  {mobileClientMode && shipmentStep > 1 && <Button type="button" variant="outline" onClick={previousMobileShipmentStep}>Anterior</Button>}
+                  {mobileClientMode && shipmentStep < 3 ? <Button type="button" onClick={advanceMobileShipmentStep} className="ml-auto bg-[#0B2B5E] text-white">Continuar</Button> : <Button type="submit" disabled={createShipmentMutation.isPending} className="ml-auto bg-[#0B2B5E] text-white">
                     {createShipmentMutation.isPending ? "Registrando..." : "Guardar envío"}
-                  </Button>
+                  </Button>}
                 </div>
               </form>
             )}

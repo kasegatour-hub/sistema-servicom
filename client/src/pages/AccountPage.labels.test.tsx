@@ -40,6 +40,7 @@ import AccountPage from "./AccountPage";
 afterEach(() => cleanup());
 
 beforeEach(() => {
+  window.history.pushState({}, "", "/cuenta");
   accountMocks.shipments = [];
   accountMocks.deletedShipments = [];
   accountMocks.session = { email: "cliente@example.com", name: "Ana", lastName: "López", dni: "71234567", phone: "+51 970188447", reauthRequired: false };
@@ -87,6 +88,21 @@ describe("AccountPage client labels", () => {
     expect(screen.getByRole("option", { name: "Torino – Lima" })).toBeTruthy();
     expect(screen.getByText(/Lista de documentos/)).toBeTruthy();
     expect(screen.getByLabelText("Acta de nacimiento")).toBeTruthy();
+  });
+
+  it("divide el registro móvil en tres pasos sin recargar la pantalla", async () => {
+    window.history.pushState({}, "", "/cuenta?returnTo=%2Fmovil");
+    render(<AccountPage />);
+    fireEvent.click(screen.getByRole("button", { name: /Registrar Nuevo Documento/ }));
+    expect(screen.getByLabelText("Pasos del registro")).toBeTruthy();
+    expect(screen.getByText("1. Sede y tipo")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Continuar" }));
+    expect(screen.getByRole("combobox", { name: "Ruta de envío" }).parentElement?.className).toContain("hidden");
+    expect(screen.getByPlaceholderText("Ej: María").parentElement?.className).not.toContain("hidden");
+    fireEvent.click(screen.getByRole("button", { name: "Continuar" }));
+    expect(screen.getByText("3. Contenido")).toBeTruthy();
+    expect(screen.getByText(/Lista de documentos/)).toBeTruthy();
+    window.history.pushState({}, "", "/cuenta");
   });
 
   it("muestra y limpia la opción de apostilla solo al seleccionar Torino – Lima", async () => {

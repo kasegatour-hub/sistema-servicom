@@ -871,3 +871,10 @@
 - [x] Hacer que la sede seleccionada complete automáticamente el destino y sus datos
 - [x] Corregir gian.arteaga@utec.edu.pe para que tenga únicamente rol Cliente
 - [x] Añadir pruebas de directorio y permisos; validar base de datos, compilación y publicar
+
+## Rendimiento, registro móvil y nuevo Registrador
+- [x] Reducir rayas y renderizados innecesarios del selector de sedes y mapa
+- [x] Dividir el registro móvil de documentos y encomiendas en pasos cortos sin recargar
+- [x] Crear el usuario Registrador alissgian2030@gmail.com con la contraseña indicada
+- [x] Auditar y mostrar fecha de creación y último cambio de contraseña de usuarios
+- [x] Añadir pruebas de rendimiento/permisos y validar móvil, compilación y publicación
