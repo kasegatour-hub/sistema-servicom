@@ -947,3 +947,10 @@
 - [x] Actualizar el precio visible al cambiar el peso en el formulario
 - [x] Mantener el precio manual como prioridad y provincia como recargo independiente
 - [x] Añadir pruebas, validar visualmente y publicar
+
+## Provincia y fotografía final
+- [x] Mostrar en el registro provincial cuántos kg se enviarán después de completar la encomienda
+- [x] Eliminar la selección duplicada de Shalom/Olva y usar la agencia ya seleccionada por ubicación
+- [x] Mover el bloque de foto especial al final del formulario
+- [x] Mantener los tramos Torino–Lima: 10 EUR para 1–5 kg y 15 EUR para 6–10 kg
+- [x] Añadir pruebas, validar la interfaz y publicar

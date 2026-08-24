@@ -1810,7 +1810,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
                 <AgencyDestinationPicker route={selectedRoute} value={createForm.watch("destinationAddress") || ""} onChange={(destinationAddress) => createForm.setValue("destinationAddress", destinationAddress, { shouldValidate: true, shouldDirty: true })} />
-                {selectedRoute === "Torino - Lima" && <section className="mt-4 rounded-xl border border-orange-200 bg-orange-50 p-4"><label className="flex cursor-pointer items-start gap-3 text-sm font-semibold text-[#0B2B5E]"><input type="checkbox" aria-label="Envío a provincia" {...createForm.register("isProvinceDelivery")} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-[#0B2B5E]" /><span><span className="block">Envío a provincia</span><span className="mt-1 block text-xs font-normal text-slate-600">Separa lo que se cobra al cliente del costo operativo de Olva/Shalom.</span></span></label>{createForm.watch("isProvinceDelivery") && <div className="mt-3 grid gap-3 sm:grid-cols-3"><div><label className="mb-1 block text-xs font-semibold text-slate-700">Precio al cliente (EUR)</label><Input type="number" min="0" step="0.01" placeholder="Ej. 15.00" {...createForm.register("provinceCustomerPriceEur")} /></div><div><label className="mb-1 block text-xs font-semibold text-slate-700">Costo operativo (soles)</label><Input type="number" min="0" step="0.01" placeholder={selectedShipmentType === "documento" ? "8.00 automático" : "Ej. 12.00"} {...createForm.register("provinceOperationalCostSoles")} /><p className="mt-1 text-[11px] text-slate-600">Documentos: S/ 8.00 por defecto.</p></div><div><label className="mb-1 block text-xs font-semibold text-slate-700">Operador</label><select aria-label="Operador provincial" {...createForm.register("provinceCarrier")} className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm"><option value="shalom">Shalom</option><option value="olva">Olva Courier</option></select></div></div>}</section>}
+
 
                 {selectedShipmentType === "encomienda" && selectedRoute === "Lima - Torino" && !limaTorinoEncomiendasEnabled && (
                   <div className="mt-4 rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-medium text-red-800">
@@ -1926,12 +1926,6 @@ export default function AdminDashboard() {
                 <label className="flex cursor-pointer items-start gap-3 text-sm"><input type="checkbox" aria-label="Envío incompleto" {...createForm.register("isIncomplete")} className="mt-0.5 h-5 w-5" /><span><strong className="block text-base text-amber-900">Envío incompleto</strong><span className="text-amber-800">Marca esta opción si falta algún documento, artículo o dato.</span></span></label>
                 {createForm.watch("isIncomplete") && <Input className="mt-3 bg-white" aria-label="Motivo del envío incompleto" placeholder="Indica qué falta (opcional)" {...createForm.register("incompleteReason")} />}
               </div>
-              <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
-                <label className="block text-sm font-semibold text-[#0B2B5E]">Foto del envío (opcional)</label>
-                <p className="mt-1 text-xs text-slate-500">JPG, PNG, WebP o HEIC; máximo 8 MB. Se guarda asociada al envío.</p>
-                <Input type="file" accept="image/jpeg,image/png,image/webp,image/heic" className="mt-3" aria-label="Foto del envío" onChange={event => setShipmentPhoto(event.target.files?.[0] || null)} />
-              </div>
-
               {/* Información del remitente */}
               <div className="border-t pt-4">
                 <h3 className="font-semibold text-gray-900 mb-3">Información del Remitente</h3>
@@ -2057,6 +2051,8 @@ export default function AdminDashboard() {
                 </div>
               )}
 
+              {selectedRoute === "Torino - Lima" && <section className="mt-4 rounded-xl border border-orange-200 bg-orange-50 p-4"><label className="flex cursor-pointer items-start gap-3 text-sm font-semibold text-[#0B2B5E]"><input type="checkbox" aria-label="Envío a provincia" {...createForm.register("isProvinceDelivery")} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-[#0B2B5E]" /><span><span className="block">Envío a provincia</span><span className="mt-1 block text-xs font-normal text-slate-700">Primero selecciona la sede y registra el peso de la encomienda. Luego indica cuánto se cobra al cliente; la agencia/courier ya está definido por la sede elegida.</span></span></label>{createForm.watch("isProvinceDelivery") && <div className="mt-3 grid gap-3 sm:grid-cols-2"><div><p className="mb-1 text-sm font-semibold text-slate-700">Peso enviado</p><p className="rounded-md bg-white px-3 py-2 text-base font-bold text-[#0B2B5E]">{selectedShipmentType === "encomienda" ? `${watchedWeightKg.toFixed(1)} kg` : "No aplica a documentos"}</p></div><div><label className="mb-1 block text-sm font-semibold text-slate-700">Precio al cliente (EUR)</label><Input type="number" min="0" step="0.01" placeholder="Ej. 15.00" {...createForm.register("provinceCustomerPriceEur")} /></div><div><label className="mb-1 block text-sm font-semibold text-slate-700">Costo operativo (soles)</label><Input type="number" min="0" step="0.01" placeholder={selectedShipmentType === "documento" ? "8.00 automático" : "Ej. 12.00"} {...createForm.register("provinceOperationalCostSoles")} /><p className="mt-1 text-xs text-slate-600">Documentos: S/ 8.00 por defecto.</p></div><div className="rounded-md bg-white px-3 py-2 text-sm text-slate-700"><strong>Courier:</strong> Se usará la agencia seleccionada arriba.</div></div>}</section>}
+
               {/* Notas */}
               <div className="border-t pt-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Notas</label>
@@ -2066,6 +2062,12 @@ export default function AdminDashboard() {
                   className="border-2 focus:border-primary"
                   rows={3}
                 />
+              </div>
+
+              <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
+                <label className="block text-base font-semibold text-[#0B2B5E]">Fotografía especial del envío (opcional)</label>
+                <p className="mt-1 text-sm text-slate-600">Adjunta una foto final del paquete o documento para que quede asociada al registro. JPG, PNG, WebP o HEIC; máximo 8 MB.</p>
+                <Input type="file" accept="image/jpeg,image/png,image/webp,image/heic" className="mt-3 h-12 text-base" aria-label="Foto del envío" onChange={event => setShipmentPhoto(event.target.files?.[0] || null)} />
               </div>
 
               <div className="flex gap-2">
