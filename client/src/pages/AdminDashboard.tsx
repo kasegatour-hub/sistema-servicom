@@ -565,6 +565,9 @@ export default function AdminDashboard() {
     if (watchedProvinceEnabled && selectedRoute === "Torino - Lima" && !String(createForm.getValues("provinceCustomerPriceEur") ?? "").trim() && automaticProvincePrice > 0) {
       createForm.setValue("provinceCustomerPriceEur", automaticProvincePrice, { shouldDirty: true });
     }
+    if (watchedProvinceEnabled && selectedRoute === "Torino - Lima" && watchedWeightKg > 10 && !String(createForm.getValues("provinceExtraPriceEur") ?? "").trim()) {
+      createForm.setValue("provinceExtraPriceEur", Math.round((watchedWeightKg - 10) * 1.5 * 100) / 100, { shouldDirty: true });
+    }
   }, [watchedProvinceEnabled, selectedRoute, watchedWeightKg, automaticProvincePrice]);
   const automaticParcelBaseEur = watchedWeightKg * 13.5;
   const automaticParcelDescription = `${watchedWeightKg.toFixed(1)} kg × 13,5 EUR/kg como tarifa base normal`;
@@ -939,7 +942,16 @@ export default function AdminDashboard() {
       setShowCreateForm(false);
       refetchShipments();
     } catch (error: any) {
-      toast.error(error.message || "Error al crear encomienda");
+      const rawMessage = String(error?.message || "");
+      const isManualPriceError = rawMessage.includes("manualPriceEur") || rawMessage.includes("Precio manual");
+      const friendlyMessage = isManualPriceError
+        ? "Falta indicar el precio final del envío. Completa el campo «Precio manual en EUR» y vuelve a intentarlo."
+        : "No se pudo crear el envío. Revisa los campos señalados y vuelve a intentarlo.";
+      if (isManualPriceError) {
+        setCreateShipmentValidationError(friendlyMessage);
+        createForm.setError("manualPriceEur", { type: "required", message: friendlyMessage });
+      }
+      toast.error(friendlyMessage);
     }
   };
 
@@ -1846,9 +1858,9 @@ export default function AdminDashboard() {
                       step="0.01"
                       placeholder="Ej. 75.00"
                       {...createForm.register("manualPriceEur")}
-                      className="border-2 focus:border-primary"
+                      className={`border-2 focus:border-primary ${createForm.formState.errors.manualPriceEur ? "border-rose-500 bg-rose-50" : ""}`}
                     />
-                    <p className="mt-1 text-xs text-slate-500">Si lo completas, reemplaza la tarifa automática.</p>
+                    {createForm.formState.errors.manualPriceEur ? <p role="alert" className="mt-1 text-sm font-semibold text-rose-700">{String(createForm.formState.errors.manualPriceEur.message || "Completa este precio para continuar.")}</p> : <p className="mt-1 text-xs text-slate-500">Si el envío supera 10 kg, indica aquí el precio final que se cobrará al cliente.</p>}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Importe extra en EUR</label>

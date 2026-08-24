@@ -1090,3 +1090,11 @@
 - [x] Evitar que las opciones se oculten o se desborden
 - [x] Mantener feedback visible al pulsar cada botón
 - [x] Validar pantallas pequeñas y publicar
+
+## Corrección del cálculo y feedback provincial
+- [x] Sincronizar automáticamente 7,50 EUR para 5 kg y 15,00 EUR para 10 kg
+- [x] Calcular sobre 10 kg la base de 15 EUR más excedente proporcional
+- [x] Permitir modificar manualmente el cargo sugerido
+- [x] Mostrar el error junto al campo faltante con texto comprensible
+- [x] Ocultar códigos internos y evitar mensajes técnicos al usuario
+- [x] Añadir pruebas, validar y publicar
