@@ -34,7 +34,9 @@ describe("MobileAppPage", () => {
 
     expect(screen.getByRole("heading", { name: "Tu oficina de envíos, en el bolsillo." })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Instalar aplicación" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Iniciar sesión" }).getAttribute("href")).toBe("/cuenta?returnTo=%2Fmovil");
+    expect(screen.getByRole("link", { name: "Iniciar sesión como Cliente" }).getAttribute("href")).toBe("/cuenta?returnTo=%2Fmovil");
+    expect(screen.getByRole("link", { name: "Crear cuenta de Cliente" }).getAttribute("href")).toBe("/cuenta?returnTo=%2Fmovil");
+    expect(screen.getByRole("link", { name: "Iniciar sesión como Admin" }).getAttribute("href")).toBe("/admin");
     expect(screen.queryByRole("heading", { name: "Rastrear envío" })).toBeNull();
     expect(screen.queryByRole("button", { name: /Escanear QR/ })).toBeNull();
   });

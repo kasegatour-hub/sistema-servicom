@@ -10,6 +10,13 @@ describe("calculateAdminShipmentPricing", () => {
     expect(pricing.notes).toContain("2.5 kg @ 13.5 EUR/kg");
   });
 
+  it("applies the Torino–Lima automatic tiers from 1 to 5 kg and from 6 to 10 kg", () => {
+    expect(calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 1, route: "Torino - Lima" }).totalEur).toBe(10);
+    expect(calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 5, route: "Torino - Lima" }).totalEur).toBe(10);
+    expect(calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 6, route: "Torino - Lima" }).totalEur).toBe(15);
+    expect(calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 10, route: "Torino - Lima" }).totalEur).toBe(15);
+  });
+
   it("uses the manual price for an encomienda when provided", () => {
     const pricing = calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 2.5, manualPriceEur: "40" });
 

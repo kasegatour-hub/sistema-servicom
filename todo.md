@@ -908,3 +908,9 @@
 - [x] Mejorar tarjetas de sedes, estados, contraste, espaciado y feedback interactivo
 - [x] Mantener la identidad Servicom y asegurar adaptación usable en móvil y escritorio
 - [x] Añadir pruebas de interfaz y validar visualmente antes de publicar
+
+## Tarifa Torino–Lima y acceso de cuentas
+- [x] Aplicar tarifa automática de encomiendas Torino–Lima: 1–5 kg = 10 EUR y 6–10 kg = 15 EUR
+- [x] Revisar y corregir el inicio de sesión separado para Admin y Cliente
+- [x] Actualizar de forma segura la contraseña del Master Admin magda.barreto.alv@gmail.com a la proporcionada por el propietario
+- [x] Añadir pruebas de tarifa, roles y autenticación, ejecutar compilación y publicar

@@ -20,6 +20,18 @@ export type AdminShipmentPricingInput = {
   notes?: string;
 };
 
+export function calculateAutomaticParcelPriceEur(weightKg: number, route?: string): { totalEur: number; description: string } {
+  const normalizedWeight = Math.max(0.1, Number(weightKg || 1));
+  if (route === "Torino - Lima" && normalizedWeight <= 5) {
+    return { totalEur: 10, description: `Encomienda Torino–Lima (${normalizedWeight} kg): tarifa automática 10.00 EUR para 1–5 kg.` };
+  }
+  if (route === "Torino - Lima" && normalizedWeight <= 10) {
+    return { totalEur: 15, description: `Encomienda Torino–Lima (${normalizedWeight} kg): tarifa automática 15.00 EUR para 6–10 kg.` };
+  }
+  const totalEur = normalizedWeight * 13.5;
+  return { totalEur, description: `Encomienda por peso (${normalizedWeight} kg @ 13.5 EUR/kg): ${totalEur.toFixed(2)} EUR` };
+}
+
 export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) {
   const shipmentType = input.shipmentType || "documento";
   const docType = input.docType || "apostillado";
@@ -61,8 +73,9 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
       ? `Encomienda (${weightKg} kg, tarifa manual): ${totalEur.toFixed(2)} EUR`
       : `Documento (${docType}, ${sheetCount} hojas, tarifa manual): ${totalEur.toFixed(2)} EUR`;
   } else if (shipmentType === "encomienda") {
-    totalEur = weightKg * 13.5;
-    tariffDescription = `Encomienda por peso (${weightKg} kg @ 13.5 EUR/kg): ${totalEur.toFixed(2)} EUR`;
+    const automaticParcelPrice = calculateAutomaticParcelPriceEur(weightKg, route);
+    totalEur = automaticParcelPrice.totalEur;
+    tariffDescription = automaticParcelPrice.description;
   } else if (docType === "simple") {
     const basePrice = sheetCount <= 4 ? 45 : 45 + (sheetCount - 4) * 2;
     totalEur = basePrice + additionalDocuments.totalEur;
