@@ -1052,3 +1052,9 @@
 - [x] Mostrar selector y sede después de activar provincia
 - [x] Ocultar y limpiar la sección al desactivar, cancelar o limpiar
 - [x] Añadir pruebas, validar móvil/escritorio y publicar
+
+## Transferencia de registro a Magdalena
+- [x] Auditar el propietario actual de la orden 6352627659 / DOC-2026-XPF2A
+- [x] Transferir el registro al entorno aislado de Magdalena sin eliminarlo
+- [x] Verificar visibilidad, historial, recibo y rastreo
+- [x] Validar y publicar
