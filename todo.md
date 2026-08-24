@@ -941,3 +941,9 @@
 - [x] Generar comprobante operativo imprimible para Torino–Lima con entrega a provincia, agencia transportista y destinatario
 - [x] Automatizar la clave con los últimos dígitos del celular para registros Torino–Lima y reflejarla en el recibo
 - [x] Añadir pruebas, validar seguridad y publicar
+
+## Corrección de tarifa de encomiendas Torino–Lima
+- [x] Mostrar claramente 10 EUR para 1–5 kg y 15 EUR para 6–10 kg
+- [x] Actualizar el precio visible al cambiar el peso en el formulario
+- [x] Mantener el precio manual como prioridad y provincia como recargo independiente
+- [x] Añadir pruebas, validar visualmente y publicar

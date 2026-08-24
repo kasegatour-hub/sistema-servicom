@@ -511,6 +511,7 @@ describe("AdminDashboard Nueva Encomienda", () => {
     expect(screen.getAllByText("Nueva encomienda").length).toBeGreaterThan(0);
     expect(screen.getByText("Peso de la encomienda (kg)")).toBeTruthy();
     expect(screen.getByText("Total automático: 13.50 €")).toBeTruthy();
+    expect(screen.getByText(/Tarifa automática Torino–Lima: 13,5 EUR\/kg/)).toBeTruthy();
     expect(screen.queryByDisplayValue("Documentos")).toBeNull();
     const checklistHeading = screen.getByText("Checklist de contenido");
     const notesLabel = screen.getByText("Notas");

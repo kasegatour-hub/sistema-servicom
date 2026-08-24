@@ -536,6 +536,13 @@ export default function AdminDashboard() {
   const selectedDocType = createForm.watch("docType") || "apostillado";
   const selectedRoute = createForm.watch("route") || "Lima - Torino";
   const limaTorinoEncomiendasEnabled = limaTorinoPolicy?.encomiendasEnabled !== false;
+  const watchedWeightKg = Number(createForm.watch("weightKg")) || 0.1;
+  const automaticParcelBaseEur = selectedRoute === "Torino - Lima"
+    ? watchedWeightKg <= 5 ? 10 : watchedWeightKg <= 10 ? 15 : watchedWeightKg * 13.5
+    : watchedWeightKg * 13.5;
+  const automaticParcelDescription = selectedRoute === "Torino - Lima"
+    ? watchedWeightKg <= 5 ? "10 EUR para 1–5 kg" : watchedWeightKg <= 10 ? "15 EUR para 6–10 kg" : "13,5 EUR/kg para más de 10 kg"
+    : "13,5 EUR/kg";
   const additionalDocumentAutoTotal = additionalDocumentItems.reduce((total, item) => {
     const automaticPrice = item.docType === "simple"
       ? (item.sheetCount <= 4 ? 45 : 45 + (item.sheetCount - 4) * 2)
@@ -1903,10 +1910,10 @@ export default function AdminDashboard() {
                         {...createForm.register("weightKg", { valueAsNumber: true })}
                         className="border-2 focus:border-primary"
                       />
-                      <p className="mt-1 text-xs text-slate-500">Tarifa automática: 13,5 €/kg.</p>
+                      <p className="mt-1 text-base font-semibold text-[#0B2B5E]">Tarifa automática Torino–Lima: {automaticParcelDescription}.</p>
                     </div>
-                    <div className="flex items-end rounded-md bg-white p-3 text-sm font-semibold text-[#0B2B5E] ring-1 ring-slate-200">
-                      Total automático: {(((Number(createForm.watch("weightKg")) || 0) * 13.5) + Math.max(0, Number(createForm.watch("extraPriceEur")) || 0)).toFixed(2)} €
+                    <div className="flex items-end rounded-md bg-emerald-50 p-4 text-lg font-bold text-[#0B2B5E] ring-1 ring-emerald-200">
+                      Total automático: {(automaticParcelBaseEur + Math.max(0, Number(createForm.watch("extraPriceEur")) || 0)).toFixed(2)} €
                     </div>
                     <div className="flex items-end rounded-md bg-amber-50 p-3 text-xs text-amber-900 ring-1 ring-amber-200">
                       Puedes reemplazar el total usando Precio manual en EUR.
