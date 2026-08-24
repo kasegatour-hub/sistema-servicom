@@ -700,8 +700,7 @@ export const adminRouter = router({
       if (input.requiresApostilleService && (input.shipmentType !== "documento" || input.route !== "Torino - Lima")) ctx.addIssue({ code: "custom", path: ["requiresApostilleService"], message: "La opción «Documentos para apostillar» solo está disponible para documentos en la ruta Torino - Lima." });
       if (input.requiresTranslationService && (input.shipmentType !== "documento" || input.route !== "Torino - Lima")) ctx.addIssue({ code: "custom", path: ["requiresTranslationService"], message: "La traducción solo está disponible para documentos en la ruta Torino - Lima." });
       if (input.isProvinceDelivery && input.route !== "Torino - Lima") ctx.addIssue({ code: "custom", path: ["isProvinceDelivery"], message: "El envío a provincia solo está disponible para la ruta Italia–Lima." });
-      const manualPriceText = input.manualPriceEur === undefined || input.manualPriceEur === null ? "" : String(input.manualPriceEur).trim();
-      if (input.shipmentType === "encomienda" && input.route === "Torino - Lima" && input.weightKg > 10 && (manualPriceText === "" || !Number.isFinite(Number(manualPriceText)) || Number(manualPriceText) < 0)) ctx.addIssue({ code: "custom", path: ["manualPriceEur"], message: "Para más de 10 kg en Torino–Lima debes ingresar un Precio manual en EUR." });
+      // El excedente provincial se calcula automáticamente y puede editarse; no bloquea la creación.
     }))
     .mutation(async ({ input, ctx }) => {
       if (input.shipmentType === "encomienda" && input.route === "Lima - Torino" && !await isEncomiendaEnabledForRoute(input.route)) {

@@ -1106,3 +1106,11 @@
 - [x] Sumar el extra provincial únicamente si se marca Envío a provincia
 - [x] Generar notas con tarifa, base provincial y extra, sin costo operativo
 - [x] Añadir pruebas, validar recibos y publicar
+
+## Extra provincial no bloqueante
+- [x] Eliminar la exigencia de precio manual para encomiendas de más de 10 kg
+- [x] Mantener 1,50 EUR por kg adicional sobre 10 kg como cálculo automático
+- [x] Mostrar el importe calculado como recordatorio editable
+- [x] Permitir crear la encomienda sin modificar el valor sugerido
+- [x] Reemplazar el error técnico por una confirmación informativa
+- [x] Añadir pruebas, validar y publicar
