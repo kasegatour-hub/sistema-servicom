@@ -894,3 +894,10 @@
 - [x] Aplicar costo operativo fijo de S/ 8 a documentos enviados a provincia
 - [x] Reflejar precio, costo, ingresos y gastos en formularios y reportes autorizados
 - [x] Añadir pruebas de accesos, rutas, costos y publicación
+
+## Recibo personalizado Magda — Lima–Torino
+- [x] Usar el logotipo Kasega Tour proporcionado únicamente en registros de Magda
+- [x] Mostrar Via Muriaglio 12, Torino y los teléfonos indicados en el documento impreso
+- [x] Aplicar la condición solo a registros Lima–Torino creados por el Master Admin Magda
+- [x] Mantener Servicom y las sedes actuales para todas las demás cuentas y rutas
+- [x] Añadir pruebas de recibo, validar logo, impresión, compilación y publicar
