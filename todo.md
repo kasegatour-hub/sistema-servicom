@@ -1143,3 +1143,8 @@
 - [x] Aumentar tamaño, área táctil y legibilidad de los botones del encabezado
 - [x] Evitar recortes de esquinas y desbordamientos en escritorio, móvil y pantallas estrechas
 - [x] Añadir pruebas visuales o de estructura para la navegación responsive
+
+## Acceso Admin en aplicación móvil
+- [x] Ocultar el botón Admin para cuentas Cliente en la cabecera móvil
+- [x] Mantener el botón Admin para cuentas Administrador o Master Admin autorizadas
+- [x] Añadir pruebas de visibilidad por rol y verificar el flujo móvil del cliente

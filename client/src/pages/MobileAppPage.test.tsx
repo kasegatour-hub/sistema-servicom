@@ -3,14 +3,16 @@ import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
-const { searchMock, accountMocks } = vi.hoisted(() => ({
+const { searchMock, accountMocks, adminMocks } = vi.hoisted(() => ({
   searchMock: vi.fn(),
   accountMocks: { session: null as any, isLoading: false },
+  adminMocks: { session: null as any },
 }));
 
 vi.mock("@/lib/trpc", () => ({
   trpc: {
     account: { me: { useQuery: () => ({ data: accountMocks.session, isLoading: accountMocks.isLoading }) } },
+    admin: { me: { useQuery: () => ({ data: adminMocks.session, isLoading: false }) } },
     shipment: { search: { useQuery: searchMock } },
   },
 }));
@@ -24,6 +26,7 @@ afterEach(() => cleanup());
 beforeEach(() => {
   accountMocks.session = null;
   accountMocks.isLoading = false;
+  adminMocks.session = null;
   searchMock.mockReset();
   searchMock.mockReturnValue({ data: undefined, isLoading: false, error: null });
 });
@@ -72,8 +75,15 @@ describe("MobileAppPage", () => {
     expect(screen.getByText("Funciones disponibles:")).toBeTruthy();
     expect(screen.getByText(/registrar envíos, rastrear y cambiar contraseña/i)).toBeTruthy();
     expect(screen.queryByText("Acceso de operador")).toBeNull();
-    expect(screen.getByRole("link", { name: "Acceso administrativo" }).getAttribute("href")).toBe("/admin?from=movil");
+    expect(screen.queryByRole("link", { name: "Acceso administrativo" })).toBeNull();
     expect(screen.getByRole("link", { name: "Abrir mi cuenta" }).getAttribute("href")).toBe("/cuenta?returnTo=%2Fmovil");
+  });
+
+  it("mantiene disponible la entrada administrativa cuando no hay una sesión de Cliente", () => {
+    adminMocks.session = { id: 9, email: "admin@servicom.pe", name: "Master", role: "superadmin", reauthRequired: false };
+    render(<MobileAppPage />);
+
+    expect(screen.getByRole("link", { name: "Iniciar sesión como Admin" }).getAttribute("href")).toBe("/admin?from=movil");
   });
 
   it("muestra la orden y el código claramente en el resultado móvil", () => {
