@@ -59,6 +59,25 @@ describe("administrative receipt ticket", () => {
     expect(summary).not.toContain("TORINO, ITALIA</div>");
   });
 
+  it("renders the provincial dispatch ticket and the controlled client PIN for Torino–Lima", () => {
+    const html = buildAdminDeliveryTicketHtml({
+      order: "12345678",
+      code: "7ABC",
+      recipient: "Teresa Díaz",
+      recipientPhone: "+39 389 766 3723",
+      shipmentType: "encomienda",
+      route: "Torino - Lima",
+      destinationAddress: "Av. Principal 123, Chimbote",
+      isProvinceDelivery: true,
+      provinceCarrier: "olva",
+    });
+    expect(html).toContain("TICKET PARA ENVÍO A PROVINCIA");
+    expect(html).toContain("Olva Courier");
+    expect(html).toContain("CLAVE CLIENTE:");
+    expect(html).toContain("3723");
+    expect(html).toContain("Av. Principal 123, Chimbote");
+  });
+
   it("shows the Lima–Torino security restriction when encomiendas are disabled", () => {
     const html = buildAdminDeliveryTicketHtml({
       order: "3289150504",

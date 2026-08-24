@@ -179,3 +179,20 @@
     }
   }
 }
+
+/* Formularios de envío: lectura y controles táctiles de mayor escala. */
+.shipment-form input:not([type="checkbox"]):not([type="file"]),
+.shipment-form select,
+.shipment-form textarea {
+  min-height: 3rem;
+  font-size: 1rem;
+  line-height: 1.45;
+}
+.shipment-form label { font-size: 1rem; line-height: 1.45; }
+.shipment-form h3 { font-size: 1.25rem; }
+@media (max-width: 640px) {
+  .shipment-form { padding: 1rem; }
+  .shipment-form input:not([type="checkbox"]):not([type="file"]),
+  .shipment-form select,
+  .shipment-form textarea { min-height: 3.25rem; }
+}

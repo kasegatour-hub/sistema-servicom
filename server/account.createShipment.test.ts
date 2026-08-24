@@ -39,6 +39,30 @@ describe("account.createMyShipment persistence policy", () => {
     })).toThrow(/Torino - Lima/);
   });
 
+  it("rejects incomplete shipments from the client input", () => {
+    expect(() => clientShipmentInputSchema.parse({
+      recipientName: "María",
+      recipientLastName: "López",
+      recipientDni: "71234567",
+      isIncomplete: true,
+      contentChecklist: ["Documento principal"],
+    })).toThrow();
+  });
+
+  it("accepts both document services only on Torino - Lima", () => {
+    const input = clientShipmentInputSchema.parse({
+      recipientName: "María",
+      recipientLastName: "López",
+      recipientDni: "71234567",
+      route: "Torino - Lima",
+      requiresApostilleService: true,
+      requiresTranslationService: true,
+      contentChecklist: ["Documento principal"],
+    });
+    expect(input.requiresApostilleService).toBe(true);
+    expect(input.requiresTranslationService).toBe(true);
+  });
+
   it("rejects payment condition from the client input", () => {
     expect(() => clientShipmentInputSchema.parse({
       recipientName: "María",

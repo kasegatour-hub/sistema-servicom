@@ -90,6 +90,7 @@ export default function AccountPage() {
   const [docType, setDocType] = useState<"simple" | "apostillado">("simple");
   const [shipmentRoute, setShipmentRoute] = useState<"Lima - Torino" | "Torino - Lima">("Lima - Torino");
   const [requiresApostilleService, setRequiresApostilleService] = useState(false);
+  const [requiresTranslationService, setRequiresTranslationService] = useState(false);
   const [destinationAddress, setDestinationAddress] = useState("");
   const [sheetCount, setSheetCount] = useState(1);
   const [senderName, setSenderName] = useState("");
@@ -120,7 +121,10 @@ export default function AccountPage() {
   }, [docType]);
 
   useEffect(() => {
-    if (shipmentRoute !== "Torino - Lima") setRequiresApostilleService(false);
+    if (shipmentRoute !== "Torino - Lima") {
+      setRequiresApostilleService(false);
+      setRequiresTranslationService(false);
+    }
   }, [shipmentRoute]);
 
   const updateTextValue = (field: string, rawValue: string, setter: (value: string) => void, label: string) => {
@@ -324,7 +328,8 @@ export default function AccountPage() {
       setClientWorkspace("envios");
       setDocumentCount(1);
       setRequiresApostilleService(false);
-      setNotes("");
+      setRequiresTranslationService(false);
+       setNotes("");
       setShipmentPhoto(null);
       setIsIncomplete(false);
       setIncompleteReason("");
@@ -453,7 +458,8 @@ export default function AccountPage() {
                       <div><strong>Cel. Destinataria:</strong> {formatPhoneNumber(receiptShipment.recipientPhone) || '-'}</div>
                       <div><strong>Fecha:</strong> {new Date(receiptShipment.createdAt || Date.now()).toLocaleDateString()}</div>
                       <div className="col-span-2"><strong>Estado de Pago:</strong> <span className={`inline-flex rounded px-2 py-0.5 font-semibold ${receiptPaymentUi?.badgeClass}`}>{receiptPaymentUi?.label}</span></div>
-                      {(receiptShipment.requiresApostilleService === true || Number(receiptShipment.requiresApostilleService) === 1) && <div className="col-span-2 rounded-md border border-[#0B2B5E]/20 bg-blue-50 px-2 py-1 font-semibold text-[#0B2B5E]"><strong>Servicio solicitado:</strong> Documentos para apostillar</div>}
+                       {(receiptShipment.requiresApostilleService === true || Number(receiptShipment.requiresApostilleService) === 1) && <div className="col-span-2 rounded-md border border-[#0B2B5E]/20 bg-blue-50 px-3 py-2 font-semibold text-[#0B2B5E]"><strong>Servicio solicitado:</strong> Documentos para apostillar — 40 EUR + 160 soles</div>}
+                       {(receiptShipment.requiresTranslationService === true || Number(receiptShipment.requiresTranslationService) === 1) && <div className="col-span-2 rounded-md border border-[#0B2B5E]/20 bg-blue-50 px-3 py-2 font-semibold text-[#0B2B5E]"><strong>Servicio solicitado:</strong> Documentos para traducir — 200 soles</div>}
                       <div className="col-span-2"><strong>Descripción / Notas:</strong> {receiptShipment.notes || "Documentación lícita"}</div>
                     </div>
                   </div>
@@ -637,6 +643,7 @@ export default function AccountPage() {
                    sheetCount,
                    route: shipmentRoute,
                   requiresApostilleService,
+                  requiresTranslationService,
                   destinationAddress,
                   senderName: profileName || senderName,
                   senderLastName: profileLastName || senderLastName,
@@ -649,12 +656,10 @@ export default function AccountPage() {
                   recipientDocumentType,
                    recipientPhone,
                    notes,
-                   isIncomplete,
-                   incompleteReason,
                    contentChecklist: normalizedChecklist,
                   deliveryMode: "remoto",
                 });
-              }} className="bg-blue-50/50 p-4 rounded-xl mb-6 space-y-4 border border-blue-100">
+                  }} className="shipment-form bg-blue-50/50 p-5 md:p-7 rounded-xl mb-6 space-y-5 border border-blue-100 text-base">
                         <h3 className="font-bold text-[#0B2B5E]">Detalles del envío de documentos</h3>
                         {mobileClientMode && <div className="mt-4 rounded-xl border border-blue-100 bg-white p-3" aria-label="Pasos del registro"><div className="flex items-center justify-between gap-2 text-xs font-semibold"><span className={shipmentStep >= 1 ? "text-[#0B2B5E]" : "text-slate-400"}>1. Sede y tipo</span><span className={shipmentStep >= 2 ? "text-[#0B2B5E]" : "text-slate-400"}>2. Personas</span><span className={shipmentStep >= 3 ? "text-[#0B2B5E]" : "text-slate-400"}>3. Contenido</span></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-[#F28C00] transition-all" style={{ width: `${shipmentStep * 33.333}%` }} /></div><p className="mt-2 text-xs text-slate-500">Paso {shipmentStep} de 3. Tus datos se conservan mientras avanzas.</p></div>}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -685,7 +690,13 @@ export default function AccountPage() {
                   {shipmentRoute === "Torino - Lima" && (
                     <label className={`${mobileShipmentStepVisible(1) ? "" : "hidden"} md:col-span-2 flex cursor-pointer items-start gap-3 rounded-xl border-2 border-[#0B2B5E] bg-blue-50 p-4 text-sm shadow-sm transition hover:bg-blue-100/70`}>
                       <input type="checkbox" aria-label="Documentos para apostillar" checked={requiresApostilleService} onChange={event => setRequiresApostilleService(event.target.checked)} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-[#0B2B5E] focus:ring-[#0B2B5E]" />
-                      <span><strong className="block text-base text-[#0B2B5E]">Documentos para apostillar</strong><span className="mt-1 block text-slate-700">Marca esta opción si los documentos serán entregados para su trámite de apostilla. Disponible solo para la ruta Torino – Lima.</span></span>
+                      <span><strong className="block text-base text-[#0B2B5E]">Documentos para apostillar — 40 EUR + 160 soles</strong><span className="mt-1 block text-slate-700">Solicita el servicio de apostilla para documentos Torino – Lima. El importe automático coincide con la tarifa administrativa.</span></span>
+                    </label>
+                  )}
+                  {shipmentRoute === "Torino - Lima" && (
+                    <label className={`${mobileShipmentStepVisible(1) ? "" : "hidden"} md:col-span-2 flex cursor-pointer items-start gap-3 rounded-xl border-2 border-[#0B2B5E] bg-blue-50 p-4 text-sm shadow-sm transition hover:bg-blue-100/70`}>
+                      <input type="checkbox" aria-label="Documentos para traducir" checked={requiresTranslationService} onChange={event => setRequiresTranslationService(event.target.checked)} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-[#0B2B5E] focus:ring-[#0B2B5E]" />
+                      <span><strong className="block text-base text-[#0B2B5E]">Documentos para traducir — 200 soles</strong><span className="mt-1 block text-slate-700">Solicita la traducción de tus documentos Torino – Lima. Puedes combinar este servicio con la apostilla.</span></span>
                     </label>
                   )}
                   <div className={`${mobileShipmentStepVisible(1) ? "" : "hidden"} md:col-span-2`}><AgencyDestinationPicker route={shipmentRoute} value={destinationAddress} onChange={setDestinationAddress} /></div>
@@ -748,8 +759,7 @@ export default function AccountPage() {
                     <div className={shipmentValidationErrors.contentChecklist ? "rounded-lg border border-rose-300 bg-rose-50 p-3" : ""}><DocumentCatalogSelector value={catalogDocuments} onChange={items => { setCatalogDocuments(items); if (items.length) setShipmentValidationErrors(current => ({ ...current, contentChecklist: "" })); }} idPrefix="account-document" />{shipmentValidationErrors.contentChecklist && <p role="alert" className="mt-2 text-sm font-medium text-rose-700">{shipmentValidationErrors.contentChecklist}</p>}</div>
                   </div>
                    <div className={`${mobileShipmentStepVisible(3) ? "" : "hidden"} md:col-span-2`}>
-                     <label className="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm"><input type="checkbox" checked={isIncomplete} onChange={event => setIsIncomplete(event.target.checked)} className="mt-0.5 h-5 w-5" /><span><strong className="block text-amber-900">Envío incompleto</strong><span className="text-amber-800">Marca si falta algún documento, artículo o dato.</span></span></label>
-                     {isIncomplete && <Input value={incompleteReason} onChange={event => setIncompleteReason(event.target.value)} placeholder="Qué falta (opcional)" className="mt-2 bg-white" />}
+                     <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-base leading-6 text-[#0B2B5E]"><strong>Antes de crear el envío:</strong> entrega todos los documentos y datos solicitados en la agencia o completa la firma remota. El Cliente no puede registrar envíos incompletos.</div>
                      <Label>Notas (opcional)</Label>
                      <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Instrucciones adicionales de entrega" className="mt-1 bg-white" />
                      <label className="mt-3 block text-sm font-semibold text-[#0B2B5E]">Foto del envío (opcional)</label>

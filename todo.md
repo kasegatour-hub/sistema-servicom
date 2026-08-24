@@ -933,3 +933,11 @@
 - [x] Aclarar visualmente cómo entrega el remitente y cómo recibe la agencia el paquete
 - [x] Incorporar las fotografías reales de las sedes con la asignación correcta
 - [x] Añadir pruebas de formato y sedes, validar móvil y publicar
+
+## Servicios del Cliente, provincia y legibilidad
+- [x] Impedir que el Cliente registre envíos incompletos y retirar esa opción de su flujo
+- [x] Añadir al Cliente apostillado y traducción con las mismas tarifas y reglas del administrador
+- [x] Aumentar tipografía, controles, etiquetas y espaciado en formularios y pantallas de registro
+- [x] Generar comprobante operativo imprimible para Torino–Lima con entrega a provincia, agencia transportista y destinatario
+- [x] Automatizar la clave con los últimos dígitos del celular para registros Torino–Lima y reflejarla en el recibo
+- [x] Añadir pruebas, validar seguridad y publicar

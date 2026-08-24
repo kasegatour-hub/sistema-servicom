@@ -88,8 +88,7 @@ export const clientShipmentInputSchema = z.object({
   requiresTranslationService: z.boolean().default(false),
   serviceManualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
   serviceManualPriceSoles: z.union([z.string(), z.number()]).optional().nullable(),
-  isIncomplete: z.boolean().default(false),
-  incompleteReason: z.string().trim().max(1000).optional(),
+  isIncomplete: z.literal(false).default(false),
   route: z.enum(["Lima - Torino", "Torino - Lima"]).default("Lima - Torino"),
   destinationAddress: z.string().trim().max(1000).optional(),
 }).strict().superRefine((input, ctx) => {
@@ -145,8 +144,8 @@ export function buildClientShipmentPersistenceArgs(
     input.requiresTranslationService,
     input.serviceManualPriceEur,
     input.serviceManualPriceSoles,
-    input.isIncomplete,
-    input.incompleteReason,
+    false,
+    null,
   ] as const;
 }
 
@@ -362,7 +361,7 @@ reauthRequired: session.reauthRequired,
     .input(clientShipmentInputSchema)
     .mutation(async ({ input, ctx }) => {
       const session = await requireFreshAccountSession(ctx.req, "registrar un envío");
-      // Generación automática estricta: Orden de 10 dígitos y código de envío alfanumérico único
+      // Generación automática: orden de 8 dígitos y código de 4 caracteres (1 dígito + 3 letras)
       const orderNumber = generateShipmentOrderNumber();
       const code = generateShipmentCode();
       
@@ -385,7 +384,12 @@ reauthRequired: session.reauthRequired,
         totalEur = sheetCount <= 5 ? 50 : 50 + 10;
         tariffDesc = `Documento Apostillado (${sheetCount} hoja${sheetCount > 1 ? 's' : ''}): ${totalEur} EUR`;
       }
-      const calculatedNotes = `Tarifa: ${tariffDesc}. ${input.notes || ""}`.trim();
+      const apostilleEur = input.requiresApostilleService && input.route === "Torino - Lima" ? 40 : 0;
+      const apostilleSoles = input.requiresApostilleService && input.route === "Torino - Lima" ? 160 : 0;
+      const translationSoles = input.requiresTranslationService && input.route === "Torino - Lima" ? 200 : 0;
+      totalEur += apostilleEur;
+      const serviceNotes = `${apostilleEur ? ` Apostilla: +${apostilleEur.toFixed(2)} EUR y +${apostilleSoles.toFixed(2)} soles.` : ""}${translationSoles ? ` Traducción: +${translationSoles.toFixed(2)} soles.` : ""}`;
+      const calculatedNotes = `Tarifa: ${tariffDesc}.${serviceNotes} ${input.notes || ""}`.trim();
 
       const result = await createShipment(
         ...buildClientShipmentPersistenceArgs(input, orderNumber, code, calculatedNotes, session.accountId, totalEur),
