@@ -48,6 +48,12 @@ beforeEach(() => {
 });
 
 describe("AccountPage client labels", () => {
+  it("muestra nombre, apellidos y correo del Cliente en la cabecera", () => {
+    render(<AccountPage />);
+    expect(screen.getByText("Hola, Ana López")).toBeTruthy();
+    expect(screen.getAllByText("cliente@example.com").length).toBeGreaterThan(0);
+  });
+
   it("permite al Cliente mostrar u ocultar la contraseña durante el inicio de sesión", () => {
     accountMocks.session = null;
     render(<AccountPage />);

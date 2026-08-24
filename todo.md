@@ -914,3 +914,15 @@
 - [x] Revisar y corregir el inicio de sesión separado para Admin y Cliente
 - [x] Actualizar de forma segura la contraseña del Master Admin magda.barreto.alv@gmail.com a la proporcionada por el propietario
 - [x] Añadir pruebas de tarifa, roles y autenticación, ejecutar compilación y publicar
+
+## Claridad de recepción del paquete
+- [x] Explicar claramente quién recibe el paquete y dónde debe entregarlo en modalidad de agencia
+- [x] Diferenciar visualmente entrega en agencia y entrega remota
+- [x] Mostrar cuándo aplica la firma electrónica y qué debe hacer el remitente
+- [x] Validar accesibilidad, móvil, pruebas y publicación
+
+## Identidad visible del Cliente en la app
+- [x] Mostrar nombre y apellidos del Cliente en la cabecera móvil
+- [x] Mostrar nombre, apellidos y correo en el perfil del Cliente
+- [x] Añadir estado de carga y fallback claro si faltan datos de perfil
+- [x] Añadir pruebas y publicar la corrección

@@ -388,8 +388,9 @@ export default function AccountPage() {
             <div className="flex min-w-0 items-center gap-3">
               <img src={brandLogo} alt="Servicom Internacional" className="h-12 w-auto rounded bg-white p-1" />
               <div className="min-w-0">
-                <h1 className="text-lg font-bold leading-tight sm:text-xl">Mi Cuenta — Servicom Internacional</h1>
-                <p className="truncate text-xs text-blue-200">{me.email}</p>
+<h1 className="text-lg font-bold leading-tight sm:text-xl">Hola, {[me.name, me.lastName].filter(Boolean).join(" ") || "Cliente"}</h1>
+                 <p className="truncate text-xs text-blue-200">{me.email}</p>
+                 <p className="text-[11px] text-blue-100">Mi cuenta de Cliente · datos personales y envíos</p>
               </div>
             </div>
             <div className="grid w-full grid-cols-3 gap-2 sm:flex sm:w-auto">

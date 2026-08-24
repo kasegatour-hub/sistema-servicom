@@ -140,7 +140,7 @@ export default function ReceiptPage() {
               {canSignThisShipment && (
                 <div className="flex flex-col gap-4 rounded-lg border border-blue-200 bg-blue-50 p-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="flex items-center gap-2 font-semibold text-[#0B2B5E]"><PenLine className="h-4 w-4" aria-hidden="true" /> Solicitud de firma recibida</p>
+                    <p className="flex items-center gap-2 font-semibold text-[#0B2B5E]"><PenLine className="h-4 w-4" aria-hidden="true" /> Recepción remota y firma electrónica pendiente</p>
                     <p className="mt-1 text-sm text-slate-600">Esta solicitud fue enviada por un Administrador o Registrador a tu cuenta Cliente.</p>
                   </div>
                   <Button type="button" onClick={() => setSignatureDialogOpen(true)} disabled={completeSignatureMutation.isPending} className="shrink-0 bg-[#0B2B5E] text-white hover:bg-[#123d78]">
@@ -149,7 +149,7 @@ export default function ReceiptPage() {
                 </div>
               )}
               {shipment.deliveryMode === "agencia" && (
-                <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 text-slate-700"><CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-slate-500" aria-hidden="true" /><div><p className="font-semibold">Entrega en agencia</p><p className="text-sm">Este envío se completa presencialmente en la agencia; no requiere firma remota desde este recibo.</p></div></div>
+                <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 text-slate-700"><CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-slate-500" aria-hidden="true" /><div><p className="font-semibold">Recepción en agencia</p><p className="text-sm">El remitente debe entregar el paquete en la sede de origen indicada arriba. El personal de la agencia registra la recepción y el destinatario lo recoge en la sede de destino. No requiere firma remota desde este recibo.</p></div></div>
               )}
               {signatureError && !signatureDialogOpen && <p className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800" role="alert">{signatureError}</p>}
 

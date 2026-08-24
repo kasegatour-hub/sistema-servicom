@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 const currentRoute = vi.hoisted(() => ({ value: "Lima - Torino" }));
+const deliveryMode = vi.hoisted(() => ({ value: "remoto" as "agencia" | "remoto" }));
 const signatureMocks = vi.hoisted(() => ({
   complete: vi.fn(),
   refetch: vi.fn(),
@@ -25,7 +26,7 @@ const shipment = {
   recipientName: "Marco",
   recipientLastName: "Rossi",
   recipientPhone: "+39 351 000 000",
-  deliveryMode: "remoto",
+  deliveryMode: deliveryMode.value,
   accountId: 77,
 };
 
@@ -33,7 +34,7 @@ vi.mock("@/lib/trpc", () => ({
   trpc: {
     shipment: {
       search: {
-        useQuery: () => ({ data: { ...shipment, route: currentRoute.value }, isLoading: false, error: null, refetch: signatureMocks.refetch }),
+        useQuery: () => ({ data: { ...shipment, route: currentRoute.value, deliveryMode: deliveryMode.value }, isLoading: false, error: null, refetch: signatureMocks.refetch }),
       },
       completeSignature: { useMutation: () => ({ isPending: false, mutateAsync: signatureMocks.complete }) },
     },
@@ -74,6 +75,25 @@ describe("ReceiptPage", () => {
     await waitFor(() => expect(receiptMocks.download).toHaveBeenCalledWith(expect.objectContaining({ orderNumber: "3520992723" }), "word"));
     expect(document.title).toBe("recibo-documento-marco-rossi-orden-3520992723");
     expect(screen.queryByRole("button", { name: /Firmar electrónicamente/ })).toBeNull();
+  });
+
+  it("explica que el envío remoto requiere firma electrónica", () => {
+    window.history.replaceState({}, "", "/recibo?order=3520992723&code=CA06721WB");
+    deliveryMode.value = "remoto";
+    render(<ReceiptPage />);
+
+    expect(screen.getByText(/Envío remoto con firma electrónica/)).toBeTruthy();
+    expect(screen.queryByText("Recepción en agencia")).toBeNull();
+  });
+
+  it("explica quién recibe el paquete cuando la modalidad es agencia", () => {
+    window.history.replaceState({}, "", "/recibo?order=3520992723&code=CA06721WB");
+    deliveryMode.value = "agencia";
+    render(<ReceiptPage />);
+
+    expect(screen.getByText("Recepción en agencia")).toBeTruthy();
+    expect(screen.getByText(/El remitente debe entregar el paquete en la sede de origen/)).toBeTruthy();
+    deliveryMode.value = "remoto";
   });
 
   it("muestra la firma solo al Cliente autenticado que abrió su enlace enviado", async () => {

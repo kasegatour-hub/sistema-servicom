@@ -1754,7 +1754,7 @@ export default function AdminDashboard() {
                       <SelectTrigger className="border-2 focus:border-primary"><SelectValue /></SelectTrigger>
                       <SelectContent><SelectItem value="agencia">Entrega en agencia</SelectItem><SelectItem value="remoto">Envío remoto: firma electrónica</SelectItem></SelectContent>
                     </Select>
-                    <p className="mt-1 text-xs text-slate-500">Solo los envíos remotos muestran la firma electrónica en el recibo.</p>
+                    <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50/70 p-3 text-sm text-slate-700"><p className="font-bold text-[#0B2B5E]">¿Cómo recibirá la agencia este envío?</p><p className="mt-1 leading-5"><strong>Entrega en agencia:</strong> el remitente entrega el paquete directamente en la sede indicada y el personal de la agencia lo recibe allí. El cliente lo recogerá en la sede de destino.</p><p className="mt-2 leading-5"><strong>Envío remoto:</strong> el paquete se envía sin entrega presencial del remitente; el cliente debe completar la firma electrónica desde su recibo.</p></div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Estado Inicial</label>
@@ -2531,13 +2531,14 @@ export default function AdminDashboard() {
                       <option value="Torino - Lima">Torino - Lima</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Modalidad de entrega</label>
-                    <select {...updateForm.register("deliveryMode")} className="w-full p-2 bg-white border-2 border-slate-200 rounded-md text-sm font-medium focus:border-primary">
-                      <option value="agencia">Entrega en agencia</option>
-                      <option value="remoto">Envío remoto: firma electrónica</option>
-                    </select>
-                  </div>
+<div>
+                     <label className="block text-sm font-medium text-gray-700 mb-1">Modalidad de entrega</label>
+                     <select {...updateForm.register("deliveryMode")} className="w-full p-2 bg-white border-2 border-slate-200 rounded-md text-sm font-medium focus:border-primary">
+                       <option value="agencia">Entrega en agencia</option>
+                       <option value="remoto">Envío remoto: firma electrónica</option>
+                     </select>
+                     <div className="mt-2 rounded-xl border border-blue-100 bg-blue-50/70 p-3 text-sm text-slate-700"><p className="font-bold text-[#0B2B5E]">Recepción del paquete</p><p className="mt-1 leading-5"><strong>En agencia:</strong> se entrega directamente en la sede de origen y la agencia registra la recepción. El destinatario recoge en la sede de destino.</p><p className="mt-2 leading-5"><strong>Remoto:</strong> no requiere entrega presencial del remitente; el cliente firma electrónicamente el recibo.</p></div>
+                   </div>
                   {updateForm.watch("shipmentType") === "encomienda" ? <>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Peso (kg)</label>
