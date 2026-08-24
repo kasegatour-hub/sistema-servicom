@@ -865,3 +865,9 @@
 - [x] Integrar enlaces y consulta de los localizadores oficiales mundiales sin inventar sedes
 - [x] Mostrar claramente la fecha/fuente de los datos y permitir sede manual cuando el localizador no responda
 - [x] Añadir pruebas de proveedores, selección y manejo de errores; validar compilación y publicar
+
+## Corrección FedEx/DHL y rol de Gian
+- [x] Implementar búsqueda interna de sedes FedEx y DHL con resultados seleccionables
+- [x] Hacer que la sede seleccionada complete automáticamente el destino y sus datos
+- [x] Corregir gian.arteaga@utec.edu.pe para que tenga únicamente rol Cliente
+- [x] Añadir pruebas de directorio y permisos; validar base de datos, compilación y publicar

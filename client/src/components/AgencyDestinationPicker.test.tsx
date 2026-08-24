@@ -8,9 +8,13 @@ vi.mock("@/components/Map", () => ({ MapView: () => <div data-testid="agency-map
 
 afterEach(cleanup);
 
-import { AgencyDestinationPicker } from "./AgencyDestinationPicker";
+import { AgencyDestinationPicker, normalizeCarrierPlace } from "./AgencyDestinationPicker";
 
 describe("AgencyDestinationPicker", () => {
+  it("normaliza una ubicación de FedEx/DHL para completar el destino automáticamente", () => {
+    const location = normalizeCarrierPlace({ place_id: "place-123", name: "DHL Express Torino", formatted_address: "Corso Peschiera 162A, Torino, Italia", geometry: { location: { lat: () => 45.06, lng: () => 7.66 } } } as never, "dhl");
+    expect(location).toMatchObject({ id: "dhl-place-123", provider: "DHL", name: "DHL Express Torino", address: "Corso Peschiera 162A, Torino, Italia", latitude: 45.06, longitude: 7.66 });
+  });
   it("muestra Servicom como alternativa propia y permite abrir el selector de mapa", () => {
     render(<AgencyDestinationPicker route="Torino - Lima" value="" onChange={() => undefined} />);
 
