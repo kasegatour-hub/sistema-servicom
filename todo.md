@@ -1039,3 +1039,10 @@
 - [x] Aplicar 10/15 EUR solo al activar envío a provincia
 - [x] Corregir total, etiquetas, notas y recibos
 - [x] Añadir pruebas de escenarios con y sin provincia y publicar
+
+## Corrección de identificación de recibos
+- [x] Auditar por qué el envío de Madalena no conserva la identidad correcta del registrador
+- [x] Propagar y persistir el correo real de la cuenta que registra
+- [x] Activar Kasega solo para magda.barreto.alv@gmail.com
+- [x] Confirmar Servicom Internacional para Madalena y demás cuentas
+- [x] Añadir pruebas de ambos casos, validar impresión/descarga y publicar

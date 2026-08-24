@@ -104,6 +104,7 @@ export function buildClientShipmentPersistenceArgs(
   calculatedNotes: string,
   accountId: number,
   basePriceEur?: number,
+  registeredEmail?: string | null,
 ) {
   return [
     orderNumber,
@@ -135,7 +136,7 @@ export function buildClientShipmentPersistenceArgs(
     null,
     JSON.stringify(input.contentChecklist),
     input.deliveryMode,
-    { type: "account" as const, id: accountId, label: "Cliente" },
+    { type: "account" as const, id: accountId, label: "Cliente", email: registeredEmail || null },
     input.senderDocumentType,
     input.recipientDocumentType,
     input.docType,
@@ -361,6 +362,7 @@ reauthRequired: session.reauthRequired,
     .input(clientShipmentInputSchema)
     .mutation(async ({ input, ctx }) => {
       const session = await requireFreshAccountSession(ctx.req, "registrar un envío");
+      const account = await getLocalAccountById(session.accountId);
       // Generación automática: orden de 8 dígitos y código de 4 caracteres (1 dígito + 3 letras)
       const orderNumber = generateShipmentOrderNumber();
       const code = generateShipmentCode();
@@ -392,7 +394,7 @@ reauthRequired: session.reauthRequired,
       const calculatedNotes = `Tarifa: ${tariffDesc}.${serviceNotes} ${input.notes || ""}`.trim();
 
       const result = await createShipment(
-        ...buildClientShipmentPersistenceArgs(input, orderNumber, code, calculatedNotes, session.accountId, totalEur),
+        ...buildClientShipmentPersistenceArgs(input, orderNumber, code, calculatedNotes, session.accountId, totalEur, account?.email),
       );
       if (!result) {
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No se pudo registrar el envío." });
