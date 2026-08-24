@@ -1084,3 +1084,9 @@
 - [x] Mostrar 7,50 EUR sugeridos para 5 kg y permitir edición manual
 - [x] Corregir el valor incorrecto 0,08 y mantener precisión decimal
 - [x] Añadir pruebas, validar y publicar
+
+## Navegación móvil en cuadrícula
+- [x] Mostrar dos botones por fila en la app móvil
+- [x] Evitar que las opciones se oculten o se desborden
+- [x] Mantener feedback visible al pulsar cada botón
+- [x] Validar pantallas pequeñas y publicar
