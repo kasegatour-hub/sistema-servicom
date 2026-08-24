@@ -854,6 +854,10 @@ export const adminRouter = router({
       destinationAddress: z.string().optional(),
       deliveryMode: z.enum(["agencia", "remoto"]).optional(),
       pricingMode: z.enum(["estandar", "manual"]).default("estandar"),
+      isProvinceDelivery: z.boolean().optional(),
+      provinceCustomerPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
+      provinceOperationalCostSoles: z.union([z.string(), z.number()]).optional().nullable(),
+      provinceCarrier: z.enum(["olva", "shalom"]).optional(),
     }).superRefine((input, ctx) => {
       if ((input.shipmentType ?? "documento") === "documento" && input.docType === "simple" && (input.sheetCount ?? 1) > 8) {
         ctx.addIssue({ code: "custom", path: ["sheetCount"], message: "Los documentos simples permiten un máximo de 8 hojas por registro." });
@@ -879,7 +883,7 @@ export const adminRouter = router({
       const effectiveDocumentKind = input.docType ?? currentShipment.documentKind ?? "apostillado";
       const effectiveDocumentSheetCount = input.sheetCount ?? currentShipment.documentSheetCount ?? 1;
       const effectiveExtraPrice = input.extraPriceEur ?? currentShipment.extraPriceEur ?? 0;
-      const pricing = isParcel ? calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: effectiveWeight, manualPriceEur: input.pricingMode === "manual" ? input.manualPriceEur : null, extraPriceEur: effectiveExtraPrice }) : null;
+      const pricing = isParcel ? calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: effectiveWeight, manualPriceEur: input.pricingMode === "manual" ? input.manualPriceEur : null, extraPriceEur: effectiveExtraPrice, route: effectiveRoute, isProvinceDelivery: input.isProvinceDelivery ?? Boolean(currentShipment.isProvinceDelivery), provinceCustomerPriceEur: input.provinceCustomerPriceEur ?? currentShipment.provinceCustomerPriceEur, provinceOperationalCostSoles: input.provinceOperationalCostSoles ?? currentShipment.provinceOperationalCostSoles, provinceCarrier: input.provinceCarrier ?? currentShipment.provinceCarrier }) : null;
       const documentPricing = !isParcel
         ? calculateAdminShipmentPricing({ shipmentType: "documento", docType: effectiveDocumentKind, sheetCount: effectiveDocumentSheetCount, manualPriceEur: input.pricingMode === "manual" ? input.manualPriceEur : null, extraPriceEur: effectiveExtraPrice })
         : null;
@@ -914,6 +918,10 @@ export const adminRouter = router({
         effectiveDocumentKind,
         effectiveDocumentSheetCount,
         effectiveRequiresApostilleService,
+        input.isProvinceDelivery,
+        input.provinceCustomerPriceEur,
+        input.provinceOperationalCostSoles,
+        input.provinceCarrier,
       );
       if (!result) {
         throw new TRPCError({

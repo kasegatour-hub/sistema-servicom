@@ -16,7 +16,7 @@ export type AdminShipmentPricingInput = {
   isProvinceDelivery?: boolean;
   provinceCustomerPriceEur?: string | number | null;
   provinceOperationalCostSoles?: string | number | null;
-  provinceCarrier?: "olva" | "shalom";
+  provinceCarrier?: "olva" | "shalom" | null;
   notes?: string;
 };
 
@@ -57,7 +57,8 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
   const provinceEnabled = Boolean(input.isProvinceDelivery) && route === "Torino - Lima";
   const rawProvinceCustomerPrice = input.provinceCustomerPriceEur === undefined || input.provinceCustomerPriceEur === null ? "" : String(input.provinceCustomerPriceEur).trim();
   const parsedProvinceCustomerPrice = Number(rawProvinceCustomerPrice);
-  const provinceCustomerPriceEur = provinceEnabled && rawProvinceCustomerPrice !== "" && Number.isFinite(parsedProvinceCustomerPrice) && parsedProvinceCustomerPrice >= 0 ? parsedProvinceCustomerPrice : 0;
+  const automaticProvincePrice = provinceEnabled ? (weightKg <= 5 ? 10 : weightKg <= 10 ? 15 : 0) : 0;
+  const provinceCustomerPriceEur = provinceEnabled && rawProvinceCustomerPrice !== "" && Number.isFinite(parsedProvinceCustomerPrice) && parsedProvinceCustomerPrice >= 0 ? parsedProvinceCustomerPrice : automaticProvincePrice;
   const rawProvinceOperationalCost = input.provinceOperationalCostSoles === undefined || input.provinceOperationalCostSoles === null ? "" : String(input.provinceOperationalCostSoles).trim();
   const parsedProvinceOperationalCost = Number(rawProvinceOperationalCost);
   const provinceOperationalCostSoles = provinceEnabled ? (rawProvinceOperationalCost !== "" && Number.isFinite(parsedProvinceOperationalCost) && parsedProvinceOperationalCost >= 0 ? parsedProvinceOperationalCost : shipmentType === "documento" ? 8 : 0) : 0;

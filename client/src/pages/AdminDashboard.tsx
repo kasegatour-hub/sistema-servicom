@@ -257,6 +257,10 @@ const updateStatusSchema = z.object({
   extraPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
   deliveryMode: z.enum(["agencia", "remoto"]).optional(),
   pricingMode: z.enum(["estandar", "manual"]).optional(),
+  isProvinceDelivery: z.boolean().optional(),
+  provinceCustomerPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
+  provinceOperationalCostSoles: z.union([z.string(), z.number()]).optional().nullable(),
+  provinceCarrier: z.enum(["olva", "shalom"]).optional(),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
@@ -550,6 +554,13 @@ export default function AdminDashboard() {
   const selectedRoute = createForm.watch("route") || "Lima - Torino";
   const limaTorinoEncomiendasEnabled = limaTorinoPolicy?.encomiendasEnabled !== false;
   const watchedWeightKg = Number(createForm.watch("weightKg")) || 0.1;
+  const watchedProvinceEnabled = Boolean(createForm.watch("isProvinceDelivery"));
+  const automaticProvincePrice = watchedWeightKg <= 5 ? 10 : watchedWeightKg <= 10 ? 15 : 0;
+  useEffect(() => {
+    if (watchedProvinceEnabled && selectedRoute === "Torino - Lima" && !String(createForm.getValues("provinceCustomerPriceEur") ?? "").trim() && automaticProvincePrice > 0) {
+      createForm.setValue("provinceCustomerPriceEur", automaticProvincePrice, { shouldDirty: true });
+    }
+  }, [watchedProvinceEnabled, selectedRoute, watchedWeightKg, automaticProvincePrice]);
   const automaticParcelBaseEur = selectedRoute === "Torino - Lima"
     ? watchedWeightKg <= 5 ? 10 : watchedWeightKg <= 10 ? 15 : null
     : watchedWeightKg * 13.5;
@@ -637,6 +648,13 @@ export default function AdminDashboard() {
       updateForm.setValue("requiresApostilleService", false, { shouldValidate: true, shouldDirty: true });
     }
   }, [updateShipmentType, updateShipmentRoute]);
+  const updateProvinceEnabled = Boolean(updateForm.watch("isProvinceDelivery"));
+  const updateProvinceWeight = Number(updateForm.watch("weightKg") || 0.1);
+  useEffect(() => {
+    if (updateProvinceEnabled && updateShipmentRoute === "Torino - Lima" && updateProvinceWeight <= 10) {
+      updateForm.setValue("provinceCustomerPriceEur", updateProvinceWeight <= 5 ? 10 : 15, { shouldDirty: true });
+    }
+  }, [updateProvinceEnabled, updateShipmentRoute, updateProvinceWeight]);
 
   const openShipmentUpdate = (shipment: any) => {
     setSelectedShipmentId(shipment.id);
@@ -666,6 +684,10 @@ export default function AdminDashboard() {
       extraPriceEur: Number(shipment.extraPriceEur || 0),
       deliveryMode: shipment.deliveryMode || "agencia",
       pricingMode: "estandar",
+      isProvinceDelivery: Boolean(shipment.isProvinceDelivery),
+      provinceCustomerPriceEur: shipment.provinceCustomerPriceEur || "",
+      provinceOperationalCostSoles: shipment.provinceOperationalCostSoles || "",
+      provinceCarrier: shipment.provinceCarrier || "shalom",
     });
     setShowUpdateForm(true);
   };
@@ -2563,7 +2585,12 @@ export default function AdminDashboard() {
                       <option value="Torino - Lima">Torino - Lima</option>
                     </select>
                   </div>
-<div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Sede de llegada / agencia</label>
+                    <Input {...updateForm.register("destinationAddress")} placeholder="Escribe o selecciona la sede de destino" />
+                    <p className="mt-1 text-xs text-slate-500">Actualiza aquí la agencia Olva/Shalom o la dirección manual.</p>
+                  </div>
+	<div>
                      <label className="block text-sm font-medium text-gray-700 mb-1">Modalidad de entrega</label>
                      <select {...updateForm.register("deliveryMode")} className="w-full p-2 bg-white border-2 border-slate-200 rounded-md text-sm font-medium focus:border-primary">
                        <option value="agencia">Entrega en agencia</option>
@@ -2614,6 +2641,7 @@ export default function AdminDashboard() {
                       </label>
                     )}
                   </>}
+                  {updateForm.watch("route") === "Torino - Lima" && <div className="md:col-span-2 rounded-xl border border-orange-200 bg-orange-50 p-4"><label className="flex items-start gap-3 text-sm font-semibold text-[#0B2B5E]"><input type="checkbox" {...updateForm.register("isProvinceDelivery")} className="mt-0.5 h-5 w-5" /><span>Envío a provincia después de Lima<span className="mt-1 block text-xs font-normal text-slate-700">Cargo automático: 10 EUR para 0,1–5 kg; 15 EUR para más de 5–10 kg.</span></span></label>{updateForm.watch("isProvinceDelivery") && <div className="mt-3 grid gap-3 sm:grid-cols-2"><div><label className="block text-sm font-medium text-gray-700 mb-1">Agencia</label><select {...updateForm.register("provinceCarrier")} className="w-full rounded-md border-2 border-slate-200 bg-white p-2 text-sm"><option value="shalom">Shalom</option><option value="olva">Olva</option></select></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Precio provincial adicional (EUR)</label><Input type="number" min="0" step="0.01" {...updateForm.register("provinceCustomerPriceEur")} placeholder={Number(updateForm.watch("weightKg") || 0) > 10 ? "Precio manual requerido" : Number(updateForm.watch("weightKg") || 0) > 5 ? "15.00 automático" : "10.00 automático"} /><p className="mt-1 text-xs text-slate-600">Sobre 10 kg, ingresa el importe manual.</p></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Costo operativo provincial (S/)</label><Input type="number" min="0" step="0.01" {...updateForm.register("provinceOperationalCostSoles")} /></div></div>}</div>}
                   {updateForm.watch("pricingMode") === "manual" && <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Precio manual (EUR)</label><Input type="number" min="0" step="0.01" {...updateForm.register("manualPriceEur")} placeholder="Ej.: 25.00" /><p className="mt-1 text-xs text-slate-500">Guarda una tarifa para que los pagos de este envío se contabilicen correctamente.</p></div>}
                   <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Importe extra (EUR)</label><Input type="number" min="0" step="0.01" aria-label="Importe extra de actualización" {...updateForm.register("extraPriceEur")} /><p className="mt-1 text-xs text-slate-500">Por defecto es 0 y se suma al total de documento o encomienda.</p></div>
                   {updateForm.watch("shipmentType") === "documento" && <div className="md:col-span-2"><DocumentPricePreview docType={(updateForm.watch("docType") || "apostillado") as "simple" | "apostillado"} sheetCount={Number(updateForm.watch("sheetCount") || 1)} manualPriceEur={updateForm.watch("pricingMode") === "manual" ? updateForm.watch("manualPriceEur") : null} extraPriceEur={updateForm.watch("extraPriceEur")} /></div>}

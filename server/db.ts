@@ -1201,6 +1201,10 @@ export async function updateShipmentStatus(
   documentKind?: "simple" | "apostillado",
   documentSheetCount?: number,
   requiresApostilleService?: boolean,
+  isProvinceDelivery?: boolean,
+  provinceCustomerPriceEur?: string | number | null,
+  provinceOperationalCostSoles?: string | number | null,
+  provinceCarrier?: "olva" | "shalom" | null,
 ) {
   const db = await getDb();
   if (!db) {
@@ -1251,6 +1255,10 @@ export async function updateShipmentStatus(
         documentKind: documentKind ?? shipment.documentKind ?? "apostillado",
         documentSheetCount: documentSheetCount !== undefined ? Math.max(1, Math.min(10, Math.round(Number(documentSheetCount) || 1))) : shipment.documentSheetCount ?? 1,
         requiresApostilleService: shouldRequireApostilleService && canRequireApostilleService ? 1 : 0,
+        isProvinceDelivery: Boolean(isProvinceDelivery ?? shipment.isProvinceDelivery) && updatedRoute === "Torino - Lima" ? 1 : 0,
+        provinceCustomerPriceEur: Boolean(isProvinceDelivery ?? shipment.isProvinceDelivery) && updatedRoute === "Torino - Lima" ? (provinceCustomerPriceEur !== undefined && provinceCustomerPriceEur !== null && String(provinceCustomerPriceEur).trim() !== "" ? String(provinceCustomerPriceEur) : shipment.provinceCustomerPriceEur) : null,
+        provinceOperationalCostSoles: Boolean(isProvinceDelivery ?? shipment.isProvinceDelivery) && updatedRoute === "Torino - Lima" ? (provinceOperationalCostSoles !== undefined && provinceOperationalCostSoles !== null && String(provinceOperationalCostSoles).trim() !== "" ? String(provinceOperationalCostSoles) : shipment.provinceOperationalCostSoles) : null,
+        provinceCarrier: Boolean(isProvinceDelivery ?? shipment.isProvinceDelivery) && updatedRoute === "Torino - Lima" ? (provinceCarrier ?? shipment.provinceCarrier ?? "shalom") : null,
         weightKg: weightKg !== undefined ? String(weightKg) : shipment.weightKg ?? "1.00",
         manualPriceEur: manualPriceEur !== undefined ? (manualPriceEur !== null && String(manualPriceEur).trim() !== "" ? String(manualPriceEur) : null) : shipment.manualPriceEur,
         extraPriceEur: extraPriceEur !== undefined ? String(Math.max(0, Number(extraPriceEur) || 0)) : shipment.extraPriceEur ?? "0.00",

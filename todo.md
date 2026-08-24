@@ -1007,3 +1007,10 @@
 - [x] Mostrar sus teléfonos, correo y aviso de coordinación en la selección y comprobantes
 - [x] Conservar Corso Peschiera para las demás cuentas y rutas
 - [x] Añadir pruebas, validar y publicar
+
+## Cargo provincial Italia → Lima
+- [x] Aplicar el cargo provincial solo para Italia → Lima al seleccionar agencia Olva o Shalom
+- [x] Calcular 10 EUR adicionales para 0,1–5 kg y 15 EUR para más de 5–10 kg
+- [x] Exigir importe provincial manual sobre 10 kg y mostrarlo como extra separado
+- [x] Permitir actualizar y guardar el importe provincial y la sede de llegada
+- [x] Añadir pruebas, validar comprobantes y publicar
