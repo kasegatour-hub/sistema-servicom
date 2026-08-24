@@ -1138,3 +1138,8 @@
 - [x] Mostrar al Master Admin de Kasega/Magdalena la acción Ocultar registro en sus propios envíos
 - [x] Permitir alternar Ocultar/Mostrar sin exponer ni modificar registros de otros espacios
 - [x] Añadir pruebas de autorización y de visibilidad del botón
+
+## Navegación superior responsive
+- [x] Aumentar tamaño, área táctil y legibilidad de los botones del encabezado
+- [x] Evitar recortes de esquinas y desbordamientos en escritorio, móvil y pantallas estrechas
+- [x] Añadir pruebas visuales o de estructura para la navegación responsive

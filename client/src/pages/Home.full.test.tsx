@@ -55,6 +55,18 @@ describe("Home public page", () => {
     expect(screen.getByRole("button", { name: /Rastrear envío/ })).toBeTruthy();
   });
 
+  it("renders large navigation buttons with complete rounded corners", () => {
+    render(<Home />);
+
+    for (const label of ["Rastrea", "Sedes", "App móvil", "Cliente", "Admin"]) {
+      const link = screen.getByRole("link", { name: label });
+      expect(link.className).toContain("min-h-12");
+      expect(link.className).toContain("rounded-xl");
+      expect(link.className).toContain("items-center");
+      expect(link.className).toContain("justify-center");
+    }
+  });
+
   it("renders Ubícanos with both office cards and all visible contact details", () => {
     render(<Home />);
 

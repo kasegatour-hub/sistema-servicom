@@ -258,12 +258,12 @@ export default function Home() {
                 <span className="mt-1 block text-xs text-blue-200 sm:text-sm">Documentos y encomiendas · RUC 20615004708</span>
               </span>
             </a>
-            <nav aria-label="Navegación principal" className="flex w-full items-center gap-0 overflow-x-auto pb-1 sm:w-auto sm:justify-end sm:gap-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <a href="#rastreo" className="shrink-0 rounded-lg px-2.5 py-2.5 text-sm font-bold text-white transition hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-[#F28C00] sm:px-4">Rastrea</a>
-              <a href="#sedes" className="shrink-0 rounded-lg px-2.5 py-2.5 text-sm font-bold text-white transition hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-[#F28C00] sm:px-4">Sedes</a>
-              <a href="/movil" className="shrink-0 rounded-lg px-2.5 py-2.5 text-sm font-bold text-white transition hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-[#F28C00] sm:px-4">App móvil</a>
-              <a href="/cuenta" className="shrink-0 rounded-lg px-2.5 py-2.5 text-sm font-bold text-white transition hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-[#F28C00] sm:px-4">Cliente</a>
-              <a href="/admin" className="shrink-0 rounded-lg bg-[#F28C00] px-3.5 py-2.5 text-sm font-extrabold text-white shadow-md transition hover:bg-[#d97800] focus:outline-none focus:ring-2 focus:ring-white sm:px-5">Admin</a>
+            <nav aria-label="Navegación principal" className="grid w-full grid-cols-2 gap-2 pb-1 sm:flex sm:w-auto sm:items-center sm:justify-end sm:gap-2">
+              <a href="#rastreo" className="flex min-h-12 items-center justify-center whitespace-nowrap rounded-xl border border-white/20 px-4 py-3 text-base font-bold leading-none text-white transition hover:bg-white/15 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-[#F28C00] focus:ring-offset-2 focus:ring-offset-[#0B2B5E] sm:min-h-14 sm:px-5">Rastrea</a>
+              <a href="#sedes" className="flex min-h-12 items-center justify-center whitespace-nowrap rounded-xl border border-white/20 px-4 py-3 text-base font-bold leading-none text-white transition hover:bg-white/15 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-[#F28C00] focus:ring-offset-2 focus:ring-offset-[#0B2B5E] sm:min-h-14 sm:px-5">Sedes</a>
+              <a href="/movil" className="flex min-h-12 items-center justify-center whitespace-nowrap rounded-xl border border-white/20 px-4 py-3 text-base font-bold leading-none text-white transition hover:bg-white/15 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-[#F28C00] focus:ring-offset-2 focus:ring-offset-[#0B2B5E] sm:min-h-14 sm:px-5">App móvil</a>
+              <a href="/cuenta" className="flex min-h-12 items-center justify-center whitespace-nowrap rounded-xl border border-white/20 px-4 py-3 text-base font-bold leading-none text-white transition hover:bg-white/15 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-[#F28C00] focus:ring-offset-2 focus:ring-offset-[#0B2B5E] sm:min-h-14 sm:px-5">Cliente</a>
+              <a href="/admin" className="flex min-h-12 items-center justify-center whitespace-nowrap rounded-xl bg-[#F28C00] px-4 py-3 text-base font-extrabold leading-none text-white shadow-md transition hover:bg-[#d97800] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#0B2B5E] sm:min-h-14 sm:px-6">Admin</a>
             </nav>
           </div>
         </div>
