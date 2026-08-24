@@ -249,6 +249,9 @@ export const shipments = mysqlTable("shipments", {
   documentKind: mysqlEnum("documentKind", ["simple", "apostillado"]).default("apostillado").notNull(),
   documentSheetCount: int("documentSheetCount").default(1).notNull(),
   requiresApostilleService: int("requiresApostilleService").default(0).notNull(),
+  requiresTranslationService: int("requiresTranslationService").default(0).notNull(),
+  serviceManualPriceEur: decimal("serviceManualPriceEur", { precision: 10, scale: 2 }),
+  serviceManualPriceSoles: decimal("serviceManualPriceSoles", { precision: 10, scale: 2 }),
   weightKg: decimal("weightKg", { precision: 10, scale: 2 }).default("1.00"),
   manualPriceEur: decimal("manualPriceEur", { precision: 10, scale: 2 }),
   extraPriceEur: decimal("extraPriceEur", { precision: 10, scale: 2 }).default("0.00").notNull(),
@@ -264,6 +267,9 @@ export const shipments = mysqlTable("shipments", {
   deliveryMode: mysqlEnum("deliveryMode", ["agencia", "remoto"]).default("agencia").notNull(),
   documentItems: longtext("documentItems"), // JSON con documentos adicionales y sus recargos/manuales
   contentChecklist: longtext("contentChecklist"), // JSON con la lista de contenido verificado
+  isIncomplete: int("isIncomplete").default(0).notNull(),
+  incompleteReason: text("incompleteReason"),
+  photoMetadata: longtext("photoMetadata"), // JSON con fotos cargadas en S3
   notes: text("notes"),
   deletedAt: timestamp("deletedAt"),
   deletedByType: mysqlEnum("deletedByType", ["admin", "account", "system"]),

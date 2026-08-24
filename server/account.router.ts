@@ -18,6 +18,7 @@ import {
   deleteShipment,
   getDeletedShipments,
   getShipmentById,
+  getDb,
   recordInteractionEvent,
   restoreShipment,
   updateLocalAccountPassword,
@@ -38,6 +39,9 @@ import { AccountSessionPayload, clearAccountSession, getAccountSession, setAccou
 import { identityDocumentNumberSchema, identityDocumentTypeSchema, isIdentityDocumentValid, identityDocumentValidationMessage, optionalIdentityDocumentNumberSchema, optionalPersonNameSchema, personNameSchema } from "./inputValidation";
 import { isValidInternationalPhone } from "../shared/phoneValidation";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "../shared/passwordPolicy";
+import { storagePut } from "./storage";
+import { shipments } from "../drizzle/schema";
+import { eq } from "drizzle-orm";
 
 const passwordSchema = z.string().refine(isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE);
 const emailSchema = z.string().email("Correo electrónico inválido.");
@@ -80,6 +84,11 @@ export const clientShipmentInputSchema = z.object({
   docType: z.enum(["simple", "apostillado"]).default("apostillado"),
   sheetCount: z.number().min(1).default(1),
   requiresApostilleService: z.boolean().default(false),
+  requiresTranslationService: z.boolean().default(false),
+  serviceManualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
+  serviceManualPriceSoles: z.union([z.string(), z.number()]).optional().nullable(),
+  isIncomplete: z.boolean().default(false),
+  incompleteReason: z.string().trim().max(1000).optional(),
   route: z.enum(["Lima - Torino", "Torino - Lima"]).default("Lima - Torino"),
   destinationAddress: z.string().trim().max(1000).optional(),
 }).strict().superRefine((input, ctx) => {
@@ -132,6 +141,11 @@ export function buildClientShipmentPersistenceArgs(
     input.docType,
     input.sheetCount,
     input.requiresApostilleService,
+    input.requiresTranslationService,
+    input.serviceManualPriceEur,
+    input.serviceManualPriceSoles,
+    input.isIncomplete,
+    input.incompleteReason,
   ] as const;
 }
 
@@ -321,6 +335,26 @@ reauthRequired: session.reauthRequired,
       if (!restored) throw new TRPCError({ code: "CONFLICT", message: "El envío no pudo restaurarse." });
       await recordInteractionEvent({ actorType: "account", actorId: session.accountId, eventName: "trash_restored", surface: "account", metadata: { shipmentType: shipment.shipmentType } });
       return { success: true };
+    }),
+
+  uploadMyShipmentPhoto: publicProcedure
+    .input(z.object({ shipmentId: z.number().int().positive(), name: z.string().trim().min(1).max(255), mimeType: z.string().regex(/^image\/(jpeg|png|webp|heic)$/i, "Solo se permiten imágenes JPG, PNG, WebP o HEIC."), dataBase64: z.string().min(16).max(11_000_000) }))
+    .mutation(async ({ input, ctx }) => {
+      const session = await requireFreshAccountSession(ctx.req, "cargar una foto");
+      const shipment = await getShipmentById(input.shipmentId);
+      if (!shipment || shipment.accountId !== session.accountId) throw new TRPCError({ code: "NOT_FOUND", message: "Envío no encontrado." });
+      const bytes = Buffer.from(input.dataBase64, "base64");
+      if (bytes.length === 0 || bytes.length > 8 * 1024 * 1024) throw new TRPCError({ code: "BAD_REQUEST", message: "La foto debe pesar menos de 8 MB." });
+      const safeName = input.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const saved = await storagePut(`accounts/${session.accountId}/shipments/${input.shipmentId}/photos/${Date.now()}-${safeName}`, bytes, input.mimeType);
+      let photos: unknown[] = [];
+      try { photos = shipment.photoMetadata ? JSON.parse(shipment.photoMetadata) : []; } catch { photos = []; }
+      const metadata = { key: saved.key, url: saved.url, name: input.name, mimeType: input.mimeType, sizeBytes: bytes.length, createdAt: new Date().toISOString(), uploadedBy: session.accountId };
+      photos = [...photos.filter(item => item && typeof item === "object"), metadata].slice(-20);
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Base de datos no disponible." });
+      await db.update(shipments).set({ photoMetadata: JSON.stringify(photos) }).where(eq(shipments.id, input.shipmentId));
+      return { success: true, photo: metadata };
     }),
 
   createMyShipment: publicProcedure

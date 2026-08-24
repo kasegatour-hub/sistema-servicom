@@ -104,6 +104,9 @@ export default function AccountPage() {
   const [recipientLookupQuery, setRecipientLookupQuery] = useState("");
   const [recipientLookupOpen, setRecipientLookupOpen] = useState(false);
   const [notes, setNotes] = useState("");
+  const [shipmentPhoto, setShipmentPhoto] = useState<File | null>(null);
+  const [isIncomplete, setIsIncomplete] = useState(false);
+  const [incompleteReason, setIncompleteReason] = useState("");
   const [catalogDocuments, setCatalogDocuments] = useState<CatalogDocumentItem[]>([]);
   const [identityErrors, setIdentityErrors] = useState<Record<string, string>>({});
   const [shipmentValidationErrors, setShipmentValidationErrors] = useState<Record<string, string>>({});
@@ -309,14 +312,22 @@ export default function AccountPage() {
     onError: error => toast.error(error.message),
   });
 
+  const uploadMyShipmentPhotoMutation = trpc.account.uploadMyShipmentPhoto.useMutation({ onError: error => toast.error(error.message) });
   const createShipmentMutation = trpc.account.createMyShipment.useMutation({
-    onSuccess: result => {
+    onSuccess: async result => {
+      if (shipmentPhoto && result.shipment?.id) {
+        const dataUrl = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = () => reject(new Error("No se pudo leer la foto.")); reader.readAsDataURL(shipmentPhoto); });
+        await uploadMyShipmentPhotoMutation.mutateAsync({ shipmentId: result.shipment.id, name: shipmentPhoto.name, mimeType: shipmentPhoto.type, dataBase64: dataUrl.split(",", 2)[1] || "" });
+      }
       toast.success("Envío registrado. Tu recibo está disponible.");
       setShowNewShipment(false);
       setClientWorkspace("envios");
       setDocumentCount(1);
       setRequiresApostilleService(false);
       setNotes("");
+      setShipmentPhoto(null);
+      setIsIncomplete(false);
+      setIncompleteReason("");
       setCatalogDocuments([]);
       setShipmentValidationErrors({});
       setReceiptShipment(result.shipment);
@@ -635,9 +646,11 @@ export default function AccountPage() {
                   recipientLastName,
                   recipientDni,
                   recipientDocumentType,
-                  recipientPhone,
-                  notes,
-                  contentChecklist: normalizedChecklist,
+                   recipientPhone,
+                   notes,
+                   isIncomplete,
+                   incompleteReason,
+                   contentChecklist: normalizedChecklist,
                   deliveryMode: "remoto",
                 });
               }} className="bg-blue-50/50 p-4 rounded-xl mb-6 space-y-4 border border-blue-100">
@@ -733,10 +746,14 @@ export default function AccountPage() {
                   <div className={`${mobileShipmentStepVisible(3) ? "" : "hidden"} md:col-span-2`}>
                     <div className={shipmentValidationErrors.contentChecklist ? "rounded-lg border border-rose-300 bg-rose-50 p-3" : ""}><DocumentCatalogSelector value={catalogDocuments} onChange={items => { setCatalogDocuments(items); if (items.length) setShipmentValidationErrors(current => ({ ...current, contentChecklist: "" })); }} idPrefix="account-document" />{shipmentValidationErrors.contentChecklist && <p role="alert" className="mt-2 text-sm font-medium text-rose-700">{shipmentValidationErrors.contentChecklist}</p>}</div>
                   </div>
-                  <div className={`${mobileShipmentStepVisible(3) ? "" : "hidden"} md:col-span-2`}>
-                    <Label>Notas (opcional)</Label>
-                    <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Instrucciones adicionales de entrega" className="mt-1 bg-white" />
-                  </div>
+                   <div className={`${mobileShipmentStepVisible(3) ? "" : "hidden"} md:col-span-2`}>
+                     <label className="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm"><input type="checkbox" checked={isIncomplete} onChange={event => setIsIncomplete(event.target.checked)} className="mt-0.5 h-5 w-5" /><span><strong className="block text-amber-900">Envío incompleto</strong><span className="text-amber-800">Marca si falta algún documento, artículo o dato.</span></span></label>
+                     {isIncomplete && <Input value={incompleteReason} onChange={event => setIncompleteReason(event.target.value)} placeholder="Qué falta (opcional)" className="mt-2 bg-white" />}
+                     <Label>Notas (opcional)</Label>
+                     <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Instrucciones adicionales de entrega" className="mt-1 bg-white" />
+                     <label className="mt-3 block text-sm font-semibold text-[#0B2B5E]">Foto del envío (opcional)</label>
+                     <Input type="file" accept="image/jpeg,image/png,image/webp,image/heic" aria-label="Foto del envío" onChange={event => setShipmentPhoto(event.target.files?.[0] || null)} className="mt-1 bg-white" />
+                   </div>
                 </div>
                 <div className="flex flex-wrap justify-between gap-2">
                   <Button type="button" variant="outline" onClick={() => { setShowNewShipment(false); setShipmentStep(1); }}>Cancelar</Button>

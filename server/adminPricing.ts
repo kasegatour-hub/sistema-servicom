@@ -8,6 +8,11 @@ export type AdminShipmentPricingInput = {
   weightKg?: number;
   manualPriceEur?: string | number | null;
   extraPriceEur?: string | number | null;
+  route?: string;
+  requiresApostilleService?: boolean;
+  requiresTranslationService?: boolean;
+  serviceManualPriceEur?: string | number | null;
+  serviceManualPriceSoles?: string | number | null;
   notes?: string;
 };
 
@@ -16,10 +21,20 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
   const docType = input.docType || "apostillado";
   const sheetCount = Math.max(1, Number(input.sheetCount || 1));
   const weightKg = Math.max(0.1, Number(input.weightKg || 1));
-  const rawManualPrice = input.manualPriceEur === undefined || input.manualPriceEur === null
-    ? ""
-    : String(input.manualPriceEur).trim();
+  const route = input.route || "Lima - Torino";
+  const rawManualPrice = input.manualPriceEur === undefined || input.manualPriceEur === null ? "" : String(input.manualPriceEur).trim();
   const manualPrice = rawManualPrice === "" ? null : Number(rawManualPrice);
+  const rawServiceManualEur = input.serviceManualPriceEur === undefined || input.serviceManualPriceEur === null ? "" : String(input.serviceManualPriceEur).trim();
+  const parsedServiceManualEur = Number(rawServiceManualEur);
+  const serviceManualPriceEur = rawServiceManualEur !== "" && Number.isFinite(parsedServiceManualEur) && parsedServiceManualEur >= 0 ? parsedServiceManualEur : null;
+  const rawServiceManualSoles = input.serviceManualPriceSoles === undefined || input.serviceManualPriceSoles === null ? "" : String(input.serviceManualPriceSoles).trim();
+  const parsedServiceManualSoles = Number(rawServiceManualSoles);
+  const serviceManualPriceSoles = rawServiceManualSoles !== "" && Number.isFinite(parsedServiceManualSoles) && parsedServiceManualSoles >= 0 ? parsedServiceManualSoles : null;
+  const servicesAllowed = shipmentType === "documento" && route === "Torino - Lima";
+  const requiresApostilleService = Boolean(input.requiresApostilleService) && servicesAllowed;
+  const requiresTranslationService = Boolean(input.requiresTranslationService) && servicesAllowed;
+  const servicePriceEur = requiresApostilleService ? serviceManualPriceEur ?? 40 : 0;
+  const servicePriceSoles = (requiresApostilleService ? serviceManualPriceSoles ?? 160 : 0) + (requiresTranslationService ? serviceManualPriceSoles ?? 200 : 0);
   const rawExtraPrice = input.extraPriceEur === undefined || input.extraPriceEur === null ? "0" : String(input.extraPriceEur).trim();
   const parsedExtraPrice = Number(rawExtraPrice);
   const extraPriceEur = Number.isFinite(parsedExtraPrice) && parsedExtraPrice >= 0 ? parsedExtraPrice : 0;
@@ -46,8 +61,9 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
     tariffDescription = `Documento apostillado (${sheetCount} hoja${sheetCount > 1 ? "s" : ""}): ${basePrice} EUR${additionalDocuments.items.length ? `. Adicionales: ${additionalDocuments.items.map(item => item.description).join("; ")}` : ""}`;
   }
 
-  const totalWithExtraEur = totalEur + extraPriceEur;
+  const totalWithExtraEur = totalEur + extraPriceEur + servicePriceEur;
   const extraDescription = extraPriceEur > 0 ? ` Importe extra: +${extraPriceEur.toFixed(2)} EUR.` : "";
+  const serviceDescription = `${requiresApostilleService ? ` Servicio de apostilla Italia–Lima: +${servicePriceEur.toFixed(2)} EUR y +${(serviceManualPriceSoles ?? 160).toFixed(2)} soles.` : ""}${requiresTranslationService ? ` Servicio de traducción Italia–Lima: +${(serviceManualPriceSoles ?? 200).toFixed(2)} soles.` : ""}`;
   return {
     shipmentType,
     docType,
@@ -55,8 +71,15 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
     weightKg,
     manualPrice,
     extraPriceEur,
+    route,
+    requiresApostilleService,
+    requiresTranslationService,
+    serviceManualPriceEur,
+    serviceManualPriceSoles,
+    servicePriceEur,
+    servicePriceSoles,
     totalEur: totalWithExtraEur,
     additionalDocuments,
-    notes: `Tarifa: ${tariffDescription}.${extraDescription} ${input.notes || ""}`.trim(),
+    notes: `Tarifa: ${tariffDescription}.${serviceDescription}${extraDescription} ${input.notes || ""}`.trim(),
   };
 }

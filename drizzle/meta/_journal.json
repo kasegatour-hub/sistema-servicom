@@ -225,6 +225,20 @@
       "when": 1787439734206,
       "tag": "0031_gigantic_blonde_phantom",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "5",
+      "when": 1787594087101,
+      "tag": "0032_abandoned_robin_chapel",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "5",
+      "when": 1787594151439,
+      "tag": "0033_colossal_northstar",
+      "breakpoints": true
     }
   ]
 }

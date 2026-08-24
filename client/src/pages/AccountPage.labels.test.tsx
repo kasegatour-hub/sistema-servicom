@@ -22,6 +22,7 @@ vi.mock("@/lib/trpc", () => ({
       updateProfile: { useMutation: mutation },
       changePassword: { useMutation: mutation },
       createMyShipment: { useMutation: mutation },
+      uploadMyShipmentPhoto: { useMutation: mutation },
       requestPasswordReset: { useMutation: mutation },
       resetPassword: { useMutation: mutation },
     },

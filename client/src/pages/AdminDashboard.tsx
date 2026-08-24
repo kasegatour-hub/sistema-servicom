@@ -207,6 +207,9 @@ const createShipmentSchema = z.object({
   docType: z.enum(["simple", "apostillado"]).default("apostillado"),
   sheetCount: z.number().min(1).default(1),
   requiresApostilleService: z.boolean().default(false),
+  requiresTranslationService: z.boolean().default(false),
+  serviceManualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
+  serviceManualPriceSoles: z.union([z.string(), z.number()]).optional().nullable(),
   weightKg: z.number().min(0.1).default(1),
   manualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
   extraPriceEur: z.union([z.string(), z.number()]).default(0),
@@ -299,6 +302,7 @@ export default function AdminDashboard() {
   const [recipientClientQuery, setRecipientClientQuery] = useState("");
   const [additionalDocumentItems, setAdditionalDocumentItems] = useState<Array<{ docType: "simple" | "apostillado"; sheetCount: number; manualPriceEur: string }>>([]);
   const [contentChecklist, setContentChecklist] = useState<string[]>([]);
+  const [shipmentPhoto, setShipmentPhoto] = useState<File | null>(null);
   const [createShipmentValidationError, setCreateShipmentValidationError] = useState("");
   const [catalogDocuments, setCatalogDocuments] = useState<CatalogDocumentItem[]>([]);
   const [showCalculator, setShowCalculator] = useState(false);
@@ -429,6 +433,7 @@ export default function AdminDashboard() {
     },
   });
   const createMutation = trpc.admin.createShipment.useMutation();
+  const uploadShipmentPhotoMutation = trpc.admin.uploadShipmentPhoto.useMutation();
   const updateMutation = trpc.admin.updateStatus.useMutation();
   const sendShipmentSignatureMutation = trpc.shipment.requestSignature.useMutation({
     onSuccess: result => toast.success(result.status === "signed" ? "El envío ya cuenta con una firma electrónica." : `Solicitud de firma enviada al Cliente. Vence el ${new Date(result.expiresAt).toLocaleString("es-PE")}.`),
@@ -509,6 +514,9 @@ export default function AdminDashboard() {
       docType: 'apostillado',
       sheetCount: 1,
       requiresApostilleService: false,
+      requiresTranslationService: false,
+      serviceManualPriceEur: '',
+      serviceManualPriceSoles: '',
       weightKg: 1,
       manualPriceEur: '',
       extraPriceEur: 0,
@@ -579,8 +587,8 @@ export default function AdminDashboard() {
       shipmentType: 'documento',
       docType: 'apostillado',
       sheetCount: 1,
-      requiresApostilleService: false,
-      paymentStatus: 'Falta cancelar',
+                   requiresApostilleService: false,
+                   paymentStatus: 'Falta cancelar',
       route: 'Lima - Torino',
       originAddress: '',
       destinationAddress: '',
@@ -828,17 +836,22 @@ export default function AdminDashboard() {
         return;
       }
       setCreateShipmentValidationError("");
-      await createMutation.mutateAsync({
+      const createdShipment = await createMutation.mutateAsync({
         ...data,
         documentItems: data.shipmentType === "documento" ? additionalDocumentItems : [],
         contentChecklist: normalizedChecklist,
       });
+      if (shipmentPhoto && createdShipment?.shipmentId) {
+        const dataUrl = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = () => reject(new Error("No se pudo leer la foto.")); reader.readAsDataURL(shipmentPhoto); });
+        await uploadShipmentPhotoMutation.mutateAsync({ shipmentId: createdShipment.shipmentId, name: shipmentPhoto.name, mimeType: shipmentPhoto.type, dataBase64: dataUrl.split(",", 2)[1] || "" });
+      }
       toast.success(`${data.shipmentType === "encomienda" ? "Encomienda" : "Documento"} creado exitosamente`);
       setSenderClientQuery("");
       setRecipientClientQuery("");
       setAdditionalDocumentItems([]);
       setContentChecklist([]);
       setCatalogDocuments([]);
+      setShipmentPhoto(null);
       createForm.reset({
         status: "En agencia",
         senderName: "",
@@ -1823,13 +1836,17 @@ export default function AdminDashboard() {
                     />
                     <DocumentPricePreview docType={selectedDocType} sheetCount={Number(createForm.watch("sheetCount")) || 1} additionalTotalEur={additionalDocumentAutoTotal} manualPriceEur={createForm.watch("manualPriceEur")} extraPriceEur={createForm.watch("extraPriceEur")} />
                   </div>
-                  {selectedRoute === "Torino - Lima" && (
-                    <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border-2 border-[#0B2B5E] bg-blue-50 p-4 text-sm shadow-sm transition hover:bg-blue-100/70">
-                      <input type="checkbox" aria-label="Documentos para apostillar" {...createForm.register("requiresApostilleService")} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-[#0B2B5E] focus:ring-[#0B2B5E]" />
-                      <span><strong className="block text-base text-[#0B2B5E]">Documentos para apostillar</strong><span className="mt-1 block text-slate-700">Marca esta opción si los documentos serán entregados para su trámite de apostilla. Disponible solo para la ruta Torino – Lima.</span></span>
-                    </label>
-                  )}
-                  <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50/60 p-4">
+                                     {selectedRoute === "Torino - Lima" && (
+                     <>
+                       <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border-2 border-[#0B2B5E] bg-blue-50 p-4 text-sm shadow-sm transition hover:bg-blue-100/70">
+                         <input type="checkbox" aria-label="Documentos para apostillar" {...createForm.register("requiresApostilleService")} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-[#0B2B5E] focus:ring-[#0B2B5E]" />
+                         <span><strong className="block text-base text-[#0B2B5E]">Documentos para apostillar</strong><span className="mt-1 block text-slate-700">Tarifa estándar: 40 EUR o 160 soles. Disponible solo para la ruta Torino – Lima.</span></span>
+                       </label>
+                       <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm"><input type="checkbox" aria-label="Servicio de traducción" {...createForm.register("requiresTranslationService")} className="mt-0.5 h-5 w-5" /><span><strong className="block text-base text-[#0B2B5E]">Traducción</strong><span className="mt-1 block text-slate-700">Tarifa estándar: 200 soles. Disponible para Italia – Lima.</span></span></label>
+                       <div className="mt-3 grid gap-3 sm:grid-cols-2"><div><label className="mb-2 block text-sm font-medium text-gray-700">Precio manual del servicio (EUR)</label><Input type="number" min="0" step="0.01" placeholder="Apostilla: 40" {...createForm.register("serviceManualPriceEur")} /></div><div><label className="mb-2 block text-sm font-medium text-gray-700">Precio manual del servicio (soles)</label><Input type="number" min="0" step="0.01" placeholder="Apostilla: 160 / Traducción: 200" {...createForm.register("serviceManualPriceSoles")} /></div></div>
+                     </>
+                   )}
+                   <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50/60 p-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
                         <h4 className="font-semibold text-[#0B2B5E]">Documentos adicionales</h4>
@@ -1887,6 +1904,16 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                 )}
+              </div>
+
+                      <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-4">
+                <label className="flex cursor-pointer items-start gap-3 text-sm"><input type="checkbox" aria-label="Envío incompleto" {...createForm.register("isIncomplete")} className="mt-0.5 h-5 w-5" /><span><strong className="block text-base text-amber-900">Envío incompleto</strong><span className="text-amber-800">Marca esta opción si falta algún documento, artículo o dato.</span></span></label>
+                {createForm.watch("isIncomplete") && <Input className="mt-3 bg-white" aria-label="Motivo del envío incompleto" placeholder="Indica qué falta (opcional)" {...createForm.register("incompleteReason")} />}
+              </div>
+              <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
+                <label className="block text-sm font-semibold text-[#0B2B5E]">Foto del envío (opcional)</label>
+                <p className="mt-1 text-xs text-slate-500">JPG, PNG, WebP o HEIC; máximo 8 MB. Se guarda asociada al envío.</p>
+                <Input type="file" accept="image/jpeg,image/png,image/webp,image/heic" className="mt-3" aria-label="Foto del envío" onChange={event => setShipmentPhoto(event.target.files?.[0] || null)} />
               </div>
 
               {/* Información del remitente */}

@@ -878,3 +878,11 @@
 - [x] Crear el usuario Registrador alissgian2030@gmail.com con la contraseña indicada
 - [x] Auditar y mostrar fecha de creación y último cambio de contraseña de usuarios
 - [x] Añadir pruebas de rendimiento/permisos y validar móvil, compilación y publicación
+
+## Tarifas, envíos incompletos y fotos
+- [x] Cambiar apostillado Italia–Lima a 40 EUR y mostrar equivalente de 160 soles
+- [x] Añadir traducción Italia–Lima con tarifa de 200 y precio manual opcional
+- [x] Permitir precio manual para apostillado y traducción en los formularios autorizados
+- [x] Añadir indicador y detalle opcional de envío incompleto para documentos y encomiendas
+- [x] Permitir cargar y consultar fotos asociadas a cada envío con almacenamiento seguro
+- [x] Añadir pruebas, validar permisos, compilación y publicar

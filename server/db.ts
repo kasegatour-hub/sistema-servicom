@@ -1062,6 +1062,11 @@ export async function createShipment(
   documentKind?: "simple" | "apostillado",
   documentSheetCount?: number,
   requiresApostilleService?: boolean,
+  requiresTranslationService?: boolean,
+  serviceManualPriceEur?: string | number | null,
+  serviceManualPriceSoles?: string | number | null,
+  isIncomplete?: boolean,
+  incompleteReason?: string | null,
 ) {
   const db = await getDb();
   if (!db) {
@@ -1105,6 +1110,11 @@ export async function createShipment(
     documentKind: documentKind || "apostillado",
     documentSheetCount: Math.max(1, Math.min(10, Math.round(Number(documentSheetCount) || 1))),
     requiresApostilleService: requiresApostilleService && canRequireApostilleService ? 1 : 0,
+    requiresTranslationService: requiresTranslationService && canRequireApostilleService ? 1 : 0,
+    serviceManualPriceEur: serviceManualPriceEur !== undefined && serviceManualPriceEur !== null && String(serviceManualPriceEur).trim() !== "" ? String(serviceManualPriceEur) : null,
+    serviceManualPriceSoles: serviceManualPriceSoles !== undefined && serviceManualPriceSoles !== null && String(serviceManualPriceSoles).trim() !== "" ? String(serviceManualPriceSoles) : null,
+    isIncomplete: isIncomplete ? 1 : 0,
+    incompleteReason: isIncomplete && incompleteReason ? incompleteReason.trim() : null,
     weightKg: String(weightKg ?? "1.00"),
     manualPriceEur: manualPriceEur !== undefined && manualPriceEur !== null && String(manualPriceEur).trim() !== "" ? String(manualPriceEur) : null,
     extraPriceEur: extraPriceEur !== undefined && extraPriceEur !== null && String(extraPriceEur).trim() !== "" ? String(Math.max(0, Number(extraPriceEur) || 0)) : "0.00",

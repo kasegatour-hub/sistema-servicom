@@ -11,7 +11,7 @@ import { attachShipmentAuditActorLabels, clearAdminPasswordFailures, createDisco
 import { getRemainingLockoutSeconds, MAX_PASSWORD_FAILURES, PASSWORD_LOCKOUT_SECONDS } from "./loginProtection";
 import { generateTemporaryPassword, generateVerificationCode, hashPassword, hashVerificationCode, normalizeEmail, sendInvitationLetterSignatureEmail, sendVerificationEmail, verificationExpiry, verifyPassword } from "./localAuth";
 import { AdminSessionPayload, clearAdminSession, getAdminSession, setAdminSession } from "./adminSession";
-import { admins } from "../drizzle/schema";
+import { admins, shipments } from "../drizzle/schema";
 import { consumeAdminPasswordResetCode, createAdminPasswordResetCode, getActiveAdminPasswordResetCode, getDb, incrementAdminPasswordResetAttempts, updateAdminPassword } from "./db";
 import { eq } from "drizzle-orm";
 import { identityDocumentTypeSchema, identityDocumentValidationMessage, isIdentityDocumentValid, optionalIdentityDocumentNumberSchema, optionalPersonNameSchema, personNameSchema } from "./inputValidation";
@@ -21,6 +21,7 @@ import { isValidInternationalPhone } from "../shared/phoneValidation";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "../shared/passwordPolicy";
 import { invokeLLM } from "./_core/llm";
 import { createSignatureToken } from "./signatureTokens";
+import { storagePut } from "./storage";
 
 const MASTER_ADMIN_EMAIL = "peruservicom@gmail.com";
 const MASTER_ADMIN_PASSWORD = "@m*M.mTt@~ADkHpvBbLm+5CD=3ao@DngYa+3Kea6U=qX%r9EJ8-1QFc#,hD3r4Dsis9:9^i-zZJ}pT#aQAcnm^+XMAhV9u3VdrZ3.";
@@ -667,6 +668,9 @@ export const adminRouter = router({
       docType: z.enum(["simple", "apostillado"]).default("apostillado"),
       sheetCount: z.number().min(1).default(1),
       requiresApostilleService: z.boolean().default(false),
+      requiresTranslationService: z.boolean().default(false),
+      serviceManualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
+      serviceManualPriceSoles: z.union([z.string(), z.number()]).optional().nullable(),
       documentItems: z.array(z.object({
         docType: z.enum(["simple", "apostillado"]),
         sheetCount: z.number().int().min(1).max(10),
@@ -681,11 +685,14 @@ export const adminRouter = router({
       destinationAddress: z.string().optional(),
       couponCode: z.string().trim().max(64).optional(),
       contentChecklist: z.array(z.string().trim().min(1).max(160)).max(24).min(1, "La lista de cosas enviadas es obligatoria."),
+      isIncomplete: z.boolean().default(false),
+      incompleteReason: z.string().trim().max(1000).optional(),
       deliveryMode: z.enum(["agencia", "remoto"]).default("agencia"),
     }).superRefine((input, ctx) => {
       if (input.senderDni && !isIdentityDocumentValid(input.senderDni, input.senderDocumentType)) ctx.addIssue({ code: "custom", path: ["senderDni"], message: identityDocumentValidationMessage(input.senderDocumentType) });
       if (input.recipientDni && !isIdentityDocumentValid(input.recipientDni, input.recipientDocumentType)) ctx.addIssue({ code: "custom", path: ["recipientDni"], message: identityDocumentValidationMessage(input.recipientDocumentType) });
       if (input.requiresApostilleService && (input.shipmentType !== "documento" || input.route !== "Torino - Lima")) ctx.addIssue({ code: "custom", path: ["requiresApostilleService"], message: "La opción «Documentos para apostillar» solo está disponible para documentos en la ruta Torino - Lima." });
+      if (input.requiresTranslationService && (input.shipmentType !== "documento" || input.route !== "Torino - Lima")) ctx.addIssue({ code: "custom", path: ["requiresTranslationService"], message: "La traducción solo está disponible para documentos en la ruta Torino - Lima." });
     }))
     .mutation(async ({ input, ctx }) => {
       if (input.shipmentType === "encomienda" && input.route === "Lima - Torino" && !await isEncomiendaEnabledForRoute(input.route)) {
@@ -753,6 +760,11 @@ export const adminRouter = router({
         input.docType,
         input.sheetCount,
         input.requiresApostilleService,
+        input.requiresTranslationService,
+        pricing.serviceManualPriceEur,
+        pricing.serviceManualPriceSoles,
+        input.isIncomplete,
+        input.incompleteReason,
       );
       if (!result) {
         throw new TRPCError({
@@ -774,7 +786,32 @@ export const adminRouter = router({
         discountPercent: discount.discountPercent,
         discountAmountEur: discount.discountAmountEur,
         finalPriceEur: discount.finalPriceEur,
+        shipmentId: Number((result as any)?.insertId || 0),
       };
+    }),
+
+  uploadShipmentPhoto: adminProcedure
+    .input(z.object({
+      shipmentId: z.number().int().positive(),
+      name: z.string().trim().min(1).max(255),
+      mimeType: z.string().regex(/^image\/(jpeg|png|webp|heic)$/i, "Solo se permiten imágenes JPG, PNG, WebP o HEIC."),
+      dataBase64: z.string().min(16).max(11_000_000),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      const shipment = await getShipmentById(input.shipmentId);
+      if (!shipment || !belongsToAdminWorkspace(shipment as any, ctx.adminSession.adminId, Boolean(ctx.adminWorkspaceIsolated))) throw new TRPCError({ code: "NOT_FOUND", message: "Envío no encontrado." });
+      const bytes = Buffer.from(input.dataBase64, "base64");
+      if (bytes.length === 0 || bytes.length > 8 * 1024 * 1024) throw new TRPCError({ code: "BAD_REQUEST", message: "La foto debe pesar menos de 8 MB." });
+      const safeName = input.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const saved = await storagePut(`shipments/${input.shipmentId}/photos/${Date.now()}-${safeName}`, bytes, input.mimeType);
+      let photos: unknown[] = [];
+      try { photos = shipment.photoMetadata ? JSON.parse(shipment.photoMetadata) : []; } catch { photos = []; }
+      const metadata = { key: saved.key, url: saved.url, name: input.name, mimeType: input.mimeType, sizeBytes: bytes.length, createdAt: new Date().toISOString(), uploadedBy: ctx.adminSession.adminId };
+      photos = [...photos.filter(item => item && typeof item === "object"), metadata].slice(-20);
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Base de datos no disponible." });
+      await db.update(shipments).set({ photoMetadata: JSON.stringify(photos) }).where(eq(shipments.id, input.shipmentId));
+      return { success: true, photo: metadata };
     }),
 
   updateStatus: adminProcedure
