@@ -1077,3 +1077,10 @@
 - [x] Reducir el aviso auxiliar amarillo y mantenerlo como instrucción secundaria
 - [x] Mejorar la jerarquía visual del precio al cliente y extra provincial
 - [x] Añadir pruebas, validar móvil/escritorio y publicar
+
+## Corrección del bloque provincial y proporción por peso
+- [x] Mostrar agencias inmediatamente después de activar Envío a provincia y antes de precios
+- [x] Calcular el cargo sugerido a razón de 15 EUR por 10 kg
+- [x] Mostrar 7,50 EUR sugeridos para 5 kg y permitir edición manual
+- [x] Corregir el valor incorrecto 0,08 y mantener precisión decimal
+- [x] Añadir pruebas, validar y publicar

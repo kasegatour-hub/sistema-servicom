@@ -557,7 +557,7 @@ export default function AdminDashboard() {
   const limaTorinoEncomiendasEnabled = limaTorinoPolicy?.encomiendasEnabled !== false;
   const watchedWeightKg = Number(createForm.watch("weightKg")) || 0.1;
   const watchedProvinceEnabled = Boolean(createForm.watch("isProvinceDelivery"));
-  const automaticProvincePrice = watchedWeightKg <= 5 ? 10 : watchedWeightKg <= 10 ? 15 : 0;
+  const automaticProvincePrice = Math.round(Math.min(watchedWeightKg, 10) * 1.5 * 100) / 100;
   const watchedProvinceCustomerPrice = Number(createForm.watch("provinceCustomerPriceEur")) || (watchedProvinceEnabled ? automaticProvincePrice : 0);
   const watchedProvinceExtraPrice = Number(createForm.watch("provinceExtraPriceEur")) || (watchedProvinceEnabled && watchedWeightKg > 10 ? Math.round((watchedWeightKg - 10) * 1.5 * 100) / 100 : 0);
   const provincePreviewEur = watchedProvinceEnabled ? watchedProvinceCustomerPrice + watchedProvinceExtraPrice : 0;
@@ -568,7 +568,7 @@ export default function AdminDashboard() {
   }, [watchedProvinceEnabled, selectedRoute, watchedWeightKg, automaticProvincePrice]);
   const automaticParcelBaseEur = watchedWeightKg * 13.5;
   const automaticParcelDescription = `${watchedWeightKg.toFixed(1)} kg × 13,5 EUR/kg como tarifa base normal`;
-  const automaticProvinceDescription = watchedWeightKg <= 5 ? "10 EUR adicionales para 0,1–5 kg" : watchedWeightKg <= 10 ? "15 EUR adicionales para más de 5–10 kg" : "15 EUR base provincial más extra proporcional editable sobre 10 kg";
+  const automaticProvinceDescription = watchedWeightKg <= 10 ? `${automaticProvincePrice.toFixed(2)} EUR adicionales según proporción de 15 EUR por 10 kg` : `15 EUR base provincial más extra proporcional editable sobre 10 kg`;
   const manualParcelPrice = Number(createForm.watch("manualPriceEur"));
   const hasValidManualParcelPrice = String(createForm.watch("manualPriceEur") || "").trim() !== "" && Number.isFinite(manualParcelPrice) && manualParcelPrice >= 0;
   const needsManualParcelPrice = selectedShipmentType === "encomienda" && watchedWeightKg > 10;
@@ -1856,10 +1856,6 @@ export default function AdminDashboard() {
                     <p className="mt-1 text-xs text-slate-500">Por defecto es 0. Se suma al precio final, incluso con tarifa manual.</p>
                   </div>
                 </div>
-                {selectedRoute === "Torino - Lima" && watchedProvinceEnabled && (
-                  <AgencyDestinationPicker route={selectedRoute} value={createForm.watch("destinationAddress") || ""} onChange={(destinationAddress) => createForm.setValue("destinationAddress", destinationAddress, { shouldValidate: true, shouldDirty: true })} />
-                )}
-
 
                 {selectedShipmentType === "encomienda" && selectedRoute === "Lima - Torino" && !limaTorinoEncomiendasEnabled && (
                   <div className="mt-4 rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-medium text-red-800">
@@ -2102,8 +2098,8 @@ export default function AdminDashboard() {
                 </div>
               )}
 
-              {selectedRoute === "Torino - Lima" && <section className="mt-4 rounded-xl border border-orange-200 bg-orange-50 p-4"><label className="flex cursor-pointer items-start gap-3 text-sm font-semibold text-[#0B2B5E]"><input type="checkbox" aria-label="Envío a provincia" {...createForm.register("isProvinceDelivery")} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-[#0B2B5E]" /><span><span className="block">Envío a provincia</span><span className="mt-1 block text-xs font-normal text-slate-700">Primero selecciona la sede y registra el peso de la encomienda. Luego indica cuánto se cobra al cliente; la agencia/courier ya está definido por la sede elegida.</span></span></label>{createForm.watch("isProvinceDelivery") && <div className="mt-3 grid gap-3 sm:grid-cols-2"><div><p className="mb-1 text-sm font-semibold text-slate-700">Peso enviado</p><p className="rounded-md bg-white px-3 py-2 text-base font-bold text-[#0B2B5E]">{selectedShipmentType === "encomienda" ? `${watchedWeightKg.toFixed(1)} kg` : "No aplica a documentos"}</p></div><div><label className="mb-1 block text-sm font-semibold text-slate-700">Precio al cliente (EUR)</label>    <Input type="number" min="0" step="0.01" placeholder="Ej. 10.00" {...createForm.register("provinceCustomerPriceEur")} />
-<div><label className="mb-1 block text-sm font-semibold text-slate-700">Extra provincial proporcional (EUR)</label><Input type="number" min="0" step="0.01" placeholder={watchedWeightKg > 10 ? "Ej. 1.50 por kg excedente" : "0.00"} {...createForm.register("provinceExtraPriceEur")} /><p className="mt-1 text-xs text-slate-600">Sobre 10 kg se calcula por regla de tres y puedes modificarlo.</p></div></div><div><label className="mb-1 block text-sm font-semibold text-slate-700">Costo operativo (soles)</label><Input type="number" min="0" step="0.01" placeholder={selectedShipmentType === "documento" ? "8.00 automático" : "Ej. 12.00"} {...createForm.register("provinceOperationalCostSoles")} /><p className="mt-1 text-xs text-slate-600">Documentos: S/ 8.00 por defecto.</p></div><div className="rounded-md bg-white px-3 py-2 text-sm text-slate-700"><strong>Courier:</strong> Se usará la agencia seleccionada arriba.</div></div>}</section>}
+              {selectedRoute === "Torino - Lima" && <section className="mt-4 rounded-xl border border-orange-200 bg-orange-50 p-4"><label className="flex cursor-pointer items-start gap-3 text-sm font-semibold text-[#0B2B5E]"><input type="checkbox" aria-label="Envío a provincia" {...createForm.register("isProvinceDelivery")} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-[#0B2B5E]" /><span><span className="block">Envío a provincia</span><span className="mt-1 block text-xs font-normal text-slate-700">Primero selecciona la sede y registra el peso de la encomienda. Luego indica cuánto se cobra al cliente; la agencia/courier ya está definido por la sede elegida.</span></span></label>{createForm.watch("isProvinceDelivery") && <><AgencyDestinationPicker route={selectedRoute} value={createForm.watch("destinationAddress") || ""} onChange={(destinationAddress) => createForm.setValue("destinationAddress", destinationAddress, { shouldValidate: true, shouldDirty: true })} /><div className="mt-3 grid gap-3 sm:grid-cols-2"><div><p className="mb-1 text-sm font-semibold text-slate-700">Peso enviado</p><p className="rounded-md bg-white px-3 py-2 text-base font-bold text-[#0B2B5E]">{selectedShipmentType === "encomienda" ? `${watchedWeightKg.toFixed(1)} kg` : "No aplica a documentos"}</p></div><div><label className="mb-1 block text-sm font-semibold text-slate-700">Precio al cliente (EUR)</label>    <Input type="number" min="0" step="0.01" placeholder="Ej. 10.00" {...createForm.register("provinceCustomerPriceEur")} />
+<div><label className="mb-1 block text-sm font-semibold text-slate-700">Extra provincial proporcional (EUR)</label><Input type="number" min="0" step="0.01" placeholder={watchedWeightKg > 10 ? "Ej. 1.50 por kg excedente" : "0.00"} {...createForm.register("provinceExtraPriceEur")} /><p className="mt-1 text-xs text-slate-600">Sobre 10 kg se calcula por regla de tres y puedes modificarlo.</p></div></div><div><label className="mb-1 block text-sm font-semibold text-slate-700">Costo operativo (soles)</label><Input type="number" min="0" step="0.01" placeholder={selectedShipmentType === "documento" ? "8.00 automático" : "Ej. 12.00"} {...createForm.register("provinceOperationalCostSoles")} /><p className="mt-1 text-xs text-slate-600">Documentos: S/ 8.00 por defecto.</p></div><div className="rounded-md bg-white px-3 py-2 text-sm text-slate-700"><strong>Courier:</strong> Se usará la agencia seleccionada arriba.</div></div></>}</section>}
 
               {/* Notas */}
               <div className="border-t pt-4">
