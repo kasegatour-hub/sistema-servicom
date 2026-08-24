@@ -115,6 +115,35 @@ export default function AccountPage() {
   const advanceMobileShipmentStep = () => setShipmentStep(step => step === 1 ? 2 : 3);
   const previousMobileShipmentStep = () => setShipmentStep(step => step === 3 ? 2 : 1);
 
+  const resetClientShipmentForm = () => {
+    setDocumentCount(1);
+    setDocType("simple");
+    setShipmentRoute("Lima - Torino");
+    setRequiresApostilleService(false);
+    setRequiresTranslationService(false);
+    setDestinationAddress("");
+    setSheetCount(1);
+    setSenderName("");
+    setSenderLastName("");
+    setSenderDni("");
+    setSenderPhone("+51 ");
+    setRecipientName("");
+    setRecipientLastName("");
+    setRecipientDni("");
+    setRecipientDocumentType("dni_peru");
+    setRecipientPhone("+51 ");
+    setRecipientLookupQuery("");
+    setRecipientLookupOpen(false);
+    setNotes("");
+    setShipmentPhoto(null);
+    setIsIncomplete(false);
+    setIncompleteReason("");
+    setCatalogDocuments([]);
+    setIdentityErrors({});
+    setShipmentValidationErrors({});
+    setShipmentStep(1);
+  };
+
   useEffect(() => {
     const maximum = docType === "simple" ? 8 : 10;
     if (sheetCount > maximum) setSheetCount(maximum);
@@ -627,7 +656,7 @@ export default function AccountPage() {
                 </h2>
                 <p className="text-xs text-slate-500">Registra envíos de documentos o consulta el estado actual de tus registros.</p>
               </div>
-              <Button onClick={() => { setClientWorkspace("registrar"); setShowNewShipment(value => !value); setShipmentStep(1); }} className="bg-[#F28C00] text-white hover:bg-[#d67900]">
+              <Button onClick={() => { setClientWorkspace("registrar"); resetClientShipmentForm(); setShowNewShipment(value => !value); }} className="bg-[#F28C00] text-white hover:bg-[#d67900]">
                 <Plus className="mr-2 h-4 w-4" /> Registrar Nuevo Documento
               </Button>
             </div>}
@@ -767,7 +796,10 @@ export default function AccountPage() {
                    </div>
                 </div>
                 <div className="flex flex-wrap justify-between gap-2">
-                  <Button type="button" variant="outline" onClick={() => { setShowNewShipment(false); setShipmentStep(1); }}>Cancelar</Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="button" variant="outline" onClick={resetClientShipmentForm} aria-label="Limpiar todos los campos del formulario">Limpiar formulario</Button>
+                    <Button type="button" variant="outline" onClick={() => { resetClientShipmentForm(); setShowNewShipment(false); }}>Cancelar</Button>
+                  </div>
                   {mobileClientMode && shipmentStep > 1 && <Button type="button" variant="outline" onClick={previousMobileShipmentStep}>Anterior</Button>}
                   {mobileClientMode && shipmentStep < 3 ? <Button type="button" onClick={advanceMobileShipmentStep} className="ml-auto bg-[#0B2B5E] text-white">Continuar</Button> : <Button type="submit" disabled={createShipmentMutation.isPending} className="ml-auto bg-[#0B2B5E] text-white">
                     {createShipmentMutation.isPending ? "Registrando..." : "Guardar envío"}

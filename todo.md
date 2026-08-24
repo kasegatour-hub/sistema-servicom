@@ -982,3 +982,10 @@
 - [x] Exigir Precio manual en EUR para pesos superiores a 10 kg
 - [x] Evitar que se muestre 13,5 EUR/kg como cálculo automático sobre 10 kg
 - [x] Añadir pruebas, validar formulario y publicar
+
+## Limpieza completa de formularios de registro
+- [x] Restablecer todos los datos al pulsar Cancelar en Admin, Usuario y Cliente
+- [x] Añadir un botón siempre visible para limpiar todo el formulario
+- [x] Mantener disponibles acciones de limpieza para campos individuales
+- [x] Evitar que un nuevo documento o encomienda herede datos anteriores
+- [x] Añadir pruebas, validar móvil y escritorio, y publicar

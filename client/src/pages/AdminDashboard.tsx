@@ -533,6 +533,17 @@ export default function AdminDashboard() {
     },
   });
   const selectedShipmentType = createForm.watch("shipmentType") || "documento";
+
+  const resetCreateForm = () => {
+    createForm.reset({ status: "En agencia", senderName: "", senderLastName: "", senderDni: "", senderDocumentType: "dni_peru", senderPhone: "", recipientName: "", recipientLastName: "", recipientDni: "", recipientDocumentType: "dni_peru", recipientPhone: "", notes: "", shipmentType: "documento", documentCount: 1, docType: "apostillado", sheetCount: 1, requiresApostilleService: false, requiresTranslationService: false, serviceManualPriceEur: "", serviceManualPriceSoles: "", weightKg: 1, manualPriceEur: "", extraPriceEur: 0, paymentStatus: "Falta cancelar", route: "Lima - Torino", originAddress: "", destinationAddress: "", isProvinceDelivery: false, provinceCustomerPriceEur: "", provinceOperationalCostSoles: "", provinceCarrier: "shalom", couponCode: "", documentItems: [], contentChecklist: [], deliveryMode: "agencia" });
+    setSenderClientQuery("");
+    setRecipientClientQuery("");
+    setAdditionalDocumentItems([]);
+    setContentChecklist([]);
+    setCatalogDocuments([]);
+    setShipmentPhoto(null);
+    setCreateShipmentValidationError("");
+  };
   const selectedDocType = createForm.watch("docType") || "apostillado";
   const selectedRoute = createForm.watch("route") || "Lima - Torino";
   const limaTorinoEncomiendasEnabled = limaTorinoPolicy?.encomiendasEnabled !== false;
@@ -806,6 +817,7 @@ export default function AdminDashboard() {
   };
 
   const openCreateForm = (shipmentType: "documento" | "encomienda") => {
+    resetCreateForm();
     createForm.setValue("shipmentType", shipmentType, { shouldDirty: true });
     if (shipmentType === "encomienda" && !limaTorinoEncomiendasEnabled) {
       createForm.setValue("route", "Torino - Lima", { shouldDirty: true });
@@ -863,12 +875,7 @@ export default function AdminDashboard() {
         await uploadShipmentPhotoMutation.mutateAsync({ shipmentId: createdShipment.shipmentId, name: shipmentPhoto.name, mimeType: shipmentPhoto.type, dataBase64: dataUrl.split(",", 2)[1] || "" });
       }
       toast.success(`${data.shipmentType === "encomienda" ? "Encomienda" : "Documento"} creado exitosamente`);
-      setSenderClientQuery("");
-      setRecipientClientQuery("");
-      setAdditionalDocumentItems([]);
-      setContentChecklist([]);
-      setCatalogDocuments([]);
-      setShipmentPhoto(null);
+      resetCreateForm();
       createForm.reset({
         status: "En agencia",
         senderName: "",
@@ -2087,13 +2094,10 @@ export default function AdminDashboard() {
                       selectedShipmentType === "encomienda" ? "Crear Encomienda" : "Crear Documento"
                     )}
                 </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowCreateForm(false)}
-                >
-                  Cancelar
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="outline" onClick={resetCreateForm} aria-label="Limpiar todos los campos del formulario">Limpiar formulario</Button>
+                  <Button type="button" variant="outline" onClick={() => { resetCreateForm(); setShowCreateForm(false); }}>Cancelar</Button>
+                </div>
               </div>
             </form>
           )}
