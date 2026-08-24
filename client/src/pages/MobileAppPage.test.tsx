@@ -36,7 +36,7 @@ describe("MobileAppPage", () => {
     expect(screen.getByRole("button", { name: "Instalar aplicación" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Iniciar sesión como Cliente" }).getAttribute("href")).toBe("/cuenta?returnTo=%2Fmovil");
     expect(screen.getByRole("link", { name: "Crear cuenta de Cliente" }).getAttribute("href")).toBe("/cuenta?returnTo=%2Fmovil");
-    expect(screen.getByRole("link", { name: "Iniciar sesión como Admin" }).getAttribute("href")).toBe("/admin");
+    expect(screen.getByRole("link", { name: "Iniciar sesión como Admin" }).getAttribute("href")).toBe("/admin?from=movil");
     expect(screen.queryByRole("heading", { name: "Rastrear envío" })).toBeNull();
     expect(screen.queryByRole("button", { name: /Escanear QR/ })).toBeNull();
   });
@@ -72,6 +72,7 @@ describe("MobileAppPage", () => {
     expect(screen.getByText("Funciones disponibles:")).toBeTruthy();
     expect(screen.getByText(/registrar envíos, rastrear y cambiar contraseña/i)).toBeTruthy();
     expect(screen.queryByText("Acceso de operador")).toBeNull();
+    expect(screen.getByRole("link", { name: "Acceso administrativo" }).getAttribute("href")).toBe("/admin?from=movil");
     expect(screen.getByRole("link", { name: "Abrir mi cuenta" }).getAttribute("href")).toBe("/cuenta?returnTo=%2Fmovil");
   });
 

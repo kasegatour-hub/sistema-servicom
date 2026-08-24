@@ -954,3 +954,9 @@
 - [x] Mover el bloque de foto especial al final del formulario
 - [x] Mantener los tramos Torino–Lima: 10 EUR para 1–5 kg y 15 EUR para 6–10 kg
 - [x] Añadir pruebas, validar la interfaz y publicar
+
+## Acceso Admin desde la app móvil
+- [x] Mostrar una opción visible de inicio de sesión Admin en la aplicación móvil
+- [x] Conectar el acceso Admin con el panel administrativo y conservar el acceso Cliente separado
+- [x] Validar permisos, retorno, feedback y adaptación móvil
+- [x] Añadir pruebas y publicar la corrección
