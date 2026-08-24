@@ -13,6 +13,7 @@ import {
   getShipmentByOrderAndCode,
   incrementVerificationAttempts,
   updateLocalAccountProfile,
+  updateLocalAccountProfilePhotos,
   getShipmentsByAccountId,
   createShipment,
   deleteShipment,
@@ -41,7 +42,7 @@ import { isValidInternationalPhone } from "../shared/phoneValidation";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "../shared/passwordPolicy";
 import { generateShipmentCode, generateShipmentOrderNumber } from "../shared/shipmentIdentifiers";
 import { storagePut } from "./storage";
-import { shipments } from "../drizzle/schema";
+import { localAccounts, shipments } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 
 const passwordSchema = z.string().refine(isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE);
@@ -51,6 +52,16 @@ const internationalPhoneSchema = z.string().trim().min(1, "Teléfono requerido")
 export const passwordResetChannelSchema = z.literal("email");
 
 export const ACCOUNT_REAUTH_REQUIRED_MESSAGE = "Por seguridad, vuelve a escribir tu contraseña para continuar.";
+
+function parseProfilePhotos(value: string | null | undefined) {
+  try {
+    const parsed = value ? JSON.parse(value) : [];
+    const photos = Array.isArray(parsed) ? parsed : parsed && typeof parsed === "object" ? [parsed] : [];
+    return photos.filter((photo): photo is { key?: string; url: string; name?: string; mimeType?: string; sizeBytes?: number; createdAt?: string } => Boolean(photo && typeof photo === "object" && typeof (photo as { url?: unknown }).url === "string"));
+  } catch {
+    return [];
+  }
+}
 
 async function requireFreshAccountSession(req: Parameters<typeof getAccountSession>[0], action: string): Promise<AccountSessionPayload> {
   const session = getAccountSession(req);
@@ -238,8 +249,10 @@ createdAt: account.createdAt,
       name: account.name,
       lastName: account.lastName,
 dni: account.dni,
-documentType: account.documentType,
-createdAt: account.createdAt,
+      documentType: account.documentType,
+      biography: account.biography || "",
+      profilePhotos: parseProfilePhotos(account.profilePhotoMetadata),
+      createdAt: account.createdAt,
       mustChangePassword: account.mustChangePassword === 1,
 reauthRequired: session.reauthRequired,
     };
@@ -278,13 +291,14 @@ reauthRequired: session.reauthRequired,
       dni: identityDocumentNumberSchema,
       documentType: identityDocumentTypeSchema.default("dni_peru"),
       phone: internationalPhoneSchema,
+      biography: z.string().trim().max(1000, "La biografía no puede superar 1000 caracteres.").optional().default(""),
     }).superRefine((input, ctx) => {
       if (!isIdentityDocumentValid(input.dni, input.documentType)) ctx.addIssue({ code: "custom", path: ["dni"], message: identityDocumentValidationMessage(input.documentType) });
     }))
     .mutation(async ({ input, ctx }) => {
       const session = await requireFreshAccountSession(ctx.req, "actualizar tu perfil");
       const phone = normalizePhone(input.phone);
-      const account = await updateLocalAccountProfile(session.accountId, input.name, input.lastName, input.dni, phone, input.documentType);
+      const account = await updateLocalAccountProfile(session.accountId, input.name, input.lastName, input.dni, phone, input.documentType, input.biography);
       if (!account) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Cuenta no encontrada." });
       }
@@ -408,6 +422,29 @@ reauthRequired: session.reauthRequired,
         code,
         shipment: shipment ? { ...shipment, events: JSON.parse(shipment.events) } : null,
       };
+    }),
+
+  uploadProfilePhoto: publicProcedure
+    .input(z.object({
+      name: z.string().trim().min(1).max(255),
+      mimeType: z.string().regex(/^image\/(jpeg|png|webp|heic)$/i, "Solo se permiten imágenes JPG, PNG, WebP o HEIC."),
+      dataBase64: z.string().min(16).max(11_000_000),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const session = await requireFreshAccountSession(ctx.req, "subir una foto personal");
+      const bytes = Buffer.from(input.dataBase64, "base64");
+      if (bytes.length === 0 || bytes.length > 8 * 1024 * 1024) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "La foto debe pesar menos de 8 MB." });
+      }
+      const safeName = input.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const saved = await storagePut(`accounts/${session.accountId}/profile/${Date.now()}-${safeName}`, bytes, input.mimeType);
+      const account = await getLocalAccountById(session.accountId);
+      const previousPhotos = parseProfilePhotos(account?.profilePhotoMetadata);
+      const photo = { key: saved.key, url: saved.url, name: input.name, mimeType: input.mimeType, sizeBytes: bytes.length, createdAt: new Date().toISOString() };
+      const photos = [...previousPhotos, photo].slice(-6);
+      const updated = await updateLocalAccountProfilePhotos(session.accountId, JSON.stringify(photos));
+      if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "Cuenta no encontrada." });
+      return { success: true, photo, photos };
     }),
 
   changePassword: publicProcedure

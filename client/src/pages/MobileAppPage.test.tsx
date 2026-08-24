@@ -52,6 +52,14 @@ describe("MobileAppPage", () => {
     expect(screen.getByText(/iPhone\/iPad:/)).toBeTruthy();
   });
 
+  it("muestra en Inicio las acciones grandes de Rastrear y Registrar", () => {
+    accountMocks.session = { id: 7, email: "cliente@servicom.pe", name: "Cliente", reauthRequired: false };
+    render(<MobileAppPage />);
+
+    expect(screen.getByRole("button", { name: "Rastrear envío" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Registrar nuevo envío" }).getAttribute("href")).toBe("/cuenta?mobile=1&workspace=registrar");
+  });
+
   it("habilita rastreo y lectura QR solo después de iniciar sesión", () => {
     accountMocks.session = { id: 7, email: "cliente@servicom.pe", reauthRequired: false };
     render(<MobileAppPage />);
@@ -72,11 +80,11 @@ describe("MobileAppPage", () => {
     render(<MobileAppPage />);
     fireEvent.click(screen.getByRole("button", { name: "Mi cuenta" }));
 
-    expect(screen.getByText("Funciones disponibles:")).toBeTruthy();
-    expect(screen.getByText(/registrar envíos, rastrear y cambiar contraseña/i)).toBeTruthy();
+    expect(screen.getByText("Solo gestión personal.")).toBeTruthy();
     expect(screen.queryByText("Acceso de operador")).toBeNull();
     expect(screen.queryByRole("link", { name: "Acceso administrativo" })).toBeNull();
-    expect(screen.getByRole("link", { name: "Abrir mi cuenta" }).getAttribute("href")).toBe("/cuenta?returnTo=%2Fmovil");
+    expect(screen.getByRole("link", { name: "Perfil, fotos y biografía" }).getAttribute("href")).toBe("/cuenta?mobile=1&workspace=perfil");
+    expect(screen.getByRole("link", { name: "Cambiar contraseña" }).getAttribute("href")).toBe("/cuenta?mobile=1&workspace=seguridad");
   });
 
   it("mantiene disponible la entrada administrativa cuando no hay una sesión de Cliente", () => {

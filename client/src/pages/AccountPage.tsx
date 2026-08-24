@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { ArrowLeft, CheckCircle2, Download, Eye, EyeOff, KeyRound, Lock, LogOut, Mail, MessageSquare, Package, Plus, Printer, RotateCcw, Search, Trash2, User, UserPlus } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Download, Eye, EyeOff, ImagePlus, KeyRound, Lock, LogOut, Mail, MessageSquare, Package, Plus, Printer, RotateCcw, Search, Trash2, User, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -40,8 +40,10 @@ const getLockoutSecondsFromMessage = (message: string) => Number(message.match(/
 
 export default function AccountPage() {
   const [, setLocation] = useLocation();
-  const returnToMobileApp = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("returnTo") === "/movil";
-  const mobileClientMode = returnToMobileApp || (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("mobile") === "1");
+  const mobileSearchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+  const returnToMobileApp = Boolean(mobileSearchParams && (mobileSearchParams.get("returnTo") === "/movil" || mobileSearchParams.get("mobile") === "1"));
+  const mobileClientMode = returnToMobileApp;
+  const requestedWorkspace = mobileSearchParams?.get("workspace") || null;
   const [mode, setMode] = useState<AccountMode>("login");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -71,7 +73,10 @@ export default function AccountPage() {
   const [profileDni, setProfileDni] = useState("");
   const [profileDocumentType, setProfileDocumentType] = useState<IdentityDocumentType>("dni_peru");
   const [profilePhone, setProfilePhone] = useState("");
+  const [profileBiography, setProfileBiography] = useState("");
+  const [profilePhotos, setProfilePhotos] = useState<Array<{ url: string; name?: string; createdAt?: string }>>([]);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profilePhotoUploading, setProfilePhotoUploading] = useState(false);
 
   // Registro de encomienda por usuario
   const [showNewShipment, setShowNewShipment] = useState(false);
@@ -190,8 +195,14 @@ export default function AccountPage() {
     setProfileDni(me.dni || "");
     setProfileDocumentType((me.documentType || "dni_peru") as IdentityDocumentType);
     setProfilePhone(me.phone || "");
+    setProfileBiography(me.biography || "");
+    setProfilePhotos(Array.isArray(me.profilePhotos) ? me.profilePhotos : []);
     if (me.mustChangePassword) setClientWorkspace("seguridad");
-  }, [me]);
+    else if (mobileClientMode && (requestedWorkspace === "registrar" || requestedWorkspace === "perfil" || requestedWorkspace === "seguridad")) {
+      setClientWorkspace(requestedWorkspace);
+      setShowNewShipment(requestedWorkspace === "registrar");
+    }
+  }, [me, mobileClientMode, requestedWorkspace]);
 
   const { data: myShipments, refetch: refetchShipments } = trpc.account.myShipments.useQuery(undefined, {
     enabled: !!me && !me.reauthRequired,
@@ -333,7 +344,40 @@ export default function AccountPage() {
       toast.error("Revisa los datos personales antes de guardar.");
       return;
     }
-    updateProfileMutation.mutate({ name: profileName.trim().replace(/\s+/g, " "), lastName: profileLastName.trim().replace(/\s+/g, " "), dni: profileDni.trim(), documentType: profileDocumentType, phone: profilePhone.trim() });
+    updateProfileMutation.mutate({ name: profileName.trim().replace(/\s+/g, " "), lastName: profileLastName.trim().replace(/\s+/g, " "), dni: profileDni.trim(), documentType: profileDocumentType, phone: profilePhone.trim(), biography: profileBiography.trim() });
+  };
+
+  const uploadProfilePhotoMutation = trpc.account.uploadProfilePhoto.useMutation();
+
+  const handleProfilePhotoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("La foto debe pesar menos de 8 MB.");
+      return;
+    }
+    if (!/^image\/(jpeg|png|webp|heic)$/i.test(file.type)) {
+      toast.error("Selecciona una imagen JPG, PNG, WebP o HEIC.");
+      return;
+    }
+    setProfilePhotoUploading(true);
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error("No se pudo leer la foto."));
+        reader.readAsDataURL(file);
+      });
+      const result = await uploadProfilePhotoMutation.mutateAsync({ name: file.name, mimeType: file.type, dataBase64: dataUrl.split(",", 2)[1] || "" });
+      setProfilePhotos(result.photos);
+      await utils.account.me.invalidate();
+      toast.success("Foto personal guardada correctamente.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo guardar la foto personal.");
+    } finally {
+      setProfilePhotoUploading(false);
+    }
   };
 
   const changePasswordMutation = trpc.account.changePassword.useMutation({
@@ -525,10 +569,10 @@ export default function AccountPage() {
 
           <Card className="border-0 p-4 shadow-sm" aria-label="Áreas de mi cuenta">
             <div className="flex flex-wrap items-center gap-2">
-              {((mobileClientMode ? [["envios", "Rastrear"], ["registrar", "Registrar"], ["seguridad", "Cambiar contraseña"]] : [["envios", "Mis envíos"], ["registrar", "Registrar documento"], ["papelera", `Papelera (${myDeletedShipments?.length || 0})`], ["perfil", "Mi perfil"], ["seguridad", "Seguridad"], ["resumen", "Resumen"], ["analitica", "Analítica"]]) as Array<[ClientWorkspace, string]>).map(([workspace, label]) => <Button key={workspace} type="button" size="sm" variant={clientWorkspace === workspace ? "default" : "outline"} onClick={() => { setClientWorkspace(workspace); if (workspace === "registrar") setShowNewShipment(true); }} className={`${!mobileClientMode && (workspace === "resumen" || workspace === "analitica") ? "hidden sm:inline-flex" : ""} ${clientWorkspace === workspace ? "bg-[#0B2B5E] text-white" : "border-slate-300 text-slate-700"}`}>{label}</Button>)}
+              {((mobileClientMode ? [["perfil", "Perfil"], ["seguridad", "Cambiar contraseña"]] : [["envios", "Mis envíos"], ["registrar", "Registrar documento"], ["papelera", `Papelera (${myDeletedShipments?.length || 0})`], ["perfil", "Mi perfil"], ["seguridad", "Seguridad"], ["resumen", "Resumen"], ["analitica", "Analítica"]]) as Array<[ClientWorkspace, string]>).map(([workspace, label]) => <Button key={workspace} type="button" size="sm" variant={clientWorkspace === workspace ? "default" : "outline"} onClick={() => { setClientWorkspace(workspace); if (workspace === "registrar") setShowNewShipment(true); }} className={`${!mobileClientMode && (workspace === "resumen" || workspace === "analitica") ? "hidden sm:inline-flex" : ""} ${clientWorkspace === workspace ? "bg-[#0B2B5E] text-white" : "border-slate-300 text-slate-700"}`}>{label}</Button>)}
             </div>
             {!mobileClientMode && <details className="mt-3 sm:hidden"><summary className="cursor-pointer text-xs font-semibold text-[#0B2B5E]">Más opciones de cuenta</summary><div className="mt-2 flex flex-wrap gap-2">{([["resumen", "Resumen"], ["analitica", "Analítica"]] as Array<[ClientWorkspace, string]>).map(([workspace, label]) => <Button key={workspace} type="button" size="sm" variant={clientWorkspace === workspace ? "default" : "outline"} onClick={() => setClientWorkspace(workspace)} className={clientWorkspace === workspace ? "bg-[#0B2B5E] text-white" : "border-slate-300 text-slate-700"}>{label}</Button>)}</div></details>}
-            <p className="mt-2 text-xs text-slate-500">{mobileClientMode ? "En la aplicación móvil del Cliente solo están disponibles registrar, rastrear y cambiar contraseña." : "Elige una tarea principal; las opciones menos usadas quedan disponibles en «Más opciones»."}</p>
+            <p className="mt-2 text-xs text-slate-500">{mobileClientMode ? (clientWorkspace === "registrar" ? "Registro abierto desde Inicio. Completa los pasos para crear tu envío." : "Mi cuenta contiene únicamente tu Perfil y Seguridad. Para rastrear o registrar, vuelve a Inicio móvil.") : "Elige una tarea principal; las opciones menos usadas quedan disponibles en «Más opciones»."}</p>
           </Card>
 
           {me.mustChangePassword && <Card className="border border-amber-300 bg-amber-50 p-4 shadow-sm"><div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm font-medium text-amber-950">Tu cuenta fue creada con una contraseña temporal. Cámbiala ahora para continuar con un acceso seguro.</p><Button type="button" size="sm" className="bg-[#0B2B5E] text-white hover:bg-[#123d78]" onClick={() => setClientWorkspace("seguridad")}>Cambiar contraseña</Button></div></Card>}
@@ -586,6 +630,11 @@ export default function AccountPage() {
                   <Label>Teléfono Celular / WhatsApp</Label>
                   <PhoneInput value={profilePhone} onChange={setProfilePhone} placeholder="970 188 447" required />
                 </div>
+                <div className="md:col-span-2">
+                  <Label htmlFor="profile-biography">Biografía</Label>
+                  <Textarea id="profile-biography" value={profileBiography} onChange={event => setProfileBiography(event.target.value)} placeholder="Escribe una breve presentación sobre ti" maxLength={1000} className="mt-1 min-h-28" />
+                  <p className="mt-1 text-xs text-slate-500">Opcional. Máximo 1000 caracteres.</p>
+                </div>
                 <div className="md:col-span-2 flex justify-end gap-2">
                   <Button type="button" variant="outline" onClick={() => setIsEditingProfile(false)}>Cancelar</Button>
                   <Button type="submit" disabled={updateProfileMutation.isPending} className="bg-[#0B2B5E] text-white hover:bg-[#123d78]">
@@ -594,6 +643,18 @@ export default function AccountPage() {
                 </div>
               </form>
             )}
+
+            <div className="mt-6 border-t border-slate-200 pt-5" aria-label="Fotos personales">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div><h3 className="flex items-center gap-2 text-base font-bold text-[#0B2B5E]"><ImagePlus className="h-5 w-5 text-[#F28C00]" /> Fotos personales</h3><p className="mt-1 text-xs text-slate-500">Sube una foto de perfil o imágenes de tus datos personales para tenerlas disponibles en tu cuenta.</p></div>
+                <label className={`inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#F28C00] px-4 text-sm font-bold text-white shadow-sm transition hover:bg-[#d67900] ${profilePhotoUploading ? "pointer-events-none opacity-60" : ""}`}>
+                  <ImagePlus className="h-5 w-5" /> {profilePhotoUploading ? "Guardando foto…" : "Subir foto"}
+                  <Input type="file" accept="image/jpeg,image/png,image/webp,image/heic" aria-label="Subir foto personal" onChange={handleProfilePhotoChange} disabled={profilePhotoUploading} className="sr-only" />
+                </label>
+              </div>
+              <p className="mt-2 text-xs text-slate-500">JPG, PNG, WebP o HEIC · máximo 8 MB por foto · se conservan hasta 6 fotos recientes.</p>
+              {profilePhotos.length > 0 ? <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">{profilePhotos.map((photo, index) => <figure key={`${photo.url}-${index}`} className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50"><img src={photo.url} alt={`Foto personal ${index + 1}`} className="aspect-square w-full object-cover" /><figcaption className="truncate px-2 py-2 text-xs text-slate-500">{photo.name || `Foto ${index + 1}`}</figcaption></figure>)}</div> : <p className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-center text-sm text-slate-500">Todavía no has subido fotos personales.</p>}
+            </div>
           </Card>
 
           {/* Cambio de contraseña */}
@@ -891,7 +952,7 @@ export default function AccountPage() {
     <main className="min-h-screen bg-gradient-to-b from-[#eef6fb] to-white px-4 py-8">
       <div className="mx-auto max-w-md">
         <Link href={returnToMobileApp ? "/movil" : "/"} className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-[#0B2B5E] hover:text-[#F28C00]">
-          <ArrowLeft className="h-4 w-4" /> Volver al rastreo
+          <ArrowLeft className="h-4 w-4" /> {mobileClientMode ? "Volver a Inicio móvil" : "Volver al rastreo"}
         </Link>
 
         <Card className="overflow-hidden border-0 shadow-xl">

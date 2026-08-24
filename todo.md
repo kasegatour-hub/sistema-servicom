@@ -1148,3 +1148,9 @@
 - [x] Ocultar el botón Admin para cuentas Cliente en la cabecera móvil
 - [x] Mantener el botón Admin para cuentas Administrador o Master Admin autorizadas
 - [x] Añadir pruebas de visibilidad por rol y verificar el flujo móvil del cliente
+
+## Rediseño de la app móvil del Cliente
+- [x] Dejar Inicio como punto principal con acciones grandes y claras para Rastrear y Registrar
+- [x] Reservar Mi cuenta para Perfil, cambio de contraseña, foto de datos personales y biografía
+- [x] Aumentar botones, áreas táctiles y jerarquía visual de la app móvil sin mostrar opciones administrativas al Cliente
+- [x] Añadir pruebas y verificación responsive de la nueva navegación móvil

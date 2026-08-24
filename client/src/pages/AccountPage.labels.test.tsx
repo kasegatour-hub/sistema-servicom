@@ -20,6 +20,7 @@ vi.mock("@/lib/trpc", () => ({
       logout: { useMutation: mutation },
       reauthenticate: { useMutation: mutation },
       updateProfile: { useMutation: mutation },
+      uploadProfilePhoto: { useMutation: mutation },
       changePassword: { useMutation: mutation },
       createMyShipment: { useMutation: mutation },
       uploadMyShipmentPhoto: { useMutation: mutation },
@@ -48,6 +49,18 @@ beforeEach(() => {
 });
 
 describe("AccountPage client labels", () => {
+  it("en modo móvil deja Mi cuenta solo para Perfil y Seguridad", async () => {
+    window.history.pushState({}, "", "/cuenta?mobile=1&workspace=perfil");
+    render(<AccountPage />);
+
+    expect(await screen.findByRole("button", { name: "Perfil" })).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "Cambiar contraseña" }).length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByRole("button", { name: "Mis envíos" })).toBeNull();
+    expect(screen.getByText("Fotos personales")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Editar Datos" }));
+    expect(screen.getByLabelText("Biografía")).toBeTruthy();
+  });
+
   it("muestra nombre, apellidos y correo del Cliente en la cabecera", () => {
     render(<AccountPage />);
     expect(screen.getByText("Hola, Ana López")).toBeTruthy();

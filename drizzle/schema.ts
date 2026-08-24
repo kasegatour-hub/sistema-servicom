@@ -40,6 +40,8 @@ export const localAccounts = mysqlTable("local_accounts", {
   failedPasswordAttempts: int("failedPasswordAttempts").default(0).notNull(),
   passwordLockedUntil: timestamp("passwordLockedUntil"),
   mustChangePassword: int("mustChangePassword").default(0).notNull(),
+  biography: text("biography"),
+  profilePhotoMetadata: longtext("profilePhotoMetadata"), // JSON con referencia S3 de la foto personal
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

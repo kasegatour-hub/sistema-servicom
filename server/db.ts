@@ -371,10 +371,17 @@ export async function createInvitationLetterAccount(input: {
   return account ? { account, created: true } : undefined;
 }
 
-export async function updateLocalAccountProfile(id: number, name: string, lastName: string, dni: string, phone: string, documentType: "dni_peru" | "pasaporte" | "carta_identita_italia" = "dni_peru") {
+export async function updateLocalAccountProfile(id: number, name: string, lastName: string, dni: string, phone: string, documentType: "dni_peru" | "pasaporte" | "carta_identita_italia" = "dni_peru", biography = "") {
   const db = await getDb();
   if (!db) return undefined;
-  await db.update(localAccounts).set({ name, lastName, dni, phone, documentType, updatedAt: new Date() }).where(eq(localAccounts.id, id));
+  await db.update(localAccounts).set({ name, lastName, dni, phone, documentType, biography, updatedAt: new Date() }).where(eq(localAccounts.id, id));
+  return getLocalAccountById(id);
+}
+
+export async function updateLocalAccountProfilePhotos(id: number, photos: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  await db.update(localAccounts).set({ profilePhotoMetadata: photos, updatedAt: new Date() }).where(eq(localAccounts.id, id));
   return getLocalAccountById(id);
 }
 
