@@ -285,6 +285,7 @@ export const shipments = mysqlTable("shipments", {
   hideFromRegistradoresReason: text("hideFromRegistradoresReason"),
   registeredByType: mysqlEnum("registeredByType", ["admin", "account", "system"]).default("system").notNull(),
   registeredById: int("registeredById"),
+  registeredByEmail: varchar("registeredByEmail", { length: 320 }),
   registeredByLabel: varchar("registeredByLabel", { length: 255 }).default("Registro anterior").notNull(),
   
   createdAt: timestamp("createdAt").defaultNow().notNull(),

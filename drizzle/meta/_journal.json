@@ -253,6 +253,13 @@
       "when": 1787606242026,
       "tag": "0035_flowery_madripoor",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "5",
+      "when": 1787607357700,
+      "tag": "0036_tiny_micromax",
+      "breakpoints": true
     }
   ]
 }

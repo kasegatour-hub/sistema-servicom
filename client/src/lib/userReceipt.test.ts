@@ -199,15 +199,15 @@ describe("receipt window helpers", () => {
     expect(printWindow.close).toHaveBeenCalled();
   });
 
-  it("uses Kasega branding only for Magda shipments from Lima to Torino", () => {
-    expect(getReceiptBranding({ registeredById: 210001, route: "Lima - Torino" })).toMatchObject({
+  it("uses Kasega branding only for Magda's registered email", () => {
+    expect(getReceiptBranding({ registeredByEmail: "magda.barreto.alv@gmail.com", registeredById: 210001, route: "Lima - Torino" })).toMatchObject({
       isKasega: true,
       companyName: "KASEGA TOUR",
       destinationAddress: "Via Muriaglio 12, Torino, Italia",
       destinationPhone: "+39 350 818 1599 · +39 371 373 8550",
     });
-    expect(getReceiptBranding({ registeredById: 210001, route: "Torino - Lima" }).isKasega).toBe(false);
-    expect(getReceiptBranding({ registeredById: 1, route: "Lima - Torino" }).isKasega).toBe(false);
+    expect(getReceiptBranding({ registeredById: 210001, route: "Lima - Torino" }).isKasega).toBe(false);
+    expect(getReceiptBranding({ registeredByEmail: "otra@cuenta.com", registeredById: 210001, route: "Lima - Torino" }).isKasega).toBe(false);
   });
 
   it("uses green only for Pagado and red only for No cancelado", () => {

@@ -9,11 +9,12 @@ import { buildSignatureSvgMarkup } from "../../../shared/signature";
 
 const brandLogoPath = "/manus-storage/servicom_logo_final_e7ce35aa.png";
 const kasegaLogoPath = "/manus-storage/kasega_logo_estampado_0008a158.png";
-const MAGDA_ADMIN_ID = "210001";
+const MAGDA_EMAIL = "magda.barreto.alv@gmail.com";
 
 export function getReceiptBranding(shipment: any) {
-  const isMagdaLimaTorino = String(shipment?.registeredById ?? "") === MAGDA_ADMIN_ID && String(shipment?.route ?? "").trim().toLowerCase() === "lima - torino";
-  return isMagdaLimaTorino
+  const registeredEmail = String(shipment?.registeredByEmail ?? "").trim().toLowerCase();
+  const isMagdaReceipt = registeredEmail === MAGDA_EMAIL;
+  return isMagdaReceipt
     ? { isKasega: true, logoPath: kasegaLogoPath, companyName: "KASEGA TOUR", subtitle: "En colaboración con Servicom Internacional", contact: "Via Muriaglio 12, Torino · Tel. 350 818 1599 · 371 373 8550 · magda.barreto.alv@gmail.com · Coordina tu visita previamente.", destinationAddress: "Via Muriaglio 12, Torino, Italia", destinationPhone: "+39 350 818 1599 · +39 371 373 8550" }
     : { isKasega: false, logoPath: brandLogoPath, companyName: "SERVICOM INTERNACIONAL", subtitle: "SERVICOM INTERNACIONAL", contact: "", destinationAddress: "", destinationPhone: "" };
 }

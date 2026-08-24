@@ -1,0 +1,1 @@
+ALTER TABLE `shipments` ADD `registeredByEmail` varchar(320);

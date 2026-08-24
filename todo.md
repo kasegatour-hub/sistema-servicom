@@ -1027,3 +1027,9 @@
 - [x] Calcular sobre 10 kg un extra proporcional editable y obligatorio
 - [x] Usar para Magda el origen Via Muriaglio 12, Torino, sus contactos y logo Kasega
 - [x] Añadir pruebas, validar recibos y publicar
+
+## Recibo exclusivo de Magda
+- [x] Identificar el registro por correo de cuenta y no solo por ruta o ID
+- [x] Mostrar logo, dirección y contactos Kasega únicamente para magda.barreto.alv@gmail.com
+- [x] Mantener Servicom Internacional en recibos de las demás cuentas
+- [x] Validar impresión y descarga, añadir pruebas y publicar

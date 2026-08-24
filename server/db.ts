@@ -637,6 +637,7 @@ export type ShipmentRegistrationActor = {
   type: "admin" | "account" | "system";
   id?: number | null;
   label: string;
+  email?: string | null;
 };
 
 export async function recordShipmentAudit(input: {
@@ -1143,6 +1144,7 @@ export async function createShipment(
     deliveryMode: deliveryMode || "agencia",
     registeredByType: registeredBy?.type || (accountId ? "account" : "system"),
     registeredById: registeredBy?.id ?? accountId ?? null,
+    registeredByEmail: registeredBy?.email || null,
     registeredByLabel: registeredBy?.label || (accountId ? "Cliente" : "Registro anterior"),
   });
 
