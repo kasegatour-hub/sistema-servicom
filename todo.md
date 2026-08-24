@@ -1122,3 +1122,14 @@
 - [x] Mantener el mensaje hasta que el campo se corrija
 - [x] Añadir pruebas para precio, checklist, sede y campos obligatorios
 - [x] Validar móvil/escritorio y publicar
+
+## Aislamiento crítico del espacio de Magdalena
+- [ ] Auditar consultas, rastreo, panel, papelera, ingresos y acciones administrativas
+- [ ] Impedir acceso a usuarios, Registradores y Admin Perú Servicom
+- [ ] Permitir acceso únicamente a la cuenta de Magdalena
+- [ ] Añadir pruebas de autorización y ausencia de filtración entre espacios
+- [ ] Validar y publicar
+
+## Aislamiento de espacios administrativos
+- [x] Aislamiento estricto de los registros de Magdalena Barreto frente a listados, papelera, auditoría, actualización, eliminación y resúmenes administrativos
+- [x] Pruebas de regresión para impedir exposición del espacio aislado al Master Admin y registradores generales

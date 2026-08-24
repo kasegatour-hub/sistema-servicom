@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, like, or } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, like, ne, notInArray, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { createHash } from "node:crypto";
 import { InsertUser, users, shipments, shipmentSignatures, shipmentAuditLogs, shipmentFeedback, platformFeedback, interactionEvents, admins, localAccounts, verificationCodes, adminPasswordResetCodes, clients, discountCoupons, shipmentRoutePolicies, invitationLetters, invitationLetterSignatures } from "../drizzle/schema";
@@ -997,7 +997,9 @@ export async function setEncomiendaAvailabilityForRoute(route: string, encomiend
   return true;
 }
 
-export async function getAllShipments(shipmentType?: "documento" | "encomienda", options?: { excludeHiddenForRegistradores?: boolean; ownerAdminId?: number }) {
+export const ISOLATED_WORKSPACE_ADMIN_IDS = [210001] as const;
+
+export async function getAllShipments(shipmentType?: "documento" | "encomienda", options?: { excludeHiddenForRegistradores?: boolean; ownerAdminId?: number; excludeIsolatedWorkspaces?: boolean }) {
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot get shipments: database not available");
@@ -1010,11 +1012,14 @@ export async function getAllShipments(shipmentType?: "documento" | "encomienda",
   if (options?.ownerAdminId !== undefined) {
     conditions.push(eq(shipments.registeredByType, "admin"));
     conditions.push(eq(shipments.registeredById, options.ownerAdminId));
+  } else if (options?.excludeIsolatedWorkspaces) {
+    const isolatedWorkspaceFilter = or(ne(shipments.registeredByType, "admin"), isNull(shipments.registeredById), notInArray(shipments.registeredById, [...ISOLATED_WORKSPACE_ADMIN_IDS]));
+    if (isolatedWorkspaceFilter) conditions.push(isolatedWorkspaceFilter);
   }
   return await db.select().from(shipments).where(and(...conditions));
 }
 
-export async function getDeletedShipments(shipmentType?: "documento" | "encomienda", ownerAdminId?: number) {
+export async function getDeletedShipments(shipmentType?: "documento" | "encomienda", ownerAdminId?: number, excludeIsolatedWorkspaces = false) {
   const db = await getDb();
   if (!db) return [];
   const conditions = [isNotNull(shipments.deletedAt)];
@@ -1022,6 +1027,9 @@ export async function getDeletedShipments(shipmentType?: "documento" | "encomien
   if (ownerAdminId !== undefined) {
     conditions.push(eq(shipments.registeredByType, "admin"));
     conditions.push(eq(shipments.registeredById, ownerAdminId));
+  } else if (excludeIsolatedWorkspaces) {
+    const isolatedWorkspaceFilter = or(ne(shipments.registeredByType, "admin"), isNull(shipments.registeredById), notInArray(shipments.registeredById, [...ISOLATED_WORKSPACE_ADMIN_IDS]));
+    if (isolatedWorkspaceFilter) conditions.push(isolatedWorkspaceFilter);
   }
   const deletedCondition = and(...conditions);
   return await db.select().from(shipments).where(deletedCondition).orderBy(desc(shipments.deletedAt));

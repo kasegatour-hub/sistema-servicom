@@ -7,7 +7,7 @@ function buildTrackingPath(orderNumber: string, code: string): string {
   return `/?order=${encodeURIComponent(order)}&code=${encodeURIComponent(normalizedCode)}`;
 }
 import { publicProcedure, router } from "./_core/trpc";
-import { attachShipmentAuditActorLabels, clearAdminPasswordFailures, createDiscountCoupon, createInvitationLetterAccount, createInvitationLetterRecord, createOrRefreshInvitationLetterSignatureRequest, createShipment, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAllShipments, getDeletedShipments, getDiscountCouponByCode, getInvitationLetterById, getShipmentAuditLogs, getShipmentById, getShipmentByOrderAndCode, getShipmentRoutePolicy, incrementDiscountCouponRedemption, isEncomiendaEnabledForRoute, listDeletedInvitationLetterRecords, listDiscountCoupons, listInvitationLetterRecords, moveInvitationLetterToTrash, recordInteractionEvent, recordShipmentAudit, registerAdminPasswordFailure, restoreInvitationLetterFromTrash, restoreShipment, searchClients, searchInvitationLetterPeople, setEncomiendaAvailabilityForRoute, setShipmentRegistradorVisibility, updateDiscountCoupon, updateShipmentStatus } from "./db";
+import { ISOLATED_WORKSPACE_ADMIN_IDS, attachShipmentAuditActorLabels, clearAdminPasswordFailures, createDiscountCoupon, createInvitationLetterAccount, createInvitationLetterRecord, createOrRefreshInvitationLetterSignatureRequest, createShipment, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAllShipments, getDeletedShipments, getDiscountCouponByCode, getInvitationLetterById, getShipmentAuditLogs, getShipmentById, getShipmentByOrderAndCode, getShipmentRoutePolicy, incrementDiscountCouponRedemption, isEncomiendaEnabledForRoute, listDeletedInvitationLetterRecords, listDiscountCoupons, listInvitationLetterRecords, moveInvitationLetterToTrash, recordInteractionEvent, recordShipmentAudit, registerAdminPasswordFailure, restoreInvitationLetterFromTrash, restoreShipment, searchClients, searchInvitationLetterPeople, setEncomiendaAvailabilityForRoute, setShipmentRegistradorVisibility, updateDiscountCoupon, updateShipmentStatus } from "./db";
 import { getRemainingLockoutSeconds, MAX_PASSWORD_FAILURES, PASSWORD_LOCKOUT_SECONDS } from "./loginProtection";
 import { generateTemporaryPassword, generateVerificationCode, hashPassword, hashVerificationCode, normalizeEmail, sendInvitationLetterSignatureEmail, sendVerificationEmail, verificationExpiry, verifyPassword } from "./localAuth";
 import { AdminSessionPayload, clearAdminSession, getAdminSession, setAdminSession } from "./adminSession";
@@ -200,7 +200,9 @@ const masterAdminProcedure = adminProcedure.use(({ ctx, next }) => {
 });
 
 function belongsToAdminWorkspace(shipment: { registeredByType: string; registeredById: number | null }, adminId: number, isWorkspaceIsolated: boolean) {
-  return !isWorkspaceIsolated || (shipment.registeredByType === "admin" && shipment.registeredById === adminId);
+  if (isWorkspaceIsolated) return shipment.registeredByType === "admin" && shipment.registeredById === adminId;
+  if (shipment.registeredByType === "admin" && shipment.registeredById !== null && ISOLATED_WORKSPACE_ADMIN_IDS.includes(shipment.registeredById as 210001)) return false;
+  return true;
 }
 
 function isolatedOwnerAdminId(adminId: number, isWorkspaceIsolated: boolean) {
@@ -455,7 +457,7 @@ export const adminRouter = router({
   getAllShipments: adminProcedure
     .input(z.object({ shipmentType: z.enum(["documento", "encomienda"]).optional() }).optional())
     .query(async ({ input, ctx }) => {
-      const shipments = await getAllShipments(input?.shipmentType, { excludeHiddenForRegistradores: ctx.adminSession.role !== "superadmin", ownerAdminId: isolatedOwnerAdminId(ctx.adminSession.adminId, ctx.adminWorkspaceIsolated) });
+      const shipments = await getAllShipments(input?.shipmentType, { excludeHiddenForRegistradores: ctx.adminSession.role !== "superadmin", ownerAdminId: isolatedOwnerAdminId(ctx.adminSession.adminId, ctx.adminWorkspaceIsolated), excludeIsolatedWorkspaces: !ctx.adminWorkspaceIsolated });
       return shipments.map(s => ({
         ...s,
         events: JSON.parse(s.events),
@@ -475,7 +477,7 @@ export const adminRouter = router({
   listDeletedShipments: adminProcedure
     .input(z.object({ shipmentType: z.enum(["documento", "encomienda"]).optional() }).optional())
     .query(async ({ input, ctx }) => {
-      const visible = await getDeletedShipments(input?.shipmentType, isolatedOwnerAdminId(ctx.adminSession.adminId, ctx.adminWorkspaceIsolated));
+      const visible = await getDeletedShipments(input?.shipmentType, isolatedOwnerAdminId(ctx.adminSession.adminId, ctx.adminWorkspaceIsolated), !ctx.adminWorkspaceIsolated);
       await recordInteractionEvent({ actorType: "admin", actorId: ctx.adminSession.adminId, eventName: "trash_viewed", surface: "admin", metadata: { count: visible.length } });
       const labeledActors = await attachShipmentAuditActorLabels(visible.map(shipment => ({
         actorType: shipment.deletedByType === "account" ? "account" : shipment.deletedByType === "admin" ? "admin" : "system",
@@ -487,7 +489,7 @@ export const adminRouter = router({
   restoreShipment: adminProcedure
     .input(z.object({ shipmentId: z.number() }))
     .mutation(async ({ input, ctx }) => {
-      const deleted = await getDeletedShipments(undefined, isolatedOwnerAdminId(ctx.adminSession.adminId, ctx.adminWorkspaceIsolated));
+      const deleted = await getDeletedShipments(undefined, isolatedOwnerAdminId(ctx.adminSession.adminId, ctx.adminWorkspaceIsolated), !ctx.adminWorkspaceIsolated);
       const shipment = deleted.find(item => item.id === input.shipmentId);
       if (!shipment) throw new TRPCError({ code: "NOT_FOUND", message: "El envío no está en la papelera." });
       if ((ctx.adminWorkspaceIsolated || ctx.adminSession.role !== "superadmin") && (shipment.deletedByType !== "admin" || shipment.deletedById !== ctx.adminSession.adminId)) {
