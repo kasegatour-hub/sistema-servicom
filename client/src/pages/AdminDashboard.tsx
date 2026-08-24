@@ -2401,7 +2401,6 @@ export default function AdminDashboard() {
                           >
                             Eliminar
                           </Button>
-                          {admin?.role === "superadmin" && <Button onClick={() => handleToggleRegistradorVisibility(shipment)} size="sm" variant="outline" className="border-violet-300 text-violet-800 hover:bg-violet-50" disabled={setShipmentRegistradorVisibilityMutation.isPending}>{shipment.hiddenFromRegistradoresAt ? "Mostrar a Registradores" : "Ocultar a Registradores"}</Button>}
                           {admin?.role === "superadmin" && <Button onClick={() => setAuditShipmentId(shipment.id)} size="sm" variant="outline" className="border-slate-400 text-slate-700 hover:bg-slate-100">Historial</Button>}
                         </div>
                       </TableCell>

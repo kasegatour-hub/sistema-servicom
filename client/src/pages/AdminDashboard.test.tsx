@@ -300,16 +300,16 @@ describe("AdminDashboard Nueva Encomienda", () => {
     expect(screen.getByText("Válido hasta")).toBeTruthy();
   });
 
-  it("shows the reversible hiding action only to the Master Admin", async () => {
+  it("no muestra ocultamiento a registradores porque cada cuenta trabaja en su propio espacio", async () => {
     mocks.shipments = [{ id: 42, shipmentType: "documento", recipientName: "Giselle", recipientLastName: "García", status: "En agencia", paymentStatus: "Falta cancelar", createdAt: new Date("2026-08-17T10:00:00.000Z"), orderNumber: "6352627659", code: "DOC-2026-XPF2A", events: [], hiddenFromRegistradoresAt: null }];
     mocks.login.mutateAsync.mockResolvedValue({ id: 1, email: "admin@servicom.pe", name: "Master", role: "superadmin" });
     render(<AdminDashboard />);
     fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
     fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
     fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Ocultar a Registradores" })).toBeTruthy());
-    fireEvent.click(screen.getByRole("button", { name: "Ocultar a Registradores" }));
-    await waitFor(() => expect(mocks.setShipmentRegistradorVisibility.mutateAsync).toHaveBeenCalledWith({ shipmentId: 42, hidden: true }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Historial" })).toBeTruthy());
+    expect(screen.queryByRole("button", { name: "Ocultar a Registradores" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Mostrar a Registradores" })).toBeNull();
   });
 
   it("downloads a named PDF from the administrative receipt preview instead of using the print dialog", async () => {

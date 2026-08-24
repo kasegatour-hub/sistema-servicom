@@ -1014,3 +1014,8 @@
 - [x] Exigir importe provincial manual sobre 10 kg y mostrarlo como extra separado
 - [x] Permitir actualizar y guardar el importe provincial y la sede de llegada
 - [x] Añadir pruebas, validar comprobantes y publicar
+
+## Registros aislados de Magda
+- [x] Retirar el botón «Ocultar a Registradores» de sus registros
+- [x] Mantener el aislamiento por cuenta y las acciones administrativas restantes
+- [x] Añadir pruebas, validar la interfaz y publicar
