@@ -31,7 +31,7 @@ import { buildReceiptPriceHtml } from "@/lib/receiptPrice";
 import { closeUpdateModal } from "@/lib/updateModal";
 import { UpdateShipmentModal } from "@/components/UpdateShipmentModal";
 import { evaluateScientificExpression } from "@/lib/scientificCalculator";
-import { buildElectronicSignatureHtml, buildReceiptDownloadFilename, downloadShipmentReceipt, type ReceiptDownloadFormat } from "@/lib/userReceipt";
+import { buildElectronicSignatureHtml, buildReceiptDownloadFilename, downloadShipmentReceipt, getReceiptBranding, type ReceiptDownloadFormat } from "@/lib/userReceipt";
 import { buildAdminReceiptDocument, downloadAdminReceiptUsingPrintTemplate } from "@/lib/adminReceiptDocument";
 import { summarizeRevenue } from "@shared/revenueSummary";
 import { DocumentPricePreview } from "@/components/DocumentPricePreview";
@@ -821,8 +821,12 @@ export default function AdminDashboard() {
   const openCreateForm = (shipmentType: "documento" | "encomienda") => {
     resetCreateForm();
     createForm.setValue("shipmentType", shipmentType, { shouldDirty: true });
+    if (String(admin?.id ?? "") === "210001") {
+      createForm.setValue("destinationAddress", "Via Muriaglio 12, Torino, Italia", { shouldDirty: true });
+    }
     if (shipmentType === "encomienda" && !limaTorinoEncomiendasEnabled) {
       createForm.setValue("route", "Torino - Lima", { shouldDirty: true });
+      createForm.setValue("destinationAddress", "", { shouldDirty: true });
       toast.message("Lima - Torino está restringida para encomiendas; se seleccionó Torino - Lima.");
     }
     setAdminWorkspace("crear");
@@ -1004,7 +1008,9 @@ export default function AdminDashboard() {
         orderNumber: printShipment.orderNumber,
         shipmentType: printShipment.shipmentType,
       });
-      const routePresentation = getRoutePresentation(printShipment.route, printShipment.destinationAddress);
+      const branding = getReceiptBranding(printShipment);
+      const receiptDestinationAddress = branding.isKasega ? branding.destinationAddress : printShipment.destinationAddress;
+      const routePresentation = getRoutePresentation(printShipment.route, receiptDestinationAddress);
       const paymentPrint = getPaymentPrintPresentation(printShipment.paymentStatus);
       const paymentIsPaid = paymentPrint.isPaid;
       const paymentIsPending = paymentPrint.isPending;
@@ -1757,7 +1763,10 @@ export default function AdminDashboard() {
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Ruta de envío</label>
-                    <Select value={selectedRoute} onValueChange={(value) => createForm.setValue("route", value as "Lima - Torino" | "Torino - Lima", { shouldValidate: true, shouldDirty: true })}>
+                    <Select value={selectedRoute} onValueChange={(value) => {
+                      createForm.setValue("route", value as "Lima - Torino" | "Torino - Lima", { shouldValidate: true, shouldDirty: true });
+                      if (String(admin?.id ?? "") === "210001" && value === "Lima - Torino") createForm.setValue("destinationAddress", "Via Muriaglio 12, Torino, Italia", { shouldValidate: true, shouldDirty: true });
+                    }}>
                       <SelectTrigger className="border-2 focus:border-primary"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Lima - Torino">Lima – Torino</SelectItem>

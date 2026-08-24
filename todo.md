@@ -995,3 +995,15 @@
 - [x] Mostrar el detalle de entrega en agencia y envío remoto al abrirlo
 - [x] Mantener el botón accesible y usable en Admin, Usuario y Cliente
 - [x] Añadir pruebas, validar móvil y escritorio, y publicar
+
+## Sede especial de Magda Barreto
+- [x] Usar Via Muriaglio 12, Torino para registros Lima → Torino de Magda
+- [x] Mostrar teléfonos, correo y aviso de visita de Magda en el destino y comprobantes correspondientes
+- [x] Evitar que la regla especial sea reemplazada por Corso Peschiera
+- [x] Añadir pruebas, validar recibo y formulario, y publicar
+
+## Corrección de sede especial de Magda
+- [x] Aplicar Via Muriaglio 12 al destino Lima → Torino de Magda
+- [x] Mostrar sus teléfonos, correo y aviso de coordinación en la selección y comprobantes
+- [x] Conservar Corso Peschiera para las demás cuentas y rutas
+- [x] Añadir pruebas, validar y publicar
