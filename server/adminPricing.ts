@@ -23,9 +23,11 @@ export type AdminShipmentPricingInput = {
 
 export function calculateAutomaticParcelPriceEur(weightKg: number, route?: string): { totalEur: number; description: string } {
   const normalizedWeight = Math.max(0.1, Number(weightKg || 1));
-  const totalEur = normalizedWeight * 13.5;
+  const billableWeight = normalizedWeight > 15 ? 10 : normalizedWeight;
+  const totalEur = billableWeight * 13.5;
   const routeLabel = route === "Torino - Lima" ? "Torino–Lima" : "por peso";
-  return { totalEur, description: `Encomienda ${routeLabel} (${normalizedWeight} kg @ 13.5 EUR/kg): ${totalEur.toFixed(2)} EUR` };
+  const capNote = normalizedWeight > 15 ? ` (base automática limitada a ${billableWeight} kg; el excedente se gestiona como adicional provincial si corresponde)` : "";
+  return { totalEur, description: `Encomienda ${routeLabel} (${normalizedWeight} kg @ 13.5 EUR/kg): ${totalEur.toFixed(2)} EUR${capNote}` };
 }
 
 export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) {
@@ -50,7 +52,7 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
   const provinceEnabled = Boolean(input.isProvinceDelivery) && route === "Torino - Lima";
   const rawProvinceCustomerPrice = input.provinceCustomerPriceEur === undefined || input.provinceCustomerPriceEur === null ? "" : String(input.provinceCustomerPriceEur).trim();
   const parsedProvinceCustomerPrice = Number(rawProvinceCustomerPrice);
-  const automaticProvincePrice = provinceEnabled ? (weightKg <= 5 ? 10 : weightKg <= 10 ? 15 : 0) : 0;
+  const automaticProvincePrice = provinceEnabled ? Math.round(Math.min(weightKg, 10) * 1.5 * 100) / 100 : 0;
   const provinceCustomerPriceEur = provinceEnabled ? (rawProvinceCustomerPrice !== "" && Number.isFinite(parsedProvinceCustomerPrice) && parsedProvinceCustomerPrice >= 0 ? parsedProvinceCustomerPrice : (automaticProvincePrice || (weightKg > 10 ? 15 : 0))) : 0;
   const rawProvinceExtraPrice = input.provinceExtraPriceEur === undefined || input.provinceExtraPriceEur === null ? "" : String(input.provinceExtraPriceEur).trim();
   const parsedProvinceExtraPrice = Number(rawProvinceExtraPrice);
@@ -88,7 +90,7 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
   }
 
   const totalWithExtraEur = totalEur + extraPriceEur + servicePriceEur + provinceCustomerPriceEur + provinceExtraPriceEur;
-  const provinceDescription = provinceEnabled ? ` Envío a provincia (${provinceCarrier === "olva" ? "Olva" : "Shalom"}): base cliente +${provinceCustomerPriceEur.toFixed(2)} EUR${provinceExtraPriceEur > 0 ? `; extra provincial +${provinceExtraPriceEur.toFixed(2)} EUR` : ""}; costo operativo S/${provinceOperationalCostSoles.toFixed(2)}.` : "";
+  const provinceDescription = provinceEnabled ? ` Envío a provincia (${provinceCarrier || "agencia seleccionada"}): base cliente +${provinceCustomerPriceEur.toFixed(2)} EUR${provinceExtraPriceEur > 0 ? `; extra provincial +${provinceExtraPriceEur.toFixed(2)} EUR` : ""}.` : "";
   const extraDescription = extraPriceEur > 0 ? ` Importe extra: +${extraPriceEur.toFixed(2)} EUR.` : "";
   const serviceDescription = `${requiresApostilleService ? ` Servicio de apostilla Italia–Lima: +${servicePriceEur.toFixed(2)} EUR y +${(serviceManualPriceSoles ?? 160).toFixed(2)} soles.` : ""}${requiresTranslationService ? ` Servicio de traducción Italia–Lima: +${(serviceManualPriceSoles ?? 200).toFixed(2)} soles.` : ""}`;
   return {

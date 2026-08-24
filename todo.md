@@ -1098,3 +1098,11 @@
 - [x] Mostrar el error junto al campo faltante con texto comprensible
 - [x] Ocultar códigos internos y evitar mensajes técnicos al usuario
 - [x] Añadir pruebas, validar y publicar
+
+## Cálculo total final de encomiendas
+- [x] Aplicar 13,50 EUR/kg como tarifa base automática
+- [x] Limitar la tarifa automática a 10 kg cuando el peso supere 15 kg
+- [x] Calcular los 5 kg excedentes a 1,50 EUR/kg y permitir modificar el extra
+- [x] Sumar el extra provincial únicamente si se marca Envío a provincia
+- [x] Generar notas con tarifa, base provincial y extra, sin costo operativo
+- [x] Añadir pruebas, validar recibos y publicar
