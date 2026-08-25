@@ -95,7 +95,11 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
   }
 
   const totalWithExtraEur = totalEur + netExtraPriceEur + servicePriceEur + provinceCustomerPriceEur + provinceExtraPriceEur;
-  const provinceDescription = provinceEnabled ? ` Envío a provincia (${provinceCarrier || "agencia seleccionada"}): 1–5 kg +10.00 EUR; más de 5–15 kg +15.00 EUR${provinceExtraPriceEur > 0 ? `; excedente sobre 15 kg +${provinceExtraPriceEur.toFixed(2)} EUR a 1.50 EUR/kg` : ""}.` : "";
+  const usesAutomaticProvincePrice = provinceEnabled && rawProvinceCustomerPrice === "";
+  const provinceTierLabel = weightKg <= 5 ? "hasta 5 kg" : "más de 5 kg";
+  const provinceDescription = provinceEnabled
+    ? ` Envío a provincia (${provinceCarrier || "agencia seleccionada"}): +${provinceCustomerPriceEur.toFixed(2)} EUR${usesAutomaticProvincePrice ? ` (${provinceTierLabel})` : ""}${provinceExtraPriceEur > 0 ? `; excedente sobre 15 kg: +${provinceExtraPriceEur.toFixed(2)} EUR` : ""}.`
+    : "";
   const extraDescription = extraPriceEur > 0 ? ` Importe extra: +${extraPriceEur.toFixed(2)} EUR${extraDiscountEur > 0 ? `; descuento del extra: -${extraDiscountEur.toFixed(2)} EUR; extra neto: +${netExtraPriceEur.toFixed(2)} EUR` : ""}.` : "";
   const serviceDescription = `${requiresApostilleService ? ` Servicio de apostilla Italia–Lima: +${servicePriceEur.toFixed(2)} EUR y +${(serviceManualPriceSoles ?? 160).toFixed(2)} soles.` : ""}${requiresTranslationService ? ` Servicio de traducción Italia–Lima: +${(serviceManualPriceSoles ?? 200).toFixed(2)} soles.` : ""}`;
   return {

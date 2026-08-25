@@ -1354,3 +1354,9 @@
 - [x] Permitir registrar en Envío incompleto documentos, artículos o datos que faltan antes del despacho
 - [x] Añadir búsqueda y filtro por nombre, DNI o celular al selector de remitente provincial
 - [x] Añadir pruebas, validar TypeScript y publicar la corrección
+
+## Notas provinciales y precio destacado
+- [x] Mostrar en notas únicamente el cargo provincial realmente aplicable al peso y servicio seleccionado
+- [x] Excluir importes de intervalos no seleccionados o servicios no cobrados
+- [x] Destacar el precio total pagado en azul y con mayor jerarquía visual
+- [x] Añadir pruebas, validar TypeScript y publicar la corrección

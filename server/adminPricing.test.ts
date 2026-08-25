@@ -24,6 +24,16 @@ describe("calculateAdminShipmentPricing", () => {
     expect(provincial.totalEur).toBe(150);
   });
 
+  it("incluye en notas solo el tramo provincial que se cobró", () => {
+    const upToFiveKg = calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 5, route: "Torino - Lima", isProvinceDelivery: true, provinceCarrier: "shalom" });
+    const aboveFiveKg = calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 10, route: "Torino - Lima", isProvinceDelivery: true, provinceCarrier: "shalom" });
+
+    expect(upToFiveKg.notes).toContain("+10.00 EUR (hasta 5 kg)");
+    expect(upToFiveKg.notes).not.toContain("+15.00 EUR");
+    expect(aboveFiveKg.notes).toContain("+15.00 EUR (más de 5 kg)");
+    expect(aboveFiveKg.notes).not.toContain("+10.00 EUR");
+  });
+
   it("uses the 13.5 EUR/kg base above 10 kg and keeps manual base pricing available", () => {
     const pricing = calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 11, route: "Torino - Lima" });
     expect(pricing.totalEur).toBe(148.5);

@@ -9,6 +9,7 @@ const trackedShipment = {
   code: "CA06721WB",
   status: "Entregado",
   paymentStatus: "Pagado",
+  finalPriceEur: "65.00",
   shipmentType: "documento",
   events: [],
   createdAt: new Date("2026-08-12T12:00:00Z"),
@@ -92,6 +93,9 @@ describe("Home public page", () => {
 
     expect(await screen.findByText("Estado de pago")).toBeTruthy();
     expect(screen.getByText("Pagado")).toBeTruthy();
+    const paidPrice = screen.getByText("65.00", { exact: false });
+    expect(screen.getByText("Precio pagado")).toBeTruthy();
+    expect(paidPrice.className).toContain("text-blue-700");
     expect(screen.getByText("Lima - Torino")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Recojo en Torino, Italia" })).toBeTruthy();
     expect(screen.getAllByText(/Corso Peschiera, 162A, Zona Piazza Sabotino/).length).toBeGreaterThanOrEqual(2);

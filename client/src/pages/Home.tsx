@@ -76,9 +76,21 @@ interface ShipmentData {
   createdAt: Date;
   updatedAt: Date;
   paymentStatus?: string | null;
+  finalPriceEur?: string | number | null;
+  basePriceEur?: string | number | null;
+  manualPriceEur?: string | number | null;
   route?: string | null;
   destinationAddress?: string | null;
   requiresApostilleService?: number | boolean | null;
+}
+
+function getTrackedShipmentPriceEur(shipment: ShipmentData): number | null {
+  for (const candidate of [shipment.finalPriceEur, shipment.basePriceEur, shipment.manualPriceEur]) {
+    if (candidate === null || candidate === undefined || String(candidate).trim() === "") continue;
+    const price = Number(candidate);
+    if (Number.isFinite(price) && price >= 0) return price;
+  }
+  return null;
 }
 
 export function LocationsSection() {
@@ -148,6 +160,7 @@ export default function Home() {
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const trackedPriceEur = shipmentData ? getTrackedShipmentPriceEur(shipmentData) : null;
   const [searchParams, setSearchParams] = useState<SearchFormData | null>(null);
   const pickupRoute = shipmentData ? getRoutePresentation(shipmentData.route, shipmentData.destinationAddress) : null;
 
@@ -330,7 +343,7 @@ export default function Home() {
           <div className="space-y-8">
             {/* Shipment Info Card */}
             <Card className="rounded-3xl border-0 bg-gradient-to-br from-[#0B2B5E]/8 via-white to-white p-5 shadow-[0_18px_50px_-24px_rgba(11,43,94,0.45)] ring-1 ring-[#0B2B5E]/10 sm:p-7 lg:p-8">
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-4 md:gap-6">
+              <div className={`grid grid-cols-1 gap-5 sm:grid-cols-2 ${trackedPriceEur !== null ? "md:grid-cols-5" : "md:grid-cols-4"} md:gap-6`}>
                 <div>
                   <p className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-500">Número de orden</p>
                   <p className="break-all text-xl font-extrabold tracking-tight text-gray-900 sm:text-2xl">
@@ -358,6 +371,10 @@ export default function Home() {
                     {getPaymentStatusUi(shipmentData.paymentStatus).label}
                   </span>
                 </div>
+                {trackedPriceEur !== null && <div className="rounded-2xl border-2 border-blue-200 bg-blue-50 px-4 py-3 shadow-sm">
+                  <p className="text-xs font-extrabold uppercase tracking-wide text-blue-700">{shipmentData.paymentStatus === "Pagado" ? "Precio pagado" : "Monto total"}</p>
+                  <p className="mt-1 text-3xl font-black tracking-tight text-blue-700 sm:text-4xl">{trackedPriceEur.toFixed(2)} <span className="text-lg font-extrabold">EUR</span></p>
+                </div>}
               </div>
             </Card>
 
