@@ -46,7 +46,7 @@ import { normalizeIdentityDocument, type IdentityDocumentType } from "@shared/id
 import { getFuzzySearchScore } from "@shared/fuzzySearch";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "@shared/passwordPolicy";
 
-type AdminWorkspace = "resumen" | "registros" | "crear" | "cupones" | "papelera" | "usuarios" | "analitica" | "carta";
+type AdminWorkspace = "resumen" | "registros" | "crear" | "cupones" | "papelera" | "usuarios" | "analitica" | "carta" | "remitentes";
 
 function renderQrCode(canvas: HTMLCanvasElement | null, trackingUrl: string, width: number) {
   if (!canvas) return;
@@ -222,6 +222,10 @@ const createShipmentSchema = z.object({
   provinceExtraPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
   provinceOperationalCostSoles: z.union([z.string(), z.number()]).optional().nullable(),
   provinceCarrier: z.string().min(1).max(64).default("shalom"),
+  provinceSenderName: z.string().trim().max(255).optional(),
+  provinceSenderLastName: z.string().trim().max(255).optional(),
+  provinceSenderDni: z.string().trim().max(20).optional(),
+  provinceSenderPhone: z.string().trim().max(20).optional(),
   couponCode: z.string().trim().max(64).optional(),
   documentItems: z.array(z.object({
     docType: z.enum(["simple", "apostillado"]),
@@ -263,6 +267,10 @@ const updateStatusSchema = z.object({
   provinceExtraPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
   provinceOperationalCostSoles: z.union([z.string(), z.number()]).optional().nullable(),
   provinceCarrier: z.string().min(1).max(64).optional(),
+  provinceSenderName: z.string().trim().max(255).optional(),
+  provinceSenderLastName: z.string().trim().max(255).optional(),
+  provinceSenderDni: z.string().trim().max(20).optional(),
+  provinceSenderPhone: z.string().trim().max(20).optional(),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
@@ -316,6 +324,10 @@ export default function AdminDashboard() {
   const [showGeneralFeedback, setShowGeneralFeedback] = useState(false);
   const [senderClientQuery, setSenderClientQuery] = useState("");
   const [recipientClientQuery, setRecipientClientQuery] = useState("");
+  const [senderDirectoryName, setSenderDirectoryName] = useState("");
+  const [senderDirectoryLastName, setSenderDirectoryLastName] = useState("");
+  const [senderDirectoryDni, setSenderDirectoryDni] = useState("");
+  const [senderDirectoryPhone, setSenderDirectoryPhone] = useState("");
   const [additionalDocumentItems, setAdditionalDocumentItems] = useState<Array<{ docType: "simple" | "apostillado"; sheetCount: number; manualPriceEur: string }>>([]);
   const [contentChecklist, setContentChecklist] = useState<string[]>([]);
   const [shipmentPhoto, setShipmentPhoto] = useState<File | null>(null);
@@ -379,6 +391,9 @@ export default function AdminDashboard() {
   );
   const { data: adminInsights } = trpc.analytics.adminInsights.useQuery(undefined, { enabled: isLoggedIn && !admin?.reauthRequired && adminWorkspace === "analitica" });
   const { data: adminUsers, refetch: refetchAdminUsers } = trpc.admin.listAdmins.useQuery(undefined, { enabled: isLoggedIn && admin?.role === "superadmin" && !admin?.reauthRequired });
+  const shipmentSenderQuery = (trpc.admin as any).listShipmentSenders?.useQuery?.(undefined, { enabled: isLoggedIn && !admin?.reauthRequired && (adminWorkspace === "remitentes" || adminWorkspace === "crear") });
+  const shipmentSenders = shipmentSenderQuery?.data || [];
+  const refetchShipmentSenders = shipmentSenderQuery?.refetch || (async () => undefined);
   const { data: senderClientResults = [], isFetching: isSearchingSender } = trpc.admin.searchClients.useQuery(
     { query: senderClientQuery.trim(), limit: 8 },
     { enabled: isLoggedIn && !admin?.reauthRequired && showCreateForm && senderClientQuery.trim().length >= 2 },
@@ -467,6 +482,8 @@ export default function AdminDashboard() {
   const createAdminMutation = trpc.admin.createAdmin.useMutation();
   const deleteAdminMutation = trpc.admin.deleteAdmin.useMutation();
   const deactivateAdminMutation = trpc.admin.deactivateAdmin.useMutation();
+  const createShipmentSenderMutation = (trpc.admin as any).createShipmentSender?.useMutation?.({ onSuccess: async () => { toast.success("Remitente provincial creado."); setSenderDirectoryName(""); setSenderDirectoryLastName(""); setSenderDirectoryDni(""); setSenderDirectoryPhone(""); await refetchShipmentSenders(); }, onError: (error: any) => toast.error(error.message) }) || { mutate: () => undefined, isPending: false };
+  const setShipmentSenderActiveMutation = (trpc.admin as any).setShipmentSenderActive?.useMutation?.({ onSuccess: async () => { toast.success("Estado del remitente actualizado."); await refetchShipmentSenders(); }, onError: (error: any) => toast.error(error.message) }) || { mutate: () => undefined, isPending: false };
   const changeMyPasswordMutation = trpc.admin.changeMyPassword.useMutation({
     onSuccess: result => {
       toast.success(result.message);
@@ -544,12 +561,16 @@ export default function AdminDashboard() {
       provinceCustomerPriceEur: '',
       provinceOperationalCostSoles: '',
       provinceCarrier: 'shalom',
+      provinceSenderName: '',
+      provinceSenderLastName: '',
+      provinceSenderDni: '',
+      provinceSenderPhone: '',
     },
   });
   const selectedShipmentType = createForm.watch("shipmentType") || "documento";
 
   const resetCreateForm = () => {
-    createForm.reset({ status: "En agencia", senderName: "", senderLastName: "", senderDni: "", senderDocumentType: "dni_peru", senderPhone: "", recipientName: "", recipientLastName: "", recipientDni: "", recipientDocumentType: "dni_peru", recipientPhone: "", notes: "", shipmentType: "documento", documentCount: 1, docType: "apostillado", sheetCount: 1, requiresApostilleService: false, requiresTranslationService: false, serviceManualPriceEur: "", serviceManualPriceSoles: "", weightKg: 1, manualPriceEur: "", extraPriceEur: 0, paymentStatus: "Falta cancelar", route: "Lima - Torino", originAddress: "", destinationAddress: "", isProvinceDelivery: false, provinceCustomerPriceEur: "", provinceExtraPriceEur: "", provinceOperationalCostSoles: "", provinceCarrier: "shalom", couponCode: "", documentItems: [], contentChecklist: [], deliveryMode: "agencia" });
+    createForm.reset({ status: "En agencia", senderName: "", senderLastName: "", senderDni: "", senderDocumentType: "dni_peru", senderPhone: "", recipientName: "", recipientLastName: "", recipientDni: "", recipientDocumentType: "dni_peru", recipientPhone: "", notes: "", shipmentType: "documento", documentCount: 1, docType: "apostillado", sheetCount: 1, requiresApostilleService: false, requiresTranslationService: false, serviceManualPriceEur: "", serviceManualPriceSoles: "", weightKg: 1, manualPriceEur: "", extraPriceEur: 0, paymentStatus: "Falta cancelar", route: "Lima - Torino", originAddress: "", destinationAddress: "", isProvinceDelivery: false, provinceCustomerPriceEur: "", provinceExtraPriceEur: "", provinceOperationalCostSoles: "", provinceCarrier: "shalom", provinceSenderName: "", provinceSenderLastName: "", provinceSenderDni: "", provinceSenderPhone: "", couponCode: "", documentItems: [], contentChecklist: [], deliveryMode: "agencia" });
     setSenderClientQuery("");
     setRecipientClientQuery("");
     setAdditionalDocumentItems([]);
@@ -709,6 +730,10 @@ export default function AdminDashboard() {
       provinceExtraPriceEur: shipment.provinceExtraPriceEur || "",
       provinceOperationalCostSoles: shipment.provinceOperationalCostSoles || "",
       provinceCarrier: shipment.provinceCarrier || "shalom",
+      provinceSenderName: shipment.provinceSenderName || shipment.senderName || "",
+      provinceSenderLastName: shipment.provinceSenderLastName || shipment.senderLastName || "",
+      provinceSenderDni: shipment.provinceSenderDni || shipment.senderDni || "",
+      provinceSenderPhone: shipment.provinceSenderPhone || shipment.senderPhone || "",
     });
     setShowUpdateForm(true);
   };
@@ -1240,6 +1265,12 @@ export default function AdminDashboard() {
             route: printShipment.route,
             limaTorinoEncomiendasEnabled,
             managementUrl,
+            isProvinceDelivery: printShipment.isProvinceDelivery,
+            provinceCarrier: printShipment.provinceCarrier,
+            provinceSenderName: printShipment.provinceSenderName,
+            provinceSenderLastName: printShipment.provinceSenderLastName,
+            provinceSenderDni: printShipment.provinceSenderDni,
+            provinceSenderPhone: printShipment.provinceSenderPhone,
           })}
 
           <!-- PÁGINA 2: DECLARACIÓN JURADA -->
@@ -1655,6 +1686,7 @@ export default function AdminDashboard() {
               ["papelera", `Papelera (${deletedShipments.length})`],
               ["resumen", "Resumen"],
               ["analitica", "Analítica"],
+              ["remitentes", "Remitentes provinciales"],
               ...(admin?.role === "superadmin" ? [["usuarios", "Registradores"]] : []),
             ] as Array<[AdminWorkspace, string]>).map(([workspace, label]) => (
               <Button key={workspace} type="button" size="sm" variant={adminWorkspace === workspace ? "default" : "outline"} onClick={() => setAdminWorkspace(workspace)} className={adminWorkspace === workspace ? "bg-primary text-white" : "border-slate-300 text-slate-700"}>{label}</Button>
@@ -1706,6 +1738,8 @@ export default function AdminDashboard() {
         {adminWorkspace === "analitica" && <Card className="mb-8 border-0 p-6 shadow-lg"><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-semibold text-gray-900">Analítica de interacción y tendencias</h2><p className="mt-1 text-sm text-slate-500">Esta área se abre solo al revisar la operación. No inspecciona nombres, documentos, teléfonos ni notas.</p></div>{adminInsights && <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-bold text-[#0B2B5E]">Puntaje {adminInsights.engagementScore}/100</span>}</div>{adminInsights && <><div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4"><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Interacciones</p><strong>{adminInsights.totalEvents}</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Sesiones</p><strong>{adminInsights.uniqueSessions}</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Continuidad</p><strong>{Math.round(adminInsights.completionRate * 100)}%</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Anomalía</p><strong>{adminInsights.anomalyScore}/100</strong></div></div><ul className="mt-4 space-y-1 text-sm text-slate-700">{adminInsights.insights.map((insight: string) => <li key={insight}>• {insight}</li>)}</ul></>}<div className="mt-6"><ShipmentTrendCharts shipments={shipments} /></div></Card>}
 
         {adminWorkspace === "carta" && <InvitationLetterWorkspace shipments={shipments} />}
+
+        {adminWorkspace === "remitentes" && <Card className="mb-8 border-0 p-6 shadow-lg"><div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-xl font-semibold text-gray-900">Remitentes para envíos a provincia</h2><p className="mt-1 text-sm text-slate-600">Administra quién figura como remitente nacional en el ticket. Los cambios se guardan por espacio administrativo.</p></div><span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-bold text-[#0B2B5E]">{shipmentSenders.length} registrados</span></div><form className="mt-5 grid gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 sm:grid-cols-2" onSubmit={(event) => { event.preventDefault(); createShipmentSenderMutation.mutate({ name: senderDirectoryName, lastName: senderDirectoryLastName, dni: senderDirectoryDni, phone: senderDirectoryPhone || undefined }); }}><Input aria-label="Nombres del remitente provincial" placeholder="Nombres" value={senderDirectoryName} onChange={(event) => setSenderDirectoryName(event.target.value)} required /><Input aria-label="Apellidos del remitente provincial" placeholder="Apellidos" value={senderDirectoryLastName} onChange={(event) => setSenderDirectoryLastName(event.target.value)} required /><Input aria-label="DNI del remitente provincial" placeholder="DNI de 8 dígitos" inputMode="numeric" maxLength={8} value={senderDirectoryDni} onChange={(event) => setSenderDirectoryDni(event.target.value.replace(/\\D/g, "").slice(0, 8))} required /><Input aria-label="Celular del remitente provincial" placeholder="Celular" inputMode="tel" value={senderDirectoryPhone} onChange={(event) => setSenderDirectoryPhone(event.target.value)} /><Button type="submit" disabled={createShipmentSenderMutation.isPending} className="min-h-12 bg-[#0B2B5E] text-white sm:col-span-2">{createShipmentSenderMutation.isPending ? "Creando…" : "Crear remitente"}</Button></form><div className="mt-5 grid gap-3">{shipmentSenders.length === 0 ? <p className="rounded-xl border border-dashed border-slate-300 p-4 text-sm text-slate-600">No hay remitentes activos o inactivos registrados. Si todos están desactivados, cada ticket usará el remitente internacional como respaldo.</p> : shipmentSenders.map((sender: any) => <div key={sender.id} className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4 ${sender.isActive ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-slate-50"}`}><div><p className="font-bold text-[#0B2B5E]">{sender.name} {sender.lastName}</p><p className="text-sm text-slate-600">DNI {sender.dni || "No indicado"} · {sender.phone || "Sin celular"}</p><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{sender.isActive ? "Activo para nuevos tickets" : "Desactivado"}</p></div><Button type="button" variant="outline" disabled={setShipmentSenderActiveMutation.isPending} onClick={() => setShipmentSenderActiveMutation.mutate({ id: sender.id, isActive: !Boolean(sender.isActive) })} className={sender.isActive ? "border-rose-300 text-rose-700" : "border-emerald-300 text-emerald-700"}>{sender.isActive ? "Desactivar" : "Activar"}</Button></div>)}</div></Card>}
 
         {/* Coupon Management Section */}
         <Card className={`mb-8 border-0 p-6 shadow-lg ${adminWorkspace === "cupones" ? "" : "hidden"}`}>
@@ -2157,7 +2191,7 @@ export default function AdminDashboard() {
                 </div>
               )}
 
-              {selectedRoute === "Torino - Lima" && <section className="mt-4 rounded-xl border border-orange-200 bg-orange-50 p-4"><label className="flex cursor-pointer items-start gap-3 text-sm font-semibold text-[#0B2B5E]"><input type="checkbox" aria-label="Envío a provincia" {...createForm.register("isProvinceDelivery")} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-[#0B2B5E]" /><span><span className="block">Envío a provincia</span><span className="mt-1 block text-xs font-normal text-slate-700">Primero selecciona la sede y registra el peso de la encomienda. Luego indica cuánto se cobra al cliente; la agencia/courier ya está definido por la sede elegida.</span></span></label>{createForm.watch("isProvinceDelivery") && <><AgencyDestinationPicker route={selectedRoute} value={createForm.watch("destinationAddress") || ""} onChange={(destinationAddress) => createForm.setValue("destinationAddress", destinationAddress, { shouldValidate: true, shouldDirty: true })} /><div className="mt-3 grid gap-3 sm:grid-cols-2"><div><p className="mb-1 text-sm font-semibold text-slate-700">Peso enviado</p><p className="rounded-md bg-white px-3 py-2 text-base font-bold text-[#0B2B5E]">{selectedShipmentType === "encomienda" ? `${watchedWeightKg.toFixed(1)} kg` : "No aplica a documentos"}</p></div><div><label className="mb-1 block text-sm font-semibold text-slate-700">Precio al cliente (EUR)</label>    <Input type="number" min="0" step="0.01" placeholder="Ej. 10.00" {...createForm.register("provinceCustomerPriceEur")} />
+              {selectedRoute === "Torino - Lima" && <section className="mt-4 rounded-xl border border-orange-200 bg-orange-50 p-4"><label className="flex cursor-pointer items-start gap-3 text-sm font-semibold text-[#0B2B5E]"><input type="checkbox" aria-label="Envío a provincia" {...createForm.register("isProvinceDelivery")} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-[#0B2B5E]" /><span><span className="block">Envío a provincia</span><span className="mt-1 block text-xs font-normal text-slate-700">Primero selecciona la sede y registra el peso de la encomienda. Luego indica cuánto se cobra al cliente; la agencia/courier ya está definido por la sede elegida.</span></span></label>{createForm.watch("isProvinceDelivery") && <><AgencyDestinationPicker route={selectedRoute} value={createForm.watch("destinationAddress") || ""} onChange={(destinationAddress) => createForm.setValue("destinationAddress", destinationAddress, { shouldValidate: true, shouldDirty: true })} /><div className="mt-3 rounded-xl border border-blue-200 bg-blue-50 p-4"><p className="text-sm font-bold text-[#0B2B5E]">Remitente para provincia</p><p className="mt-1 text-xs text-slate-600">Si no completas estos datos, se usará automáticamente el remitente internacional.</p><select aria-label="Remitente provincial guardado" className="mt-3 h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-[#0B2B5E]" value={[createForm.watch("provinceSenderName"), createForm.watch("provinceSenderLastName"), createForm.watch("provinceSenderDni")].filter(Boolean).join("|")} onChange={(event) => { const sender = (shipmentSenders as any[]).find(item => `${item.name}|${item.lastName}|${item.dni}` === event.target.value); if (sender) { createForm.setValue("provinceSenderName", sender.name, { shouldDirty: true }); createForm.setValue("provinceSenderLastName", sender.lastName, { shouldDirty: true }); createForm.setValue("provinceSenderDni", sender.dni, { shouldDirty: true }); createForm.setValue("provinceSenderPhone", sender.phone || "", { shouldDirty: true }); } else { createForm.setValue("provinceSenderName", "", { shouldDirty: true }); createForm.setValue("provinceSenderLastName", "", { shouldDirty: true }); createForm.setValue("provinceSenderDni", "", { shouldDirty: true }); createForm.setValue("provinceSenderPhone", "", { shouldDirty: true }); } }}><option value="">Selecciona un remitente activo o escribe uno nuevo</option>{(shipmentSenders as any[]).filter(item => Boolean(item.isActive)).map(item => <option key={item.id} value={`${item.name}|${item.lastName}|${item.dni}`}>{item.name} {item.lastName} · DNI {item.dni}</option>)}</select><div className="mt-3 grid gap-3 sm:grid-cols-2"><Input placeholder="Nombres del remitente provincial" {...createForm.register("provinceSenderName")} /><Input placeholder="Apellidos del remitente provincial" {...createForm.register("provinceSenderLastName")} /><Input placeholder="DNI del remitente provincial" inputMode="numeric" maxLength={8} {...createForm.register("provinceSenderDni")} /><Input placeholder="Celular del remitente provincial" inputMode="tel" {...createForm.register("provinceSenderPhone")} /></div></div><div className="mt-3 grid gap-3 sm:grid-cols-2"><div><p className="mb-1 text-sm font-semibold text-slate-700">Peso enviado</p><p className="rounded-md bg-white px-3 py-2 text-base font-bold text-[#0B2B5E]">{selectedShipmentType === "encomienda" ? `${watchedWeightKg.toFixed(1)} kg` : "No aplica a documentos"}</p></div><div><label className="mb-1 block text-sm font-semibold text-slate-700">Precio al cliente (EUR)</label>    <Input type="number" min="0" step="0.01" placeholder="Ej. 10.00" {...createForm.register("provinceCustomerPriceEur")} />
 <div><label className="mb-1 block text-sm font-semibold text-slate-700">Extra provincial proporcional (EUR)</label><Input type="number" min="0" step="0.01" placeholder={watchedWeightKg > 10 ? "Ej. 1.50 por kg excedente" : "0.00"} {...createForm.register("provinceExtraPriceEur")} /><p className="mt-1 text-xs text-slate-600">Sobre 10 kg se calcula automáticamente a 1,50 EUR por kg adicional; puedes modificarlo si lo deseas. Este importe es un recordatorio, no impide crear la encomienda.</p></div></div><div><label className="mb-1 block text-sm font-semibold text-slate-700">Costo operativo (soles)</label><Input type="number" min="0" step="0.01" placeholder={selectedShipmentType === "documento" ? "8.00 automático" : "Ej. 12.00"} {...createForm.register("provinceOperationalCostSoles")} /><p className="mt-1 text-xs text-slate-600">Documentos: S/ 8.00 por defecto.</p></div><div className="rounded-md bg-white px-3 py-2 text-sm text-slate-700"><strong>Courier:</strong> Se usará la agencia seleccionada arriba.</div></div></>}</section>}
 
               {/* Notas */}
@@ -2745,6 +2779,8 @@ export default function AdminDashboard() {
                         <span>Envío a provincia después de Lima<span className="mt-1 block text-xs font-normal text-slate-700">Puedes cambiar la agencia y la sede en cualquier actualización. El precio se recalcula automáticamente.</span></span>
                       </label>
                       {updateForm.watch("isProvinceDelivery") && (
+                        <>
+                        <div className="mt-3 rounded-xl border border-blue-200 bg-blue-50 p-4"><p className="text-sm font-bold text-[#0B2B5E]">Remitente para provincia</p><p className="mt-1 text-xs text-slate-600">Puedes cambiarlo para este despacho. Si queda vacío, se conserva el remitente internacional.</p><div className="mt-3 grid gap-3 sm:grid-cols-2"><Input placeholder="Nombres del remitente provincial" {...updateForm.register("provinceSenderName")} /><Input placeholder="Apellidos del remitente provincial" {...updateForm.register("provinceSenderLastName")} /><Input placeholder="DNI del remitente provincial" inputMode="numeric" maxLength={8} {...updateForm.register("provinceSenderDni")} /><Input placeholder="Celular del remitente provincial" inputMode="tel" {...updateForm.register("provinceSenderPhone")} /></div></div>
                         <div className="mt-3 grid gap-3 sm:grid-cols-2">
                           <div className="sm:col-span-2">
                             <AgencyDestinationPicker route={updateShipmentRoute} value={updateForm.watch("destinationAddress") || ""} provider={(updateForm.watch("provinceCarrier") || "shalom") as AgencyProvider} onProviderChange={(provider) => updateForm.setValue("provinceCarrier", provider, { shouldDirty: true, shouldValidate: true })} onChange={(destinationAddress) => updateForm.setValue("destinationAddress", destinationAddress, { shouldDirty: true, shouldValidate: true })} />
@@ -2763,6 +2799,7 @@ export default function AdminDashboard() {
                             <Input type="number" min="0" step="0.01" {...updateForm.register("provinceOperationalCostSoles")} />
                           </div>
                         </div>
+                        </>
                       )}
                     </div>
                   )}

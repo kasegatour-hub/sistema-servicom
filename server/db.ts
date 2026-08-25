@@ -311,6 +311,29 @@ export async function upsertClient(record: ClientDirectoryRecord) {
   return insertedId ? getClientById(insertedId) : undefined;
 }
 
+export async function listShipmentSenders(ownerAdminId: number | null) {
+  const db = await getDb();
+  if (!db) return [];
+  const ownerCondition = ownerAdminId === null ? isNull(clients.ownerAdminId) : eq(clients.ownerAdminId, ownerAdminId);
+  return db.select().from(clients).where(and(ownerCondition, eq(clients.isSender, 1))).orderBy(desc(clients.isActive), desc(clients.updatedAt));
+}
+
+export async function createShipmentSender(input: { ownerAdminId: number | null; name: string; lastName: string; dni: string; phone?: string | null }) {
+  const db = await getDb();
+  if (!db || !input.name.trim() || !input.lastName.trim() || !input.dni.trim()) return undefined;
+  const inserted = await db.insert(clients).values({ ownerAdminId: input.ownerAdminId, name: input.name.trim().toUpperCase(), lastName: input.lastName.trim().toUpperCase(), dni: input.dni.trim(), documentType: "dni_peru", phone: input.phone?.trim() || null, isSender: 1, isActive: 1 });
+  const id = Number((inserted as { insertId?: number }).insertId);
+  return id ? getClientById(id) : undefined;
+}
+
+export async function setShipmentSenderActive(id: number, ownerAdminId: number | null, isActive: boolean) {
+  const db = await getDb();
+  if (!db) return false;
+  const ownerCondition = ownerAdminId === null ? isNull(clients.ownerAdminId) : eq(clients.ownerAdminId, ownerAdminId);
+  const result = await db.update(clients).set({ isActive: isActive ? 1 : 0, updatedAt: new Date() }).where(and(eq(clients.id, id), ownerCondition, eq(clients.isSender, 1)));
+  return Number((result as { affectedRows?: number }).affectedRows || 0) > 0;
+}
+
 export async function persistShipmentClients(input: ShipmentClientDirectoryInput) {
   const records = buildShipmentClientDirectoryRecords(input);
   const [sender, recipient] = await Promise.all([
@@ -1088,6 +1111,10 @@ export async function createShipment(
   provinceExtraPriceEur?: string | number | null,
   provinceOperationalCostSoles?: string | number | null,
   provinceCarrier?: string | null,
+  provinceSenderName?: string | null,
+  provinceSenderLastName?: string | null,
+  provinceSenderDni?: string | null,
+  provinceSenderPhone?: string | null,
 ) {
   const db = await getDb();
   if (!db) {
@@ -1154,6 +1181,10 @@ export async function createShipment(
     provinceExtraPriceEur: provinceDelivery && provinceExtraPriceEur !== undefined && provinceExtraPriceEur !== null && String(provinceExtraPriceEur).trim() !== "" ? String(Math.max(0, Number(provinceExtraPriceEur) || 0)) : "0.00",
     provinceOperationalCostSoles: provinceDelivery && provinceOperationalCostSoles !== undefined && provinceOperationalCostSoles !== null && String(provinceOperationalCostSoles).trim() !== "" ? String(provinceOperationalCostSoles) : null,
     provinceCarrier: (provinceDelivery ? provinceCarrier || "shalom" : null) as any,
+    provinceSenderName: provinceDelivery ? provinceSenderName || senderName || null : null,
+    provinceSenderLastName: provinceDelivery ? provinceSenderLastName || senderLastName || null : null,
+    provinceSenderDni: provinceDelivery ? provinceSenderDni || senderDni || null : null,
+    provinceSenderPhone: provinceDelivery ? provinceSenderPhone || senderPhone || null : null,
     documentItems: documentItems || null,
     contentChecklist: contentChecklist || null,
     deliveryMode: deliveryMode || "agencia",
@@ -1225,6 +1256,10 @@ export async function updateShipmentStatus(
   provinceExtraPriceEur?: string | number | null,
   provinceOperationalCostSoles?: string | number | null,
   provinceCarrier?: string | null,
+  provinceSenderName?: string | null,
+  provinceSenderLastName?: string | null,
+  provinceSenderDni?: string | null,
+  provinceSenderPhone?: string | null,
 ) {
   const db = await getDb();
   if (!db) {
@@ -1280,6 +1315,10 @@ export async function updateShipmentStatus(
         provinceExtraPriceEur: Boolean(isProvinceDelivery ?? shipment.isProvinceDelivery) && updatedRoute === "Torino - Lima" ? (provinceExtraPriceEur !== undefined && provinceExtraPriceEur !== null && String(provinceExtraPriceEur).trim() !== "" ? String(Math.max(0, Number(provinceExtraPriceEur) || 0)) : shipment.provinceExtraPriceEur ?? "0.00") : "0.00",
         provinceOperationalCostSoles: Boolean(isProvinceDelivery ?? shipment.isProvinceDelivery) && updatedRoute === "Torino - Lima" ? (provinceOperationalCostSoles !== undefined && provinceOperationalCostSoles !== null && String(provinceOperationalCostSoles).trim() !== "" ? String(provinceOperationalCostSoles) : shipment.provinceOperationalCostSoles) : null,
         provinceCarrier: (Boolean(isProvinceDelivery ?? shipment.isProvinceDelivery) && updatedRoute === "Torino - Lima" ? (provinceCarrier ?? shipment.provinceCarrier ?? "shalom") : null) as any,
+        provinceSenderName: Boolean(isProvinceDelivery ?? shipment.isProvinceDelivery) && updatedRoute === "Torino - Lima" ? (provinceSenderName ?? shipment.provinceSenderName ?? senderName ?? shipment.senderName) : null,
+        provinceSenderLastName: Boolean(isProvinceDelivery ?? shipment.isProvinceDelivery) && updatedRoute === "Torino - Lima" ? (provinceSenderLastName ?? shipment.provinceSenderLastName ?? senderLastName ?? shipment.senderLastName) : null,
+        provinceSenderDni: Boolean(isProvinceDelivery ?? shipment.isProvinceDelivery) && updatedRoute === "Torino - Lima" ? (provinceSenderDni ?? shipment.provinceSenderDni ?? senderDni ?? shipment.senderDni) : null,
+        provinceSenderPhone: Boolean(isProvinceDelivery ?? shipment.isProvinceDelivery) && updatedRoute === "Torino - Lima" ? (provinceSenderPhone ?? shipment.provinceSenderPhone ?? senderPhone ?? shipment.senderPhone) : null,
         weightKg: weightKg !== undefined ? String(weightKg) : shipment.weightKg ?? "1.00",
         manualPriceEur: manualPriceEur !== undefined ? (manualPriceEur !== null && String(manualPriceEur).trim() !== "" ? String(manualPriceEur) : null) : shipment.manualPriceEur,
         extraPriceEur: extraPriceEur !== undefined ? String(Math.max(0, Number(extraPriceEur) || 0)) : shipment.extraPriceEur ?? "0.00",

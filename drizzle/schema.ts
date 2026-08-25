@@ -59,6 +59,8 @@ export const clients = mysqlTable("clients", {
   documentType: mysqlEnum("documentType", ["dni_peru", "pasaporte", "carta_identita_italia"]).default("dni_peru").notNull(),
   phone: varchar("phone", { length: 32 }),
   email: varchar("email", { length: 320 }),
+  isSender: int("isSender").default(0).notNull(),
+  isActive: int("isActive").default(1).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, table => ({
@@ -245,6 +247,12 @@ export const shipments = mysqlTable("shipments", {
   recipientDni: varchar("recipientDni", { length: 20 }),
   recipientDocumentType: mysqlEnum("recipientDocumentType", ["dni_peru", "pasaporte", "carta_identita_italia"]).default("dni_peru").notNull(),
   recipientPhone: varchar("recipientPhone", { length: 20 }),
+
+  // Remitente utilizado para el despacho nacional a provincia (instantánea histórica)
+  provinceSenderName: varchar("provinceSenderName", { length: 255 }),
+  provinceSenderLastName: varchar("provinceSenderLastName", { length: 255 }),
+  provinceSenderDni: varchar("provinceSenderDni", { length: 20 }),
+  provinceSenderPhone: varchar("provinceSenderPhone", { length: 20 }),
   
   // Tipo de envío, peso, tarifa y notas
   shipmentType: mysqlEnum("shipmentType", ["documento", "encomienda"]).default("documento").notNull(),

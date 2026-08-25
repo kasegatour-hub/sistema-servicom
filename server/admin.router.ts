@@ -7,7 +7,7 @@ function buildTrackingPath(orderNumber: string, code: string): string {
   return `/?order=${encodeURIComponent(order)}&code=${encodeURIComponent(normalizedCode)}`;
 }
 import { publicProcedure, router } from "./_core/trpc";
-import { ISOLATED_WORKSPACE_ADMIN_IDS, attachShipmentAuditActorLabels, clearAdminPasswordFailures, createDiscountCoupon, createInvitationLetterAccount, createInvitationLetterRecord, createOrRefreshInvitationLetterSignatureRequest, createShipment, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAllShipments, getDeletedShipments, getDiscountCouponByCode, getInvitationLetterById, getShipmentAuditLogs, getShipmentById, getShipmentByOrderAndCode, getShipmentRoutePolicy, incrementDiscountCouponRedemption, isEncomiendaEnabledForRoute, listDeletedInvitationLetterRecords, listDiscountCoupons, listInvitationLetterRecords, moveInvitationLetterToTrash, recordInteractionEvent, recordShipmentAudit, registerAdminPasswordFailure, restoreInvitationLetterFromTrash, restoreShipment, searchClients, searchInvitationLetterPeople, setEncomiendaAvailabilityForRoute, setShipmentRegistradorVisibility, updateDiscountCoupon, updateShipmentStatus } from "./db";
+import { ISOLATED_WORKSPACE_ADMIN_IDS, attachShipmentAuditActorLabels, clearAdminPasswordFailures, createDiscountCoupon, createInvitationLetterAccount, createInvitationLetterRecord, createOrRefreshInvitationLetterSignatureRequest, createShipment, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAllShipments, getDeletedShipments, getDiscountCouponByCode, getInvitationLetterById, getShipmentAuditLogs, getShipmentById, getShipmentByOrderAndCode, getShipmentRoutePolicy, incrementDiscountCouponRedemption, isEncomiendaEnabledForRoute, listDeletedInvitationLetterRecords, listDiscountCoupons, listInvitationLetterRecords, listShipmentSenders, createShipmentSender, setShipmentSenderActive, moveInvitationLetterToTrash, recordInteractionEvent, recordShipmentAudit, registerAdminPasswordFailure, restoreInvitationLetterFromTrash, restoreShipment, searchClients, searchInvitationLetterPeople, setEncomiendaAvailabilityForRoute, setShipmentRegistradorVisibility, updateDiscountCoupon, updateShipmentStatus } from "./db";
 import { getRemainingLockoutSeconds, MAX_PASSWORD_FAILURES, PASSWORD_LOCKOUT_SECONDS } from "./loginProtection";
 import { generateTemporaryPassword, generateVerificationCode, hashPassword, hashVerificationCode, normalizeEmail, sendInvitationLetterSignatureEmail, sendVerificationEmail, verificationExpiry, verifyPassword } from "./localAuth";
 import { AdminSessionPayload, clearAdminSession, getAdminSession, setAdminSession } from "./adminSession";
@@ -536,6 +536,25 @@ export const adminRouter = router({
     .input(z.object({ query: z.string().trim().min(2), limit: z.number().int().min(1).max(20).default(8) }))
     .query(async ({ input, ctx }) => searchClients(input.query, input.limit, isolatedOwnerAdminId(ctx.adminSession.adminId, ctx.adminWorkspaceIsolated))),
 
+  listShipmentSenders: adminProcedure
+    .query(async ({ ctx }) => listShipmentSenders(isolatedOwnerAdminId(ctx.adminSession.adminId, ctx.adminWorkspaceIsolated) ?? null)),
+
+  createShipmentSender: adminProcedure
+    .input(z.object({ name: z.string().trim().min(1).max(255), lastName: z.string().trim().min(1).max(255), dni: z.string().regex(/^\d{8}$/, "El DNI debe tener 8 dígitos."), phone: z.string().trim().max(32).optional() }))
+    .mutation(async ({ input, ctx }) => {
+      const sender = await createShipmentSender({ ownerAdminId: isolatedOwnerAdminId(ctx.adminSession.adminId, ctx.adminWorkspaceIsolated) ?? null, ...input });
+      if (!sender) throw new TRPCError({ code: "BAD_REQUEST", message: "No se pudo crear el remitente." });
+      return sender;
+    }),
+
+  setShipmentSenderActive: adminProcedure
+    .input(z.object({ id: z.number().int().positive(), isActive: z.boolean() }))
+    .mutation(async ({ input, ctx }) => {
+      const updated = await setShipmentSenderActive(input.id, isolatedOwnerAdminId(ctx.adminSession.adminId, ctx.adminWorkspaceIsolated) ?? null, input.isActive);
+      if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "El remitente no pertenece a tu espacio o ya no existe." });
+      return { success: true, isActive: input.isActive };
+    }),
+
   translateInvitationLetter: adminProcedure
     .input(invitationItalianSchema)
     .mutation(async ({ input }) => translateInvitationToItalian(input)),
@@ -691,6 +710,10 @@ export const adminRouter = router({
       provinceExtraPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
       provinceOperationalCostSoles: z.union([z.string(), z.number()]).optional().nullable(),
       provinceCarrier: z.string().min(1).max(64).default("shalom"),
+      provinceSenderName: z.string().trim().max(255).optional(),
+      provinceSenderLastName: z.string().trim().max(255).optional(),
+      provinceSenderDni: z.string().trim().max(20).optional(),
+      provinceSenderPhone: z.string().trim().max(20).optional(),
       couponCode: z.string().trim().max(64).optional(),
       contentChecklist: z.array(z.string().trim().min(1).max(160)).max(24).min(1, "La lista de cosas enviadas es obligatoria."),
       isIncomplete: z.boolean().default(false),
@@ -778,6 +801,10 @@ export const adminRouter = router({
         pricing.provinceExtraPriceEur,
         pricing.provinceOperationalCostSoles,
         pricing.provinceCarrier,
+        input.provinceSenderName,
+        input.provinceSenderLastName,
+        input.provinceSenderDni,
+        input.provinceSenderPhone,
       );
       if (!result) {
         throw new TRPCError({
@@ -864,6 +891,10 @@ export const adminRouter = router({
       provinceExtraPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
       provinceOperationalCostSoles: z.union([z.string(), z.number()]).optional().nullable(),
       provinceCarrier: z.string().min(1).max(64).optional(),
+      provinceSenderName: z.string().trim().max(255).optional(),
+      provinceSenderLastName: z.string().trim().max(255).optional(),
+      provinceSenderDni: z.string().trim().max(20).optional(),
+      provinceSenderPhone: z.string().trim().max(20).optional(),
     }).superRefine((input, ctx) => {
       if ((input.shipmentType ?? "documento") === "documento" && input.docType === "simple" && (input.sheetCount ?? 1) > 8) {
         ctx.addIssue({ code: "custom", path: ["sheetCount"], message: "Los documentos simples permiten un máximo de 8 hojas por registro." });
@@ -930,6 +961,10 @@ export const adminRouter = router({
         input.provinceExtraPriceEur,
         input.provinceOperationalCostSoles,
         input.provinceCarrier,
+        input.provinceSenderName,
+        input.provinceSenderLastName,
+        input.provinceSenderDni,
+        input.provinceSenderPhone,
       );
       if (!result) {
         throw new TRPCError({

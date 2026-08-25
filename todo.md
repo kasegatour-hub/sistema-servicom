@@ -1173,3 +1173,10 @@
 - [x] Asociar a cada empresa sus destinos y cobertura para la selección provincial
 - [x] Mantener selección de empresa, búsqueda y sede/destino manual con feedback claro
 - [x] Añadir pruebas de catálogo, búsqueda, selección y diseño responsive
+
+## Remitentes nacionales y ticket provincial
+- [x] Añadir catálogo persistente de remitentes nacionales con nombre, apellidos, DNI y celular
+- [x] Permitir seleccionar, crear, desactivar y reactivar remitentes para envíos a provincia
+- [x] Usar automáticamente el remitente de Italia cuando todos los remitentes nacionales estén inactivos
+- [x] Mostrar siempre RUC y logo en el ticket, diferenciando remitente provincial e internacional
+- [x] Añadir pruebas de permisos, respaldo automático y generación del ticket

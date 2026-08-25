@@ -78,6 +78,31 @@ describe("administrative receipt ticket", () => {
     expect(html).toContain("Av. Principal 123, Chimbote");
   });
 
+  it("includes the institutional logo, RUC and provincial sender snapshot", () => {
+    const html = buildAdminDeliveryTicketHtml({
+      order: "63002265",
+      code: "0GBU",
+      recipient: "AMADOR GUTIERREZ CORDOVA",
+      recipientPhone: "+39 350 902 5271",
+      sender: "MAGDA BARRETO",
+      senderPhone: "+39 371 373 8550",
+      senderDni: "12345678",
+      provinceSenderName: "GIAN MARCO ARTEAGA",
+      provinceSenderLastName: "ALVAREZ",
+      provinceSenderDni: "74410344",
+      provinceSenderPhone: "+51 970 188 447",
+      shipmentType: "encomienda",
+      route: "Torino - Lima",
+      isProvinceDelivery: true,
+      provinceCarrier: "shalom",
+    });
+    expect(html).toContain("servicom_logo_final_e7ce35aa.png");
+    expect(html).toContain("RUC 20615004708");
+    expect(html).toContain("REMITENTE PROVINCIAL:");
+    expect(html).toContain("GIAN MARCO ARTEAGA ALVAREZ");
+    expect(html).toContain("74410344");
+  });
+
   it("shows the Lima–Torino security restriction when encomiendas are disabled", () => {
     const html = buildAdminDeliveryTicketHtml({
       order: "3289150504",
