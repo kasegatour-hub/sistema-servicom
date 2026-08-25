@@ -1312,3 +1312,19 @@
 - [x] Mantener dentro del perfil el cambio de contraseña y el cierre de sesión
 - [x] Conservar fuera del perfil las funciones exclusivas de gestión administrativa
 - [x] Añadir pruebas, validar responsive y publicar la alineación
+
+## Nuevo registro por pestañas y pasos móviles
+- [x] Hacer que Nuevo registro abra únicamente una pestaña activa: Documentos, Encomiendas o Transferencias
+- [x] Evitar que al cambiar de pestaña se desplieguen o carguen simultáneamente los otros formularios
+- [x] Dividir el registro móvil de documentos y encomiendas en pasos cortos con navegación clara
+- [x] Dividir el registro móvil de transferencias en pasos cortos sin sobrecargar la pantalla
+- [x] Exigir los datos del cliente en Transferencias igual que en documentos y encomiendas
+- [x] Mantener CCI y demás datos bancarios como campos opcionales
+- [x] Añadir pruebas, validar responsive y rendimiento visual, y publicar
+
+## Iteración actual: Nuevo registro enfocado
+- [x] Convertir Nuevo registro en pestañas exclusivas de Documentos, Encomiendas y Transferencias
+- [x] Evitar que formularios inactivos se rendericen o se carguen al cambiar de pestaña
+- [x] Implementar wizard móvil corto para documentos, encomiendas y transferencias
+- [x] Exigir nombre, DNI/documento y teléfono del cliente en transferencias, manteniendo banco, IBAN y CCI opcionales
+- [x] Añadir pruebas Vitest, comprobar TypeScript y validar responsive antes del checkpoint

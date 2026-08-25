@@ -49,6 +49,7 @@ import { getFuzzySearchScore } from "@shared/fuzzySearch";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "@shared/passwordPolicy";
 
 type AdminWorkspace = "resumen" | "registros" | "crear" | "cupones" | "papelera" | "usuarios" | "analitica" | "carta" | "remitentes" | "transferencias";
+type CreateRecordTab = "documento" | "encomienda" | "transferencia";
 
 function renderQrCode(canvas: HTMLCanvasElement | null, trackingUrl: string, width: number) {
   if (!canvas) return;
@@ -311,9 +312,16 @@ function PasswordInput({ className, revealLabel = "contraseña", ...inputProps }
 export default function AdminDashboard() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [admin, setAdmin] = useState<any>(null);
-  const [showCreateForm, setShowCreateForm] = useState(false);
+  const mobileRegistrationMode = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("mobile") === "1";
+  const [showCreateForm, setShowCreateForm] = useState(() => mobileRegistrationMode && new URLSearchParams(window.location.search).get("record") !== "transferencia");
   const [showDeliveryInfo, setShowDeliveryInfo] = useState(false);
-  const [adminWorkspace, setAdminWorkspace] = useState<AdminWorkspace>("registros");
+  const [adminWorkspace, setAdminWorkspace] = useState<AdminWorkspace>(() => mobileRegistrationMode && new URLSearchParams(window.location.search).get("workspace") === "crear" ? "crear" : "registros");
+  const [createRecordTab, setCreateRecordTab] = useState<CreateRecordTab>(() => {
+    if (typeof window === "undefined") return "documento";
+    const record = new URLSearchParams(window.location.search).get("record");
+    return record === "encomienda" || record === "transferencia" ? record : "documento";
+  });
+  const [mobileRegistrationStep, setMobileRegistrationStep] = useState<1 | 2 | 3>(1);
   const [selectedShipmentId, setSelectedShipmentId] = useState<number | null>(null);
   const [showUpdateForm, setShowUpdateForm] = useState(false);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -954,6 +962,8 @@ export default function AdminDashboard() {
   };
 
   const openCreateForm = (shipmentType: "documento" | "encomienda") => {
+    setCreateRecordTab(shipmentType);
+    setMobileRegistrationStep(1);
     resetCreateForm();
     createForm.setValue("shipmentType", shipmentType, { shouldDirty: true });
     if (String(admin?.id ?? "") === "210001") {
@@ -968,6 +978,10 @@ export default function AdminDashboard() {
     setCreateShipmentValidationError("");
     setShowCreateForm(true);
   };
+
+  const nextMobileRegistrationStep = () => setMobileRegistrationStep(step => step === 1 ? 2 : 3);
+  const previousMobileRegistrationStep = () => setMobileRegistrationStep(step => step === 3 ? 2 : 1);
+  const mobileSectionClass = (step: 1 | 2 | 3) => mobileRegistrationMode && mobileRegistrationStep !== step ? "hidden" : "";
 
   const handleLimaTorinoEncomiendaPolicy = async () => {
     try {
@@ -1775,13 +1789,13 @@ export default function AdminDashboard() {
               ["resumen", "Resumen"],
               ["analitica", "Analítica"],
               ["remitentes", "Remitentes provinciales"],
-              ["transferencias", "Transferencias"],
               ...(admin?.role === "superadmin" ? [["usuarios", "Registradores"]] : []),
             ] as Array<[AdminWorkspace, string]>).map(([workspace, label]) => (
               <Button key={workspace} type="button" size="sm" variant={adminWorkspace === workspace ? "default" : "outline"} onClick={() => setAdminWorkspace(workspace)} className={adminWorkspace === workspace ? "bg-primary text-white" : "border-slate-300 text-slate-700"}>{label}</Button>
             ))}
           </div>
           <p className="mt-2 text-xs text-slate-500">Abre solo el área que necesitas para mantener el trabajo operativo limpio y enfocado.</p>
+          <div className={`mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3 ${adminWorkspace === "crear" ? "hidden" : ""}`} aria-label="Accesos de nuevo registro"><p className="mb-2 text-sm font-extrabold text-[#0B2B5E]">Nuevo registro</p><div className="grid grid-cols-1 gap-2 sm:grid-cols-3"><Button type="button" aria-label="Nuevo documento" onClick={() => openCreateForm("documento")} className="min-h-12 bg-[#0B2B5E] text-white hover:bg-[#123d78]"><Plus className="mr-2 h-4 w-4" />Nuevo documento</Button><Button type="button" aria-label="Nueva encomienda" onClick={() => openCreateForm("encomienda")} className="min-h-12 bg-[#F28C00] text-white hover:bg-[#d67900]"><Plus className="mr-2 h-4 w-4" />Nueva encomienda</Button><Button type="button" aria-label="Nueva transferencia" onClick={() => { setAdminWorkspace("crear"); setCreateRecordTab("transferencia"); setShowCreateForm(false); }} className="min-h-12 bg-emerald-700 text-white hover:bg-emerald-800"><Plus className="mr-2 h-4 w-4" />Nueva transferencia</Button></div></div>
         </Card>
         {showAdminProfile && (
           <Card id="admin-profile-panel" className="mb-8 overflow-hidden border-0 p-0 shadow-lg" aria-label="Mi perfil administrativo">
@@ -1863,7 +1877,7 @@ export default function AdminDashboard() {
 
         {adminWorkspace === "carta" && <InvitationLetterWorkspace shipments={shipments} />}
 
-        {adminWorkspace === "transferencias" && <TransferWorkspace />}
+        {adminWorkspace === "crear" && createRecordTab === "transferencia" && <TransferWorkspace />}
 
         {adminWorkspace === "remitentes" && <Card className="mb-8 border-0 p-6 shadow-lg"><div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-xl font-semibold text-gray-900">Remitentes para envíos a provincia</h2><p className="mt-1 text-sm text-slate-600">Administra quién figura como remitente nacional en el ticket. Los cambios se guardan por espacio administrativo.</p></div><span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-bold text-[#0B2B5E]">{shipmentSenders.length} registrados</span></div><form className="mt-5 grid gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 sm:grid-cols-2" onSubmit={(event) => { event.preventDefault(); createShipmentSenderMutation.mutate({ name: senderDirectoryName, lastName: senderDirectoryLastName, dni: senderDirectoryDni, phone: senderDirectoryPhone || undefined }); }}><Input aria-label="Nombres del remitente provincial" placeholder="Nombres" value={senderDirectoryName} onChange={(event) => setSenderDirectoryName(event.target.value)} required /><Input aria-label="Apellidos del remitente provincial" placeholder="Apellidos" value={senderDirectoryLastName} onChange={(event) => setSenderDirectoryLastName(event.target.value)} required /><Input aria-label="DNI del remitente provincial" placeholder="DNI de 8 dígitos" inputMode="numeric" maxLength={8} value={senderDirectoryDni} onChange={(event) => setSenderDirectoryDni(event.target.value.replace(/\\D/g, "").slice(0, 8))} required /><PhoneInput id="provincial-sender-directory-phone" value={senderDirectoryPhone} onChange={setSenderDirectoryPhone} placeholder="Celular del remitente provincial" className="sm:col-span-2" /><Button type="submit" disabled={createShipmentSenderMutation.isPending} className="min-h-12 bg-[#0B2B5E] text-white sm:col-span-2">{createShipmentSenderMutation.isPending ? "Creando…" : "Crear remitente"}</Button></form><div className="mt-5 grid gap-3">{shipmentSenders.length === 0 ? <p className="rounded-xl border border-dashed border-slate-300 p-4 text-sm text-slate-600">No hay remitentes activos o inactivos registrados. Si todos están desactivados, cada ticket usará el remitente internacional como respaldo.</p> : shipmentSenders.map((sender: any) => <div key={sender.id} className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4 ${sender.isActive ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-slate-50"}`}><div><p className="font-bold text-[#0B2B5E]">{sender.name} {sender.lastName}</p><p className="text-sm text-slate-600">DNI {sender.dni || "No indicado"} · {sender.phone || "Sin celular"}</p><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{sender.isActive ? "Activo para nuevos tickets" : "Desactivado"}</p></div><Button type="button" variant="outline" disabled={setShipmentSenderActiveMutation.isPending} onClick={() => setShipmentSenderActiveMutation.mutate({ id: sender.id, isActive: !Boolean(sender.isActive) })} className={sender.isActive ? "border-rose-300 text-rose-700" : "border-emerald-300 text-emerald-700"}>{sender.isActive ? "Desactivar" : "Activar"}</Button></div>)}</div></Card>}
 
@@ -1958,19 +1972,23 @@ export default function AdminDashboard() {
 
         {/* Create Shipment Section */}
         <Card className={`mb-8 border-0 p-6 shadow-lg ${adminWorkspace === "crear" ? "" : "hidden"}`}>
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
               <h2 className="text-xl font-semibold text-gray-900">Crear nuevo registro</h2>
-              <p className="mt-1 text-sm text-slate-500">Elige directamente qué deseas registrar.</p>
+              <p className="mt-1 text-sm text-slate-500">Selecciona una sola pestaña. Solo se carga el formulario que estás usando.</p>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Button type="button" onClick={() => openCreateForm("documento")} className="bg-primary text-white hover:bg-primary/90">
-                <Plus className="mr-2 h-4 w-4" /> Nuevo documento
-              </Button>
-              <Button type="button" onClick={() => openCreateForm("encomienda")} className="bg-[#F28C00] text-white hover:bg-[#d67900]">
-                <Plus className="mr-2 h-4 w-4" /> Nueva encomienda
-              </Button>
-            </div>
+            <span className="rounded-full bg-slate-100 px-3 py-2 text-xs font-bold uppercase tracking-wide text-slate-600">3 tipos de registro</span>
+          </div>
+          <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-3" role="tablist" aria-label="Tipo de nuevo registro">
+            <Button type="button" role="tab" aria-label="Nuevo documento" aria-selected={createRecordTab === "documento"} onClick={() => openCreateForm("documento")} className={`min-h-14 justify-start rounded-xl px-4 text-left text-base font-extrabold transition ${createRecordTab === "documento" ? "bg-[#0B2B5E] text-white shadow-md" : "border border-blue-200 bg-blue-50 text-[#0B2B5E] hover:bg-blue-100"}`}>
+              <span className="mr-3 flex h-9 w-9 items-center justify-center rounded-lg bg-white/90 text-[#0B2B5E]">1</span><span><span className="block">Documentos</span><span className={`block text-xs font-medium ${createRecordTab === "documento" ? "text-blue-100" : "text-slate-600"}`}>Simple o apostillado</span></span>
+            </Button>
+            <Button type="button" role="tab" aria-label="Nueva encomienda" aria-selected={createRecordTab === "encomienda"} onClick={() => openCreateForm("encomienda")} className={`min-h-14 justify-start rounded-xl px-4 text-left text-base font-extrabold transition ${createRecordTab === "encomienda" ? "bg-[#F28C00] text-white shadow-md hover:bg-[#d67900]" : "border border-orange-200 bg-orange-50 text-[#9A5700] hover:bg-orange-100"}`}>
+              <span className="mr-3 flex h-9 w-9 items-center justify-center rounded-lg bg-white/90 text-[#A65A00]">2</span><span><span className="block">Encomiendas</span><span className={`block text-xs font-medium ${createRecordTab === "encomienda" ? "text-orange-100" : "text-slate-600"}`}>Peso y tarifa</span></span>
+            </Button>
+            <Button type="button" role="tab" aria-label="Nueva transferencia" aria-selected={createRecordTab === "transferencia"} onClick={() => { setCreateRecordTab("transferencia"); setShowCreateForm(false); setCreateShipmentValidationError(""); setAdminWorkspace("crear"); }} className={`min-h-14 justify-start rounded-xl px-4 text-left text-base font-extrabold transition ${createRecordTab === "transferencia" ? "bg-emerald-700 text-white shadow-md hover:bg-emerald-800" : "border border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"}`}>
+              <span className="mr-3 flex h-9 w-9 items-center justify-center rounded-lg bg-white/90 text-emerald-800">3</span><span><span className="block">Transferencias</span><span className={`block text-xs font-medium ${createRecordTab === "transferencia" ? "text-emerald-100" : "text-slate-600"}`}>Cliente obligatorio</span></span>
+            </Button>
           </div>
 
           {adminInsights && adminWorkspace === "analitica" && (
@@ -1996,11 +2014,12 @@ export default function AdminDashboard() {
             </details>
           )}
 
-          {showCreateForm && (
+          {createRecordTab !== "transferencia" && showCreateForm && (
             <form onSubmit={createForm.handleSubmit(handleCreateShipment, handleCreateShipmentInvalid)} className="space-y-4">
                 {createShipmentValidationError && <div role="status" aria-live="assertive" className="sticky top-2 z-10 rounded-xl border-2 border-rose-300 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-800 shadow-sm"><strong className="block text-base">Revisa este dato antes de continuar</strong><span>{createShipmentValidationError}</span></div>}
               {/* Tarifa y estado del registro; el tipo ya lo define el botón de entrada */}
               <div className="flex flex-col rounded-xl border border-slate-200 bg-slate-50 p-4">
+                {mobileRegistrationMode && <div className="mb-4 rounded-xl border-2 border-[#0B2B5E] bg-white p-4" role="region" aria-label="Pasos del registro móvil"><div className="flex items-center justify-between gap-2"><p className="text-sm font-extrabold text-[#0B2B5E]">Registro móvil</p><span className="text-xs font-bold text-slate-500">Paso {mobileRegistrationStep} de 3</span></div><div className="mt-3 grid grid-cols-3 gap-2">{([1, 2, 3] as const).map(step => <button key={step} type="button" onClick={() => setMobileRegistrationStep(step)} className={`min-h-11 rounded-lg px-2 text-xs font-bold transition ${mobileRegistrationStep === step ? "bg-[#0B2B5E] text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`} aria-current={mobileRegistrationStep === step ? "step" : undefined}>{step === 1 ? "Sede y pago" : step === 2 ? "Personas" : "Contenido"}</button>)}</div><div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-[#F28C00] transition-all" style={{ width: `${mobileRegistrationStep * 33.333}%` }} /></div><p className="mt-2 text-xs leading-5 text-slate-600">{mobileRegistrationStep === 1 ? "Define ruta, tipo, entrega y estado de pago." : mobileRegistrationStep === 2 ? "Completa remitente y destinatario con sus datos." : "Revisa el contenido, adjunta una foto opcional y crea el registro."}</p></div>}
                 <div className="order-0 mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wide text-[#0B2B5E]">Formulario de registro</p>
@@ -2008,7 +2027,7 @@ export default function AdminDashboard() {
                   </div>
                   <span className="text-xs text-slate-600">El tipo ya fue definido por el botón elegido</span>
                 </div>
-                <div className="order-20 grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div className={`order-20 grid grid-cols-1 gap-4 md:grid-cols-3 ${mobileSectionClass(1)}`}>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Ruta de envío</label>
                     <Select value={selectedRoute} onValueChange={(value) => {
@@ -2090,7 +2109,7 @@ export default function AdminDashboard() {
                   </div>
                 )}
 
-                <div className="order-40 mt-4 grid grid-cols-1 gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+                <div className={`order-40 mt-4 grid grid-cols-1 gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end ${mobileSectionClass(1)}`}>
                   <div>
                     <label className="block text-sm font-medium text-emerald-900 mb-2">Cupón de descuento (opcional)</label>
                     <Input placeholder="Ej. SERVI25-VERANO" {...createForm.register("couponCode")} className="border-emerald-300 bg-white uppercase" />
@@ -2100,7 +2119,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {selectedShipmentType === "documento" ? (
-                  <div className="order-10">
+                  <div className={`order-10 ${mobileSectionClass(1)}`}>
                   <div className="mt-4 grid grid-cols-1 gap-4 border-t border-slate-200 pt-4 md:grid-cols-3">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Documento</label>
@@ -2178,7 +2197,7 @@ export default function AdminDashboard() {
                   </div>
                   </div>
                 ) : (
-                  <div className="order-10"><div className="mt-4 grid grid-cols-1 gap-4 border-t border-slate-200 pt-4 md:grid-cols-3">
+                  <div className={`order-10 ${mobileSectionClass(1)}`}><div className="mt-4 grid grid-cols-1 gap-4 border-t border-slate-200 pt-4 md:grid-cols-3">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Peso de la encomienda (kg)</label>
                       <Input
@@ -2202,12 +2221,12 @@ export default function AdminDashboard() {
                 )}
               </div>
 
-                      <div className="order-30 mt-4 rounded-xl border border-amber-300 bg-amber-50 p-4">
+                      <div className={`order-30 mt-4 rounded-xl border border-amber-300 bg-amber-50 p-4 ${mobileSectionClass(3)}`}>
                 <label className="flex cursor-pointer items-start gap-3 text-sm"><input type="checkbox" aria-label="Envío incompleto" {...createForm.register("isIncomplete")} className="mt-0.5 h-5 w-5" /><span><strong className="block text-base text-amber-900">Envío incompleto</strong><span className="text-amber-800">Marca esta opción si falta algún documento, artículo o dato.</span></span></label>
                 {createForm.watch("isIncomplete") && <Input className="mt-3 bg-white" aria-label="Motivo del envío incompleto" placeholder="Indica qué falta (opcional)" {...createForm.register("incompleteReason")} />}
               </div>
               {/* Información del remitente */}
-              <div className="border-t pt-4">
+              <div className={`border-t pt-4 ${mobileSectionClass(2)}`}>
                 <h3 className="font-semibold text-gray-900 mb-3">Información del Remitente</h3>
                 <div className="mb-4 max-w-xl">
                   <ClientLookup
@@ -2259,7 +2278,7 @@ export default function AdminDashboard() {
               </div>
 
               {/* Información del destinatario */}
-              <div className="border-t pt-4">
+              <div className={`border-t pt-4 ${mobileSectionClass(2)}`}>
                 <h3 className="font-semibold text-gray-900 mb-3">Información del Destinatario</h3>
                 <div className="mb-4 max-w-xl">
                   <ClientLookup
@@ -2311,9 +2330,9 @@ export default function AdminDashboard() {
               </div>
 
               {selectedShipmentType === "documento" ? (
-                <div className={`border-t pt-4 ${createShipmentValidationError ? "rounded-lg border border-rose-300 bg-rose-50 p-3" : ""}`}><DocumentCatalogSelector value={catalogDocuments} onChange={items => { setCatalogDocuments(items); if (items.length) setCreateShipmentValidationError(""); }} idPrefix="admin-document" />{createShipmentValidationError && <p role="alert" className="mt-2 text-sm font-medium text-rose-700">{createShipmentValidationError}</p>}</div>
+                <div className={`border-t pt-4 ${mobileSectionClass(3)} ${createShipmentValidationError ? "rounded-lg border border-rose-300 bg-rose-50 p-3" : ""}`}><DocumentCatalogSelector value={catalogDocuments} onChange={items => { setCatalogDocuments(items); if (items.length) setCreateShipmentValidationError(""); }} idPrefix="admin-document" />{createShipmentValidationError && <p role="alert" className="mt-2 text-sm font-medium text-rose-700">{createShipmentValidationError}</p>}</div>
               ) : (
-                <div className={`border-t pt-4 ${createShipmentValidationError ? "rounded-lg border border-rose-300 bg-rose-50 p-3" : ""}`}>
+                <div className={`border-t pt-4 ${mobileSectionClass(3)} ${createShipmentValidationError ? "rounded-lg border border-rose-300 bg-rose-50 p-3" : ""}`}>
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Checklist de contenido</label>
@@ -2331,15 +2350,15 @@ export default function AdminDashboard() {
                 </div>
               )}
 
-              {selectedRoute === "Torino - Lima" && <section className="mt-4 rounded-xl border-2 border-amber-200 bg-amber-50/70 p-4" aria-labelledby="missing-items-title"><div className="flex items-start gap-3"><input type="checkbox" id="missing-items-enabled" checked={missingItems.length > 0} onChange={event => { if (!event.target.checked) setMissingItems([]); else if (!missingItems.length) setMissingItems(["Documento o artículo pendiente"]); }} className="mt-1 h-5 w-5 rounded border-amber-400 text-[#0B2B5E]" /><div className="min-w-0 flex-1"><label htmlFor="missing-items-enabled" id="missing-items-title" className="text-base font-extrabold text-amber-950">Faltan adjuntar antes del envío</label><p className="mt-1 text-sm text-amber-900">Marca los documentos, artículos o datos que todavía faltan. Esta lista se conserva en el registro y se muestra al personal antes de despachar a provincia.</p>{missingItems.length > 0 && <div className="mt-3 space-y-2"><div className="flex flex-wrap gap-2">{missingItems.map((item, index) => <span key={`${item}-${index}`} className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 text-sm font-semibold text-amber-950 shadow-sm">{item}<button type="button" aria-label={`Quitar ${item}`} onClick={() => setMissingItems(items => items.filter((_, itemIndex) => itemIndex !== index))} className="rounded-full px-1 text-amber-700 hover:bg-amber-100">×</button></span>)}</div><div className="flex flex-col gap-2 sm:flex-row"><Input value={missingItemDraft} onChange={event => setMissingItemDraft(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && missingItemDraft.trim()) { event.preventDefault(); setMissingItems(items => [...items, missingItemDraft.trim()].slice(0, 24)); setMissingItemDraft(""); } }} placeholder="Ej.: copia del DNI, firma o documento pendiente" className="h-11 bg-white" /><Button type="button" className="min-h-11 bg-[#0B2B5E] text-white" disabled={!missingItemDraft.trim() || missingItems.length >= 24} onClick={() => { setMissingItems(items => [...items, missingItemDraft.trim()].slice(0, 24)); setMissingItemDraft(""); }}>Añadir faltante</Button></div></div>}</div></div></section>}
+              {selectedRoute === "Torino - Lima" && <section className={`mt-4 rounded-xl border-2 border-amber-200 bg-amber-50/70 p-4 ${mobileSectionClass(3)}`} aria-labelledby="missing-items-title"><div className="flex items-start gap-3"><input type="checkbox" id="missing-items-enabled" checked={missingItems.length > 0} onChange={event => { if (!event.target.checked) setMissingItems([]); else if (!missingItems.length) setMissingItems(["Documento o artículo pendiente"]); }} className="mt-1 h-5 w-5 rounded border-amber-400 text-[#0B2B5E]" /><div className="min-w-0 flex-1"><label htmlFor="missing-items-enabled" id="missing-items-title" className="text-base font-extrabold text-amber-950">Faltan adjuntar antes del envío</label><p className="mt-1 text-sm text-amber-900">Marca los documentos, artículos o datos que todavía faltan. Esta lista se conserva en el registro y se muestra al personal antes de despachar a provincia.</p>{missingItems.length > 0 && <div className="mt-3 space-y-2"><div className="flex flex-wrap gap-2">{missingItems.map((item, index) => <span key={`${item}-${index}`} className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 text-sm font-semibold text-amber-950 shadow-sm">{item}<button type="button" aria-label={`Quitar ${item}`} onClick={() => setMissingItems(items => items.filter((_, itemIndex) => itemIndex !== index))} className="rounded-full px-1 text-amber-700 hover:bg-amber-100">×</button></span>)}</div><div className="flex flex-col gap-2 sm:flex-row"><Input value={missingItemDraft} onChange={event => setMissingItemDraft(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && missingItemDraft.trim()) { event.preventDefault(); setMissingItems(items => [...items, missingItemDraft.trim()].slice(0, 24)); setMissingItemDraft(""); } }} placeholder="Ej.: copia del DNI, firma o documento pendiente" className="h-11 bg-white" /><Button type="button" className="min-h-11 bg-[#0B2B5E] text-white" disabled={!missingItemDraft.trim() || missingItems.length >= 24} onClick={() => { setMissingItems(items => [...items, missingItemDraft.trim()].slice(0, 24)); setMissingItemDraft(""); }}>Añadir faltante</Button></div></div>}</div></div></section>}
 
-              {selectedRoute === "Torino - Lima" && <section className="mt-4 rounded-xl border border-orange-200 bg-orange-50 p-4"><label className="flex cursor-pointer items-start gap-3 text-sm font-semibold text-[#0B2B5E]"><input type="checkbox" aria-label="Envío a provincia" {...createForm.register("isProvinceDelivery")} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-[#0B2B5E]" /><span><span className="block">Envío a provincia</span><span className="mt-1 block text-xs font-normal text-slate-700">La sede regular de agencia aparece primero; después puedes elegir otra sede de Olva, Shalom, FedEx, DHL o una empresa regional.</span></span></label>{createForm.watch("isProvinceDelivery") && <><div className="mb-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3"><p className="text-sm font-extrabold text-[#0B2B5E]">Sede regular de la agencia</p><p className="mt-1 text-sm font-medium text-slate-700">SERVICOM INTERNACIONAL — Jr. de la Unión Nro. 518 Int. S101, Cercado de Lima</p><p className="mt-1 text-xs text-slate-600">Puedes usar esta sede o cambiarla por una agencia de destino.</p></div><AgencyDestinationPicker route={selectedRoute} value={createForm.watch("destinationAddress") || ""} onChange={(destinationAddress) => createForm.setValue("destinationAddress", destinationAddress, { shouldValidate: true, shouldDirty: true })} /><div className="mt-3 rounded-xl border border-blue-200 bg-blue-50 p-4"><p className="text-sm font-bold text-[#0B2B5E]">Remitente para provincia</p><p className="mt-1 text-xs text-slate-600">Si no completas estos datos, se usará automáticamente el remitente internacional.</p><select aria-label="Remitente provincial guardado" className="mt-3 h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-[#0B2B5E]" value={[createForm.watch("provinceSenderName"), createForm.watch("provinceSenderLastName"), createForm.watch("provinceSenderDni")].filter(Boolean).join("|")} onChange={(event) => { const sender = (shipmentSenders as any[]).find(item => `${item.name}|${item.lastName}|${item.dni}` === event.target.value); if (sender) { createForm.setValue("provinceSenderName", sender.name, { shouldDirty: true }); createForm.setValue("provinceSenderLastName", sender.lastName, { shouldDirty: true }); createForm.setValue("provinceSenderDni", sender.dni, { shouldDirty: true }); createForm.setValue("provinceSenderPhone", sender.phone || "", { shouldDirty: true }); } else { createForm.setValue("provinceSenderName", "", { shouldDirty: true }); createForm.setValue("provinceSenderLastName", "", { shouldDirty: true }); createForm.setValue("provinceSenderDni", "", { shouldDirty: true }); createForm.setValue("provinceSenderPhone", "", { shouldDirty: true }); } }}><option value="">Selecciona un remitente activo o escribe uno nuevo</option>{(shipmentSenders as any[]).filter(item => Boolean(item.isActive)).map(item => <option key={item.id} value={`${item.name}|${item.lastName}|${item.dni}`}>{item.name} {item.lastName} · DNI {item.dni}</option>)}</select><div className="mt-3 grid gap-3 sm:grid-cols-2"><Input placeholder="Nombres del remitente provincial" {...createForm.register("provinceSenderName")} /><Input placeholder="Apellidos del remitente provincial" {...createForm.register("provinceSenderLastName")} /><Input placeholder="DNI del remitente provincial" inputMode="numeric" maxLength={8} {...createForm.register("provinceSenderDni")} /><PhoneInput value={createForm.watch("provinceSenderPhone") || ""} onChange={(value) => createForm.setValue("provinceSenderPhone", value, { shouldDirty: true, shouldValidate: true })} placeholder="Celular del remitente provincial" /></div></div><div className="mt-3 grid gap-3 sm:grid-cols-2"><div><p className="mb-1 text-sm font-semibold text-slate-700">Peso enviado</p><p className="rounded-md bg-white px-3 py-2 text-base font-bold text-[#0B2B5E]">{selectedShipmentType === "encomienda" ? `${watchedWeightKg.toFixed(1)} kg` : "No aplica a documentos"}</p></div><div><label className="mb-1 block text-sm font-semibold text-slate-700">Precio al cliente (EUR)</label>    <Input type="number" min="0" step="0.01" placeholder="Ej. 10.00" {...createForm.register("provinceCustomerPriceEur")} />
+              {selectedRoute === "Torino - Lima" && <section className={`mt-4 rounded-xl border border-orange-200 bg-orange-50 p-4 ${mobileSectionClass(3)}`}><label className="flex cursor-pointer items-start gap-3 text-sm font-semibold text-[#0B2B5E]"><input type="checkbox" aria-label="Envío a provincia" {...createForm.register("isProvinceDelivery")} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-[#0B2B5E]" /><span><span className="block">Envío a provincia</span><span className="mt-1 block text-xs font-normal text-slate-700">La sede regular de agencia aparece primero; después puedes elegir otra sede de Olva, Shalom, FedEx, DHL o una empresa regional.</span></span></label>{createForm.watch("isProvinceDelivery") && <><div className="mb-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3"><p className="text-sm font-extrabold text-[#0B2B5E]">Sede regular de la agencia</p><p className="mt-1 text-sm font-medium text-slate-700">SERVICOM INTERNACIONAL — Jr. de la Unión Nro. 518 Int. S101, Cercado de Lima</p><p className="mt-1 text-xs text-slate-600">Puedes usar esta sede o cambiarla por una agencia de destino.</p></div><AgencyDestinationPicker route={selectedRoute} value={createForm.watch("destinationAddress") || ""} onChange={(destinationAddress) => createForm.setValue("destinationAddress", destinationAddress, { shouldValidate: true, shouldDirty: true })} /><div className="mt-3 rounded-xl border border-blue-200 bg-blue-50 p-4"><p className="text-sm font-bold text-[#0B2B5E]">Remitente para provincia</p><p className="mt-1 text-xs text-slate-600">Si no completas estos datos, se usará automáticamente el remitente internacional.</p><select aria-label="Remitente provincial guardado" className="mt-3 h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-[#0B2B5E]" value={[createForm.watch("provinceSenderName"), createForm.watch("provinceSenderLastName"), createForm.watch("provinceSenderDni")].filter(Boolean).join("|")} onChange={(event) => { const sender = (shipmentSenders as any[]).find(item => `${item.name}|${item.lastName}|${item.dni}` === event.target.value); if (sender) { createForm.setValue("provinceSenderName", sender.name, { shouldDirty: true }); createForm.setValue("provinceSenderLastName", sender.lastName, { shouldDirty: true }); createForm.setValue("provinceSenderDni", sender.dni, { shouldDirty: true }); createForm.setValue("provinceSenderPhone", sender.phone || "", { shouldDirty: true }); } else { createForm.setValue("provinceSenderName", "", { shouldDirty: true }); createForm.setValue("provinceSenderLastName", "", { shouldDirty: true }); createForm.setValue("provinceSenderDni", "", { shouldDirty: true }); createForm.setValue("provinceSenderPhone", "", { shouldDirty: true }); } }}><option value="">Selecciona un remitente activo o escribe uno nuevo</option>{(shipmentSenders as any[]).filter(item => Boolean(item.isActive)).map(item => <option key={item.id} value={`${item.name}|${item.lastName}|${item.dni}`}>{item.name} {item.lastName} · DNI {item.dni}</option>)}</select><div className="mt-3 grid gap-3 sm:grid-cols-2"><Input placeholder="Nombres del remitente provincial" {...createForm.register("provinceSenderName")} /><Input placeholder="Apellidos del remitente provincial" {...createForm.register("provinceSenderLastName")} /><Input placeholder="DNI del remitente provincial" inputMode="numeric" maxLength={8} {...createForm.register("provinceSenderDni")} /><PhoneInput value={createForm.watch("provinceSenderPhone") || ""} onChange={(value) => createForm.setValue("provinceSenderPhone", value, { shouldDirty: true, shouldValidate: true })} placeholder="Celular del remitente provincial" /></div></div><div className="mt-3 grid gap-3 sm:grid-cols-2"><div><p className="mb-1 text-sm font-semibold text-slate-700">Peso enviado</p><p className="rounded-md bg-white px-3 py-2 text-base font-bold text-[#0B2B5E]">{selectedShipmentType === "encomienda" ? `${watchedWeightKg.toFixed(1)} kg` : "No aplica a documentos"}</p></div><div><label className="mb-1 block text-sm font-semibold text-slate-700">Precio al cliente (EUR)</label>    <Input type="number" min="0" step="0.01" placeholder="Ej. 10.00" {...createForm.register("provinceCustomerPriceEur")} />
 <div><label className="mb-1 block text-sm font-semibold text-slate-700">Extra provincial proporcional (EUR)</label><Input type="number" min="0" step="0.01" placeholder={watchedWeightKg > 15 ? "Ej. 1.50 por kg excedente" : "0.00"} {...createForm.register("provinceExtraPriceEur")} /><p className="mt-1 text-xs text-slate-600">Sobre 15 kg se calcula automáticamente a 1,50 EUR por kg adicional; puedes modificarlo si lo deseas. Este importe es un recordatorio, no impide crear la encomienda.</p></div></div><div><label className="mb-1 block text-sm font-semibold text-slate-700">Costo operativo (soles)</label><Input type="number" min="0" step="0.01" placeholder={selectedShipmentType === "documento" ? "8.00 automático" : "Ej. 12.00"} {...createForm.register("provinceOperationalCostSoles")} /><p className="mt-1 text-xs text-slate-600">Documentos: S/ 8.00 por defecto.</p></div><div className="rounded-md bg-white px-3 py-2 text-sm text-slate-700"><strong>Courier:</strong> Se usará la agencia seleccionada arriba.</div></div></>}</section>}
 
-              {selectedShipmentType === "documento" && selectedRoute === "Lima - Torino" && <div className="mt-4"><LimaTorinoTransferPanel value={{ mode: createForm.watch("limaTorinoTransferMode"), personName: createForm.watch("deliveryPersonName"), personLastName: createForm.watch("deliveryPersonLastName"), personDni: createForm.watch("deliveryPersonDni"), personPhone: createForm.watch("deliveryPersonPhone"), locationType: createForm.watch("deliveryLocationType"), locationAddress: createForm.watch("deliveryLocationAddress"), latitude: createForm.watch("deliveryLocationLatitude"), longitude: createForm.watch("deliveryLocationLongitude") }} onChange={(next) => { createForm.setValue("limaTorinoTransferMode", next.mode, { shouldDirty: true, shouldValidate: true }); createForm.setValue("deliveryPersonName", next.personName || "", { shouldDirty: true }); createForm.setValue("deliveryPersonLastName", next.personLastName || "", { shouldDirty: true }); createForm.setValue("deliveryPersonDni", next.personDni || "", { shouldDirty: true }); createForm.setValue("deliveryPersonPhone", next.personPhone || "", { shouldDirty: true }); createForm.setValue("deliveryLocationType", next.locationType, { shouldDirty: true }); createForm.setValue("deliveryLocationAddress", next.locationAddress || "", { shouldDirty: true }); createForm.setValue("deliveryLocationLatitude", next.latitude ?? null, { shouldDirty: true }); createForm.setValue("deliveryLocationLongitude", next.longitude ?? null, { shouldDirty: true }); }} error={createForm.formState.errors.limaTorinoTransferMode?.message as string | undefined} /></div>}
+              {selectedShipmentType === "documento" && selectedRoute === "Lima - Torino" && <div className={`mt-4 ${mobileSectionClass(3)}`}><LimaTorinoTransferPanel value={{ mode: createForm.watch("limaTorinoTransferMode"), personName: createForm.watch("deliveryPersonName"), personLastName: createForm.watch("deliveryPersonLastName"), personDni: createForm.watch("deliveryPersonDni"), personPhone: createForm.watch("deliveryPersonPhone"), locationType: createForm.watch("deliveryLocationType"), locationAddress: createForm.watch("deliveryLocationAddress"), latitude: createForm.watch("deliveryLocationLatitude"), longitude: createForm.watch("deliveryLocationLongitude") }} onChange={(next) => { createForm.setValue("limaTorinoTransferMode", next.mode, { shouldDirty: true, shouldValidate: true }); createForm.setValue("deliveryPersonName", next.personName || "", { shouldDirty: true }); createForm.setValue("deliveryPersonLastName", next.personLastName || "", { shouldDirty: true }); createForm.setValue("deliveryPersonDni", next.personDni || "", { shouldDirty: true }); createForm.setValue("deliveryPersonPhone", next.personPhone || "", { shouldDirty: true }); createForm.setValue("deliveryLocationType", next.locationType, { shouldDirty: true }); createForm.setValue("deliveryLocationAddress", next.locationAddress || "", { shouldDirty: true }); createForm.setValue("deliveryLocationLatitude", next.latitude ?? null, { shouldDirty: true }); createForm.setValue("deliveryLocationLongitude", next.longitude ?? null, { shouldDirty: true }); }} error={createForm.formState.errors.limaTorinoTransferMode?.message as string | undefined} /></div>}
 
               {/* Notas */}
-              <div className="border-t pt-4">
+              <div className={`border-t pt-4 ${mobileSectionClass(3)}`}>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Notas</label>
                 <Textarea
                   placeholder="Notas adicionales sobre la encomienda"
@@ -2349,17 +2368,19 @@ export default function AdminDashboard() {
                 />
               </div>
 
-              <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
+              <div className={`mt-4 rounded-xl border border-slate-200 bg-white p-4 ${mobileSectionClass(3)}`}>
                 <label className="block text-base font-semibold text-[#0B2B5E]">Fotografía especial del envío (opcional)</label>
                 <p className="mt-1 text-sm text-slate-600">Adjunta una foto final del paquete o documento para que quede asociada al registro. JPG, PNG, WebP o HEIC; máximo 8 MB.</p>
                 <Input type="file" accept="image/jpeg,image/png,image/webp,image/heic" className="mt-3 h-12 text-base" aria-label="Foto del envío" onChange={event => setShipmentPhoto(event.target.files?.[0] || null)} />
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {mobileRegistrationMode && mobileRegistrationStep > 1 && <Button type="button" variant="outline" onClick={previousMobileRegistrationStep} className="min-h-12">Atrás</Button>}
+                {mobileRegistrationMode && mobileRegistrationStep < 3 && <Button type="button" onClick={nextMobileRegistrationStep} className="min-h-12 bg-[#F28C00] text-white hover:bg-[#d67900]">Siguiente</Button>}
                 <Button
                   type="submit"
                   disabled={createMutation.isPending || (selectedShipmentType === "encomienda" && selectedRoute === "Lima - Torino" && !limaTorinoEncomiendasEnabled)}
-                  className="bg-primary hover:bg-primary/90 text-white"
+                  className={`bg-primary text-white hover:bg-primary/90 ${mobileRegistrationMode && mobileRegistrationStep !== 3 ? "hidden" : ""}`}
                 >
                     {createMutation.isPending ? (
                       <>

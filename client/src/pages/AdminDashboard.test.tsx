@@ -36,6 +36,8 @@ const mocks = vi.hoisted(() => ({
   saveInvitationLetter: { isPending: false, mutate: vi.fn() },
   listInvitationLetters: { data: [] as any[], isLoading: false, refetch: vi.fn() },
   searchInvitationPeople: { data: [] as any[], isFetching: false },
+  listTransfers: { data: [] as any[], isLoading: false, refetch: vi.fn() },
+  createTransfer: { isPending: false, mutate: vi.fn() },
   refetchAdminSession: vi.fn().mockResolvedValue({ data: null }),
   adminSession: null as any,
   refetchShipments: vi.fn(),
@@ -65,6 +67,10 @@ const qrScannerMocks = vi.hoisted(() => ({
 vi.mock("@/lib/trpc", () => ({
   trpc: {
     useUtils: () => ({ shipment: { search: { fetch: vi.fn() } }, admin: { me: { invalidate: vi.fn() } } }),
+    transfers: {
+      list: { useQuery: () => mocks.listTransfers },
+      create: { useMutation: () => mocks.createTransfer },
+    },
     admin: {
       me: { useQuery: () => ({ data: mocks.adminSession, isLoading: false, refetch: mocks.refetchAdminSession }) },
       getAllShipments: { useQuery: () => ({ data: mocks.shipments, isLoading: false, refetch: mocks.refetchShipments }) },
@@ -563,6 +569,8 @@ describe("AdminDashboard Nueva Encomienda", () => {
 
     await waitFor(() => expect(screen.getByRole("button", { name: "Nuevo documento" })).toBeTruthy());
     expect(screen.getByRole("button", { name: "Nueva encomienda" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Nueva transferencia" })).toBeTruthy();
+    expect(screen.getByRole("tablist", { name: "Tipo de nuevo registro" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Carta de invitación" })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Nuevo documento" }));
@@ -579,9 +587,34 @@ describe("AdminDashboard Nueva Encomienda", () => {
     expect(screen.getByText("Total automático: 13.50 €")).toBeTruthy();
     expect(screen.getByText(/Tarifa automática Lima–Torino: 1\.0 kg × 13,5 EUR\/kg como tarifa base normal/)).toBeTruthy();
     expect(screen.queryByDisplayValue("Documentos")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Nueva transferencia" }));
+    expect(screen.getByRole("heading", { name: "Transferencia" })).toBeTruthy();
+    expect(screen.queryByText("Tipo de Documento")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Nueva encomienda" }));
     const checklistHeading = screen.getByText("Checklist de contenido");
     const notesLabel = screen.getByText("Notas");
     expect(checklistHeading.compareDocumentPosition(notesLabel) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it("muestra el wizard móvil por pasos sin mezclar configuración, personas y contenido", async () => {
+    mocks.adminSession = { id: 9, email: "admin@servicom.pe", name: "Operador", role: "registrador", reauthRequired: false };
+    window.history.replaceState({}, "", "/admin?from=movil&workspace=crear&mobile=1");
+    render(<AdminDashboard />);
+
+    await waitFor(() => expect(screen.getByRole("region", { name: "Pasos del registro móvil" })).toBeTruthy());
+    expect(screen.getByText("Paso 1 de 3")).toBeTruthy();
+    expect(screen.getByText("Ruta de envío")).toBeTruthy();
+    expect(screen.getByText("Información del Remitente").parentElement?.className).toContain("hidden");
+
+    fireEvent.click(screen.getByRole("button", { name: "Personas" }));
+    expect(screen.getByText("Paso 2 de 3")).toBeTruthy();
+    expect(screen.getByText("Información del Remitente").parentElement?.className).not.toContain("hidden");
+    expect(screen.getByText("Notas").parentElement?.className).toContain("hidden");
+
+    fireEvent.click(screen.getByRole("button", { name: "Contenido" }));
+    expect(screen.getByText("Paso 3 de 3")).toBeTruthy();
+    expect(screen.getByText("Notas").parentElement?.className).not.toContain("hidden");
+    expect(screen.getByText("Información del Remitente").parentElement?.className).toContain("hidden");
   });
 
   it("muestra las opciones operativas después de Tipo de Documento", async () => {
