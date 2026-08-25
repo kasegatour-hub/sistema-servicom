@@ -16,13 +16,16 @@ describe("AgencyDestinationPicker", () => {
     const location = normalizeCarrierPlace({ place_id: "place-123", name: "DHL Express Torino", formatted_address: "Corso Peschiera 162A, Torino, Italia", geometry: { location: { lat: () => 45.06, lng: () => 7.66 } } } as never, "dhl");
     expect(location).toMatchObject({ id: "dhl-place-123", provider: "DHL", name: "DHL Express Torino", address: "Corso Peschiera 162A, Torino, Italia", latitude: 45.06, longitude: 7.66 });
   });
-  it("muestra Servicom como alternativa propia y permite abrir el selector de mapa", () => {
+  it("mantiene el directorio oculto hasta pulsar Elegir agencia", () => {
     render(<AgencyDestinationPicker route="Torino - Lima" value="" onChange={() => undefined} />);
 
     expect(screen.getByRole("button", { name: "Usar sede Servicom" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Elegir agencia" })).toBeTruthy();
-    expect(screen.getAllByText(/Olva Courier/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Shalom/i).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: "Olva Courier" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Shalom" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Elegir agencia" }));
+    expect(screen.getByRole("button", { name: "Olva Courier" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Shalom" })).toBeTruthy();
   });
 
   it("muestra y selecciona una sede oficial de Olva en el explorador", () => {
@@ -37,7 +40,7 @@ describe("AgencyDestinationPicker", () => {
     const onChange = vi.fn();
     render(<AgencyDestinationPicker route="Torino - Lima" value="DESTINO ACTUAL" onChange={onChange} />);
     fireEvent.click(screen.getByRole("button", { name: "Elegir agencia" }));
-    fireEvent.click(screen.getAllByRole("button", { name: "Shalom" })[1]);
+    fireEvent.click(screen.getByRole("button", { name: "Shalom" }));
     fireEvent.click(screen.getByRole("button", { name: /JR\. RAYMONDI/i }));
     expect(onChange).toHaveBeenCalledWith("SHALOM — JR. RAYMONDI · JR. ANTONIO RAYMONDI NRO. 113");
     expect(screen.getByRole("button", { name: "Elegir agencia" })).toBeTruthy();
@@ -49,11 +52,11 @@ describe("AgencyDestinationPicker", () => {
     render(<AgencyDestinationPicker route="Torino - Lima" value="DESTINO ACTUAL" onChange={() => undefined} />);
     fireEvent.click(screen.getByRole("button", { name: "Elegir agencia" }));
 
-    fireEvent.click(screen.getAllByRole("button", { name: "FedEx" })[1]);
+    fireEvent.click(screen.getByRole("button", { name: "FedEx" }));
     expect(screen.getByText(/Consulta todas las sedes actuales/i)).toBeTruthy();
     expect(screen.getByRole("link", { name: /Abrir localizador de FedEx/i }).getAttribute("href")).toBe("https://local.fedex.com/en");
 
-    fireEvent.click(screen.getAllByRole("button", { name: "DHL" })[1]);
+    fireEvent.click(screen.getByRole("button", { name: "DHL" }));
     expect(screen.getByRole("link", { name: /Abrir localizador de DHL/i }).getAttribute("href")).toBe("https://locator.dhl.com/?l=en");
   });
 
@@ -65,6 +68,14 @@ describe("AgencyDestinationPicker", () => {
       expect.objectContaining({ name: expect.stringContaining("Satipo"), address: expect.stringContaining("Terminal Terrestre Municipal") }),
     ]));
     expect(lobato.locations?.every(location => location.address.trim().length > 0)).toBe(true);
+  });
+
+  it("incluye la cobertura publicada de Grupo Palomino y su sede principal verificable", () => {
+    const palomino = REGIONAL_TRANSPORT_BY_ID["grupo-palomino"];
+    expect(palomino.destinations).toEqual(expect.arrayContaining(["Abancay", "Arequipa", "Cusco", "Puerto Maldonado", "Uripa"]));
+    expect(palomino.locations).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: "Lima — Agencia principal", address: expect.stringContaining("Nicolás Arriola 906") }),
+    ]));
   });
 
   it("permite seleccionar una empresa regional y completar uno de sus destinos", () => {

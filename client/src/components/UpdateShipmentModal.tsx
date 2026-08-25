@@ -13,6 +13,8 @@ type UpdateShipmentModalProps = {
   paymentStatus?: string;
   registerPaymentStatus?: (name: "paymentStatus") => any;
   shipmentType?: "documento" | "encomienda";
+  submitLabel?: string;
+  submitDisabled?: boolean;
 };
 
 export function UpdateShipmentModal({
@@ -24,6 +26,8 @@ export function UpdateShipmentModal({
   paymentStatus,
   registerPaymentStatus,
   shipmentType = "encomienda",
+  submitLabel = "Actualizar",
+  submitDisabled = false,
 }: UpdateShipmentModalProps) {
   if (!open) return null;
 
@@ -70,8 +74,8 @@ export function UpdateShipmentModal({
           </div>
 
           <div className="flex gap-2">
-            <Button type="submit" disabled={isSubmitting} className="flex-1 bg-primary text-white hover:bg-primary/90">
-              {isSubmitting ? "Actualizando..." : "Actualizar"}
+            <Button type="submit" disabled={isSubmitting || submitDisabled} className="flex-1 bg-primary text-white hover:bg-primary/90">
+              {isSubmitting ? "Actualizando..." : submitLabel}
             </Button>
             <Button type="button" variant="outline" onClick={onClose} className="flex-1">
               Cancelar

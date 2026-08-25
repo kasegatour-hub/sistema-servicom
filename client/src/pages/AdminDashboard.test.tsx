@@ -147,6 +147,7 @@ afterEach(() => {
 });
 
 beforeEach(() => {
+  Object.defineProperty(window.HTMLElement.prototype, "scrollIntoView", { configurable: true, value: vi.fn() });
   vi.clearAllMocks();
   mocks.listCoupons.data = [];
   mocks.shipments = [];
@@ -271,6 +272,28 @@ describe("AdminDashboard Nueva Encomienda", () => {
     expect(screen.getByRole("group", { name: "Cantidad de Hojas / Documentos" })).toBeTruthy();
     expect(screen.queryByLabelText("Peso (kg)")).toBeNull();
     expect((screen.getByRole("combobox", { name: "Estado de Pago" }) as HTMLSelectElement).value).toBe("Pagado");
+  });
+
+  it("guarda En tránsito inmediatamente y confirma el resultado sin requerir otro clic", async () => {
+    const shipment = { id: 188, shipmentType: "documento", senderName: "Mirian", senderLastName: "Astete", recipientName: "Miguel", recipientLastName: "Díaz Ojitos", status: "En agencia", paymentStatus: "Pagado", createdAt: new Date("2026-08-17T10:00:00.000Z"), orderNumber: "3289150504", code: "07900824", events: [] };
+    mocks.shipments = [shipment];
+    mocks.deliveryShipment = { data: shipment, isLoading: false, error: null };
+    mocks.updateStatus.mutateAsync.mockResolvedValueOnce({ success: true });
+    window.history.replaceState({}, "", "/admin?order=3289150504&code=07900824&open=update");
+    render(<AdminDashboard />);
+    fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
+    fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Actualizar Estado de Documento" })).toBeTruthy());
+
+    const statusTrigger = screen.getByText("Nuevo Estado").parentElement?.querySelector("button");
+    expect(statusTrigger).toBeTruthy();
+    fireEvent.click(statusTrigger!);
+    fireEvent.click(await screen.findByRole("option", { name: "En tránsito" }));
+
+    await waitFor(() => expect(mocks.updateStatus.mutateAsync).toHaveBeenCalledWith({ shipmentId: 188, newStatus: "En tránsito", description: "" }));
+    expect(screen.getByText(/Actualizado correctamente: el envío ya figura En tránsito/i)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Sin cambios pendientes" }).getAttribute("disabled")).not.toBeNull();
   });
 
   it("espera el envío objetivo del QR y abre su actualización cuando la consulta directa termina", async () => {

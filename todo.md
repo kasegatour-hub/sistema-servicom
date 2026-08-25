@@ -1334,3 +1334,10 @@
 - [x] Mostrar exclusivamente nombre, RUC, dirección, teléfonos, correo y logo de Kasega Tour en sus recibos
 - [x] Evitar que los registros de Kasega se mezclen con Servicom Internacional u otros espacios
 - [x] Añadir pruebas de aislamiento, branding de recibo y regresión de Servicom; validar TypeScript y publicar
+
+## Ajustes de actualización y agencias solicitados
+- [x] Guardar automáticamente el estado En tránsito y mostrar confirmación verde sin exigir una segunda acción
+- [x] Mostrar un checklist visible para Envío incompleto solo a administradores y registradores; bloquearlo para clientes
+- [x] Garantizar que Nuevo documento, Nueva encomienda y Nueva transferencia abran únicamente su formulario correspondiente
+- [x] Mostrar operadores y sedes solo después de elegir Agencia de destino, incluyendo información completa de empresas terrestres
+- [x] Añadir pruebas Vitest, validar TypeScript y comprobar la adaptación responsive antes de publicar
