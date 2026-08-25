@@ -1,0 +1,57 @@
+// @vitest-environment jsdom
+import React from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+
+const notificationMocks = vi.hoisted(() => ({
+  data: { items: [] as any[], unreadCount: 0 },
+  refetch: vi.fn(),
+  markRead: vi.fn(),
+  markAllRead: vi.fn(),
+}));
+
+vi.mock("@/lib/trpc", () => ({
+  trpc: {
+    notifications: {
+      list: { useQuery: () => ({ data: notificationMocks.data, isLoading: false, refetch: notificationMocks.refetch }) },
+      markRead: { useMutation: () => ({ mutate: notificationMocks.markRead, isPending: false }) },
+      markAllRead: { useMutation: () => ({ mutate: notificationMocks.markAllRead, isPending: false }) },
+    },
+  },
+}));
+
+vi.mock("@/lib/notificationChime", () => ({
+  getNotificationSoundPreference: () => false,
+  prepareNotificationChime: vi.fn(),
+  playAscendingNotificationChime: vi.fn(),
+  setNotificationSoundPreference: vi.fn(),
+}));
+
+import { NotificationBell } from "./NotificationBell";
+
+describe("NotificationBell", () => {
+  beforeEach(() => {
+    notificationMocks.data = {
+      unreadCount: 1,
+      items: [
+        { id: 1, title: "Envío actualizado", message: "Orden: 21133740", isRead: 0, createdAt: new Date() },
+        { id: 2, title: "Envío entregado", message: "Orden: 21133741", isRead: 1, createdAt: new Date() },
+      ],
+    };
+  });
+
+  afterEach(() => cleanup());
+
+  it("muestra etiquetas y estilos distintos para avisos nuevos y leídos", () => {
+    render(<NotificationBell />);
+    fireEvent.click(screen.getByRole("button", { name: /notificaciones/i }));
+
+    const unread = screen.getByRole("button", { name: "Envío actualizado, nueva" });
+    const read = screen.getByRole("button", { name: "Envío entregado, leída" });
+    expect(screen.getByText("Nueva")).toBeTruthy();
+    expect(screen.getByText("Leída")).toBeTruthy();
+    expect(unread.className).toContain("border-blue-200");
+    expect(read.className).toContain("border-slate-300");
+    expect(read.className).toContain("bg-slate-100");
+  });
+});

@@ -1482,3 +1482,7 @@
 - [x] Ampliar el control de entrega impreso hasta aproximadamente tres cuartas partes de la hoja
 - [x] Aumentar QR, margen blanco de escaneo y jerarquía visual para lectura más rápida
 - [x] Verificar el formato en Servicom y Kasega, añadir pruebas, validar la suite y publicar
+
+## Notificaciones leídas distinguibles
+- [x] Mejorar el contraste de las notificaciones leídas con fondo, borde, icono y etiqueta visibles
+- [x] Mantener los avisos nuevos con mayor prioridad visual y añadir pruebas, validar la suite y publicar
