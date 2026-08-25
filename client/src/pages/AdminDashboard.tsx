@@ -12,7 +12,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import { Lock, LogOut, Plus, RefreshCw, Download, Printer, RotateCcw, Search, Trash2, MessageSquare, Calculator, Eye, EyeOff, Send, QrCode } from "lucide-react";
+import { Lock, LogOut, Plus, RefreshCw, Download, Printer, RotateCcw, Search, Trash2, MessageSquare, Calculator, Eye, EyeOff, Send, QrCode, ImagePlus, UserRound } from "lucide-react";
 import QRCode from "qrcode";
 import { buildShipmentManagementUrl, buildTrackingUrl, normalizeTrackingValue, TRACKING_QR_OPTIONS } from "@/lib/tracking";
 import { PhoneInput } from "@/components/PhoneInput";
@@ -326,6 +326,8 @@ export default function AdminDashboard() {
   const [couponSortOrder, setCouponSortOrder] = useState<"asc" | "desc">("desc");
   const [couponCurrentPage, setCouponCurrentPage] = useState(1);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [showAdminProfile, setShowAdminProfile] = useState(false);
+  const [adminProfilePhotoUploading, setAdminProfilePhotoUploading] = useState(false);
   const [adminPasswordEmail, setAdminPasswordEmail] = useState("");
   const [adminCurrentPassword, setAdminCurrentPassword] = useState("");
   const [adminNewPassword, setAdminNewPassword] = useState("");
@@ -500,6 +502,7 @@ export default function AdminDashboard() {
   const deactivateAdminMutation = trpc.admin.deactivateAdmin.useMutation();
   const createShipmentSenderMutation = (trpc.admin as any).createShipmentSender?.useMutation?.({ onSuccess: async () => { toast.success("Remitente provincial creado."); setSenderDirectoryName(""); setSenderDirectoryLastName(""); setSenderDirectoryDni(""); setSenderDirectoryPhone(""); await refetchShipmentSenders(); }, onError: (error: any) => toast.error(error.message) }) || { mutate: () => undefined, isPending: false };
   const setShipmentSenderActiveMutation = (trpc.admin as any).setShipmentSenderActive?.useMutation?.({ onSuccess: async () => { toast.success("Estado del remitente actualizado."); await refetchShipmentSenders(); }, onError: (error: any) => toast.error(error.message) }) || { mutate: () => undefined, isPending: false };
+  const uploadAdminProfilePhotoMutation = trpc.admin.uploadProfilePhoto.useMutation();
   const changeMyPasswordMutation = trpc.admin.changeMyPassword.useMutation({
     onSuccess: result => {
       toast.success(result.message);
@@ -1534,6 +1537,36 @@ export default function AdminDashboard() {
     changeMyPasswordMutation.mutate({ email: enteredEmail, currentPassword: adminCurrentPassword, newPassword: adminNewPassword });
   };
 
+  const handleAdminProfilePhotoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("La foto debe pesar menos de 8 MB.");
+      return;
+    }
+    if (!/^image\/(jpeg|png|webp|heic)$/i.test(file.type)) {
+      toast.error("Selecciona una imagen JPG, PNG, WebP o HEIC.");
+      return;
+    }
+    setAdminProfilePhotoUploading(true);
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error("No se pudo leer la foto."));
+        reader.readAsDataURL(file);
+      });
+      await uploadAdminProfilePhotoMutation.mutateAsync({ name: file.name, mimeType: file.type, dataBase64: dataUrl.split(",", 2)[1] || "" });
+      await utils.admin.me.invalidate();
+      toast.success("Foto de perfil administrativa guardada correctamente.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo guardar la foto de perfil.");
+    } finally {
+      setAdminProfilePhotoUploading(false);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await logoutMutation.mutateAsync();
@@ -1683,14 +1716,28 @@ export default function AdminDashboard() {
               <QrCode className="mr-2 h-4 w-4" /> Escanear QR de control
             </Button>
             <Button type="button" onClick={() => setShowGeneralFeedback(true)} variant="outline" className="border-white text-white hover:bg-white/20"><MessageSquare className="mr-2 h-4 w-4" /> Comentarios</Button>
-            <div className="text-right">
-              <span className="block text-sm">{admin?.name}</span>
-              <span className="block text-xs opacity-80">{admin?.role === "superadmin" ? "Master Admin" : "Registrador"}</span>
-            </div>
+            <button
+              type="button"
+              onClick={() => setShowAdminProfile(previous => !previous)}
+              aria-expanded={showAdminProfile}
+              aria-controls="admin-profile-panel"
+              className="flex min-h-14 items-center gap-3 rounded-2xl border border-white/40 bg-white/10 px-3 py-2 text-left transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              {admin?.profilePhoto?.url ? (
+                <img src={admin.profilePhoto.url} alt={`Foto de perfil de ${admin?.name || "administrador"}`} className="h-11 w-11 rounded-full object-cover ring-2 ring-white/80" />
+              ) : (
+                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/20 text-white ring-2 ring-white/50"><UserRound className="h-6 w-6" aria-hidden="true" /></span>
+              )}
+              <span className="min-w-0">
+                <span className="block max-w-40 truncate text-sm font-extrabold">Hola, {admin?.name || "Administrador"}</span>
+                <span className="block text-xs opacity-80">{admin?.role === "superadmin" ? "Master Admin" : "Registrador"} · Mi perfil</span>
+              </span>
+            </button>
             <Button
               type="button"
               onClick={() => {
                 setAdminPasswordEmail(admin?.email || "");
+                setShowAdminProfile(true);
                 setShowPasswordForm(previous => !previous);
               }}
               variant="outline"
@@ -1730,6 +1777,37 @@ export default function AdminDashboard() {
           </div>
           <p className="mt-2 text-xs text-slate-500">Abre solo el área que necesitas para mantener el trabajo operativo limpio y enfocado.</p>
         </Card>
+        {showAdminProfile && (
+          <Card id="admin-profile-panel" className="mb-8 overflow-hidden border-0 p-0 shadow-lg" aria-label="Perfil administrativo">
+            <div className="bg-gradient-to-r from-[#0B2B5E] to-[#174a89] p-6 text-white sm:p-8">
+              <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center">
+                {admin?.profilePhoto?.url ? (
+                  <img src={admin.profilePhoto.url} alt={`Foto de perfil de ${admin?.name || "administrador"}`} className="h-36 w-36 rounded-[2rem] object-cover shadow-2xl ring-4 ring-white/80 sm:h-48 sm:w-48" />
+                ) : (
+                  <div className="flex h-36 w-36 items-center justify-center rounded-[2rem] bg-white/15 shadow-2xl ring-4 ring-white/50 sm:h-48 sm:w-48"><UserRound className="h-20 w-20 text-white/90 sm:h-28 sm:w-28" aria-hidden="true" /></div>
+                )}
+                <div className="min-w-0 flex-1 text-center sm:text-left">
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-orange-200">Perfil administrativo</p>
+                  <h2 className="mt-2 text-3xl font-extrabold">Hola, {admin?.name || "Administrador"}</h2>
+                  <p className="mt-2 break-words text-base text-blue-100">{admin?.email || "Correo no disponible"}</p>
+                  <p className="mt-1 text-sm font-semibold text-orange-100">{admin?.role === "superadmin" ? "Master Admin" : "Usuario registrador"}</p>
+                  <p className="mt-3 max-w-2xl text-sm leading-6 text-blue-100">Tu foto aparece aquí y en la aplicación móvil para que puedas identificar rápidamente la sesión activa.</p>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-4 p-6 sm:p-8">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div><h3 className="flex items-center gap-2 text-lg font-extrabold text-[#0B2B5E]"><ImagePlus className="h-5 w-5 text-[#F28C00]" />Foto de perfil</h3><p className="mt-1 text-sm text-slate-500">Sube una imagen clara para verla en tamaño amplio. JPG, PNG, WebP o HEIC, máximo 8 MB.</p></div>
+                <label className={`inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#F28C00] px-5 text-sm font-extrabold text-white shadow-sm transition hover:bg-[#d67900] ${adminProfilePhotoUploading ? "pointer-events-none opacity-60" : ""}`}>
+                  <ImagePlus className="h-5 w-5" /> {adminProfilePhotoUploading ? "Guardando foto…" : "Subir foto"}
+                  <Input type="file" accept="image/jpeg,image/png,image/webp,image/heic" aria-label="Subir foto de perfil administrativa" onChange={handleAdminProfilePhotoChange} disabled={adminProfilePhotoUploading} className="sr-only" />
+                </label>
+              </div>
+              {Array.isArray(admin?.profilePhotos) && admin.profilePhotos.length > 0 ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">{admin.profilePhotos.map((photo: any, index: number) => <figure key={`${photo.url}-${index}`} className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50"><img src={photo.url} alt={`Foto administrativa ${index + 1}`} className="aspect-square w-full object-cover" /><figcaption className="truncate px-2 py-2 text-xs text-slate-500">{photo.name || `Foto ${index + 1}`}</figcaption></figure>)}</div> : <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-center text-sm text-slate-500">Todavía no has subido una foto de perfil.</p>}
+              <div className="flex flex-wrap justify-end gap-3 border-t border-slate-200 pt-4"><Button type="button" variant="outline" onClick={() => { setAdminPasswordEmail(admin?.email || ""); setShowPasswordForm(true); }}>Cambiar contraseña</Button><Button type="button" variant="outline" onClick={handleLogout} disabled={logoutMutation.isPending} className="border-rose-300 text-rose-700 hover:bg-rose-50"><LogOut className="mr-2 h-4 w-4" />Cerrar sesión</Button></div>
+            </div>
+          </Card>
+        )}
         {showPasswordForm && (
           <Card className="mb-8 border-0 p-6 shadow-lg">
             <div className="mb-4 flex items-start justify-between gap-4">

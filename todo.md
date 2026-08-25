@@ -1266,3 +1266,17 @@
 - [x] Mostrar el resultado del envío dentro de la app móvil sin abrir otra ventana de rastreo
 - [x] Revisar el enlace de seguimiento completo para que no saque al usuario de la app móvil
 - [x] Actualizar pruebas, validar responsive y publicar la corrección
+
+## Perfil administrativo ampliado
+- [x] Añadir saludo personalizado con nombre del administrador en el panel admin
+- [x] Añadir perfil administrativo con foto de perfil amplia y adaptable
+- [x] Permitir al administrador cambiar su contraseña desde su perfil
+- [x] Permitir cerrar sesión desde el perfil administrativo
+- [x] Añadir pruebas y validar la experiencia responsive del perfil
+
+## Perfil visible en la app móvil para usuarios y administradores
+- [x] Mostrar la foto de perfil del usuario o administrador autenticado en el encabezado móvil
+- [x] Ampliar la presentación del perfil con nombre, correo y rol sin usar el logo genérico como avatar
+- [x] Mantener un avatar de respaldo cuando no exista foto guardada
+- [x] Verificar que el perfil administrativo incluya cambio de contraseña, cierre de sesión y carga de foto
+- [x] Añadir pruebas, validar responsive y publicar la mejora

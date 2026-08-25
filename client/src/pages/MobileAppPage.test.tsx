@@ -90,11 +90,25 @@ describe("MobileAppPage", () => {
     expect(screen.getByRole("link", { name: "Cambiar contraseña" }).getAttribute("href")).toBe("/cuenta?mobile=1&workspace=seguridad");
   });
 
-  it("mantiene disponible la entrada administrativa cuando no hay una sesión de Cliente", () => {
-    adminMocks.session = { id: 9, email: "admin@servicom.pe", name: "Master", role: "superadmin", reauthRequired: false };
+  it("muestra la sesión administrativa y su perfil amplio en la app móvil", () => {
+    adminMocks.session = { id: 9, email: "admin@servicom.pe", name: "Master", role: "superadmin", reauthRequired: false, profilePhoto: { url: "https://cdn.example/admin.jpg", name: "admin.jpg" }, profilePhotos: [{ url: "https://cdn.example/admin.jpg", name: "admin.jpg" }] };
     render(<MobileAppPage />);
 
-    expect(screen.getByRole("link", { name: "Iniciar sesión como Admin" }).getAttribute("href")).toBe("/admin?from=movil");
+    expect(screen.getByText("Perfil administrativo móvil")).toBeTruthy();
+    expect(screen.getByText("Hola, Master")).toBeTruthy();
+    expect(screen.getByRole("img", { name: "Foto de perfil de Master" }).getAttribute("src")).toBe("https://cdn.example/admin.jpg");
+    fireEvent.click(screen.getByRole("button", { name: "Mi cuenta" }));
+    expect(screen.getByRole("heading", { name: "Perfil administrativo" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Abrir perfil administrativo" }).getAttribute("href")).toBe("/admin?from=movil&profile=1");
+  });
+
+  it("muestra la foto amplia del cliente en el encabezado y Mi cuenta", () => {
+    accountMocks.session = { id: 7, email: "ana@servicom.pe", name: "Ana", lastName: "López", reauthRequired: false, profilePhotos: [{ url: "https://cdn.example/ana.jpg", name: "ana.jpg" }] };
+    render(<MobileAppPage />);
+
+    expect(screen.getByRole("img", { name: "Foto de perfil de Ana López" }).getAttribute("src")).toBe("https://cdn.example/ana.jpg");
+    fireEvent.click(screen.getByRole("button", { name: "Mi cuenta" }));
+    expect(screen.getAllByRole("img", { name: "Foto de perfil de Ana López" }).length).toBeGreaterThanOrEqual(2);
   });
 
   it("muestra la orden y el código claramente en el resultado móvil", () => {

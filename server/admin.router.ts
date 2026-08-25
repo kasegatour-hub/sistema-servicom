@@ -7,7 +7,7 @@ function buildTrackingPath(orderNumber: string, code: string): string {
   return `/?order=${encodeURIComponent(order)}&code=${encodeURIComponent(normalizedCode)}`;
 }
 import { publicProcedure, router } from "./_core/trpc";
-import { ISOLATED_WORKSPACE_ADMIN_IDS, attachShipmentAuditActorLabels, clearAdminPasswordFailures, createDiscountCoupon, createInvitationLetterAccount, createInvitationLetterRecord, createOrRefreshInvitationLetterSignatureRequest, createShipment, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAllShipments, getDeletedShipments, getDiscountCouponByCode, getInvitationLetterById, getShipmentAuditLogs, getShipmentById, getShipmentByOrderAndCode, getShipmentRoutePolicy, incrementDiscountCouponRedemption, isEncomiendaEnabledForRoute, listDeletedInvitationLetterRecords, listDiscountCoupons, listInvitationLetterRecords, listShipmentSenders, createShipmentSender, setShipmentSenderActive, moveInvitationLetterToTrash, recordInteractionEvent, recordShipmentAudit, registerAdminPasswordFailure, restoreInvitationLetterFromTrash, restoreShipment, searchClients, searchInvitationLetterPeople, setEncomiendaAvailabilityForRoute, setShipmentRegistradorVisibility, updateDiscountCoupon, updateShipmentStatus } from "./db";
+import { ISOLATED_WORKSPACE_ADMIN_IDS, attachShipmentAuditActorLabels, clearAdminPasswordFailures, createDiscountCoupon, createInvitationLetterAccount, createInvitationLetterRecord, createOrRefreshInvitationLetterSignatureRequest, createShipment, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAllShipments, getDeletedShipments, getDiscountCouponByCode, getInvitationLetterById, getShipmentAuditLogs, getShipmentById, getShipmentByOrderAndCode, getShipmentRoutePolicy, incrementDiscountCouponRedemption, isEncomiendaEnabledForRoute, listDeletedInvitationLetterRecords, listDiscountCoupons, listInvitationLetterRecords, listShipmentSenders, createShipmentSender, setShipmentSenderActive, moveInvitationLetterToTrash, recordInteractionEvent, recordShipmentAudit, registerAdminPasswordFailure, restoreInvitationLetterFromTrash, restoreShipment, searchClients, searchInvitationLetterPeople, setEncomiendaAvailabilityForRoute, setShipmentRegistradorVisibility, updateAdminProfilePhoto, updateDiscountCoupon, updateShipmentStatus } from "./db";
 import { getRemainingLockoutSeconds, MAX_PASSWORD_FAILURES, PASSWORD_LOCKOUT_SECONDS } from "./loginProtection";
 import { generateTemporaryPassword, generateVerificationCode, hashPassword, hashVerificationCode, normalizeEmail, sendInvitationLetterSignatureEmail, sendVerificationEmail, verificationExpiry, verifyPassword } from "./localAuth";
 import { AdminSessionPayload, clearAdminSession, getAdminSession, setAdminSession } from "./adminSession";
@@ -37,6 +37,16 @@ async function matchesStoredAdminPassword(password: string, storedPassword: stri
 }
 const optionalInternationalPhoneSchema = z.string().trim().optional().refine(value => !value || isValidInternationalPhone(value), "El número no coincide con la cantidad de dígitos del país seleccionado.");
 const securePasswordSchema = z.string().refine(isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE);
+type AdminProfilePhoto = { key: string; url: string; name: string; mimeType: string; sizeBytes: number; createdAt: string };
+function parseAdminProfilePhotos(metadata: string | null | undefined): AdminProfilePhoto[] {
+  if (!metadata) return [];
+  try {
+    const parsed = JSON.parse(metadata);
+    return Array.isArray(parsed) ? parsed.filter((photo): photo is AdminProfilePhoto => Boolean(photo && typeof photo.url === "string" && typeof photo.key === "string")) : [];
+  } catch {
+    return [];
+  }
+}
 const invitationItalianSchema = z.object({
   inviter: z.object({ birthPlace: z.string(), nationality: z.string(), residencePermit: z.string(), address: z.string(), occupation: z.string() }),
   invitee: z.object({ birthPlace: z.string(), nationality: z.string(), address: z.string(), occupation: z.string() }),
@@ -217,12 +227,15 @@ export const adminRouter = router({
     if (!db) return null;
     const [admin] = await db.select().from(admins).where(eq(admins.id, adminSession.adminId)).limit(1);
     if (!admin || admin.isActive !== 1) return null;
+    const profilePhotos = parseAdminProfilePhotos(admin.profilePhotoMetadata);
     return {
       id: admin.id,
       email: admin.email,
       name: admin.name,
       role: adminSession.role,
       reauthRequired: adminSession.reauthRequired,
+      profilePhotos,
+      profilePhoto: profilePhotos.at(-1) || null,
     };
   }),
 
@@ -375,10 +388,32 @@ export const adminRouter = router({
       if (await matchesStoredAdminPassword(input.newPassword, admin.password)) {
         throw new TRPCError({ code: "BAD_REQUEST", message: PASSWORD_REUSE_MESSAGE });
       }
-      await db.update(admins).set({ password: await hashPassword(input.newPassword) }).where(eq(admins.id, admin.id));
+            await db.update(admins).set({ password: await hashPassword(input.newPassword) }).where(eq(admins.id, admin.id));
       return { success: true, message: "Contraseña administrativa actualizada correctamente." };
     }),
-
+  uploadProfilePhoto: adminProcedure
+    .input(z.object({
+      name: z.string().trim().min(1).max(255),
+      mimeType: z.string().regex(/^image\/(jpeg|png|webp|heic)$/i, "Solo se permiten imágenes JPG, PNG, WebP o HEIC."),
+      dataBase64: z.string().min(16).max(11_000_000),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No se pudo conectar con la base de datos." });
+      const bytes = Buffer.from(input.dataBase64, "base64");
+      if (bytes.length === 0 || bytes.length > 8 * 1024 * 1024) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "La foto debe pesar menos de 8 MB." });
+      }
+      const safeName = input.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const saved = await storagePut(`admins/${ctx.adminSession.adminId}/profile/${Date.now()}-${safeName}`, bytes, input.mimeType);
+      const [currentAdmin] = await db.select({ profilePhotoMetadata: admins.profilePhotoMetadata }).from(admins).where(eq(admins.id, ctx.adminSession.adminId)).limit(1);
+      const previousPhotos = parseAdminProfilePhotos(currentAdmin?.profilePhotoMetadata);
+      const photo: AdminProfilePhoto = { key: saved.key, url: saved.url, name: input.name, mimeType: input.mimeType, sizeBytes: bytes.length, createdAt: new Date().toISOString() };
+      const photos = [...previousPhotos, photo].slice(-6);
+      const updated = await updateAdminProfilePhoto(ctx.adminSession.adminId, JSON.stringify(photos));
+      if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "Administrador no encontrado." });
+      return { success: true, photo, photos };
+    }),
   listCoupons: adminProcedure.query(async ({ ctx }) => listDiscountCoupons(isolatedOwnerAdminId(ctx.adminSession.adminId, ctx.adminWorkspaceIsolated))),
 
   createCoupon: adminProcedure

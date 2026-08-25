@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   logout: { isPending: false, mutateAsync: vi.fn() },
   createShipment: { isPending: false, mutateAsync: vi.fn().mockResolvedValue({ shipmentId: 1 }) },
   uploadShipmentPhoto: { isPending: false, mutateAsync: vi.fn().mockResolvedValue({ success: true }) },
+  uploadProfilePhoto: { isPending: false, mutateAsync: vi.fn().mockResolvedValue({ success: true, photos: [] }) },
   updateStatus: { isPending: false, mutateAsync: vi.fn() },
   requestShipmentSignature: { isPending: false, mutate: vi.fn() },
   deleteShipment: { isPending: false, mutateAsync: vi.fn() },
@@ -35,6 +36,7 @@ const mocks = vi.hoisted(() => ({
   listInvitationLetters: { data: [] as any[], isLoading: false, refetch: vi.fn() },
   searchInvitationPeople: { data: [] as any[], isFetching: false },
   refetchAdminSession: vi.fn().mockResolvedValue({ data: null }),
+  adminSession: null as any,
   refetchShipments: vi.fn(),
   refetchAdminUsers: vi.fn(),
   refetchCoupons: vi.fn(),
@@ -61,9 +63,9 @@ const qrScannerMocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/trpc", () => ({
   trpc: {
-    useUtils: () => ({ shipment: { search: { fetch: vi.fn() } } }),
+    useUtils: () => ({ shipment: { search: { fetch: vi.fn() } }, admin: { me: { invalidate: vi.fn() } } }),
     admin: {
-      me: { useQuery: () => ({ data: null, isLoading: false, refetch: mocks.refetchAdminSession }) },
+      me: { useQuery: () => ({ data: mocks.adminSession, isLoading: false, refetch: mocks.refetchAdminSession }) },
       getAllShipments: { useQuery: () => ({ data: mocks.shipments, isLoading: false, refetch: mocks.refetchShipments }) },
       getShipmentForDeliveryUpdate: { useQuery: () => mocks.deliveryShipment },
       listDeletedShipments: { useQuery: () => ({ data: mocks.deletedShipments, isLoading: false, refetch: vi.fn() }) },
@@ -76,6 +78,7 @@ vi.mock("@/lib/trpc", () => ({
       logout: { useMutation: () => mocks.logout },
       createShipment: { useMutation: () => mocks.createShipment },
       uploadShipmentPhoto: { useMutation: () => mocks.uploadShipmentPhoto },
+      uploadProfilePhoto: { useMutation: () => mocks.uploadProfilePhoto },
       updateStatus: { useMutation: () => mocks.updateStatus },
       deleteShipment: { useMutation: () => mocks.deleteShipment },
       setShipmentRegistradorVisibility: { useMutation: () => mocks.setShipmentRegistradorVisibility },
@@ -141,6 +144,7 @@ beforeEach(() => {
   mocks.shipments = [];
   mocks.deletedShipments = [];
   mocks.deliveryShipment = { data: null, isLoading: false, error: null };
+  mocks.adminSession = null;
   qrScannerMocks.onScan = null;
   mocks.login.mutateAsync.mockResolvedValue({ id: 1, email: "admin@servicom.pe", name: "Operador", role: "registrador" });
 });
@@ -305,6 +309,20 @@ describe("AdminDashboard Nueva Encomienda", () => {
     expect(screen.getByLabelText("Código de 6 dígitos")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Reenviar código en 60s" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Ya tengo un código" })).toBeNull();
+  });
+
+  it("muestra el perfil administrativo amplio con foto, saludo y acciones de seguridad", async () => {
+    mocks.adminSession = { id: 4, email: "admin@servicom.pe", name: "Gian Arteaga", role: "registrador", reauthRequired: false, profilePhoto: { url: "https://cdn.example/admin.jpg", name: "admin.jpg" }, profilePhotos: [{ url: "https://cdn.example/admin.jpg", name: "admin.jpg" }] };
+    render(<AdminDashboard />);
+
+    await waitFor(() => expect(screen.getByRole("button", { name: /Hola, Gian Arteaga/ })).toBeTruthy());
+    expect(screen.getByRole("img", { name: "Foto de perfil de Gian Arteaga" }).getAttribute("src")).toBe("https://cdn.example/admin.jpg");
+    fireEvent.click(screen.getByRole("button", { name: /Hola, Gian Arteaga/ }));
+    expect(screen.getByRole("heading", { name: "Hola, Gian Arteaga" })).toBeTruthy();
+    expect(screen.getByLabelText("Subir foto de perfil administrativa")).toBeTruthy();
+    fireEvent.click(screen.getAllByRole("button", { name: "Cambiar contraseña" })[1]);
+    expect(screen.getByRole("heading", { name: "Actualizar contraseña administrativa" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Cerrar sesión/ })).toBeTruthy();
   });
 
   it("shows coupon management for an authenticated operator", async () => {

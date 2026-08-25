@@ -461,13 +461,14 @@ export default function AccountPage() {
   if (me) {
     const receiptPaymentUi = receiptShipment ? getPaymentStatusUi(receiptShipment.paymentStatus) : null;
     const receiptRoute = receiptShipment ? getRoutePresentation(receiptShipment.route, receiptShipment.destinationAddress) : null;
+    const profilePhoto = profilePhotos[profilePhotos.length - 1] || null;
 
     return (
       <div className="account-surface min-h-screen bg-gradient-to-b from-[#eef6fb] to-white pb-12">
         <header className="bg-[#0B2B5E] text-white shadow-md">
           <div className="mx-auto flex w-[min(96vw,1560px)] flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-center gap-3">
-              <img src={brandLogo} alt="Servicom Internacional" className="h-12 w-auto rounded bg-white p-1" />
+              {profilePhoto?.url ? <img src={profilePhoto.url} alt={`Foto de perfil de ${[me.name, me.lastName].filter(Boolean).join(" ") || "cliente"}`} className="h-16 w-16 shrink-0 rounded-2xl object-cover shadow-md ring-2 ring-white/80" /> : <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-white ring-2 ring-white/60"><User className="h-8 w-8" aria-hidden="true" /></span>}
               <div className="min-w-0">
 <h1 className="text-xl font-extrabold leading-tight sm:text-2xl">Hola, {[me.name, me.lastName].filter(Boolean).join(" ") || "Cliente"}</h1>
                  <p className="truncate text-xs text-blue-200">{me.email}</p>
@@ -591,6 +592,11 @@ export default function AccountPage() {
                   Editar Datos
                 </Button>
               )}
+            </div>
+
+            <div className="mb-5 flex flex-col items-center gap-4 rounded-2xl border border-blue-100 bg-blue-50 p-5 sm:flex-row sm:items-center">
+              {profilePhoto?.url ? <img src={profilePhoto.url} alt={`Foto de perfil de ${[me.name, me.lastName].filter(Boolean).join(" ") || "cliente"}`} className="h-32 w-32 rounded-[1.75rem] object-cover shadow-lg ring-4 ring-white" /> : <div className="flex h-32 w-32 items-center justify-center rounded-[1.75rem] bg-white text-[#0B2B5E] shadow-lg ring-4 ring-blue-100"><User className="h-16 w-16" aria-hidden="true" /></div>}
+              <div className="min-w-0 text-center sm:text-left"><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#F28C00]">Foto de perfil</p><p className="mt-1 text-xl font-extrabold text-[#0B2B5E]">{[me.name, me.lastName].filter(Boolean).join(" ") || "Mi cuenta"}</p><p className="mt-1 break-words text-sm text-slate-600">{me.email}</p><p className="mt-2 text-sm text-slate-600">Tu foto se mostrará de forma amplia para identificar tu cuenta.</p></div>
             </div>
 
             {!isEditingProfile ? (
