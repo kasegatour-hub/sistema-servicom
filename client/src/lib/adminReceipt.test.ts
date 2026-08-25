@@ -21,7 +21,7 @@ describe("administrative receipt ticket", () => {
     });
     const styles = buildAdminReceiptPrintStyles();
 
-    expect(html).toContain('class="cut-ticket"');
+    expect(html).toContain('class="cut-ticket ticket-delivery-control"');
     expect(html).toContain("CONTROL DE ENTREGA — TORINO, ITALIA");
     expect(html).toContain('SEDE DE ENTREGA:</div><div class="value">Corso Peschiera');
     expect(html).toContain("DESTINATARIO:");
@@ -29,12 +29,16 @@ describe("administrative receipt ticket", () => {
     expect(html).toContain("NOTAS:");
     expect(html).toContain("CHECKLIST:");
     expect(html).toContain('id="deliveryControlQR"');
+    expect(html).toContain('width="174" height="174"');
+    expect(html).toContain('class="ticket-qr-zone"');
     expect(html).toContain("ESCANEAR PARA GESTIONAR");
     expect(html).toContain("1 partida registral");
     expect(html).toContain("1 documento apostillado");
     expect(html).toContain("PRECIO FINAL");
     expect(html).toContain("37.50 EUR");
     expect(styles).toContain(".cut-ticket{break-inside:avoid;page-break-inside:avoid");
+    expect(styles).toContain("min-height:200mm");
+    expect(styles).toContain("width:46mm!important;height:46mm!important");
   });
 
   it("prints Lima as delivery destination for a Torino–Lima shipment", () => {

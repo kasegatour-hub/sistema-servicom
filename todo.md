@@ -1477,3 +1477,8 @@
 - [x] Mostrar estado anterior y nuevo cuando se actualice un envío
 - [x] Reproducir un ding ascendente de dos notas para avisos nuevos, con preferencia configurable y respeto al silencio del dispositivo
 - [x] Añadir pruebas de mensajes, sonido y bandeja; validar TypeScript, suite completa y publicar
+
+## Control de entrega ampliado
+- [x] Ampliar el control de entrega impreso hasta aproximadamente tres cuartas partes de la hoja
+- [x] Aumentar QR, margen blanco de escaneo y jerarquía visual para lectura más rápida
+- [x] Verificar el formato en Servicom y Kasega, añadir pruebas, validar la suite y publicar
