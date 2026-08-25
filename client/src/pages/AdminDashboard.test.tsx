@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   createShipment: { isPending: false, mutateAsync: vi.fn().mockResolvedValue({ shipmentId: 1 }) },
   uploadShipmentPhoto: { isPending: false, mutateAsync: vi.fn().mockResolvedValue({ success: true }) },
   uploadProfilePhoto: { isPending: false, mutateAsync: vi.fn().mockResolvedValue({ success: true, photos: [] }) },
+  updateMyProfile: { isPending: false, mutate: vi.fn() },
   updateStatus: { isPending: false, mutateAsync: vi.fn() },
   requestShipmentSignature: { isPending: false, mutate: vi.fn() },
   deleteShipment: { isPending: false, mutateAsync: vi.fn() },
@@ -79,6 +80,7 @@ vi.mock("@/lib/trpc", () => ({
       createShipment: { useMutation: () => mocks.createShipment },
       uploadShipmentPhoto: { useMutation: () => mocks.uploadShipmentPhoto },
       uploadProfilePhoto: { useMutation: () => mocks.uploadProfilePhoto },
+      updateMyProfile: { useMutation: (options?: { onSuccess?: (result: { name: string; email: string }) => void }) => ({ ...mocks.updateMyProfile, mutate: (input: { name: string }) => { mocks.updateMyProfile.mutate(input); options?.onSuccess?.({ name: input.name, email: "admin@servicom.pe" }); } }) },
       updateStatus: { useMutation: () => mocks.updateStatus },
       deleteShipment: { useMutation: () => mocks.deleteShipment },
       setShipmentRegistradorVisibility: { useMutation: () => mocks.setShipmentRegistradorVisibility },
@@ -170,9 +172,10 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
     fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
     fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Cambiar contraseña" })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole("button", { name: /Hola, Operador/ })).toBeTruthy());
 
     expect(screen.getByRole("link", { name: "Inicio" }).getAttribute("href")).toBe("/");
+    fireEvent.click(screen.getByRole("button", { name: /Hola, Operador/ }));
     fireEvent.click(screen.getByRole("button", { name: "Cambiar contraseña" }));
     expect(screen.getByRole("heading", { name: "Actualizar contraseña administrativa" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
@@ -320,7 +323,12 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.click(screen.getByRole("button", { name: /Hola, Gian Arteaga/ }));
     expect(screen.getByRole("heading", { name: "Hola, Gian Arteaga" })).toBeTruthy();
     expect(screen.getByLabelText("Subir foto de perfil administrativa")).toBeTruthy();
-    fireEvent.click(screen.getAllByRole("button", { name: "Cambiar contraseña" })[1]);
+    fireEvent.click(screen.getByRole("button", { name: "Cambiar datos" }));
+    expect(screen.getByLabelText("Nombre visible")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Nombre visible"), { target: { value: "Gian Marco" } });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar datos" }));
+    expect(mocks.updateMyProfile.mutate).toHaveBeenCalledWith({ name: "Gian Marco" });
+    fireEvent.click(screen.getByRole("button", { name: "Cambiar contraseña" }));
     expect(screen.getByRole("heading", { name: "Actualizar contraseña administrativa" })).toBeTruthy();
     expect(screen.getByRole("button", { name: /Cerrar sesión/ })).toBeTruthy();
   });

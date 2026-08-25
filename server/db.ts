@@ -927,6 +927,14 @@ export async function updateAdminProfilePhoto(id: number, metadata: string) {
   return result[0];
 }
 
+export async function updateAdminProfile(id: number, name: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  await db.update(admins).set({ name: name.trim(), updatedAt: new Date() }).where(eq(admins.id, id));
+  const result = await db.select().from(admins).where(eq(admins.id, id)).limit(1);
+  return result[0];
+}
+
 export async function createDiscountCoupon(input: {
   code: string;
   discountPercent: string | number;

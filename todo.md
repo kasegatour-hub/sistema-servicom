@@ -1292,3 +1292,10 @@
 - [x] Aplicar letra grande, altura suficiente y separación segura del icono del selector
 - [x] Revisar la presentación de opciones largas para que no se desborden
 - [x] Añadir pruebas, validar responsive y publicar la corrección
+
+## Perfil móvil unificado por rol
+- [x] Evitar que nombres, correos y etiquetas se desborden fuera de los márgenes en la app móvil
+- [x] Añadir un único botón Perfil para Cliente, Usuario y Administrador
+- [x] Encapsular dentro de Perfil la visualización y edición de datos, fotos o biografía
+- [x] Encapsular dentro de Perfil el cambio de contraseña y el cierre de sesión
+- [x] Añadir pruebas, validar navegación responsive y publicar la corrección

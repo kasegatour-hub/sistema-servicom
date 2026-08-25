@@ -327,6 +327,8 @@ export default function AdminDashboard() {
   const [couponCurrentPage, setCouponCurrentPage] = useState(1);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [showAdminProfile, setShowAdminProfile] = useState(false);
+  const [adminProfileEditOpen, setAdminProfileEditOpen] = useState(false);
+  const [adminProfileName, setAdminProfileName] = useState("");
   const [adminProfilePhotoUploading, setAdminProfilePhotoUploading] = useState(false);
   const [adminPasswordEmail, setAdminPasswordEmail] = useState("");
   const [adminCurrentPassword, setAdminCurrentPassword] = useState("");
@@ -503,6 +505,16 @@ export default function AdminDashboard() {
   const createShipmentSenderMutation = (trpc.admin as any).createShipmentSender?.useMutation?.({ onSuccess: async () => { toast.success("Remitente provincial creado."); setSenderDirectoryName(""); setSenderDirectoryLastName(""); setSenderDirectoryDni(""); setSenderDirectoryPhone(""); await refetchShipmentSenders(); }, onError: (error: any) => toast.error(error.message) }) || { mutate: () => undefined, isPending: false };
   const setShipmentSenderActiveMutation = (trpc.admin as any).setShipmentSenderActive?.useMutation?.({ onSuccess: async () => { toast.success("Estado del remitente actualizado."); await refetchShipmentSenders(); }, onError: (error: any) => toast.error(error.message) }) || { mutate: () => undefined, isPending: false };
   const uploadAdminProfilePhotoMutation = trpc.admin.uploadProfilePhoto.useMutation();
+  const updateAdminProfileMutation = trpc.admin.updateMyProfile.useMutation({
+    onSuccess: async result => {
+      setAdmin((previous: any) => previous ? { ...previous, name: result.name } : previous);
+      setAdminProfileName(result.name);
+      setAdminProfileEditOpen(false);
+      await utils.admin.me.invalidate();
+      toast.success("Datos del perfil actualizados correctamente.");
+    },
+    onError: error => toast.error(error.message),
+  });
   const changeMyPasswordMutation = trpc.admin.changeMyPassword.useMutation({
     onSuccess: result => {
       toast.success(result.message);
@@ -668,6 +680,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (currentAdminSession) {
       setAdmin(currentAdminSession);
+      setAdminProfileName(currentAdminSession.name || "");
       setIsLoggedIn(true);
     } else if (!loadingAdminSession) {
       setAdmin(null);
@@ -1518,6 +1531,15 @@ export default function AdminDashboard() {
     if (currentPage > totalPages) setCurrentPage(totalPages);
   }, [currentPage, totalPages]);
 
+  const handleAdminProfileSave = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const name = textOnly(adminProfileName).trim();
+    if (!name || !isTextOnly(name)) {
+      toast.error("El nombre solo puede contener letras y espacios.");
+      return;
+    }
+    updateAdminProfileMutation.mutate({ name });
+  };
   const handleChangeMyPassword = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const registeredEmail = String(admin?.email || "").trim().toLowerCase();
@@ -1729,30 +1751,10 @@ export default function AdminDashboard() {
                 <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/20 text-white ring-2 ring-white/50"><UserRound className="h-6 w-6" aria-hidden="true" /></span>
               )}
               <span className="min-w-0">
-                <span className="block max-w-[13rem] truncate text-sm font-extrabold">Hola, {admin?.name || "Administrador"}</span>
-                <span className="block truncate text-xs opacity-80">{admin?.role === "superadmin" ? "Master Admin" : "Registrador"} · Mi perfil</span>
+                <span className="block max-w-[13rem] break-words text-sm font-extrabold leading-5">Hola, {admin?.name || "Administrador"}</span>
+                <span className="block break-words text-xs leading-4 opacity-80">Perfil · {admin?.role === "superadmin" ? "Master Admin" : "Registrador"}</span>
               </span>
             </button>
-            <Button
-              type="button"
-              onClick={() => {
-                setAdminPasswordEmail(admin?.email || "");
-                setShowAdminProfile(true);
-                setShowPasswordForm(previous => !previous);
-              }}
-              variant="outline"
-              className="min-h-12 min-w-0 whitespace-normal rounded-xl border-white px-3 text-center text-xs font-bold leading-4 text-white hover:bg-white/20 sm:text-sm"
-            >
-              Cambiar contraseña
-            </Button>
-            <Button
-              onClick={handleLogout}
-              variant="outline"
-              className="min-h-12 min-w-0 whitespace-normal rounded-xl border-white px-3 text-center text-xs font-bold leading-4 text-white hover:bg-white/20 sm:text-sm"
-            >
-              <LogOut className="mr-2 h-4 w-4 shrink-0" />
-              Cerrar Sesión
-            </Button>
           </div>
         </div>
       </header>
@@ -1788,23 +1790,27 @@ export default function AdminDashboard() {
                 )}
                 <div className="min-w-0 flex-1 text-center sm:text-left">
                   <p className="text-xs font-bold uppercase tracking-[0.2em] text-orange-200">Perfil administrativo</p>
-                  <h2 className="mt-2 text-3xl font-extrabold">Hola, {admin?.name || "Administrador"}</h2>
-                  <p className="mt-2 break-words text-base text-blue-100">{admin?.email || "Correo no disponible"}</p>
+                  <h2 className="mt-2 break-words text-3xl font-extrabold leading-tight [overflow-wrap:anywhere]">Hola, {admin?.name || "Administrador"}</h2>
+                  <p className="mt-2 break-words text-base text-blue-100 [overflow-wrap:anywhere]">{admin?.email || "Correo no disponible"}</p>
                   <p className="mt-1 text-sm font-semibold text-orange-100">{admin?.role === "superadmin" ? "Master Admin" : "Usuario registrador"}</p>
                   <p className="mt-3 max-w-2xl text-sm leading-6 text-blue-100">Tu foto aparece aquí y en la aplicación móvil para que puedas identificar rápidamente la sesión activa.</p>
                 </div>
               </div>
             </div>
             <div className="space-y-4 p-6 sm:p-8">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div><h3 className="flex items-center gap-2 text-lg font-extrabold text-[#0B2B5E]"><ImagePlus className="h-5 w-5 text-[#F28C00]" />Foto de perfil</h3><p className="mt-1 text-sm text-slate-500">Sube una imagen clara para verla en tamaño amplio. JPG, PNG, WebP o HEIC, máximo 8 MB.</p></div>
-                <label className={`inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#F28C00] px-5 text-sm font-extrabold text-white shadow-sm transition hover:bg-[#d67900] ${adminProfilePhotoUploading ? "pointer-events-none opacity-60" : ""}`}>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0"><h3 className="flex items-center gap-2 text-lg font-extrabold text-[#0B2B5E]"><ImagePlus className="h-5 w-5 shrink-0 text-[#F28C00]" />Foto de perfil</h3><p className="mt-1 break-words text-sm text-slate-500">Sube una imagen clara para verla en tamaño amplio. JPG, PNG, WebP o HEIC, máximo 8 MB.</p></div>
+                <label className={`inline-flex min-h-12 w-full shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#F28C00] px-5 text-sm font-extrabold text-white shadow-sm transition hover:bg-[#d67900] sm:w-auto ${adminProfilePhotoUploading ? "pointer-events-none opacity-60" : ""}`}>
                   <ImagePlus className="h-5 w-5" /> {adminProfilePhotoUploading ? "Guardando foto…" : "Subir foto"}
                   <Input type="file" accept="image/jpeg,image/png,image/webp,image/heic" aria-label="Subir foto de perfil administrativa" onChange={handleAdminProfilePhotoChange} disabled={adminProfilePhotoUploading} className="sr-only" />
                 </label>
               </div>
-              {Array.isArray(admin?.profilePhotos) && admin.profilePhotos.length > 0 ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">{admin.profilePhotos.map((photo: any, index: number) => <figure key={`${photo.url}-${index}`} className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50"><img src={photo.url} alt={`Foto administrativa ${index + 1}`} className="aspect-square w-full object-cover" /><figcaption className="truncate px-2 py-2 text-xs text-slate-500">{photo.name || `Foto ${index + 1}`}</figcaption></figure>)}</div> : <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-center text-sm text-slate-500">Todavía no has subido una foto de perfil.</p>}
-              <div className="flex flex-wrap justify-end gap-3 border-t border-slate-200 pt-4"><Button type="button" variant="outline" onClick={() => { setAdminPasswordEmail(admin?.email || ""); setShowPasswordForm(true); }}>Cambiar contraseña</Button><Button type="button" variant="outline" onClick={handleLogout} disabled={logoutMutation.isPending} className="border-rose-300 text-rose-700 hover:bg-rose-50"><LogOut className="mr-2 h-4 w-4" />Cerrar sesión</Button></div>
+              {Array.isArray(admin?.profilePhotos) && admin.profilePhotos.length > 0 ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">{admin.profilePhotos.map((photo: any, index: number) => <figure key={`${photo.url}-${index}`} className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50"><img src={photo.url} alt={`Foto administrativa ${index + 1}`} className="aspect-square w-full object-cover" /><figcaption className="break-words px-2 py-2 text-xs text-slate-500">{photo.name || `Foto ${index + 1}`}</figcaption></figure>)}</div> : <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-center text-sm text-slate-500">Todavía no has subido una foto de perfil.</p>}
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0"><h3 className="text-base font-extrabold text-[#0B2B5E]">Datos del perfil</h3><p className="mt-1 break-words text-sm text-slate-600">Actualiza el nombre que se muestra en tu panel y en la app móvil.</p></div><Button type="button" variant="outline" aria-expanded={adminProfileEditOpen} onClick={() => { setAdminProfileName(admin?.name || ""); setAdminProfileEditOpen(value => !value); }} className="min-h-12 w-full shrink-0 border-[#0B2B5E] text-[#0B2B5E] sm:w-auto"><UserRound className="mr-2 h-4 w-4" />{adminProfileEditOpen ? "Cerrar datos" : "Cambiar datos"}</Button></div>
+                {adminProfileEditOpen && <form className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end" onSubmit={handleAdminProfileSave}><div className="min-w-0"><label htmlFor="admin-profile-name" className="mb-2 block text-sm font-bold text-slate-700">Nombre visible</label><Input id="admin-profile-name" value={adminProfileName} onChange={event => setAdminProfileName(event.target.value)} maxLength={255} autoComplete="name" required className="min-h-12 w-full" /><p className="mt-1 text-xs text-slate-500">Solo letras y espacios.</p></div><Button type="submit" disabled={updateAdminProfileMutation.isPending} className="min-h-12 bg-[#0B2B5E] text-white hover:bg-[#123d78]">{updateAdminProfileMutation.isPending ? "Guardando…" : "Guardar datos"}</Button></form>}
+              </div>
+              <div className="grid gap-3 border-t border-slate-200 pt-4 sm:flex sm:flex-wrap sm:justify-end"><Button type="button" variant="outline" onClick={() => { setAdminPasswordEmail(admin?.email || ""); setShowPasswordForm(true); }} className="min-h-12 w-full sm:w-auto">Cambiar contraseña</Button><Button type="button" variant="outline" onClick={handleLogout} disabled={logoutMutation.isPending} className="min-h-12 w-full border-rose-300 text-rose-700 hover:bg-rose-50 sm:w-auto"><LogOut className="mr-2 h-4 w-4" />Cerrar sesión</Button></div>
             </div>
           </Card>
         )}
