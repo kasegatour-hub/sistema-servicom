@@ -57,7 +57,7 @@ function AgencyDirectoryExplorer({ onSelect, onMessage, onClose, providerValue, 
   const isRegionalTransport = REGIONAL_TRANSPORT_IDS.includes(provider as RegionalTransportProvider);
   const providerName = isRegionalTransport ? regionalEntry.name : provider === "olva" ? "Olva Courier" : provider === "shalom" ? "Shalom" : provider === "fedex" ? "FedEx" : "DHL";
   const isGlobalCarrier = provider === "fedex" || provider === "dhl";
-  const directoryUrl = DIRECTORY_URLS[provider as keyof typeof DIRECTORY_URLS] || "https://www.google.com/maps/search/empresas+de+transporte+Per%C3%BA";
+  const directoryUrl = regionalEntry?.officialDirectoryUrl || DIRECTORY_URLS[provider as keyof typeof DIRECTORY_URLS] || "https://www.google.com/maps/search/empresas+de+transporte+Per%C3%BA";
   useEffect(() => {
     if (!isGlobalCarrier) {
       setCarrierAgencies([]);
@@ -86,10 +86,14 @@ function AgencyDirectoryExplorer({ onSelect, onMessage, onClose, providerValue, 
     }, query.trim() ? 350 : 50);
     return () => { active = false; window.clearTimeout(timer); };
   }, [isGlobalCarrier, provider, providerName, query]);
-  const regionalAgencies: Agency[] = regionalEntry ? (regionalEntry.locations?.map(location => ({ id: location.id, provider: regionalEntry.name, name: location.name, address: location.address, department: location.department || "", province: location.province || "", district: location.district || "", kind: "SEDE REGIONAL", latitude: null, longitude: null, phone: location.phone, reference: location.reference, sourceUrl: directoryUrl })) || regionalEntry.destinations.map((destination, index) => ({ id: `${regionalEntry.id}-${index}`, provider: regionalEntry.name, name: destination, address: `Destino disponible: Lima → ${destination}`, department: "", province: destination, district: "", kind: "DESTINO REGIONAL", latitude: null, longitude: null, sourceUrl: directoryUrl }))) : [];
+  const regionalAgencies: Agency[] = regionalEntry ? (() => {
+    const verifiedLocations = (regionalEntry.locations || []).map(location => ({ id: location.id, provider: regionalEntry.name, name: location.name, address: location.address, department: location.department || "", province: location.province || "", district: location.district || "", kind: "SEDE REGIONAL", latitude: null, longitude: null, phone: location.phone, businessHours: location.businessHours, reference: [location.reference, location.businessHours ? `Horario: ${location.businessHours}` : ""].filter(Boolean).join(" · "), sourceUrl: location.sourceUrl || directoryUrl }));
+    const unspecificDestinations = regionalEntry.destinations.filter(destination => !verifiedLocations.some(location => location.name.toLocaleLowerCase().includes(destination.toLocaleLowerCase()))).map((destination, index) => ({ id: `${regionalEntry.id}-destination-${index}`, provider: regionalEntry.name, name: destination, address: `Destino publicado: Lima → ${destination}. Dirección específica no publicada por el operador.`, department: "", province: destination, district: "", kind: "CONFIRMAR SEDE", latitude: null, longitude: null, businessHours: "Horario no publicado por el operador; confirma antes de entregar.", reference: "Usa la fuente oficial o «Escribir sede manual» cuando el operador indique otra agencia.", sourceUrl: directoryUrl }));
+    return [...verifiedLocations, ...unspecificDestinations];
+  })() : [];
   const agencies = (isRegionalTransport ? regionalAgencies : isGlobalCarrier ? carrierAgencies : currentQuery.data?.agencies || []) as Agency[];
   const normalizedAgencyQuery = query.trim().toLocaleLowerCase();
-  const visibleAgencies = normalizedAgencyQuery && isRegionalTransport ? agencies.filter(agency => `${agency.name} ${agency.address} ${regionalEntry?.coverage || ""}`.toLocaleLowerCase().includes(normalizedAgencyQuery)) : agencies;
+  const visibleAgencies = normalizedAgencyQuery && isRegionalTransport ? agencies.filter(agency => `${agency.name} ${agency.kind === "CONFIRMAR SEDE" ? "" : agency.address} ${agency.province} ${agency.district} ${regionalEntry?.coverage || ""}`.toLocaleLowerCase().includes(normalizedAgencyQuery)) : agencies;
   const directoryLoading = isRegionalTransport ? false : isGlobalCarrier ? carrierLoading : currentQuery.isLoading;
   const directoryError = isRegionalTransport ? false : isGlobalCarrier ? carrierError : currentQuery.isError;
 

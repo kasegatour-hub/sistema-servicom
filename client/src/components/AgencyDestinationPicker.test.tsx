@@ -78,6 +78,22 @@ describe("AgencyDestinationPicker", () => {
     ]));
   });
 
+  it("expone direcciones y horarios publicados de operadores regionales y marca los horarios no publicados", () => {
+    const movilBus = REGIONAL_TRANSPORT_BY_ID["movil-bus"];
+    const linea = REGIONAL_TRANSPORT_BY_ID["transportes-linea"];
+    const expresoSelva = REGIONAL_TRANSPORT_BY_ID["expreso-selva"];
+
+    expect(movilBus.locations).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: expect.stringContaining("Terrapuerto del Norte"), address: expect.stringContaining("Tomás Valle 651"), businessHours: expect.stringContaining("07:00–22:00") }),
+    ]));
+    expect(linea.locations).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: expect.stringContaining("Chiclayo"), address: expect.stringContaining("Panamericana Sur N.° 770"), businessHours: expect.stringContaining("07:00–22:00") }),
+    ]));
+    expect(expresoSelva.locations).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: expect.stringContaining("Satipo"), address: expect.stringContaining("Augusto B. Leguía"), businessHours: expect.stringContaining("Horario no publicado") }),
+    ]));
+  });
+
   it("permite seleccionar una empresa regional y completar uno de sus destinos", () => {
     const onChange = vi.fn();
     const onProviderChange = vi.fn();
@@ -99,6 +115,17 @@ describe("AgencyDestinationPicker", () => {
     fireEvent.change(search, { target: { value: "Ica" } });
     expect(screen.getByRole("button", { name: /Ica/i })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Cañete/i })).toBeNull();
+  });
+
+  it("muestra dirección y advertencia de horario verificable al buscar una sede de Expreso Selva", () => {
+    render(<AgencyDestinationPicker route="Torino - Lima" value="" onChange={() => undefined} />);
+    fireEvent.click(screen.getByRole("button", { name: "Elegir agencia" }));
+    fireEvent.change(screen.getByRole("combobox", { name: "Empresas regionales" }), { target: { value: "expreso-selva" } });
+    fireEvent.change(screen.getByLabelText(/Busca un destino de Expreso Selva/i), { target: { value: "Satipo" } });
+
+    expect(screen.getByText("Satipo — Terminal Municipal")).toBeTruthy();
+    expect(screen.getByText(/Jr\. Augusto B\. Leguía/i)).toBeTruthy();
+    expect(screen.getAllByText(/Horario no publicado por la empresa/i).length).toBeGreaterThan(0);
   });
 
   it("permite guardar una sede manual cuando no se dispone del directorio", () => {

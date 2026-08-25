@@ -1377,3 +1377,9 @@
 - [x] Cambiar Modalidad de pago por una selección explícita entre Agencia y Banca
 - [x] Evitar mensajes de error de Argenper cuando la cotización válida esté disponible y mantener alternativa manual clara
 - [x] Añadir pruebas, validar TypeScript y publicar la corrección
+
+## Directorio verificable de operadores regionales
+- [x] Auditar empresas y destinos que aún no muestran dirección u horario
+- [x] Investigar y documentar direcciones y horarios oficiales verificables por operador
+- [x] Mostrar en el selector los datos verificados o advertir con transparencia cuando no estén publicados
+- [x] Añadir pruebas, validar TypeScript y publicar la mejora
