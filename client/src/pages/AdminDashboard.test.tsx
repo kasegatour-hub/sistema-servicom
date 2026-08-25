@@ -46,6 +46,10 @@ const mocks = vi.hoisted(() => ({
   shipments: [] as any[],
   deletedShipments: [] as any[],
   deliveryShipment: { data: null as any, isLoading: false, error: null as any },
+  shipmentSenders: [
+    { id: 71, name: "Marco", lastName: "Polo", dni: "70123456", phone: "+51 970 188 447", isActive: true },
+    { id: 72, name: "Lucía", lastName: "Ramos", dni: "71234567", phone: "+51 908 722 617", isActive: true },
+  ] as any[],
   searchClients: {
     useQuery: (input: { query?: string }) => ({
       data: input.query?.trim() ? [{ id: 21, name: "Ana", lastName: "Pérez", dni: "71234567", phone: "+51 970188447", email: null }] : [],
@@ -81,6 +85,7 @@ vi.mock("@/lib/trpc", () => ({
       listAdmins: { useQuery: () => ({ data: [], isLoading: false, refetch: mocks.refetchAdminUsers }) },
       listCoupons: { useQuery: () => ({ data: mocks.listCoupons.data, isLoading: false, refetch: mocks.refetchCoupons }) },
       getLimaTorinoEncomiendaPolicy: { useQuery: () => ({ data: mocks.limaTorinoPolicy.data, isLoading: false, refetch: mocks.limaTorinoPolicy.refetch }) },
+      listShipmentSenders: { useQuery: () => ({ data: mocks.shipmentSenders, isLoading: false, refetch: vi.fn() }) },
       searchClients: mocks.searchClients,
       login: { useMutation: () => mocks.login },
       logout: { useMutation: () => mocks.logout },
@@ -618,6 +623,38 @@ describe("AdminDashboard Nueva Encomienda", () => {
     const checklistHeading = screen.getByText("Checklist de contenido");
     const notesLabel = screen.getByText("Notas");
     expect(checklistHeading.compareDocumentPosition(notesLabel) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it("conserva un único checklist de envío incompleto y permite filtrar un remitente provincial", async () => {
+    render(<AdminDashboard />);
+    fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
+    fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
+    await screen.findByRole("button", { name: "Nueva encomienda" });
+    fireEvent.click(screen.getByRole("button", { name: "Nueva encomienda" }));
+
+    expect(screen.getAllByText("Envío incompleto")).toHaveLength(1);
+    expect(screen.queryByText("Faltan adjuntar antes del envío")).toBeNull();
+    fireEvent.click(screen.getByRole("checkbox", { name: "Envío incompleto" }));
+    fireEvent.change(screen.getByPlaceholderText("Ej.: copia del DNI, firma o artículo pendiente"), { target: { value: "Pasaporte pendiente" } });
+    fireEvent.click(screen.getByRole("button", { name: "Añadir al checklist" }));
+    expect(screen.getByLabelText("Checklist de faltantes").textContent).toContain("Pasaporte pendiente");
+
+    const routeTrigger = screen.getAllByRole("combobox").find(element => element.textContent?.includes("Lima – Torino"));
+    expect(routeTrigger).toBeTruthy();
+    fireEvent.click(routeTrigger!);
+    fireEvent.click(screen.getByRole("option", { name: "Torino – Lima" }));
+    fireEvent.click(screen.getByLabelText("Envío a provincia"));
+    await screen.findByText("Remitente para provincia");
+    const search = screen.getByRole("textbox", { name: "Buscar remitente provincial" });
+    fireEvent.change(search, { target: { value: "Marco" } });
+    const senderSelect = screen.getByRole("combobox", { name: "Remitente provincial guardado" });
+    expect(within(senderSelect).getByRole("option", { name: /Marco Polo/ })).toBeTruthy();
+    expect(within(senderSelect).queryByRole("option", { name: /Lucía Ramos/ })).toBeNull();
+    fireEvent.change(senderSelect, { target: { value: "Marco|Polo|70123456" } });
+    expect((screen.getByPlaceholderText("Nombres del remitente provincial") as HTMLInputElement).value).toBe("Marco");
+    expect((screen.getByPlaceholderText("Apellidos del remitente provincial") as HTMLInputElement).value).toBe("Polo");
+    expect((screen.getByPlaceholderText("DNI del remitente provincial") as HTMLInputElement).value).toBe("70123456");
   });
 
   it("muestra el wizard móvil por pasos sin mezclar configuración, personas y contenido", async () => {

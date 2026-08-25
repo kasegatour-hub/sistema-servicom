@@ -1348,3 +1348,9 @@
 - [x] Calcular 3 % de comisión para EUR a EUR y 2 % para PEN a EUR
 - [x] Consultar la cotización pública de Argemper para PEN a EUR, aplicar +0,15 puntos y permitir reemplazo manual
 - [x] Añadir pruebas, validar TypeScript y publicar la actualización
+
+## Simplificación de faltantes y remitente provincial
+- [x] Eliminar el bloque duplicado de adjuntos pendientes y mantener solo Envío incompleto
+- [x] Permitir registrar en Envío incompleto documentos, artículos o datos que faltan antes del despacho
+- [x] Añadir búsqueda y filtro por nombre, DNI o celular al selector de remitente provincial
+- [x] Añadir pruebas, validar TypeScript y publicar la corrección
