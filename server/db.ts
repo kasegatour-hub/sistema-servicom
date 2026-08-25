@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, like, ne, notInArray, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { createHash } from "node:crypto";
-import { InsertUser, users, shipments, shipmentSignatures, shipmentAuditLogs, shipmentFeedback, platformFeedback, interactionEvents, admins, localAccounts, verificationCodes, adminPasswordResetCodes, clients, discountCoupons, shipmentRoutePolicies, invitationLetters, invitationLetterSignatures } from "../drizzle/schema";
+import { InsertUser, users, shipments, shipmentSignatures, shipmentAuditLogs, shipmentFeedback, platformFeedback, interactionEvents, admins, localAccounts, verificationCodes, adminPasswordResetCodes, clients, discountCoupons, shipmentRoutePolicies, invitationLetters, invitationLetterSignatures, transfers } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { buildShipmentClientDirectoryRecords, type ClientDirectoryRecord, type ShipmentClientDirectoryInput } from "./clientDirectory";
 import { rankFuzzyMatches } from "../shared/fuzzySearch";
@@ -1457,4 +1457,46 @@ export async function setShipmentRegistradorVisibility(id: number, hidden: boole
     metadata: { hiddenFromRegistradores: hidden },
   });
   return true;
+}
+
+
+export async function createTransfer(input: {
+  transferNumber: string;
+  createdByAdminId: number;
+  createdByAdminLabel: string;
+  originOffice?: string;
+  destinationOffice?: string | null;
+  senderName: string;
+  senderPhone?: string | null;
+  senderDocument?: string | null;
+  senderPassport?: string | null;
+  senderCity?: string | null;
+  senderPaymentMethod?: string | null;
+  recipientName: string;
+  recipientPhone?: string | null;
+  recipientDocument?: string | null;
+  recipientPassport?: string | null;
+  recipientBank?: string | null;
+  recipientIban?: string | null;
+  recipientCci?: string | null;
+  amountSent: string;
+  transferFee: string;
+  exchangeRate: string;
+  amountReceived: string;
+  currency?: string;
+  status?: "Registrada" | "Pagada" | "Cancelada";
+  notes?: string | null;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Base de datos no disponible");
+  await db.insert(transfers).values({ ...input, originOffice: input.originOffice || "Servicom Internacional — Lima", currency: input.currency || "EUR", status: input.status || "Registrada" });
+  const rows = await db.select().from(transfers).where(eq(transfers.transferNumber, input.transferNumber)).limit(1);
+  return rows[0] || null;
+}
+
+export async function listTransfersByAdmin(adminId: number, includeDeleted = false) {
+  const db = await getDb();
+  if (!db) return [];
+  const condition = includeDeleted ? eq(transfers.createdByAdminId, adminId) : and(eq(transfers.createdByAdminId, adminId), isNull(transfers.deletedAt));
+  return db.select().from(transfers).where(condition).orderBy(desc(transfers.createdAt));
 }

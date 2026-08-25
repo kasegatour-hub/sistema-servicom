@@ -172,6 +172,44 @@ export const invitationLetterSignatures = mysqlTable("invitation_letter_signatur
 export type InvitationLetterSignature = typeof invitationLetterSignatures.$inferSelect;
 export type InsertInvitationLetterSignature = typeof invitationLetterSignatures.$inferInsert;
 
+/** Registro de transferencias gestionadas por Admin y Usuario Registrador. */
+export const transfers = mysqlTable("transfers", {
+  id: int("id").autoincrement().primaryKey(),
+  transferNumber: varchar("transferNumber", { length: 32 }).notNull().unique(),
+  createdByAdminId: int("createdByAdminId").notNull(),
+  createdByAdminLabel: varchar("createdByAdminLabel", { length: 255 }).notNull(),
+  originOffice: varchar("originOffice", { length: 255 }).default("Servicom Internacional — Lima").notNull(),
+  destinationOffice: varchar("destinationOffice", { length: 255 }),
+  senderName: varchar("senderName", { length: 255 }).notNull(),
+  senderPhone: varchar("senderPhone", { length: 32 }),
+  senderDocument: varchar("senderDocument", { length: 64 }),
+  senderPassport: varchar("senderPassport", { length: 64 }),
+  senderCity: varchar("senderCity", { length: 120 }),
+  senderPaymentMethod: varchar("senderPaymentMethod", { length: 120 }),
+  recipientName: varchar("recipientName", { length: 255 }).notNull(),
+  recipientPhone: varchar("recipientPhone", { length: 32 }),
+  recipientDocument: varchar("recipientDocument", { length: 64 }),
+  recipientPassport: varchar("recipientPassport", { length: 64 }),
+  recipientBank: varchar("recipientBank", { length: 255 }),
+  recipientIban: varchar("recipientIban", { length: 64 }),
+  recipientCci: varchar("recipientCci", { length: 64 }),
+  amountSent: decimal("amountSent", { precision: 12, scale: 2 }).notNull(),
+  transferFee: decimal("transferFee", { precision: 12, scale: 2 }).default("0.00").notNull(),
+  exchangeRate: decimal("exchangeRate", { precision: 12, scale: 4 }).default("1.0000").notNull(),
+  amountReceived: decimal("amountReceived", { precision: 12, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 8 }).default("EUR").notNull(),
+  status: mysqlEnum("status", ["Registrada", "Pagada", "Cancelada"]).default("Registrada").notNull(),
+  notes: text("notes"),
+  deletedAt: timestamp("deletedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => ({
+  creatorIdx: index("transfers_creator_created_idx").on(table.createdByAdminId, table.createdAt),
+  deletedIdx: index("transfers_deleted_idx").on(table.deletedAt),
+}));
+export type Transfer = typeof transfers.$inferSelect;
+export type InsertTransfer = typeof transfers.$inferInsert;
+
 /** Cupones promocionales del 25% gestionados por operadores y Master Admin. */
 export const discountCoupons = mysqlTable("discount_coupons", {
   id: int("id").autoincrement().primaryKey(),

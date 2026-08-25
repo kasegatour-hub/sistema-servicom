@@ -309,6 +309,13 @@
       "when": 1787619328500,
       "tag": "0043_strong_hex",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "5",
+      "when": 1787621521780,
+      "tag": "0044_abnormal_peter_parker",
+      "breakpoints": true
     }
   ]
 }

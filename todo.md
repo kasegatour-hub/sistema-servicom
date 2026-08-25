@@ -1218,3 +1218,10 @@
 - [x] Mostrar traducción como adicional de 50 EUR y 200 soles
 - [x] Indicar 7 días hábiles de plazo para cada servicio en confirmación y recibo
 - [x] Añadir pruebas de cotización y plazo sin alterar la tarifa base del cliente
+
+## Módulo de transferencias
+- [x] Añadir acceso a Transferencias para Admin y Usuario, sin mostrarlo al Cliente
+- [x] Crear persistencia de transferencias con número, remitente, destinatario, datos bancarios e importes
+- [x] Diseñar formulario en español inspirado en el formato de referencia
+- [x] Generar recibo imprimible duplicado en una hoja con logo y desglose de transferencia
+- [x] Añadir pruebas de permisos, creación, cálculo e impresión del recibo

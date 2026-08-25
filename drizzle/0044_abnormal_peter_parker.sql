@@ -1,0 +1,36 @@
+CREATE TABLE `transfers` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`transferNumber` varchar(32) NOT NULL,
+	`createdByAdminId` int NOT NULL,
+	`createdByAdminLabel` varchar(255) NOT NULL,
+	`originOffice` varchar(255) NOT NULL DEFAULT 'Servicom Internacional — Lima',
+	`destinationOffice` varchar(255),
+	`senderName` varchar(255) NOT NULL,
+	`senderPhone` varchar(32),
+	`senderDocument` varchar(64),
+	`senderPassport` varchar(64),
+	`senderCity` varchar(120),
+	`senderPaymentMethod` varchar(120),
+	`recipientName` varchar(255) NOT NULL,
+	`recipientPhone` varchar(32),
+	`recipientDocument` varchar(64),
+	`recipientPassport` varchar(64),
+	`recipientBank` varchar(255),
+	`recipientIban` varchar(64),
+	`recipientCci` varchar(64),
+	`amountSent` decimal(12,2) NOT NULL,
+	`transferFee` decimal(12,2) NOT NULL DEFAULT '0.00',
+	`exchangeRate` decimal(12,4) NOT NULL DEFAULT '1.0000',
+	`amountReceived` decimal(12,2) NOT NULL,
+	`currency` varchar(8) NOT NULL DEFAULT 'EUR',
+	`status` enum('Registrada','Pagada','Cancelada') NOT NULL DEFAULT 'Registrada',
+	`notes` text,
+	`deletedAt` timestamp,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `transfers_id` PRIMARY KEY(`id`),
+	CONSTRAINT `transfers_transferNumber_unique` UNIQUE(`transferNumber`)
+);
+--> statement-breakpoint
+CREATE INDEX `transfers_creator_created_idx` ON `transfers` (`createdByAdminId`,`createdAt`);--> statement-breakpoint
+CREATE INDEX `transfers_deleted_idx` ON `transfers` (`deletedAt`);
