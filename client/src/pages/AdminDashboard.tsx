@@ -1138,11 +1138,17 @@ export default function AdminDashboard() {
       refetchShipments();
     } catch (error: any) {
       const rawMessage = String(error?.message || "");
+      const phoneField = rawMessage.includes("senderPhone") ? "senderPhone" : rawMessage.includes("recipientPhone") ? "recipientPhone" : rawMessage.includes("deliveryPersonPhone") ? "deliveryPersonPhone" : "";
+      const phoneLabels: Record<string, string> = { senderPhone: "celular del remitente", recipientPhone: "celular del destinatario", deliveryPersonPhone: "celular de entrega" };
+      const phoneFriendlyMessage = phoneField ? `Corrige el ${phoneLabels[phoneField]}. Para Perú escribe 9 dígitos después de +51, por ejemplo 970 188 447.` : "";
       const isManualPriceError = rawMessage.includes("manualPriceEur") || rawMessage.includes("Precio manual");
-      const friendlyMessage = isManualPriceError
+      const friendlyMessage = phoneFriendlyMessage || (isManualPriceError
         ? "Falta indicar el precio final del envío. Completa el campo «Precio manual en EUR» y vuelve a intentarlo."
-        : "No se pudo crear el envío. Revisa los campos señalados y vuelve a intentarlo.";
-      if (isManualPriceError) {
+        : "No se pudo crear el envío. Revisa los campos señalados y vuelve a intentarlo.");
+      if (phoneField) {
+        createForm.setError(phoneField as any, { type: "server", message: phoneFriendlyMessage });
+        setCreateShipmentValidationError(friendlyMessage);
+      } else if (isManualPriceError) {
         setCreateShipmentValidationError(friendlyMessage);
         createForm.setError("manualPriceEur", { type: "required", message: friendlyMessage });
       }
@@ -2381,10 +2387,12 @@ export default function AdminDashboard() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Teléfono</label>
                     <PhoneInput
+                      id="admin-sender-phone"
                       value={createForm.watch("senderPhone") || "+51 "}
-                      onChange={(val) => createForm.setValue("senderPhone", val)}
-                      placeholder="970188447"
+                      onChange={(val) => createForm.setValue("senderPhone", val, { shouldDirty: true, shouldValidate: true })}
+                      placeholder="970 188 447"
                     />
+                    {createForm.formState.errors.senderPhone?.message && <p role="alert" className="mt-1 text-xs font-semibold text-red-600">{String(createForm.formState.errors.senderPhone.message)}</p>}
                   </div>
                 </div>
               </div>
@@ -2433,10 +2441,12 @@ export default function AdminDashboard() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Teléfono</label>
                     <PhoneInput
+                      id="admin-recipient-phone"
                       value={createForm.watch("recipientPhone") || "+51 "}
-                      onChange={(val) => createForm.setValue("recipientPhone", val)}
-                      placeholder="908722617"
+                      onChange={(val) => createForm.setValue("recipientPhone", val, { shouldDirty: true, shouldValidate: true })}
+                      placeholder="908 722 617"
                     />
+                    {createForm.formState.errors.recipientPhone?.message && <p role="alert" className="mt-1 text-xs font-semibold text-red-600">{String(createForm.formState.errors.recipientPhone.message)}</p>}
                   </div>
                 </div>
               </div>

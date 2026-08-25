@@ -38,7 +38,7 @@ import {
 } from "./localAuth";
 import { AccountSessionPayload, clearAccountSession, getAccountSession, setAccountSession } from "./localSession";
 import { identityDocumentNumberSchema, identityDocumentTypeSchema, isIdentityDocumentValid, identityDocumentValidationMessage, optionalIdentityDocumentNumberSchema, optionalPersonNameSchema, personNameSchema } from "./inputValidation";
-import { isValidInternationalPhone } from "../shared/phoneValidation";
+import { isValidInternationalPhone, normalizeInternationalPhone } from "../shared/phoneValidation";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "../shared/passwordPolicy";
 import { generateShipmentCode, generateShipmentOrderNumber } from "../shared/shipmentIdentifiers";
 import { storagePut } from "./storage";
@@ -47,8 +47,12 @@ import { eq } from "drizzle-orm";
 
 const passwordSchema = z.string().refine(isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE);
 const emailSchema = z.string().email("Correo electrónico inválido.");
-const optionalInternationalPhoneSchema = z.string().trim().optional().refine(value => !value || isValidInternationalPhone(value), "El número no coincide con la cantidad de dígitos del país seleccionado.");
-const internationalPhoneSchema = z.string().trim().min(1, "Teléfono requerido").refine(isValidInternationalPhone, "El número no coincide con la cantidad de dígitos del país seleccionado.");
+const optionalInternationalPhoneSchema = z.string().trim().optional()
+  .transform(value => value ? normalizeInternationalPhone(value) : value)
+  .refine(value => !value || isValidInternationalPhone(value), "Completa el teléfono con su código de país y los dígitos requeridos.");
+const internationalPhoneSchema = z.string().trim().min(1, "Teléfono requerido")
+  .transform(value => normalizeInternationalPhone(value))
+  .refine(isValidInternationalPhone, "Completa el teléfono con su código de país y los dígitos requeridos.");
 export const passwordResetChannelSchema = z.literal("email");
 
 export const ACCOUNT_REAUTH_REQUIRED_MESSAGE = "Por seguridad, vuelve a escribir tu contraseña para continuar.";

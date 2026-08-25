@@ -31,6 +31,17 @@ export const PHONE_LENGTH_RULES: PhoneLengthRule[] = [
 
 const sortedRules = [...PHONE_LENGTH_RULES].sort((left, right) => right.countryCode.length - left.countryCode.length);
 
+export function normalizeInternationalPhone(value?: string | null) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  const compact = raw.replace(/[^\d+]/g, "");
+  const withoutPrefix = compact.startsWith("00") ? compact.slice(2) : compact.replace(/^\+/, "");
+  // PhoneInput normally sends +51, but mobile keyboards and pasted values can
+  // send the nine local Peruvian digits without the selected country code.
+  if (/^9\d{8}$/.test(withoutPrefix)) return `+51 ${withoutPrefix.slice(0, 3)} ${withoutPrefix.slice(3, 6)} ${withoutPrefix.slice(6)}`;
+  return raw;
+}
+
 export function splitInternationalPhone(value?: string | null) {
   const normalized = String(value ?? "").trim().replace(/[\s()-]/g, "");
   const international = normalized.startsWith("00") ? `+${normalized.slice(2)}` : normalized;

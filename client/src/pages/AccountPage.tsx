@@ -414,7 +414,16 @@ export default function AccountPage() {
       setReceiptShipment(result.shipment);
       refetchShipments();
     },
-    onError: error => toast.error(error.message),
+    onError: error => {
+      const rawMessage = String(error.message || "");
+      const phoneField = rawMessage.includes("senderPhone") ? "senderPhone" : rawMessage.includes("recipientPhone") ? "recipientPhone" : rawMessage.includes("deliveryPersonPhone") ? "deliveryPersonPhone" : "";
+      const labels: Record<string, string> = { senderPhone: "celular del remitente", recipientPhone: "celular del destinatario", deliveryPersonPhone: "celular de entrega" };
+      const message = phoneField
+        ? `Corrige el ${labels[phoneField]}. Para Perú escribe 9 dígitos después de +51, por ejemplo 970 188 447.`
+        : "No se pudo registrar el envío. Revisa los campos marcados y vuelve a intentarlo.";
+      if (phoneField) setShipmentValidationErrors(current => ({ ...current, [phoneField]: message }));
+      toast.error(message);
+    },
   });
   const validateClientShipment = () => {
     const errors: Record<string, string> = {};

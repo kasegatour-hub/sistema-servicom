@@ -17,7 +17,7 @@ import { eq } from "drizzle-orm";
 import { identityDocumentTypeSchema, identityDocumentValidationMessage, isIdentityDocumentValid, optionalIdentityDocumentNumberSchema, optionalPersonNameSchema, personNameSchema } from "./inputValidation";
 import { calculateAdminShipmentPricing } from "./adminPricing";
 import { applyCouponDiscount, isCouponCurrentlyValid, normalizeCouponCode } from "./couponPricing";
-import { isValidInternationalPhone } from "../shared/phoneValidation";
+import { isValidInternationalPhone, normalizeInternationalPhone } from "../shared/phoneValidation";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "../shared/passwordPolicy";
 import { generateShipmentCode, generateShipmentOrderNumber } from "../shared/shipmentIdentifiers";
 import { invokeLLM } from "./_core/llm";
@@ -35,7 +35,9 @@ const PASSWORD_REUSE_MESSAGE = "La nueva contraseña no puede ser igual a la con
 async function matchesStoredAdminPassword(password: string, storedPassword: string) {
   return storedPassword.startsWith("scrypt$") ? verifyPassword(password, storedPassword) : password === storedPassword;
 }
-const optionalInternationalPhoneSchema = z.string().trim().optional().refine(value => !value || isValidInternationalPhone(value), "El número no coincide con la cantidad de dígitos del país seleccionado.");
+const optionalInternationalPhoneSchema = z.string().trim().optional()
+  .transform(value => value ? normalizeInternationalPhone(value) : value)
+  .refine(value => !value || isValidInternationalPhone(value), "Completa el teléfono con su código de país y los dígitos requeridos.");
 const securePasswordSchema = z.string().refine(isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE);
 type AdminProfilePhoto = { key: string; url: string; name: string; mimeType: string; sizeBytes: number; createdAt: string };
 function parseAdminProfilePhotos(metadata: string | null | undefined): AdminProfilePhoto[] {

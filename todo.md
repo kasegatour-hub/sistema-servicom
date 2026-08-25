@@ -1395,3 +1395,17 @@
 - [x] Aplicar azul para documentos, naranja para encomiendas y verde para transferencias en sus formularios activos
 - [x] Mantener el registro móvil dividido en pasos claros para documento, encomienda y transferencia
 - [x] Añadir pruebas, validar TypeScript y publicar los ajustes
+
+## Validación telefónica y errores móviles
+- [ ] Aceptar correctamente 9 dígitos nacionales para teléfonos de Perú
+- [ ] Mostrar el error de teléfono junto al campo con instrucciones claras y dinámicas
+- [ ] Sustituir el mensaje técnico JSON por feedback móvil accionable y mantener visibles los datos ingresados
+- [ ] Añadir pruebas, validar TypeScript y publicar la corrección
+
+---
+
+**Criterio:** 9 dígitos de Perú válidos; errores junto al campo; sin JSON crudo para el usuario.
+
+**Estado:** Pendiente de implementación.
+
+**Referencia:** PhoneInput, validación de teléfonos y registro móvil.
