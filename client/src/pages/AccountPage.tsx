@@ -924,7 +924,7 @@ export default function AccountPage() {
                       <p className="mt-0.5 text-xs text-slate-500"><strong>Registrado por:</strong> {shipment.registeredByLabel || "Registro anterior"}</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <Link href={`/?order=${encodeURIComponent(shipment.orderNumber)}&code=${encodeURIComponent(shipment.code)}`}>
+                      <Link href={`${mobileClientMode ? "/movil" : "/"}?order=${encodeURIComponent(shipment.orderNumber)}&code=${encodeURIComponent(shipment.code)}`}>
                         <Button size="sm" className="bg-[#0B2B5E] text-white hover:bg-[#123d78]"><Search className="mr-2 h-3.5 w-3.5" /> Rastrear envío</Button>
                       </Link>
                       <Button size="sm" variant="outline" onClick={() => setReceiptShipment(shipment)} className="border-[#F28C00] text-[#0B2B5E] hover:bg-orange-50"><Download className="mr-2 h-3.5 w-3.5" /> Ver recibo</Button>

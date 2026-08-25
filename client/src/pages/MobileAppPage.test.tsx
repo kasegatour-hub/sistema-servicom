@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 const { searchMock, accountMocks, adminMocks } = vi.hoisted(() => ({
   searchMock: vi.fn(),
@@ -21,7 +21,7 @@ vi.mock("@/components/QRScanner", () => ({ QRScanner: () => null }));
 
 import MobileAppPage from "./MobileAppPage";
 
-afterEach(() => cleanup());
+afterEach(() => { cleanup(); window.history.replaceState({}, "", "/movil"); });
 
 beforeEach(() => {
   accountMocks.session = null;
@@ -110,6 +110,19 @@ describe("MobileAppPage", () => {
     expect(screen.getAllByText("35209927").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Código de envío").length).toBeGreaterThan(0);
     expect(screen.getAllByText("7ABC").length).toBeGreaterThan(0);
+  });
+
+  it("mantiene los enlaces de rastreo dentro de /movil al abrir un envío por URL", async () => {
+    accountMocks.session = { id: 7, email: "cliente@servicom.pe", name: "Ana", reauthRequired: false };
+    searchMock.mockImplementation((input: { orderNumber: string; code: string }) => input.orderNumber && input.code ? { data: { orderNumber: input.orderNumber, code: input.code, status: "En agencia", paymentStatus: "Falta cancelar", route: "Lima - Torino", destinationAddress: "Jr. de la Unión 518" }, isLoading: false, error: null } : { data: undefined, isLoading: false, error: null });
+    window.history.replaceState({}, "", "/movil?order=35209927&code=7abc");
+    render(<MobileAppPage />);
+
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Encuentra tu envío" })).toBeTruthy());
+    expect((screen.getByLabelText("Número de orden móvil") as HTMLInputElement).value).toBe("35209927");
+    expect((screen.getByLabelText("Código de envío móvil") as HTMLInputElement).value).toBe("7ABC");
+    expect(screen.queryByRole("link", { name: "Ver seguimiento completo" })).toBeNull();
+    expect(searchMock).toHaveBeenLastCalledWith({ orderNumber: "35209927", code: "7ABC" }, { enabled: true });
   });
 
   it("muestra una confirmación visible mientras busca el envío autenticado", () => {

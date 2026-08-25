@@ -1260,3 +1260,9 @@
 - [x] Conservar el botón Escanear QR de envío en la sección inferior Rastrear
 - [x] Añadir o actualizar pruebas para confirmar que no existen dos accesos QR simultáneos en la cabecera y el contenido
 - [x] Verificar visualmente la app móvil y publicar la corrección
+
+## Rastreo móvil como raíz única
+- [x] Mantener búsqueda y escaneo QR dentro de la pestaña móvil Rastrear
+- [x] Mostrar el resultado del envío dentro de la app móvil sin abrir otra ventana de rastreo
+- [x] Revisar el enlace de seguimiento completo para que no saque al usuario de la app móvil
+- [x] Actualizar pruebas, validar responsive y publicar la corrección
