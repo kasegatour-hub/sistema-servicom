@@ -30,10 +30,15 @@ export function parseArgenperEuroQuote(html: string) {
 
 export async function getArgenperEuroQuote(): Promise<ArgenperQuote> {
   if (cachedQuote && Date.now() - cachedQuote.fetchedAt < QUOTE_TTL_MS) return cachedQuote;
-  const response = await fetch(ARGENPER_RATE_URL, { headers: { Accept: "text/html", "User-Agent": "Servicom-Transfer-Quote/1.0" }, signal: AbortSignal.timeout(7000) });
-  if (!response.ok) throw new Error(`Argemper respondió ${response.status}`);
-  const parsed = parseArgenperEuroQuote(await response.text());
-  if (!parsed) throw new Error("No se encontró la cotización EUR en Argemper.");
-  cachedQuote = { ...parsed, adjustedPenPerEur: Number((parsed.eurSaleRate + 0.15).toFixed(4)), fetchedAt: Date.now(), sourceUrl: ARGENPER_RATE_URL };
-  return cachedQuote;
+  try {
+    const response = await fetch(ARGENPER_RATE_URL, { headers: { Accept: "text/html", "User-Agent": "Servicom-Transfer-Quote/1.0" }, signal: AbortSignal.timeout(7000) });
+    if (!response.ok) throw new Error(`Argemper respondió ${response.status}`);
+    const parsed = parseArgenperEuroQuote(await response.text());
+    if (!parsed) throw new Error("No se encontró la cotización EUR en Argemper.");
+    cachedQuote = { ...parsed, adjustedPenPerEur: Number((parsed.eurSaleRate + 0.15).toFixed(4)), fetchedAt: Date.now(), sourceUrl: ARGENPER_RATE_URL };
+    return cachedQuote;
+  } catch (error) {
+    if (cachedQuote) return cachedQuote;
+    throw error;
+  }
 }

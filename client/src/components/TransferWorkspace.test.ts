@@ -9,7 +9,6 @@ const validTransfer: TransferForm = {
   senderPhone: "+39 389 766 3723",
   senderDocument: "YA1234567",
   senderDocumentType: "pasaporte",
-  senderCity: "TORINO",
   senderPaymentMethod: "Agencia",
   recipientName: "Maruja Cárdenas",
   recipientPhone: "+51 970 188 447",

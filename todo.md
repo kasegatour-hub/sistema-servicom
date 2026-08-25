@@ -1371,3 +1371,9 @@
 - [x] Resolver sede, contactos y modalidad de pago según la ruta elegida
 - [x] Aplicar el branding y los contactos exclusivos de Kasega Tour para Magdalena y cuentas asociadas en recibo y ticket
 - [x] Añadir pruebas, validar TypeScript y publicar la corrección
+
+## Simplificación y cotización de transferencias
+- [x] Retirar Ciudad porque la ruta elegida ya determina la sede de origen
+- [x] Cambiar Modalidad de pago por una selección explícita entre Agencia y Banca
+- [x] Evitar mensajes de error de Argenper cuando la cotización válida esté disponible y mantener alternativa manual clara
+- [x] Añadir pruebas, validar TypeScript y publicar la corrección
