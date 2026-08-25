@@ -99,7 +99,7 @@ describe("MobileAppPage", () => {
     expect(screen.getByRole("img", { name: "Foto de perfil de Master" }).getAttribute("src")).toBe("https://cdn.example/admin.jpg");
     fireEvent.click(screen.getByRole("button", { name: "Mi cuenta" }));
     expect(screen.getByRole("heading", { name: "Perfil administrativo" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Perfil" }).getAttribute("href")).toBe("/admin?from=movil&profile=1");
+    expect(screen.getByRole("link", { name: "Mi perfil" }).getAttribute("href")).toBe("/admin?from=movil&profile=1");
   });
 
   it("muestra la foto amplia del cliente en el encabezado y Mi cuenta", () => {

@@ -1305,3 +1305,10 @@
 - [x] Aclarar 10 EUR por cada bloque adicional de 5 hojas, no por cada hoja
 - [x] Mantener intactos el cálculo existente, los límites y los totales en EUR
 - [x] Actualizar pruebas, validar recibos y publicar la corrección
+
+## Perfil administrativo alineado con Mi cuenta del cliente
+- [x] Hacer que el botón Perfil del administrador abra una vista equivalente a Mi cuenta
+- [x] Mostrar datos personales, foto y biografía del administrador dentro del perfil
+- [x] Mantener dentro del perfil el cambio de contraseña y el cierre de sesión
+- [x] Conservar fuera del perfil las funciones exclusivas de gestión administrativa
+- [x] Añadir pruebas, validar responsive y publicar la alineación

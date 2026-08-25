@@ -326,7 +326,10 @@ export default function AdminDashboard() {
   const [couponSortOrder, setCouponSortOrder] = useState<"asc" | "desc">("desc");
   const [couponCurrentPage, setCouponCurrentPage] = useState(1);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
-  const [showAdminProfile, setShowAdminProfile] = useState(false);
+  const [showAdminProfile, setShowAdminProfile] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return new URLSearchParams(window.location.search).get("profile") === "1";
+  });
   const [adminProfileEditOpen, setAdminProfileEditOpen] = useState(false);
   const [adminProfileName, setAdminProfileName] = useState("");
   const [adminProfilePhotoUploading, setAdminProfilePhotoUploading] = useState(false);
@@ -1751,8 +1754,9 @@ export default function AdminDashboard() {
                 <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/20 text-white ring-2 ring-white/50"><UserRound className="h-6 w-6" aria-hidden="true" /></span>
               )}
               <span className="min-w-0">
+                <span className="block text-[11px] font-black uppercase tracking-[0.16em] text-orange-100">Mi perfil</span>
                 <span className="block max-w-[13rem] break-words text-sm font-extrabold leading-5">Hola, {admin?.name || "Administrador"}</span>
-                <span className="block break-words text-xs leading-4 opacity-80">Perfil · {admin?.role === "superadmin" ? "Master Admin" : "Registrador"}</span>
+                <span className="block break-words text-xs leading-4 opacity-80">{admin?.role === "superadmin" ? "Master Admin" : "Registrador"} · Ver datos y seguridad</span>
               </span>
             </button>
           </div>
@@ -1780,7 +1784,7 @@ export default function AdminDashboard() {
           <p className="mt-2 text-xs text-slate-500">Abre solo el área que necesitas para mantener el trabajo operativo limpio y enfocado.</p>
         </Card>
         {showAdminProfile && (
-          <Card id="admin-profile-panel" className="mb-8 overflow-hidden border-0 p-0 shadow-lg" aria-label="Perfil administrativo">
+          <Card id="admin-profile-panel" className="mb-8 overflow-hidden border-0 p-0 shadow-lg" aria-label="Mi perfil administrativo">
             <div className="bg-gradient-to-r from-[#0B2B5E] to-[#174a89] p-6 text-white sm:p-8">
               <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center">
                 {admin?.profilePhoto?.url ? (
@@ -1789,7 +1793,7 @@ export default function AdminDashboard() {
                   <div className="flex h-36 w-36 items-center justify-center rounded-[2rem] bg-white/15 shadow-2xl ring-4 ring-white/50 sm:h-48 sm:w-48"><UserRound className="h-20 w-20 text-white/90 sm:h-28 sm:w-28" aria-hidden="true" /></div>
                 )}
                 <div className="min-w-0 flex-1 text-center sm:text-left">
-                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-orange-200">Perfil administrativo</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-orange-200">Mi perfil</p>
                   <h2 className="mt-2 break-words text-3xl font-extrabold leading-tight [overflow-wrap:anywhere]">Hola, {admin?.name || "Administrador"}</h2>
                   <p className="mt-2 break-words text-base text-blue-100 [overflow-wrap:anywhere]">{admin?.email || "Correo no disponible"}</p>
                   <p className="mt-1 text-sm font-semibold text-orange-100">{admin?.role === "superadmin" ? "Master Admin" : "Usuario registrador"}</p>

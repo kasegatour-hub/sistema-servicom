@@ -319,6 +319,7 @@ describe("AdminDashboard Nueva Encomienda", () => {
     render(<AdminDashboard />);
 
     await waitFor(() => expect(screen.getByRole("button", { name: /Hola, Gian Arteaga/ })).toBeTruthy());
+    expect(screen.getByRole("button", { name: /Mi perfil/ })).toBeTruthy();
     expect(screen.getByRole("img", { name: "Foto de perfil de Gian Arteaga" }).getAttribute("src")).toBe("https://cdn.example/admin.jpg");
     fireEvent.click(screen.getByRole("button", { name: /Hola, Gian Arteaga/ }));
     expect(screen.getByRole("heading", { name: "Hola, Gian Arteaga" })).toBeTruthy();
