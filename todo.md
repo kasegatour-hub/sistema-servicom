@@ -1254,3 +1254,9 @@
 
 ## Pendiente histórico
 - [x] Mantener bajo revisión las mejoras futuras de UX, catálogos de agencias y funcionalidades no relacionadas con esta refinación
+
+## Ajuste de QR en la cabecera móvil
+- [x] Quitar el botón flotante de escaneo QR junto a Inicio en la app móvil
+- [x] Conservar el botón Escanear QR de envío en la sección inferior Rastrear
+- [x] Añadir o actualizar pruebas para confirmar que no existen dos accesos QR simultáneos en la cabecera y el contenido
+- [x] Verificar visualmente la app móvil y publicar la corrección

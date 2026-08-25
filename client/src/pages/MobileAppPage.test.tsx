@@ -57,7 +57,10 @@ describe("MobileAppPage", () => {
     render(<MobileAppPage />);
 
     expect(screen.getByRole("button", { name: "Rastrear envío" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Escanear QR de rastreo" })).toBeNull();
     expect(screen.getByRole("link", { name: "Registrar nuevo envío" }).getAttribute("href")).toBe("/cuenta?mobile=1&workspace=registrar");
+    fireEvent.click(screen.getByRole("button", { name: "Rastrear envío" }));
+    expect(screen.getByRole("button", { name: "Escanear QR de envío" })).toBeTruthy();
   });
 
   it("habilita rastreo y lectura QR solo después de iniciar sesión", () => {
