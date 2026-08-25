@@ -11,6 +11,7 @@ import {
   buildElectronicSignatureHtml,
   getPaymentStatusPresentation,
   getReceiptBranding,
+  getReceiptDeliveryDetails,
   printUserShipmentReceipt,
   resolveReceiptAssetUrl,
 } from "./userReceipt";
@@ -78,6 +79,23 @@ describe("receipt window helpers", () => {
     expect(markdown).toContain("?order=3289150504&code=DOC-2026-XPF2A");
     expect(word).toContain("<!doctype html>");
     expect(word).toContain("Miguel Díaz Ojitos");
+  });
+
+  it("prioriza la agencia provincial elegida sobre la sede Kasega al generar el comprobante", () => {
+    const shipment = {
+      orderNumber: "3289150599",
+      code: "7ABC",
+      shipmentType: "encomienda",
+      route: "Torino - Lima",
+      registeredById: 210001,
+      isProvinceDelivery: true,
+      destinationAddress: "Av. Principal 123, Satipo",
+      senderName: "Ana",
+      recipientName: "Miguel",
+    };
+    const delivery = getReceiptDeliveryDetails(shipment);
+    expect(delivery.address).toBe("Av. Principal 123, Satipo");
+    expect(buildReceiptMarkdown(shipment)).toContain("**Dirección de entrega:** Av. Principal 123, Satipo");
   });
 
   it("includes the complete delivery ticket and anti-split rule in the final receipt output", () => {

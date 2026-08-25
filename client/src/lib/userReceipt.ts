@@ -17,9 +17,25 @@ export function getReceiptBranding(shipment: any) {
   const registeredEmail = String(shipment?.registeredByEmail ?? "").trim().toLowerCase();
   const registeredById = Number(shipment?.registeredById ?? shipment?.ownerAdminId ?? NaN);
   const isKasega = registeredEmail === MAGDA_EMAIL || registeredEmail === KASEGA_EMAIL || KASEGA_WORKSPACE_ADMIN_IDS.has(registeredById);
+  const selectedProvinceAddress = isProvinceReceiptShipment(shipment) ? String(shipment?.destinationAddress ?? "").trim() : "";
   return isKasega
-    ? { isKasega: true, logoPath: kasegaLogoPath, companyName: "KASEGA TOUR EIRL", subtitle: "SERVICIOS DE ENVÍO INTERNACIONAL", ruc: "20615004708", address: "Via Muriaglio 12, Torino, Italia", phone: "+39 350 818 1599 · +39 371 373 8550", contact: "Via Muriaglio 12, Torino · Tel. 350 818 1599 · 371 373 8550 · magda.barreto.alv@gmail.com · Coordina tu visita previamente.", destinationAddress: "Via Muriaglio 12, Torino, Italia", destinationPhone: "+39 350 818 1599 · +39 371 373 8550" }
+    ? { isKasega: true, logoPath: kasegaLogoPath, companyName: "KASEGA TOUR EIRL", subtitle: "SERVICIOS DE ENVÍO INTERNACIONAL", ruc: "20615004708", address: "Via Muriaglio 12, Torino, Italia", phone: "+39 350 818 1599 · +39 371 373 8550", contact: "Via Muriaglio 12, Torino · Tel. 350 818 1599 · 371 373 8550 · magda.barreto.alv@gmail.com · Coordina tu visita previamente.", destinationAddress: selectedProvinceAddress || "Via Muriaglio 12, Torino, Italia", destinationPhone: "+39 350 818 1599 · +39 371 373 8550" }
     : { isKasega: false, logoPath: brandLogoPath, companyName: "SERVICOM INTERNACIONAL", subtitle: "SERVICOM INTERNACIONAL", ruc: "20615004708", address: "", phone: "", contact: "", destinationAddress: "", destinationPhone: "" };
+}
+
+export function isProvinceReceiptShipment(shipment: any) {
+  return shipment?.isProvinceDelivery === true || Number(shipment?.isProvinceDelivery) === 1;
+}
+
+export function getReceiptDeliveryDetails(shipment: any, branding = getReceiptBranding(shipment)) {
+  const defaultRoute = getRoutePresentation(shipment?.route);
+  const selectedProvinceAddress = String(shipment?.destinationAddress ?? "").trim();
+  if (isProvinceReceiptShipment(shipment) && selectedProvinceAddress) {
+    return { address: selectedProvinceAddress, phone: null, isProvince: true };
+  }
+  return branding.isKasega
+    ? { address: branding.destinationAddress, phone: branding.destinationPhone, isProvince: false }
+    : { address: defaultRoute.destination.address, phone: defaultRoute.destination.phone, isProvince: false };
 }
 
 const escapeHtml = (value: unknown) => String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/'/g, "&#039;");
@@ -62,7 +78,8 @@ const receiptChecklist = (shipment: any) => Array.isArray(shipment?.contentCheck
 export function buildReceiptMarkdown(shipment: any): string {
   if (!shipment?.orderNumber || !shipment?.code) throw new Error("Faltan la orden o el código del envío.");
   const branding = getReceiptBranding(shipment);
-  const route = getRoutePresentation(shipment.route);
+  const delivery = getReceiptDeliveryDetails(shipment, branding);
+  const route = getRoutePresentation(shipment.route, delivery.address);
   const recipient = fullName(shipment.recipientName, shipment.recipientLastName);
   const sender = fullName(shipment.senderName, shipment.senderLastName);
   const payment = getPaymentStatusPresentation(shipment.paymentStatus);
@@ -90,8 +107,8 @@ export function buildReceiptMarkdown(shipment: any): string {
 - **Ruta:** ${route.route}
 - **Origen:** ${route.originPrintLabel} · ${route.origin.officeLabel}
 - **Destino:** ${route.destinationPrintLabel} · ${route.destination.officeLabel}
-- **Dirección de entrega:** ${branding.isKasega ? branding.destinationAddress : route.destination.address}
-- **Contacto de sede:** ${branding.isKasega ? branding.destinationPhone : route.destination.phone}
+- **Dirección de entrega:** ${delivery.address}
+- **Contacto de sede:** ${delivery.phone || route.destination.phone}
 
 ## Remitente
 
@@ -247,7 +264,8 @@ export async function downloadUserShipmentReceiptPdf(shipment: any): Promise<str
   })}.pdf`;
   const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
   const branding = getReceiptBranding(shipment);
-  const route = getRoutePresentation(shipment.route, branding.isKasega ? branding.destinationAddress : shipment.destinationAddress);
+  const delivery = getReceiptDeliveryDetails(shipment, branding);
+  const route = getRoutePresentation(shipment.route, delivery.address);
   const sender = fullName(shipment.senderName, shipment.senderLastName);
   const payment = getPaymentStatusPresentation(shipment.paymentStatus);
   const rawPrice = Number(shipment.finalPriceEur ?? shipment.basePriceEur ?? 0);
@@ -476,15 +494,16 @@ export async function printUserShipmentReceipt(shipment: any): Promise<void> {
     const today = new Date().toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" });
     const paymentPresentation = getPaymentStatusPresentation(shipment.paymentStatus);
     const paymentPrint = getPaymentPrintPresentation(shipment.paymentStatus);
-    const routePresentationBase = getRoutePresentation(shipment.route, shipment.destinationAddress);
+    const delivery = getReceiptDeliveryDetails(shipment, branding);
+    const routePresentationBase = getRoutePresentation(shipment.route, delivery.address);
     const routePresentation = branding.isKasega ? { ...routePresentationBase, origin: { ...routePresentationBase.origin, officeLabel: "Via Muriaglio 12", address: "Via Muriaglio 12, Torino, Italia", phone: "+39 350 818 1599 · +39 371 373 8550" } } : routePresentationBase;
     const declarationLegal = getDeclarationLegalText(shipment.route);
     const paymentStatus = paymentPresentation.label;
     const brandName = escapeHtml(branding.companyName);
     const brandSubtitle = escapeHtml(branding.subtitle);
     const brandContact = escapeHtml(branding.contact);
-    const receiptDestinationAddress = branding.isKasega ? branding.destinationAddress : shipment.destinationAddress;
-    const receiptDestinationPhone = branding.isKasega ? branding.destinationPhone : null;
+    const receiptDestinationAddress = delivery.address;
+    const receiptDestinationPhone = delivery.phone;
     const isPaid = paymentPrint.isPaid;
     const paidOptionColor = paymentPrint.paidColor;
     const paidOptionBackground = paymentPrint.paidBackground;

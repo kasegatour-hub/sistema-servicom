@@ -667,6 +667,12 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.click(screen.getByRole("option", { name: "Torino – Lima" }));
     fireEvent.click(screen.getByLabelText("Envío a provincia"));
     await screen.findByText("Remitente para provincia");
+    const weightInput = screen.getByText("Peso de la encomienda (kg)").parentElement?.querySelector("input");
+    const provinceExtraInput = screen.getByText("Extra provincial proporcional (EUR)").parentElement?.querySelector("input");
+    expect(weightInput).toBeTruthy();
+    expect(provinceExtraInput).toBeTruthy();
+    fireEvent.change(weightInput!, { target: { value: "15" } });
+    await waitFor(() => expect((provinceExtraInput as HTMLInputElement).value).toBe("7.5"));
     const search = screen.getByRole("textbox", { name: "Buscar remitente provincial" });
     fireEvent.change(search, { target: { value: "Marco" } });
     const senderSelect = screen.getByRole("combobox", { name: "Remitente provincial guardado" });

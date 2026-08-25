@@ -90,4 +90,24 @@ describe("maqueta compartida del comprobante administrativo", () => {
     expect(document.contentHtml).not.toContain(">SERVICOM INTERNACIONAL</h1>");
     expect(document.contentHtml).not.toContain("Titular:</strong> Servicom Internacional");
   });
+
+  it("muestra la agencia provincial seleccionada en vez de la sede fija de Torino para Kasega", async () => {
+    const document = await buildAdminReceiptDocument({
+      origin: "https://servicominternacional.manus.space",
+      shipment: {
+        orderNumber: "86200073",
+        code: "7UGL",
+        shipmentType: "encomienda",
+        route: "Torino - Lima",
+        registeredById: 210001,
+        isProvinceDelivery: true,
+        destinationAddress: "Terminal Terrestre Municipal, Satipo",
+        senderName: "Carlos",
+        recipientName: "Maria",
+      },
+    });
+
+    expect(document.contentHtml).toContain("Terminal Terrestre Municipal, Satipo");
+    expect(document.contentHtml).toContain("Agencia de destino seleccionada");
+  });
 });

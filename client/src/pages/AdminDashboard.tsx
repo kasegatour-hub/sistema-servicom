@@ -679,21 +679,31 @@ export default function AdminDashboard() {
   const limaTorinoEncomiendasEnabled = limaTorinoPolicy?.encomiendasEnabled !== false;
   const watchedWeightKg = Number(createForm.watch("weightKg")) || 0.1;
   const watchedProvinceEnabled = Boolean(createForm.watch("isProvinceDelivery"));
+  const watchedProvinceExtraRaw = String(createForm.watch("provinceExtraPriceEur") ?? "").trim();
+  const lastGeneratedProvinceExtraRef = React.useRef<number | null>(null);
   const automaticProvincePrice = watchedWeightKg <= 5 ? 10 : 15;
   const watchedProvinceCustomerPrice = Number(createForm.watch("provinceCustomerPriceEur")) || (watchedProvinceEnabled ? automaticProvincePrice : 0);
-  const watchedProvinceExtraPrice = Number(createForm.watch("provinceExtraPriceEur")) || (watchedProvinceEnabled && watchedWeightKg > 15 ? Math.round((watchedWeightKg - 15) * 1.5 * 100) / 100 : 0);
+  const automaticProvinceExtraPrice = watchedProvinceEnabled && selectedRoute === "Torino - Lima" && watchedWeightKg > 10 ? Math.round((watchedWeightKg - 10) * 1.5 * 100) / 100 : 0;
+  const watchedProvinceExtraPrice = watchedProvinceExtraRaw !== "" && Number.isFinite(Number(watchedProvinceExtraRaw)) ? Number(watchedProvinceExtraRaw) : automaticProvinceExtraPrice;
   const provincePreviewEur = watchedProvinceEnabled ? watchedProvinceCustomerPrice + watchedProvinceExtraPrice : 0;
   useEffect(() => {
     if (watchedProvinceEnabled && selectedRoute === "Torino - Lima" && !String(createForm.getValues("provinceCustomerPriceEur") ?? "").trim() && automaticProvincePrice > 0) {
       createForm.setValue("provinceCustomerPriceEur", automaticProvincePrice, { shouldDirty: true });
     }
-    if (watchedProvinceEnabled && selectedRoute === "Torino - Lima" && watchedWeightKg > 15 && !String(createForm.getValues("provinceExtraPriceEur") ?? "").trim()) {
-      createForm.setValue("provinceExtraPriceEur", Math.round((watchedWeightKg - 15) * 1.5 * 100) / 100, { shouldDirty: true });
+    if (watchedProvinceEnabled && selectedRoute === "Torino - Lima") {
+      const currentExtra = Number(watchedProvinceExtraRaw);
+      const isAutoValue = watchedProvinceExtraRaw === "" || currentExtra === 0 || currentExtra === lastGeneratedProvinceExtraRef.current;
+      if (isAutoValue) {
+        createForm.setValue("provinceExtraPriceEur", automaticProvinceExtraPrice, { shouldDirty: true });
+        lastGeneratedProvinceExtraRef.current = automaticProvinceExtraPrice;
+      }
+    } else {
+      lastGeneratedProvinceExtraRef.current = null;
     }
-  }, [watchedProvinceEnabled, selectedRoute, watchedWeightKg, automaticProvincePrice]);
+  }, [watchedProvinceEnabled, selectedRoute, watchedWeightKg, automaticProvincePrice, automaticProvinceExtraPrice, watchedProvinceExtraRaw]);
   const automaticParcelBaseEur = watchedWeightKg * 13.5;
   const automaticParcelDescription = `${watchedWeightKg.toFixed(1)} kg × 13,5 EUR/kg como tarifa base normal`;
-  const automaticProvinceDescription = watchedWeightKg <= 5 ? "10,00 EUR adicionales por envío provincial de 1 a 5 kg" : watchedWeightKg <= 15 ? "15,00 EUR adicionales por envío provincial de más de 5 hasta 15 kg" : `15,00 EUR base provincial más ${(watchedProvinceExtraPrice || 0).toFixed(2)} EUR por el excedente sobre 15 kg`;
+  const automaticProvinceDescription = watchedWeightKg <= 5 ? "10,00 EUR adicionales por envío provincial de 1 a 5 kg" : watchedWeightKg <= 10 ? "15,00 EUR adicionales por envío provincial de más de 5 hasta 10 kg" : `15,00 EUR base provincial más ${(watchedProvinceExtraPrice || 0).toFixed(2)} EUR por ${(watchedWeightKg - 10).toFixed(1)} kg excedentes sobre 10 kg`;
   const manualParcelPrice = Number(createForm.watch("manualPriceEur"));
   const hasValidManualParcelPrice = String(createForm.watch("manualPriceEur") || "").trim() !== "" && Number.isFinite(manualParcelPrice) && manualParcelPrice >= 0;
   const needsManualParcelPrice = false;
@@ -2454,7 +2464,7 @@ export default function AdminDashboard() {
   createForm.setValue("provinceSenderDni", sender?.dni || "", { shouldDirty: true });
   createForm.setValue("provinceSenderPhone", sender?.phone || "", { shouldDirty: true, shouldValidate: true });
 }} /><div className="mt-3 grid gap-3 sm:grid-cols-2"><Input placeholder="Nombres del remitente provincial" {...createForm.register("provinceSenderName")} /><Input placeholder="Apellidos del remitente provincial" {...createForm.register("provinceSenderLastName")} /><Input placeholder="DNI del remitente provincial" inputMode="numeric" maxLength={8} {...createForm.register("provinceSenderDni")} /><PhoneInput value={createForm.watch("provinceSenderPhone") || ""} onChange={(value) => createForm.setValue("provinceSenderPhone", value, { shouldDirty: true, shouldValidate: true })} placeholder="Celular del remitente provincial" /></div></div><div className="mt-3 grid gap-3 sm:grid-cols-2"><div><p className="mb-1 text-sm font-semibold text-slate-700">Peso enviado</p><p className="rounded-md bg-white px-3 py-2 text-base font-bold text-[#0B2B5E]">{selectedShipmentType === "encomienda" ? `${watchedWeightKg.toFixed(1)} kg` : "No aplica a documentos"}</p></div><div><label className="mb-1 block text-sm font-semibold text-slate-700">Precio al cliente (EUR)</label>    <Input type="number" min="0" step="0.01" placeholder="Ej. 10.00" {...createForm.register("provinceCustomerPriceEur")} />
-<div><label className="mb-1 block text-sm font-semibold text-slate-700">Extra provincial proporcional (EUR)</label><Input type="number" min="0" step="0.01" placeholder={watchedWeightKg > 15 ? "Ej. 1.50 por kg excedente" : "0.00"} {...createForm.register("provinceExtraPriceEur")} /><p className="mt-1 text-xs text-slate-600">Sobre 15 kg se calcula automáticamente a 1,50 EUR por kg adicional; puedes modificarlo si lo deseas. Este importe es un recordatorio, no impide crear la encomienda.</p></div></div><div><label className="mb-1 block text-sm font-semibold text-slate-700">Costo operativo (soles)</label><Input type="number" min="0" step="0.01" placeholder={selectedShipmentType === "documento" ? "8.00 automático" : "Ej. 12.00"} {...createForm.register("provinceOperationalCostSoles")} /><p className="mt-1 text-xs text-slate-600">Documentos: S/ 8.00 por defecto.</p></div><div className="rounded-md bg-white px-3 py-2 text-sm text-slate-700"><strong>Courier:</strong> Se usará la agencia seleccionada arriba.</div></div></>}</section>}
+<div><label className="mb-1 block text-sm font-semibold text-slate-700">Extra provincial proporcional (EUR)</label><Input type="number" min="0" step="0.01" placeholder={watchedWeightKg > 10 ? `Automático: ${automaticProvinceExtraPrice.toFixed(2)}` : "0.00"} {...createForm.register("provinceExtraPriceEur")} /><p className="mt-1 text-xs text-slate-600">Solo para provincia: se calcula automáticamente como los kg por encima de 10 × 1,50 EUR; puedes modificarlo si lo deseas. Este importe no impide crear la encomienda.</p></div></div><div><label className="mb-1 block text-sm font-semibold text-slate-700">Costo operativo (soles)</label><Input type="number" min="0" step="0.01" placeholder={selectedShipmentType === "documento" ? "8.00 automático" : "Ej. 12.00"} {...createForm.register("provinceOperationalCostSoles")} /><p className="mt-1 text-xs text-slate-600">Documentos: S/ 8.00 por defecto.</p></div><div className="rounded-md bg-white px-3 py-2 text-sm text-slate-700"><strong>Courier:</strong> Se usará la agencia seleccionada arriba.</div></div></>}</section>}
 
               {selectedShipmentType === "documento" && selectedRoute === "Lima - Torino" && <div className={`mt-4 ${mobileSectionClass(3)}`}><LimaTorinoTransferPanel value={{ mode: createForm.watch("limaTorinoTransferMode"), personName: createForm.watch("deliveryPersonName"), personLastName: createForm.watch("deliveryPersonLastName"), personDni: createForm.watch("deliveryPersonDni"), personPhone: createForm.watch("deliveryPersonPhone"), locationType: createForm.watch("deliveryLocationType"), locationAddress: createForm.watch("deliveryLocationAddress"), latitude: createForm.watch("deliveryLocationLatitude"), longitude: createForm.watch("deliveryLocationLongitude") }} onChange={(next) => { createForm.setValue("limaTorinoTransferMode", next.mode, { shouldDirty: true, shouldValidate: true }); createForm.setValue("deliveryPersonName", next.personName || "", { shouldDirty: true }); createForm.setValue("deliveryPersonLastName", next.personLastName || "", { shouldDirty: true }); createForm.setValue("deliveryPersonDni", next.personDni || "", { shouldDirty: true }); createForm.setValue("deliveryPersonPhone", next.personPhone || "", { shouldDirty: true }); createForm.setValue("deliveryLocationType", next.locationType, { shouldDirty: true }); createForm.setValue("deliveryLocationAddress", next.locationAddress || "", { shouldDirty: true }); createForm.setValue("deliveryLocationLatitude", next.latitude ?? null, { shouldDirty: true }); createForm.setValue("deliveryLocationLongitude", next.longitude ?? null, { shouldDirty: true }); }} error={createForm.formState.errors.limaTorinoTransferMode?.message as string | undefined} /></div>}
 

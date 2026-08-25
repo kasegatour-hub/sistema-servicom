@@ -37,7 +37,7 @@ describe("calculateAdminShipmentPricing — provincia Italia–Lima", () => {
     expect(result.notes).not.toContain("costo operativo");
   });
 
-  it("aplica tarifa fija de 10 EUR de 1 a 5 kg y 15 EUR sobre 5 hasta 15 kg", () => {
+  it("aplica tarifa fija de 10 EUR de 1 a 5 kg y 15 EUR sobre 5 kg", () => {
     for (const shipmentType of ["documento", "encomienda"] as const) {
       for (const weightKg of [1, 2, 5]) {
         expect(calculateAdminShipmentPricing({ shipmentType, route: "Torino - Lima", weightKg, isProvinceDelivery: true }).provinceCustomerPriceEur).toBe(10);
@@ -48,25 +48,25 @@ describe("calculateAdminShipmentPricing — provincia Italia–Lima", () => {
     }
   });
 
-  it("calcula 1,50 EUR únicamente por cada kg excedente sobre 15 kg y permite editarlo", () => {
-    const result = calculateAdminShipmentPricing({ shipmentType: "encomienda", route: "Torino - Lima", weightKg: 15.1, isProvinceDelivery: true });
+  it("calcula 1,50 EUR por cada kg excedente sobre 10 kg y permite editarlo", () => {
+    const result = calculateAdminShipmentPricing({ shipmentType: "encomienda", route: "Torino - Lima", weightKg: 15, isProvinceDelivery: true });
     expect(result.provinceCustomerPriceEur).toBe(15);
-    expect(result.provinceExtraPriceEur).toBe(0.15);
-    expect(result.totalEur).toBe(150.15);
-    expect(result.notes).toContain("excedente sobre 15 kg");
+    expect(result.provinceExtraPriceEur).toBe(7.5);
+    expect(result.totalEur).toBe(225);
+    expect(result.notes).toContain("excedente sobre 10 kg");
 
     const manual = calculateAdminShipmentPricing({ shipmentType: "encomienda", route: "Torino - Lima", weightKg: 16, isProvinceDelivery: true, provinceExtraPriceEur: 9.5 });
     expect(manual.provinceCustomerPriceEur).toBe(15);
     expect(manual.provinceExtraPriceEur).toBe(9.5);
   });
 
-  it("limita la tarifa base automática a 10 kg cuando el peso supera 15 kg", () => {
-    const withoutProvince = calculateAdminShipmentPricing({ shipmentType: "encomienda", route: "Torino - Lima", weightKg: 16 });
-    expect(withoutProvince.totalEur).toBe(135);
-    const withProvince = calculateAdminShipmentPricing({ shipmentType: "encomienda", route: "Torino - Lima", weightKg: 16, isProvinceDelivery: true });
+  it("agrega el excedente provincial sin alterar la tarifa internacional por peso", () => {
+    const withoutProvince = calculateAdminShipmentPricing({ shipmentType: "encomienda", route: "Torino - Lima", weightKg: 11 });
+    expect(withoutProvince.totalEur).toBe(148.5);
+    const withProvince = calculateAdminShipmentPricing({ shipmentType: "encomienda", route: "Torino - Lima", weightKg: 11, isProvinceDelivery: true });
     expect(withProvince.provinceCustomerPriceEur).toBe(15);
     expect(withProvince.provinceExtraPriceEur).toBe(1.5);
-    expect(withProvince.totalEur).toBe(151.5);
+    expect(withProvince.totalEur).toBe(165);
   });
 
   it("conserva FedEx y DHL como operadores válidos y regenera el resumen tarifario", () => {

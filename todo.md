@@ -1383,3 +1383,9 @@
 - [x] Investigar y documentar direcciones y horarios oficiales verificables por operador
 - [x] Mostrar en el selector los datos verificados o advertir con transparencia cuando no estén publicados
 - [x] Añadir pruebas, validar TypeScript y publicar la mejora
+
+## Extra provincial y dirección de recibo
+- [x] Calcular automáticamente el exceso provincial como kg por encima de 10 × 1,50 EUR, solo al marcar provincia
+- [x] Mantener el extra editable sin reemplazar el cálculo cuando no corresponde a provincia
+- [x] Mostrar en recibos provinciales la dirección de agencia o destino elegido y, en los demás, la sede Servicom correcta
+- [x] Añadir pruebas, validar TypeScript y publicar la corrección
