@@ -137,6 +137,9 @@ describe("AccountPage client labels", () => {
     const apostilleOption = await screen.findByLabelText("Documentos para apostillar") as HTMLInputElement;
     fireEvent.click(apostilleOption);
     expect(apostilleOption.checked).toBe(true);
+    expect(screen.getByText("Servicios adicionales opcionales")).toBeTruthy();
+    expect(screen.getByText(/Apostillado: \+40,00 EUR \+ 160,00 soles/)).toBeTruthy();
+    expect(screen.getByText(/Traducción: no seleccionada/)).toBeTruthy();
 
     fireEvent.change(routeSelect, { target: { value: "Lima - Torino" } });
     await waitFor(() => expect(screen.queryByLabelText("Documentos para apostillar")).toBeNull());

@@ -1201,3 +1201,9 @@
 - [x] Añadir una opción independiente para descontar o quitar parte del importe extra
 - [x] Actualizar el desglose visual, notas, recibos y edición del envío
 - [x] Añadir pruebas de suma base/manual más extra y descuento del extra
+
+## Servicios documentales exclusivos del cliente
+- [x] Mantener sin cambios el cálculo y precio actual del cliente
+- [x] Añadir opción de apostillado al registro documental del cliente
+- [x] Añadir opción de traducción al registro documental del cliente
+- [x] Actualizar total, recibo y pruebas del cliente sin incorporar descuento de extras

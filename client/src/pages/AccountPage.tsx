@@ -813,7 +813,15 @@ export default function AccountPage() {
                     description={docType === "simple" ? "Máximo 8 hojas por registro." : "Máximo 10 hojas por registro."}
                   />
                   </div>
-                  <div className={mobileShipmentStepVisible(2) ? "" : "hidden"}><DocumentPricePreview docType={docType} sheetCount={sheetCount} /></div>
+                   <div className={mobileShipmentStepVisible(2) ? "" : "hidden"}><DocumentPricePreview docType={docType} sheetCount={sheetCount} /></div>
+                   {shipmentRoute === "Torino - Lima" && <div className={`${mobileShipmentStepVisible(2) ? "" : "hidden"} md:col-span-2 rounded-xl border-2 border-[#0B2B5E]/20 bg-slate-50 p-4`} aria-live="polite">
+                     <p className="text-sm font-bold uppercase tracking-wide text-[#0B2B5E]">Servicios adicionales opcionales</p>
+                     <div className="mt-2 grid gap-2 text-sm text-slate-700 sm:grid-cols-2">
+                       <p className={requiresApostilleService ? "font-semibold text-[#0B2B5E]" : ""}>Apostillado: {requiresApostilleService ? "+40,00 EUR + 160,00 soles" : "no seleccionado"}</p>
+                       <p className={requiresTranslationService ? "font-semibold text-[#0B2B5E]" : ""}>Traducción: {requiresTranslationService ? "+200,00 soles" : "no seleccionada"}</p>
+                     </div>
+                     <p className="mt-2 text-xs text-slate-500">El precio base del documento se mantiene sin cambios. Solo se agrega el servicio que marques.</p>
+                   </div>}
                   <div className={`${mobileShipmentStepVisible(2) ? "" : "hidden"} relative md:col-span-2`}>
                     <Label htmlFor="account-recipient-search">Buscar destinatario guardado</Label>
                     <Search className="pointer-events-none absolute left-3 top-9 h-4 w-4 text-slate-400" aria-hidden="true" />
