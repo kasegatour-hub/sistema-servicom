@@ -1231,3 +1231,9 @@
 - [x] Garantizar aislamiento de registros, papelera, auditoría, ingresos y remitentes del espacio Kasega Tour
 - [x] Corregir la actualización inmediata del precio al cambiar hojas, apostillado, traducción o extras
 - [x] Añadir pruebas de acceso, aislamiento y cálculo reactivo de precios
+
+## Sedes exactas y celular provincial
+- [x] Añadir direcciones exactas y datos visibles para cada sede provincial seleccionada
+- [x] Añadir sedes diferenciadas de Expreso Lobato en Mazamari, San Martín de Pangoa y Terminal Terrestre de Satipo
+- [x] Integrar selector de país e indicativo al celular del remitente provincial
+- [x] Actualizar recibos, extracción y pruebas de sede y teléfono provincial

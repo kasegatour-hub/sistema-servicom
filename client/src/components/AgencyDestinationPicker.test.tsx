@@ -9,6 +9,7 @@ vi.mock("@/components/Map", () => ({ MapView: () => <div data-testid="agency-map
 afterEach(cleanup);
 
 import { AgencyDestinationPicker, normalizeCarrierPlace } from "./AgencyDestinationPicker";
+import { REGIONAL_TRANSPORT_BY_ID } from "@/lib/regionalTransportDirectory";
 
 describe("AgencyDestinationPicker", () => {
   it("normaliza una ubicación de FedEx/DHL para completar el destino automáticamente", () => {
@@ -54,6 +55,16 @@ describe("AgencyDestinationPicker", () => {
 
     fireEvent.click(screen.getAllByRole("button", { name: "DHL" })[1]);
     expect(screen.getByRole("link", { name: /Abrir localizador de DHL/i }).getAttribute("href")).toBe("https://locator.dhl.com/?l=en");
+  });
+
+  it("expone las sedes exactas de Expreso Lobato con dirección, referencia y teléfonos", () => {
+    const lobato = REGIONAL_TRANSPORT_BY_ID["expreso-lobato"];
+    expect(lobato.locations).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: "Mazamari", address: expect.stringContaining("Av. del Pangoa") }),
+      expect.objectContaining({ name: expect.stringContaining("San Martín de Pangoa"), address: expect.stringContaining("Calle 7 de Junio") }),
+      expect.objectContaining({ name: expect.stringContaining("Satipo"), address: expect.stringContaining("Terminal Terrestre Municipal") }),
+    ]));
+    expect(lobato.locations?.every(location => location.address.trim().length > 0)).toBe(true);
   });
 
   it("permite seleccionar una empresa regional y completar uno de sus destinos", () => {

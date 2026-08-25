@@ -3,12 +3,24 @@ export type RegionalTransportProvider =
   | "expreso-lobato" | "molina-union" | "transportes-apocalipsis" | "nacional-fano" | "bahia-plaza" | "transmar" | "turismo-raraz" | "giga-bus-megabus" | "expreso-selva"
   | "grupo-palomino" | "perubus-soyuz" | "flores-hermanos" | "cromotex" | "expreso-ormeno" | "expreso-antezana" | "saky" | "cetur" | "san-cristobal-del-sur" | "turismo-oropesa";
 
+export type RegionalTransportLocation = {
+  id: string;
+  name: string;
+  address: string;
+  department?: string;
+  province?: string;
+  district?: string;
+  phone?: string;
+  reference?: string;
+};
+
 export type RegionalTransportEntry = {
   id: RegionalTransportProvider;
   name: string;
   zone: "Norte" | "Centro y Selva Central" | "Sur";
   coverage: string;
   destinations: string[];
+  locations?: RegionalTransportLocation[];
 };
 
 export const REGIONAL_TRANSPORT_DIRECTORY: RegionalTransportEntry[] = [
@@ -26,7 +38,12 @@ export const REGIONAL_TRANSPORT_DIRECTORY: RegionalTransportEntry[] = [
   { id: "ronco-peru", name: "Internacional Ronco Perú", zone: "Norte", coverage: "Conexiones directas a Cajamarca y Piura.", destinations: ["Cajamarca", "Piura"] },
   { id: "inca-atahualpa", name: "Inca Atahualpa", zone: "Norte", coverage: "Salidas consistentes hacia Cajamarca y el norte.", destinations: ["Cajamarca", "Piura", "Chiclayo"] },
   { id: "eurobus", name: "Eurobus", zone: "Norte", coverage: "Buses hacia Cajamarca y zonas aledañas.", destinations: ["Cajamarca", "Celendín", "San Marcos"] },
-  { id: "expreso-lobato", name: "Expreso Lobato", zone: "Centro y Selva Central", coverage: "Rutas emblemáticas a la Selva Central.", destinations: ["Tarma", "La Merced", "Oxapampa", "Satipo"] },
+  { id: "expreso-lobato", name: "Expreso Lobato", zone: "Centro y Selva Central", coverage: "Rutas emblemáticas a la Selva Central.", destinations: ["Tarma", "La Merced", "Oxapampa", "Satipo"], locations: [
+    { id: "expreso-lobato-satipo-terminal", name: "Satipo — Terminal Terrestre Municipal", address: "Terminal Terrestre Municipal de Satipo, Satipo, Junín, Perú", department: "Junín", province: "Satipo", district: "Satipo", phone: "994 629 100", reference: "Punto de desembarque para envíos con destino Satipo; confirmar ventanilla al entregar." },
+    { id: "expreso-lobato-mazamari", name: "Mazamari", address: "Av. del Pangoa s/n, Mazamari 12301, Junín, Perú", department: "Junín", province: "Satipo", district: "Mazamari", phone: "994 629 101", reference: "Referencia pública MFC9+PF7; la dirección oficial figura como Av. del Pangoa s/n." },
+    { id: "expreso-lobato-pangoa-terminal", name: "San Martín de Pangoa — Terminal Terrestre", address: "Calle 7 de Junio y Australia, Terminal Terrestre, stand N.° 9, San Martín de Pangoa, Junín, Perú", department: "Junín", province: "Satipo", district: "San Martín de Pangoa", phone: "994 629 114" },
+    { id: "expreso-lobato-pangoa-av-espana", name: "San Martín de Pangoa — Agencia Av. España", address: "Av. España N.° 432, San Martín de Pangoa, Junín, Perú", department: "Junín", province: "Satipo", district: "San Martín de Pangoa", phone: "994 629 106" }
+  ] },
   { id: "molina-union", name: "Molina Unión", zone: "Centro y Selva Central", coverage: "Viajes hacia el centro y zonas de Ayacucho.", destinations: ["Huancayo", "Ayacucho", "Huancavelica"] },
   { id: "transportes-apocalipsis", name: "Transportes Apocalipsis", zone: "Centro y Selva Central", coverage: "Destino principal hacia Huancayo, Jauja, Tarma y Huánuco.", destinations: ["Huancayo", "Jauja", "Tarma", "Huánuco"] },
   { id: "nacional-fano", name: "Nacional Fano", zone: "Centro y Selva Central", coverage: "Destinos en Huánuco, Tingo María y Pucallpa.", destinations: ["Huánuco", "Tingo María", "Pucallpa"] },
