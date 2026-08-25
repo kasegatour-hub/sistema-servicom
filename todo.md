@@ -1397,10 +1397,10 @@
 - [x] Añadir pruebas, validar TypeScript y publicar los ajustes
 
 ## Validación telefónica y errores móviles
-- [ ] Aceptar correctamente 9 dígitos nacionales para teléfonos de Perú
-- [ ] Mostrar el error de teléfono junto al campo con instrucciones claras y dinámicas
-- [ ] Sustituir el mensaje técnico JSON por feedback móvil accionable y mantener visibles los datos ingresados
-- [ ] Añadir pruebas, validar TypeScript y publicar la corrección
+- [x] Aceptar correctamente 9 dígitos nacionales para teléfonos de Perú
+- [x] Mostrar el error de teléfono junto al campo con instrucciones claras y dinámicas
+- [x] Sustituir el mensaje técnico JSON por feedback móvil accionable y mantener visibles los datos ingresados
+- [x] Añadir pruebas, validar TypeScript y publicar la corrección
 
 ---
 
