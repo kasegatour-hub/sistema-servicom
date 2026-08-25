@@ -199,15 +199,19 @@ describe("receipt window helpers", () => {
     expect(printWindow.close).toHaveBeenCalled();
   });
 
-  it("uses Kasega branding only for Magda's registered email", () => {
+  it("uses Kasega branding for every isolated Kasega account, including equivalent admins", () => {
     expect(getReceiptBranding({ registeredByEmail: "magda.barreto.alv@gmail.com", registeredById: 210001, route: "Lima - Torino" })).toMatchObject({
       isKasega: true,
-      companyName: "KASEGA TOUR",
+      companyName: "KASEGA TOUR EIRL",
+      ruc: "20615004708",
+      address: "Via Muriaglio 12, Torino, Italia",
       destinationAddress: "Via Muriaglio 12, Torino, Italia",
       destinationPhone: "+39 350 818 1599 · +39 371 373 8550",
     });
-    expect(getReceiptBranding({ registeredById: 210001, route: "Lima - Torino" }).isKasega).toBe(false);
-    expect(getReceiptBranding({ registeredByEmail: "otra@cuenta.com", registeredById: 210001, route: "Lima - Torino" }).isKasega).toBe(false);
+    expect(getReceiptBranding({ registeredByEmail: "otra@cuenta.com", registeredById: 210001, route: "Lima - Torino" }).isKasega).toBe(true);
+    expect(getReceiptBranding({ registeredById: 210002, route: "Torino - Lima" }).isKasega).toBe(true);
+    expect(getReceiptBranding({ registeredByEmail: "kasegatour@gmail.com", route: "Torino - Lima" }).isKasega).toBe(true);
+    expect(getReceiptBranding({ registeredByEmail: "otra@cuenta.com", registeredById: 90001, route: "Lima - Torino" }).isKasega).toBe(false);
   });
 
   it("uses green only for Pagado and red only for No cancelado", () => {
@@ -240,3 +244,21 @@ describe("receipt window helpers", () => {
     });
   });
 });
+
+
+  it("propaga la identidad Kasega al formato Markdown descargable", () => {
+    const markdown = buildReceiptMarkdown({
+      orderNumber: "86200072",
+      code: "7UGK",
+      registeredById: 210001,
+      shipmentType: "documento",
+      route: "Torino - Lima",
+      recipientName: "Maria",
+      recipientLastName: "Flores Cortez",
+      finalPriceEur: "95",
+    });
+
+    expect(markdown).toContain("# KASEGA TOUR EIRL");
+    expect(markdown).toContain("Via Muriaglio 12, Torino, Italia");
+    expect(markdown).not.toContain("# SERVICOM INTERNACIONAL");
+  });

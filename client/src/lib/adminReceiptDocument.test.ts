@@ -63,4 +63,31 @@ describe("maqueta compartida del comprobante administrativo", () => {
     expect(document.contentHtml).toContain("Servicio solicitado:</strong> Documentos para apostillar");
     expect(document.contentHtml).toContain("SERVICIO:</div><div class=\"value\"><strong>Documentos para apostillar");
   });
+
+  it("usa la identidad Kasega en todo el recibo para una cuenta aislada equivalente", async () => {
+    const document = await buildAdminReceiptDocument({
+      origin: "https://servicominternacional.manus.space",
+      shipment: {
+        orderNumber: "86200072",
+        code: "7UGK",
+        shipmentType: "documento",
+        route: "Torino - Lima",
+        registeredById: 210002,
+        registeredByEmail: "usuario-kasega@example.com",
+        senderName: "Carlos",
+        senderLastName: "Mendoza Rojas",
+        recipientName: "Maria",
+        recipientLastName: "Flores Cortez",
+        status: "En agencia",
+        paymentStatus: "Pagado",
+        finalPriceEur: "95",
+      },
+    });
+
+    expect(document.contentHtml).toContain("KASEGA TOUR EIRL");
+    expect(document.contentHtml).toContain("Via Muriaglio 12, Torino, Italia");
+    expect(document.contentHtml).toContain("+39 350 818 1599 · +39 371 373 8550");
+    expect(document.contentHtml).not.toContain(">SERVICOM INTERNACIONAL</h1>");
+    expect(document.contentHtml).not.toContain("Titular:</strong> Servicom Internacional");
+  });
 });

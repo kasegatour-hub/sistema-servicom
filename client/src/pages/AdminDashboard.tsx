@@ -1175,7 +1175,8 @@ export default function AdminDashboard() {
     if (printWindow) {
       const trackingUrl = buildTrackingUrl(printShipment.orderNumber, printShipment.code);
       const managementUrl = buildShipmentManagementUrl(printShipment.orderNumber, printShipment.code);
-      const brandLogo = new URL('/manus-storage/servicom_logo_final_e7ce35aa.png', window.location.origin).href;
+      const branding = getReceiptBranding(printShipment);
+      const brandLogo = new URL(branding.logoPath, window.location.origin).href;
       const today = new Date().toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' });
       const receiptShipmentLabel = printShipment.shipmentType === 'encomienda' ? 'ENCOMIENDA' : 'DOCUMENTO';
       const downloadFilename = buildReceiptDownloadFilename({
@@ -1185,7 +1186,6 @@ export default function AdminDashboard() {
         orderNumber: printShipment.orderNumber,
         shipmentType: printShipment.shipmentType,
       });
-      const branding = getReceiptBranding(printShipment);
       const receiptDestinationAddress = branding.isKasega ? branding.destinationAddress : printShipment.destinationAddress;
       const routePresentation = getRoutePresentation(printShipment.route, receiptDestinationAddress);
       const paymentPrint = getPaymentPrintPresentation(printShipment.paymentStatus);
@@ -1254,19 +1254,19 @@ export default function AdminDashboard() {
           <!-- PÁGINA 1: RECIBO E INFORMACIÓN -->
           <div class="header">
             <div class="company-info">
-              <img class="brand-logo" src="${brandLogo}" alt="Servicom Internacional">
-              <h1 class="company">SERVICOM INTERNACIONAL</h1>
-              <div class="subtitle">SERVICOM INTERNACIONAL</div>
+              <img class="brand-logo" src="${brandLogo}" alt="${branding.companyName}">
+              <h1 class="company">${branding.companyName}</h1>
+              <div class="subtitle">${branding.subtitle}</div>
               <div class="ruc-contact">
-                RUC: 20615004708 | Contacto: ${routePresentation.origin.phone}<br>
-                ${routePresentation.origin.address}
+                RUC: ${branding.ruc} | Contacto: ${branding.isKasega ? branding.phone : routePresentation.origin.phone}<br>
+                ${branding.isKasega ? branding.address : routePresentation.origin.address}
               </div>
             </div>
             <div class="digital-seal">
               <div class="seal-title">FIRMADO DIGITALMENTE</div>
               <div class="seal-details">
-                <strong>Titular:</strong> Servicom Internacional<br>
-                <strong>RUC:</strong> 20615004708<br>
+                <strong>Titular:</strong> ${branding.companyName}<br>
+                <strong>RUC:</strong> ${branding.ruc}<br>
                 <strong>Autenticidad:</strong> PIN 6341-1879
               </div>
             </div>
@@ -1274,7 +1274,7 @@ export default function AdminDashboard() {
 
           <div class="main-title">INFORMACIÓN DE ENVÍO DE ${printShipment.shipmentType === 'encomienda' ? 'ENCOMIENDA' : 'DOCUMENTO'} — ${routePresentation.route}</div>
 
-          ${buildAdminRouteSummaryHtml(printShipment.route)}
+          ${buildAdminRouteSummaryHtml(printShipment.route, receiptDestinationAddress, branding.isKasega ? branding.address : null, branding.isKasega ? branding.phone : null)}
 
           <div class="section">
             <div class="row"><div class="label">Orden:</div><div class="value">${printShipment.orderNumber}</div><div class="label" style="margin-left:20px">Cód. Envío:</div><div class="value">${printShipment.code}</div></div>
@@ -1339,6 +1339,9 @@ export default function AdminDashboard() {
             provinceSenderLastName: printShipment.provinceSenderLastName,
             provinceSenderDni: printShipment.provinceSenderDni,
             provinceSenderPhone: printShipment.provinceSenderPhone,
+            brandLogoPath: branding.logoPath,
+            brandName: branding.companyName,
+            brandRuc: branding.ruc,
           })}
 
           <!-- PÁGINA 2: DECLARACIÓN JURADA -->
@@ -1356,6 +1359,7 @@ export default function AdminDashboard() {
               token: Math.random().toString(36).substring(2, 10).toUpperCase(),
               today,
               route: printShipment.route,
+              companyName: branding.companyName,
             })}
           </div>
 
@@ -1375,7 +1379,7 @@ export default function AdminDashboard() {
           </div>
 
           <div class="dj-footer">
-            Este anexo forma parte integral e indivisible de la Orden de Envío N° ${printShipment.orderNumber}. Propiedad legal de Servicom Internacional.
+            Este anexo forma parte integral e indivisible de la Orden de Envío N° ${printShipment.orderNumber}. Propiedad legal de ${branding.companyName}.
           </div>
         </body>
         </html>

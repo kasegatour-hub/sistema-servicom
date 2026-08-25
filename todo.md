@@ -1328,3 +1328,9 @@
 - [x] Implementar wizard móvil corto para documentos, encomiendas y transferencias
 - [x] Exigir nombre, DNI/documento y teléfono del cliente en transferencias, manteniendo banco, IBAN y CCI opcionales
 - [x] Añadir pruebas Vitest, comprobar TypeScript y validar responsive antes del checkpoint
+
+## Corrección de identidad Kasega Tour en recibos
+- [x] Resolver el espacio administrativo de Magdalena y cuentas equivalentes antes de construir el branding del recibo
+- [x] Mostrar exclusivamente nombre, RUC, dirección, teléfonos, correo y logo de Kasega Tour en sus recibos
+- [x] Evitar que los registros de Kasega se mezclen con Servicom Internacional u otros espacios
+- [x] Añadir pruebas de aislamiento, branding de recibo y regresión de Servicom; validar TypeScript y publicar

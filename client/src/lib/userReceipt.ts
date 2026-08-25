@@ -10,13 +10,16 @@ import { buildSignatureSvgMarkup } from "../../../shared/signature";
 const brandLogoPath = "/manus-storage/servicom_logo_final_e7ce35aa.png";
 const kasegaLogoPath = "/manus-storage/kasega_logo_estampado_0008a158.png";
 const MAGDA_EMAIL = "magda.barreto.alv@gmail.com";
+const KASEGA_EMAIL = "kasegatour@gmail.com";
+export const KASEGA_WORKSPACE_ADMIN_IDS = new Set([210001, 210002]);
 
 export function getReceiptBranding(shipment: any) {
   const registeredEmail = String(shipment?.registeredByEmail ?? "").trim().toLowerCase();
-  const isMagdaReceipt = registeredEmail === MAGDA_EMAIL;
-  return isMagdaReceipt
-    ? { isKasega: true, logoPath: kasegaLogoPath, companyName: "KASEGA TOUR", subtitle: "En colaboración con Servicom Internacional", contact: "Via Muriaglio 12, Torino · Tel. 350 818 1599 · 371 373 8550 · magda.barreto.alv@gmail.com · Coordina tu visita previamente.", destinationAddress: "Via Muriaglio 12, Torino, Italia", destinationPhone: "+39 350 818 1599 · +39 371 373 8550" }
-    : { isKasega: false, logoPath: brandLogoPath, companyName: "SERVICOM INTERNACIONAL", subtitle: "SERVICOM INTERNACIONAL", contact: "", destinationAddress: "", destinationPhone: "" };
+  const registeredById = Number(shipment?.registeredById ?? shipment?.ownerAdminId ?? NaN);
+  const isKasega = registeredEmail === MAGDA_EMAIL || registeredEmail === KASEGA_EMAIL || KASEGA_WORKSPACE_ADMIN_IDS.has(registeredById);
+  return isKasega
+    ? { isKasega: true, logoPath: kasegaLogoPath, companyName: "KASEGA TOUR EIRL", subtitle: "SERVICIOS DE ENVÍO INTERNACIONAL", ruc: "20615004708", address: "Via Muriaglio 12, Torino, Italia", phone: "+39 350 818 1599 · +39 371 373 8550", contact: "Via Muriaglio 12, Torino · Tel. 350 818 1599 · 371 373 8550 · magda.barreto.alv@gmail.com · Coordina tu visita previamente.", destinationAddress: "Via Muriaglio 12, Torino, Italia", destinationPhone: "+39 350 818 1599 · +39 371 373 8550" }
+    : { isKasega: false, logoPath: brandLogoPath, companyName: "SERVICOM INTERNACIONAL", subtitle: "SERVICOM INTERNACIONAL", ruc: "20615004708", address: "", phone: "", contact: "", destinationAddress: "", destinationPhone: "" };
 }
 
 const escapeHtml = (value: unknown) => String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/'/g, "&#039;");
@@ -215,6 +218,9 @@ export function buildReceiptTicketHtml(data: {
   contentChecklist?: string[];
   requiresApostilleService?: boolean | number;
   requiresTranslationService?: boolean | number;
+  brandLogoPath?: string;
+  brandName?: string;
+  brandRuc?: string;
 }) {
   const route = getRoutePresentation(data.route, data.destinationAddress);
   const shipmentLabel = data.shipmentType === "encomienda" ? "ENCOMIENDA" : "DOCUMENTO";
@@ -240,7 +246,8 @@ export async function downloadUserShipmentReceiptPdf(shipment: any): Promise<str
     shipmentType: shipment.shipmentType,
   })}.pdf`;
   const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
-  const route = getRoutePresentation(shipment.route, shipment.destinationAddress);
+  const branding = getReceiptBranding(shipment);
+  const route = getRoutePresentation(shipment.route, branding.isKasega ? branding.destinationAddress : shipment.destinationAddress);
   const sender = fullName(shipment.senderName, shipment.senderLastName);
   const payment = getPaymentStatusPresentation(shipment.paymentStatus);
   const rawPrice = Number(shipment.finalPriceEur ?? shipment.basePriceEur ?? 0);
@@ -290,10 +297,10 @@ export async function downloadUserShipmentReceiptPdf(shipment: any): Promise<str
   pdf.setTextColor(255, 255, 255);
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(18);
-  pdf.text("SERVICOM INTERNACIONAL", left, 13);
+  pdf.text(branding.companyName, left, 13);
   pdf.setFont("helvetica", "normal");
   pdf.setFontSize(8.5);
-  pdf.text("RUC 20615004708 · Recibo de envío", left, 20);
+  pdf.text(`RUC ${branding.ruc} · Recibo de envío`, left, 20);
   pdf.setTextColor(11, 43, 94);
   y = 38;
   pdf.setFont("helvetica", "bold");
@@ -302,7 +309,7 @@ export async function downloadUserShipmentReceiptPdf(shipment: any): Promise<str
   y += 10;
   section("Ruta y sedes");
   row("Ruta", route.route);
-  row("Origen", `${route.originPrintLabel} · ${route.origin.officeLabel}`);
+  row("Origen", branding.isKasega ? `${route.originPrintLabel} · Via Muriaglio 12` : `${route.originPrintLabel} · ${route.origin.officeLabel}`);
   row("Destino", `${route.destinationPrintLabel} · ${route.destination.officeLabel}`);
   row("Dirección de entrega", route.destination.address);
   row("Contacto de sede", route.destination.phone);
@@ -349,7 +356,7 @@ export async function downloadUserShipmentReceiptPdf(shipment: any): Promise<str
     `Yo, ${sender}, identificado(a) con documento N° ${shipment.senderDni || "No especificado"}, declaro bajo juramento que el envío amparado bajo la Orden N° ${shipment.orderNumber} (Código: ${shipment.code}) contiene única y estrictamente documentación lícita.`,
     declaration.guarantee,
     declaration.authorities,
-    `Eximo expresa y legalmente de responsabilidad operativa o financiera a ${INSTITUTIONAL_DECLARATION_ENTITY}. Autorizo la revisión física y el escaneo del envío por la agencia o las autoridades competentes.`,
+    `Eximo expresa y legalmente de responsabilidad operativa o financiera a ${branding.companyName}. Autorizo la revisión física y el escaneo del envío por la agencia o las autoridades competentes.`,
     `${declaration.originLine} ${new Date().toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" })}.`,
   ];
   declarationParts.forEach((paragraph) => {
