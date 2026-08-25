@@ -1003,6 +1003,7 @@ export default function AdminDashboard() {
   };
 
   const openCreateForm = (shipmentType: "documento" | "encomienda") => {
+    setShowAdminProfile(false);
     setCreateRecordTab(shipmentType);
     setMobileRegistrationStep(1);
     resetCreateForm();
@@ -1825,7 +1826,21 @@ export default function AdminDashboard() {
             <Button type="button" onClick={() => setShowGeneralFeedback(true)} variant="outline" className="min-h-12 min-w-0 whitespace-normal rounded-xl border-white px-3 text-center text-xs font-bold leading-4 text-white hover:bg-white/20 sm:text-sm"><MessageSquare className="mr-1.5 h-4 w-4 shrink-0" /> <span>Comentarios</span></Button>
             <button
               type="button"
-              onClick={() => setShowAdminProfile(previous => !previous)}
+              onClick={() => {
+                setShowAdminProfile(previous => {
+                  const next = !previous;
+                  if (next) {
+                    setAdminWorkspace("registros");
+                    setShowCreateForm(false);
+                    setShowGeneralFeedback(false);
+                    setDeliveryScannerOpen(false);
+                    setShowCalculator(false);
+                    setPrintShipment(null);
+                    setShowUpdateForm(false);
+                  }
+                  return next;
+                });
+              }}
               aria-expanded={showAdminProfile}
               aria-controls="admin-profile-panel"
               className="col-span-2 flex min-h-14 min-w-0 w-full items-center gap-3 rounded-2xl border border-white/40 bg-white/10 px-3 py-2 text-left transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:col-span-1 sm:w-auto"
@@ -1846,7 +1861,7 @@ export default function AdminDashboard() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-8">
-        <Card className="mb-6 border-0 p-4 shadow-sm" aria-label="Áreas de trabajo">
+        {!showAdminProfile && <Card className="mb-6 border-0 p-4 shadow-sm" aria-label="Áreas de trabajo">
           <div className="flex flex-wrap items-center gap-2">
             {([
               ["registros", "Ver registros"],
@@ -1864,7 +1879,7 @@ export default function AdminDashboard() {
           </div>
           <p className="mt-2 text-xs text-slate-500">Abre solo el área que necesitas para mantener el trabajo operativo limpio y enfocado.</p>
           <div className={`mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3 ${adminWorkspace === "crear" ? "hidden" : ""}`} aria-label="Accesos de nuevo registro"><p className="mb-2 text-sm font-extrabold text-[#0B2B5E]">Nuevo registro</p><div className="grid grid-cols-1 gap-2 sm:grid-cols-3"><Button type="button" aria-label="Nuevo documento" onClick={() => openCreateForm("documento")} className="min-h-12 bg-[#0B2B5E] text-white hover:bg-[#123d78]"><Plus className="mr-2 h-4 w-4" />Nuevo documento</Button><Button type="button" aria-label="Nueva encomienda" onClick={() => openCreateForm("encomienda")} className="min-h-12 bg-[#F28C00] text-white hover:bg-[#d67900]"><Plus className="mr-2 h-4 w-4" />Nueva encomienda</Button><Button type="button" aria-label="Nueva transferencia" onClick={() => { setAdminWorkspace("crear"); setCreateRecordTab("transferencia"); setShowCreateForm(false); }} className="min-h-12 bg-emerald-700 text-white hover:bg-emerald-800"><Plus className="mr-2 h-4 w-4" />Nueva transferencia</Button></div></div>
-        </Card>
+        </Card>}
         {showAdminProfile && (
           <Card id="admin-profile-panel" className="mb-8 overflow-hidden border-0 p-0 shadow-lg" aria-label="Mi perfil administrativo">
             <div className="bg-gradient-to-r from-[#0B2B5E] to-[#174a89] p-6 text-white sm:p-8">
@@ -1935,6 +1950,7 @@ export default function AdminDashboard() {
           </Card>
         )}
 
+        {!showAdminProfile && <>
         <Card className={`mb-8 border-0 p-6 shadow-lg ${adminWorkspace === "resumen" ? "" : "hidden"}`}>
           <div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-xl font-semibold text-gray-900">Ingresos confirmados</h2><p className="mt-1 text-sm text-slate-500">Solo incluye envíos activos, visibles y marcados como pagados.</p></div><div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-right"><p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Total ingresado</p><p className="text-2xl font-extrabold text-emerald-800">{adminRevenue.confirmedEur.toLocaleString("es-PE", { style: "currency", currency: "EUR" })}</p></div></div>
           {adminRevenue.unpricedPaidCount > 0 && <p role="status" className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900"><strong>{adminRevenue.unpricedPaidCount} pago(s) confirmado(s) no tiene(n) precio registrado.</strong> No se suman al total hasta completar la tarifa manual desde «Actualizar».</p>}
@@ -3208,6 +3224,7 @@ export default function AdminDashboard() {
             <Calculator className="mr-2 h-5 w-5" /><span>{showCalculator ? "Ocultar" : "Calculadora"}</span>
           </Button>
         </div>
+        </>}
         <GeneralFeedbackDialog open={showGeneralFeedback} onOpenChange={setShowGeneralFeedback} />
       </main>
     </div>

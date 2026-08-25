@@ -369,6 +369,27 @@ describe("AdminDashboard Nueva Encomienda", () => {
     expect(screen.getByRole("button", { name: /Cerrar sesión/ })).toBeTruthy();
   });
 
+  it("muestra Mi perfil como vista exclusiva y desactiva Resumen al abrirlo", async () => {
+    mocks.adminSession = { id: 4, email: "admin@servicom.pe", name: "Gian Arteaga", role: "registrador", reauthRequired: false };
+    render(<AdminDashboard />);
+
+    await screen.findByRole("button", { name: "Resumen" });
+    fireEvent.click(screen.getByRole("button", { name: "Resumen" }));
+    expect(screen.getByText("Ingresos confirmados")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: /Hola, Gian Arteaga/ }));
+    expect(screen.getByRole("heading", { name: "Hola, Gian Arteaga" })).toBeTruthy();
+    expect(screen.queryByText("Ingresos confirmados")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Resumen" })).toBeNull();
+    expect(screen.queryByLabelText("Accesos de nuevo registro")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Nueva encomienda" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: /Hola, Gian Arteaga/ }));
+    const recordsButton = screen.getByRole("button", { name: "Ver registros" });
+    expect(recordsButton.className).toContain("bg-primary");
+    expect(screen.getByText("Ingresos confirmados").closest(".hidden")).toBeTruthy();
+  });
+
   it("oculta la política Lima–Torino en opciones avanzadas hasta que el Master Admin la abra", async () => {
     mocks.adminSession = { id: 4, email: "admin@servicom.pe", name: "Master", role: "superadmin", reauthRequired: false };
     render(<AdminDashboard />);

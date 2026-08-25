@@ -1360,3 +1360,8 @@
 - [x] Excluir importes de intervalos no seleccionados o servicios no cobrados
 - [x] Destacar el precio total pagado en azul y con mayor jerarquía visual
 - [x] Añadir pruebas, validar TypeScript y publicar la corrección
+
+## Vista exclusiva de Mi perfil
+- [x] Cerrar Resumen, registros y demás áreas operativas al abrir Mi perfil
+- [x] Ocultar los controles de navegación y registro mientras se visualiza el perfil
+- [x] Añadir pruebas, validar TypeScript y publicar la corrección
