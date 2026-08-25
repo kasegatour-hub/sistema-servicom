@@ -1239,10 +1239,10 @@
 - [x] Actualizar recibos, extracción y pruebas de sede y teléfono provincial
 
 ## Corrección de presentación EUR y soles
-- [ ] Mostrar apostillado como 40 EUR (160 soles) sin sumar los soles al importe
-- [ ] Mostrar traducción como 50 EUR (200 soles) sin sumar los soles al importe
-- [ ] Sincronizar tarjetas, total, recibos y versión móvil
-- [ ] Añadir pruebas para evitar que los soles se acumulen como cargo adicional
+- [x] Mostrar apostillado como 40 EUR (160 soles) sin sumar los soles al importe
+- [x] Mostrar traducción como 50 EUR (200 soles) sin sumar los soles al importe
+- [x] Sincronizar tarjetas, total, recibos y versión móvil
+- [x] Añadir pruebas para evitar que los soles se acumulen como cargo adicional
 
 ## Refinación final de servicios documentales
 - [x] Mostrar apostillado como 40 EUR (160 soles de referencia), sin sumar soles al total EUR
@@ -1253,4 +1253,4 @@
 - [x] Verificar visualmente la pantalla pública responsive
 
 ## Pendiente histórico
-- [ ] Mantener bajo revisión las mejoras futuras de UX, catálogos de agencias y funcionalidades no relacionadas con esta refinación
+- [x] Mantener bajo revisión las mejoras futuras de UX, catálogos de agencias y funcionalidades no relacionadas con esta refinación
