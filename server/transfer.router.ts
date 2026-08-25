@@ -13,10 +13,19 @@ const optionalText = z.string().trim().max(255).optional().or(z.literal(""));
 const money = z.number().finite().min(0).max(10_000_000);
 const transferCurrency = z.enum(["EUR", "PEN"]);
 const identityDocumentType = z.enum(["dni_peru", "pasaporte", "carta_identita_italia"]);
+export const transferRoute = z.enum(["Lima - Torino", "Torino - Lima"]);
+export type TransferRoute = z.infer<typeof transferRoute>;
+
+export function resolveTransferOffices(route: TransferRoute, isKasegaWorkspace: boolean) {
+  const limaOffice = "SERVICOM INTERNACIONAL — Lima";
+  const torinoOffice = isKasegaWorkspace ? "KASEGA TOUR EIRL — Torino" : "SERVICOM INTERNACIONAL — Torino";
+  return route === "Torino - Lima"
+    ? { originOffice: torinoOffice, destinationOffice: limaOffice }
+    : { originOffice: limaOffice, destinationOffice: torinoOffice };
+}
 
 const transferInput = z.object({
-  originOffice: z.string().trim().min(1).max(255).default("Servicom Internacional — Lima"),
-  destinationOffice: optionalText,
+  route: transferRoute,
   senderName: personName,
   senderPhone: requiredPhone,
   senderDocument: requiredIdentity,
@@ -82,8 +91,10 @@ export const transferRouter = router({
     if (input.currency === "EUR" && input.destinationCurrency === "EUR" && input.exchangeRateSource === "paridad") exchangeRate = 1;
     if (input.exchangeRateSource === "manual") exchangeRateSource = "manual";
     const amountReceived = calculateTransferAmount(input.amountSent, transferFee, exchangeRate, input.currency, input.destinationCurrency);
+    const offices = resolveTransferOffices(input.route, session.isWorkspaceIsolated);
     const saved = await createTransfer({
       ...input,
+      ...offices,
       transferNumber: transferNumber(),
       createdByAdminId: session.adminId,
       createdByAdminLabel: session.role,

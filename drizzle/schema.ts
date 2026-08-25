@@ -179,6 +179,7 @@ export const transfers = mysqlTable("transfers", {
   transferNumber: varchar("transferNumber", { length: 32 }).notNull().unique(),
   createdByAdminId: int("createdByAdminId").notNull(),
   createdByAdminLabel: varchar("createdByAdminLabel", { length: 255 }).notNull(),
+  route: varchar("route", { length: 100 }).default("Lima - Torino").notNull(),
   originOffice: varchar("originOffice", { length: 255 }).default("Servicom Internacional — Lima").notNull(),
   destinationOffice: varchar("destinationOffice", { length: 255 }),
   senderName: varchar("senderName", { length: 255 }).notNull(),

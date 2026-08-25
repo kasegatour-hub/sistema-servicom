@@ -1480,6 +1480,7 @@ export async function createTransfer(input: {
   transferNumber: string;
   createdByAdminId: number;
   createdByAdminLabel: string;
+  route?: string;
   originOffice?: string;
   destinationOffice?: string | null;
   senderName: string;
@@ -1510,7 +1511,7 @@ export async function createTransfer(input: {
 }) {
   const db = await getDb();
   if (!db) throw new Error("Base de datos no disponible");
-  await db.insert(transfers).values({ ...input, originOffice: input.originOffice || "Servicom Internacional — Lima", currency: input.currency || "EUR", status: input.status || "Registrada" });
+  await db.insert(transfers).values({ ...input, route: input.route || "Lima - Torino", originOffice: input.originOffice || "Servicom Internacional — Lima", currency: input.currency || "EUR", status: input.status || "Registrada" });
   const rows = await db.select().from(transfers).where(eq(transfers.transferNumber, input.transferNumber)).limit(1);
   return rows[0] || null;
 }

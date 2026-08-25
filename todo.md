@@ -1365,3 +1365,9 @@
 - [x] Cerrar Resumen, registros y demás áreas operativas al abrir Mi perfil
 - [x] Ocultar los controles de navegación y registro mientras se visualiza el perfil
 - [x] Añadir pruebas, validar TypeScript y publicar la corrección
+
+## Ruta y sede de transferencias
+- [x] Sustituir Sede regular por selección obligatoria de Lima–Torino o Torino–Lima
+- [x] Resolver sede, contactos y modalidad de pago según la ruta elegida
+- [x] Aplicar el branding y los contactos exclusivos de Kasega Tour para Magdalena y cuentas asociadas en recibo y ticket
+- [x] Añadir pruebas, validar TypeScript y publicar la corrección
