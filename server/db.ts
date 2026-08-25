@@ -1027,7 +1027,7 @@ export async function setEncomiendaAvailabilityForRoute(route: string, encomiend
   return true;
 }
 
-export const ISOLATED_WORKSPACE_ADMIN_IDS = [210001] as const;
+export const ISOLATED_WORKSPACE_ADMIN_IDS = [210001, 210002] as const;
 
 export async function getAllShipments(shipmentType?: "documento" | "encomienda", options?: { excludeHiddenForRegistradores?: boolean; ownerAdminId?: number; excludeIsolatedWorkspaces?: boolean }) {
   const db = await getDb();

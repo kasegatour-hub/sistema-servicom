@@ -813,7 +813,7 @@ export default function AccountPage() {
                     description={docType === "simple" ? "Máximo 8 hojas por registro." : "Máximo 10 hojas por registro."}
                   />
                   </div>
-                   <div className={mobileShipmentStepVisible(2) ? "" : "hidden"}><DocumentPricePreview docType={docType} sheetCount={sheetCount} /></div>
+                   <div className={mobileShipmentStepVisible(2) ? "" : "hidden"}><DocumentPricePreview docType={docType} sheetCount={sheetCount} additionalTotalEur={(shipmentRoute === "Torino - Lima" ? (requiresApostilleService ? 40 : 0) + (requiresTranslationService ? 50 : 0) : 0)} /></div>
                    {shipmentRoute === "Torino - Lima" && <div className={`${mobileShipmentStepVisible(2) ? "" : "hidden"} md:col-span-2 rounded-xl border-2 border-[#0B2B5E]/20 bg-slate-50 p-4`} aria-live="polite">
                      <p className="text-sm font-bold uppercase tracking-wide text-[#0B2B5E]">Servicios adicionales opcionales</p>
                      <div className="mt-2 grid gap-2 text-sm text-slate-700 sm:grid-cols-2">

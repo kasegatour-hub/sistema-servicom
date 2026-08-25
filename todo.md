@@ -1225,3 +1225,9 @@
 - [x] Diseñar formulario en español inspirado en el formato de referencia
 - [x] Generar recibo imprimible duplicado en una hoja con logo y desglose de transferencia
 - [x] Añadir pruebas de permisos, creación, cálculo e impresión del recibo
+
+## Kasega Tour y cotización en tiempo real
+- [x] Crear o configurar el espacio administrativo aislado para kasegatour@gmail.com con permisos equivalentes a Magdalena
+- [x] Garantizar aislamiento de registros, papelera, auditoría, ingresos y remitentes del espacio Kasega Tour
+- [x] Corregir la actualización inmediata del precio al cambiar hojas, apostillado, traducción o extras
+- [x] Añadir pruebas de acceso, aislamiento y cálculo reactivo de precios
