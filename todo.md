@@ -1299,3 +1299,9 @@
 - [x] Encapsular dentro de Perfil la visualización y edición de datos, fotos o biografía
 - [x] Encapsular dentro de Perfil el cambio de contraseña y el cierre de sesión
 - [x] Añadir pruebas, validar navegación responsive y publicar la corrección
+
+## Aclaración de tarifa por bloques de hojas
+- [x] Mostrar 50 EUR hasta 5 hojas del mismo tipo
+- [x] Aclarar 10 EUR por cada bloque adicional de 5 hojas, no por cada hoja
+- [x] Mantener intactos el cálculo existente, los límites y los totales en EUR
+- [x] Actualizar pruebas, validar recibos y publicar la corrección

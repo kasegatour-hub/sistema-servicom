@@ -35,7 +35,7 @@ export function getDocumentPricePreview(input: DocumentPricePreviewInput) {
   const label = docType === "simple" ? "Documento simple" : "Documento apostillado";
   const nextChargeDescription = docType === "simple"
     ? `La hoja ${includedSheets + 1} agrega 2,00 €.`
-    : `La hoja ${includedSheets + 1} activa un recargo único de 10,00 €.`;
+    : `Las hojas ${includedSheets + 1} a ${maximumSheets} forman un bloque adicional de hasta 5 hojas del mismo tipo: +10,00 €.`;
 
   return {
     docType,

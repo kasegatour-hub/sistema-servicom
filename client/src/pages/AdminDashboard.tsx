@@ -2112,7 +2112,7 @@ export default function AdminDashboard() {
                       <div className="mt-3 rounded-xl border-2 border-blue-100 bg-blue-50 px-4 py-3" aria-live="polite">
                         <p className="text-xs font-bold uppercase tracking-wide text-[#0B2B5E]">Tipo seleccionado</p>
                         <p className="mt-1 break-words text-xl font-extrabold leading-7 text-[#0B2B5E]">{createForm.watch("docType") === "simple" ? "Documento simple" : "Documento apostillado"}</p>
-                        <p className="mt-1 text-base font-semibold leading-6 text-slate-700">{createForm.watch("docType") === "simple" ? "45 EUR hasta 4 hojas; +2 EUR por hoja adicional" : "50 EUR hasta 5 hojas; +10 EUR por hoja adicional"}</p>
+                        <p className="mt-1 text-base font-semibold leading-6 text-slate-700">{createForm.watch("docType") === "simple" ? "45 EUR hasta 4 hojas; +2 EUR por hoja adicional" : "50 EUR hasta 5 hojas; +10 EUR por cada bloque adicional de 5 hojas del mismo tipo"}</p>
                       </div>
                     </div>
                     <QuantityStepper
@@ -2891,7 +2891,7 @@ export default function AdminDashboard() {
                       <div className="mt-3 rounded-xl border-2 border-blue-100 bg-blue-50 px-4 py-3" aria-live="polite">
                         <p className="text-xs font-bold uppercase tracking-wide text-[#0B2B5E]">Tipo seleccionado</p>
                         <p className="mt-1 break-words text-xl font-extrabold leading-7 text-[#0B2B5E]">{updateForm.watch("docType") === "simple" ? "Documento simple" : "Documento apostillado"}</p>
-                        <p className="mt-1 text-base font-semibold leading-6 text-slate-700">{updateForm.watch("docType") === "simple" ? "45 EUR hasta 4 hojas; +2 EUR por hoja adicional" : "50 EUR hasta 5 hojas; +10 EUR por hoja adicional"}</p>
+                        <p className="mt-1 text-base font-semibold leading-6 text-slate-700">{updateForm.watch("docType") === "simple" ? "45 EUR hasta 4 hojas; +2 EUR por hoja adicional" : "50 EUR hasta 5 hojas; +10 EUR por cada bloque adicional de 5 hojas del mismo tipo"}</p>
                       </div>
                     </div>
                     <QuantityStepper

@@ -28,7 +28,7 @@ export function DocumentPricePreview({ docType, sheetCount, additionalTotalEur =
       ) : (
         <div className="mt-3 space-y-1 text-sm">
           <p>Tarifa base: <strong>{price.baseEur.toFixed(2)} €</strong> hasta {price.includedSheets} hojas.</p>
-          {price.hasSurcharge ? <p className="font-semibold text-emerald-800">Recargo por hojas: +{price.surchargeEur.toFixed(2)} €{price.docType === "simple" ? ` (${price.extraSheets} hoja${price.extraSheets === 1 ? "" : "s"} adicional${price.extraSheets === 1 ? "" : "es"})` : ""}.</p> : <p className="text-emerald-800">Sin recargo por hojas todavía. {price.nextChargeDescription}</p>}
+          {price.hasSurcharge ? <p className="font-semibold text-emerald-800">Recargo por hojas: +{price.surchargeEur.toFixed(2)} €{price.docType === "simple" ? ` (${price.extraSheets} hoja${price.extraSheets === 1 ? "" : "s"} adicional${price.extraSheets === 1 ? "" : "es"})` : " (bloque adicional de hasta 5 hojas del mismo tipo)"}.</p> : <p className="text-emerald-800">Sin recargo por hojas todavía. {price.nextChargeDescription}</p>}
           {price.additionalTotalEur > 0 && <p>Documentos adicionales: <strong>+{price.additionalTotalEur.toFixed(2)} €</strong>.</p>}
           {price.extraPriceEur > 0 && <p className="font-semibold text-emerald-800">Importe extra: <strong>+{price.extraPriceEur.toFixed(2)} €</strong>{price.extraDiscountEur > 0 ? ` · descuento -${price.extraDiscountEur.toFixed(2)} € · extra neto +${price.netExtraPriceEur.toFixed(2)} €` : ""}.</p>}
         </div>

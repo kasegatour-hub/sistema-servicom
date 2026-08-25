@@ -123,7 +123,7 @@ describe("AccountPage client labels", () => {
     expect(screen.getByText("45 EUR hasta 4 hojas; +2 EUR por hoja adicional")).toBeTruthy();
     fireEvent.change(documentType, { target: { value: "apostillado" } });
     expect(screen.getAllByText("Documentos apostillados").length).toBeGreaterThan(0);
-    expect(screen.getByText("50 EUR hasta 5 hojas; +10 EUR por hoja adicional")).toBeTruthy();
+    expect(screen.getByText("50 EUR hasta 5 hojas; +10 EUR por cada bloque adicional de 5 hojas del mismo tipo")).toBeTruthy();
   });
 
   it("divide el registro móvil en tres pasos sin recargar la pantalla", async () => {
