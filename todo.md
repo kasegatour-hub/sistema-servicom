@@ -1435,3 +1435,13 @@
 - [x] Actualizar cálculos, notas, mensajes y recibos para reflejar 15,00 EUR/kg
 - [x] Actualizar pruebas de tarifas y verificar que el extra provincial siga siendo independiente
 - [x] Validar TypeScript, ejecutar la suite completa y publicar
+
+## Feedback administrativo con trazabilidad por usuario y entorno
+- [x] Auditar el feedback existente y conservar el aislamiento entre entornos
+- [x] Registrar autor, rol, entorno, envío relacionado, fecha y cambios de cada observación
+- [x] Crear filtros administrativos separados por usuario, entorno y envío
+- [x] Mostrar una bandeja administrativa con detalle e historial de cada comentario
+- [x] Añadir pruebas de permisos, aislamiento, trazabilidad y responsive
+- [x] Validar TypeScript, ejecutar la suite completa y publicar
+
+- [x] Integrar en la bandeja los comentarios vinculados a cada envío junto con el feedback general, mostrando orden, código y tipo de envío

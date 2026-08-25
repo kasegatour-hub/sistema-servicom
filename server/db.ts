@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, gt, gte, inArray, isNotNull, isNull, like, ne, notInArray, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, gte, inArray, isNotNull, isNull, like, ne, notInArray, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { createHash } from "node:crypto";
 import { InsertUser, users, shipments, shipmentSignatures, shipmentAuditLogs, shipmentFeedback, platformFeedback, interactionEvents, admins, localAccounts, verificationCodes, adminPasswordResetCodes, clients, discountCoupons, shipmentRoutePolicies, invitationLetters, invitationLetterSignatures, transfers, notifications, type Notification } from "../drizzle/schema";
@@ -351,6 +351,13 @@ export async function completeShipmentSignature(input: {
   const saved = await getShipmentSignatureByShipmentId(input.shipmentId);
   await recordShipmentAudit({ shipmentId: input.shipmentId, action: "signature_completed", actor: { actorType: "public", actorLabel: input.signerName }, metadata: { consentTextVersion: input.consentTextVersion, evidenceHash }, snapshot: saved });
   return saved;
+}
+
+export async function getAdminById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const [admin] = await db.select().from(admins).where(eq(admins.id, id)).limit(1);
+  return admin;
 }
 
 export async function getAdminByEmail(email: string) {
@@ -857,19 +864,106 @@ export async function createShipmentFeedback(input: {
   return result;
 }
 
-export async function listPlatformFeedback(actor: { type: "admin" | "account"; id: number; canReviewAll: boolean }) {
+export type FeedbackWorkspaceContext = {
+  key: string;
+  label: string;
+};
+
+export const SERVICOM_WORKSPACE: FeedbackWorkspaceContext = { key: "servicom", label: "Servicom Internacional" };
+
+export function getAdminWorkspaceContext(adminId: number, isWorkspaceIsolated: boolean, adminEmail?: string | null): FeedbackWorkspaceContext {
+  if (!isWorkspaceIsolated) return SERVICOM_WORKSPACE;
+  const normalizedEmail = (adminEmail || "").trim().toLowerCase();
+  const label = normalizedEmail === "kasegatour@gmail.com" || normalizedEmail === "magda.barreto.alv@gmail.com"
+    ? "KASEGA TOUR EIRL"
+    : `Entorno administrativo ${adminId}`;
+  return { key: `admin:${adminId}`, label };
+}
+
+export async function getAccountFeedbackWorkspace(accountId: number): Promise<FeedbackWorkspaceContext> {
+  const db = await getDb();
+  if (!db) return SERVICOM_WORKSPACE;
+  const [shipment] = await db.select({ registeredByType: shipments.registeredByType, registeredById: shipments.registeredById })
+    .from(shipments)
+    .where(and(eq(shipments.accountId, accountId), isNull(shipments.deletedAt)))
+    .orderBy(desc(shipments.createdAt))
+    .limit(1);
+  if (shipment?.registeredByType === "admin" && shipment.registeredById && ISOLATED_WORKSPACE_ADMIN_IDS.includes(shipment.registeredById as (typeof ISOLATED_WORKSPACE_ADMIN_IDS)[number])) {
+    return getAdminWorkspaceContext(shipment.registeredById, true);
+  }
+  return SERVICOM_WORKSPACE;
+}
+
+export async function listPlatformFeedback(actor: { type: "admin" | "account"; id: number; canReviewAll: boolean; workspaceKey: string }, filters?: { authorType?: "admin" | "account"; authorId?: number; search?: string; limit?: number }) {
   const db = await getDb();
   if (!db) return [];
-  const condition = actor.canReviewAll ? undefined : and(eq(platformFeedback.authorType, actor.type), eq(platformFeedback.authorId, actor.id));
-  return condition
-    ? db.select().from(platformFeedback).where(condition).orderBy(desc(platformFeedback.createdAt))
-    : db.select().from(platformFeedback).orderBy(desc(platformFeedback.createdAt));
+  const conditions = [eq(platformFeedback.workspaceKey, actor.workspaceKey)];
+  if (!actor.canReviewAll) {
+    conditions.push(eq(platformFeedback.authorType, actor.type), eq(platformFeedback.authorId, actor.id));
+  } else {
+    if (filters?.authorType) conditions.push(eq(platformFeedback.authorType, filters.authorType));
+    if (filters?.authorId) conditions.push(eq(platformFeedback.authorId, filters.authorId));
+    if (filters?.search?.trim()) {
+      const query = `%${filters.search.trim().slice(0, 120)}%`;
+      const searchCondition = or(like(platformFeedback.authorLabel, query), sql`${platformFeedback.authorEmail} like ${query}`, like(platformFeedback.message, query), like(platformFeedback.workspaceLabel, query));
+      if (searchCondition) conditions.push(searchCondition);
+    }
+  }
+  return db.select().from(platformFeedback).where(and(...conditions)).orderBy(desc(platformFeedback.createdAt)).limit(Math.max(1, Math.min(filters?.limit ?? 200, 500)));
+}
+
+export async function listShipmentFeedbackForAdmin(input: { workspaceKey: string; workspaceAdminId?: number | null; filters?: { authorType?: "admin" | "account"; authorId?: number; search?: string; limit?: number } }) {
+  const db = await getDb();
+  if (!db) return [];
+  const workspaceCondition = input.workspaceKey === "servicom"
+    ? or(ne(shipments.registeredByType, "admin"), isNull(shipments.registeredById), notInArray(shipments.registeredById, [...ISOLATED_WORKSPACE_ADMIN_IDS]))
+    : and(eq(shipments.registeredByType, "admin"), eq(shipments.registeredById, input.workspaceAdminId ?? -1));
+  if (!workspaceCondition) return [];
+  const conditions = [workspaceCondition];
+  if (input.filters?.authorType) conditions.push(eq(shipmentFeedback.authorType, input.filters.authorType));
+  if (input.filters?.authorId) conditions.push(eq(shipmentFeedback.authorId, input.filters.authorId));
+  if (input.filters?.search?.trim()) {
+    const query = `%${input.filters.search.trim().slice(0, 120)}%`;
+    const searchCondition = or(like(shipmentFeedback.authorLabel, query), like(shipmentFeedback.message, query), like(shipments.orderNumber, query), like(shipments.code, query));
+    if (searchCondition) conditions.push(searchCondition);
+  }
+  const rows = await db.select({
+    id: shipmentFeedback.id,
+    authorType: shipmentFeedback.authorType,
+    authorId: shipmentFeedback.authorId,
+    authorLabel: shipmentFeedback.authorLabel,
+    message: shipmentFeedback.message,
+    attachmentUrl: shipmentFeedback.attachmentUrl,
+    attachmentName: shipmentFeedback.attachmentName,
+    attachmentMimeType: shipmentFeedback.attachmentMimeType,
+    createdAt: shipmentFeedback.createdAt,
+    shipmentId: shipments.id,
+    orderNumber: shipments.orderNumber,
+    code: shipments.code,
+    shipmentType: shipments.shipmentType,
+    registeredByType: shipments.registeredByType,
+    registeredById: shipments.registeredById,
+  }).from(shipmentFeedback).innerJoin(shipments, eq(shipmentFeedback.shipmentId, shipments.id)).where(and(...conditions)).orderBy(desc(shipmentFeedback.createdAt)).limit(Math.max(1, Math.min(input.filters?.limit ?? 200, 500)));
+  return rows.map(row => ({
+    ...row,
+    source: "shipment" as const,
+    authorEmail: null,
+    authorRole: row.authorType === "admin" ? "admin" : "client",
+    workspaceKey: input.workspaceKey,
+    workspaceLabel: input.workspaceKey === "servicom" ? SERVICOM_WORKSPACE.label : "KASEGA TOUR EIRL",
+    attachmentKey: null,
+    attachmentSizeBytes: null,
+  }));
 }
 
 export async function createPlatformFeedback(input: {
   authorType: "admin" | "account";
   authorId: number;
   authorLabel: string;
+  authorEmail?: string | null;
+  authorRole: string;
+  workspaceKey: string;
+  workspaceLabel: string;
   message: string;
   attachment?: { key: string; url: string; name: string; mimeType: string; sizeBytes: number } | null;
 }) {
@@ -879,6 +973,10 @@ export async function createPlatformFeedback(input: {
     authorType: input.authorType,
     authorId: input.authorId,
     authorLabel: input.authorLabel,
+    authorEmail: input.authorEmail ?? null,
+    authorRole: input.authorRole,
+    workspaceKey: input.workspaceKey,
+    workspaceLabel: input.workspaceLabel,
     message: input.message,
     attachmentKey: input.attachment?.key ?? null,
     attachmentUrl: input.attachment?.url ?? null,

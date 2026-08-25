@@ -414,6 +414,10 @@ export const platformFeedback = mysqlTable("platform_feedback", {
   authorType: mysqlEnum("authorType", ["admin", "account"]).notNull(),
   authorId: int("authorId").notNull(),
   authorLabel: varchar("authorLabel", { length: 255 }).notNull(),
+  authorEmail: varchar("authorEmail", { length: 320 }),
+  authorRole: varchar("authorRole", { length: 64 }).notNull().default("client"),
+  workspaceKey: varchar("workspaceKey", { length: 96 }).notNull().default("servicom"),
+  workspaceLabel: varchar("workspaceLabel", { length: 180 }).notNull().default("Servicom Internacional"),
   message: text("message").notNull(),
   attachmentKey: varchar("attachmentKey", { length: 512 }),
   attachmentUrl: varchar("attachmentUrl", { length: 512 }),
@@ -423,6 +427,7 @@ export const platformFeedback = mysqlTable("platform_feedback", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, table => ({
   authorIdx: index("platform_feedback_author_idx").on(table.authorType, table.authorId),
+  workspaceIdx: index("platform_feedback_workspace_idx").on(table.workspaceKey, table.createdAt),
   createdIdx: index("platform_feedback_created_idx").on(table.createdAt),
 }));
 export type PlatformFeedback = typeof platformFeedback.$inferSelect;

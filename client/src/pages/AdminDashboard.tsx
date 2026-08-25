@@ -41,6 +41,7 @@ import { ShipmentTrendCharts } from "@/components/ShipmentTrendCharts";
 import { InvitationLetterWorkspace } from "@/components/InvitationLetterWorkspace";
 import { PasswordRequirements } from "@/components/PasswordRequirements";
 import { NotificationBell } from "@/components/NotificationBell";
+import { AdminFeedbackInbox } from "@/components/AdminFeedbackInbox";
 import { AgencyDestinationPicker, type AgencyProvider } from "@/components/AgencyDestinationPicker";
 import { LimaTorinoTransferPanel } from "@/components/LimaTorinoTransferPanel";
 import { TransferWorkspace } from "@/components/TransferWorkspace";
@@ -50,7 +51,7 @@ import { getFuzzySearchScore } from "@shared/fuzzySearch";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "@shared/passwordPolicy";
 import { isValidInternationalPhone } from "@shared/phoneValidation";
 
-type AdminWorkspace = "resumen" | "registros" | "crear" | "cupones" | "papelera" | "usuarios" | "analitica" | "carta" | "remitentes" | "transferencias";
+type AdminWorkspace = "resumen" | "registros" | "crear" | "cupones" | "papelera" | "usuarios" | "analitica" | "carta" | "remitentes" | "transferencias" | "feedback";
 type CreateRecordTab = "documento" | "encomienda" | "transferencia";
 const createShipmentFieldLabels: Record<string, string> = { senderName: "nombre del remitente", senderLastName: "apellido del remitente", senderDni: "documento del remitente", senderPhone: "celular del remitente", recipientName: "nombre del destinatario", recipientLastName: "apellido del destinatario", recipientDni: "documento del destinatario", recipientPhone: "celular del destinatario", weightKg: "peso del envío", provinceCustomerPriceEur: "precio al cliente para provincia", provinceExtraPriceEur: "extra provincial", destinationAddress: "sede de destino", contentChecklist: "lista de cosas enviadas", limaTorinoTransferMode: "forma de traslado a Torino", deliveryPersonName: "nombre de la persona autorizada", deliveryPersonLastName: "apellido de la persona autorizada", deliveryPersonDni: "documento de la persona autorizada", deliveryPersonPhone: "celular de la persona autorizada", deliveryLocationType: "lugar de entrega", deliveryLocationAddress: "dirección de entrega" };
 
@@ -1950,6 +1951,7 @@ export default function AdminDashboard() {
               ["papelera", `Papelera (${deletedShipments.length})`],
               ["resumen", "Resumen"],
               ["analitica", "Analítica"],
+              ["feedback", "Feedback recibido"],
               ["remitentes", "Remitentes provinciales"],
               ...(admin?.role === "superadmin" ? [["usuarios", "Registradores"]] : []),
             ] as Array<[AdminWorkspace, string]>).map(([workspace, label]) => (
@@ -2037,6 +2039,8 @@ export default function AdminDashboard() {
         </Card>
 
         {adminWorkspace === "analitica" && <Card className="mb-8 border-0 p-6 shadow-lg"><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-semibold text-gray-900">Analítica de interacción y tendencias</h2><p className="mt-1 text-sm text-slate-500">Esta área se abre solo al revisar la operación. No inspecciona nombres, documentos, teléfonos ni notas.</p></div>{adminInsights && <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-bold text-[#0B2B5E]">Puntaje {adminInsights.engagementScore}/100</span>}</div>{adminInsights && <><div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4"><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Interacciones</p><strong>{adminInsights.totalEvents}</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Sesiones</p><strong>{adminInsights.uniqueSessions}</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Continuidad</p><strong>{Math.round(adminInsights.completionRate * 100)}%</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Anomalía</p><strong>{adminInsights.anomalyScore}/100</strong></div></div><ul className="mt-4 space-y-1 text-sm text-slate-700">{adminInsights.insights.map((insight: string) => <li key={insight}>• {insight}</li>)}</ul></>}<div className="mt-6"><ShipmentTrendCharts shipments={shipments} /></div></Card>}
+
+        {adminWorkspace === "feedback" && <AdminFeedbackInbox />}
 
         {adminWorkspace === "carta" && <InvitationLetterWorkspace shipments={shipments} />}
 
