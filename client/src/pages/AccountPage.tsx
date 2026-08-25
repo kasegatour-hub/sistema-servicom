@@ -901,7 +901,13 @@ export default function AccountPage() {
             )}
 
             {clientWorkspace === "envios" && <div className="mb-4 grid grid-cols-1 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 md:grid-cols-4">
-              <div className="relative md:col-span-2"><Search className="pointer-events-none absolute left-3 top-6 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" /><Input aria-label="Buscar mis envíos" aria-describedby="client-shipment-search-help" value={clientSearchTerm} onChange={(event) => setClientSearchTerm(event.target.value)} placeholder="Orden, código, destinatario o DNI" className="h-12 bg-white pl-9 pr-28 text-base" /><Button type="button" variant="outline" size="sm" onClick={() => setClientSearchTerm("")} disabled={!clientSearchTerm} className="absolute right-2 top-1 h-10 border-[#0B2B5E]/30 text-[#0B2B5E]"><RotateCcw className="mr-1 h-4 w-4" />Limpiar</Button><p id="client-shipment-search-help" role="status" className="mt-1 text-xs leading-4 text-slate-600">Busca por orden, código, DNI, nombre o apellido del destinatario. Se aceptan coincidencias parecidas, sin tildes y con pequeños errores.</p></div>
+              <div className="flex min-w-0 items-center gap-2 md:col-span-2">
+                <div className="relative min-w-0 flex-1">
+                  <Search className="pointer-events-none absolute left-4 top-1/2 h-6 w-6 -translate-y-1/2 text-[#0B2B5E] stroke-[2.5]" aria-hidden="true" />
+                  <Input aria-label="Buscar mis envíos" value={clientSearchTerm} onChange={(event) => setClientSearchTerm(event.target.value)} placeholder="Orden, código, destinatario o DNI" className="h-14 bg-white pl-12 pr-3 text-base" />
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={() => setClientSearchTerm("")} disabled={!clientSearchTerm} className="h-14 shrink-0 border-[#0B2B5E]/30 px-3 text-[#0B2B5E]"><RotateCcw className="mr-1 h-5 w-5" />Limpiar</Button>
+              </div>
               <select aria-label="Filtro de pago de mis envíos" value={clientPaymentFilter} onChange={(event) => setClientPaymentFilter(event.target.value as "all" | "paid" | "unpaid")} className="h-10 rounded-md border border-slate-300 bg-white px-2 text-sm"><option value="all">Todos los pagos</option><option value="paid">Pagados</option><option value="unpaid">No pagados</option></select>
               <select aria-label="Filtro de estado de mis envíos" value={clientStatusFilter} onChange={(event) => setClientStatusFilter(event.target.value)} className="h-10 rounded-md border border-slate-300 bg-white px-2 text-sm"><option value="all">Todos los estados</option><option value="Por entregar en agencia">Por entregar en agencia</option><option value="En agencia">En agencia</option><option value="En tránsito">En tránsito</option><option value="En destino">En destino</option></select>
             </div>}

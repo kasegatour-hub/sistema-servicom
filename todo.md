@@ -1417,3 +1417,9 @@
 - [x] Añadir campana de notificaciones para admins y usuarios, con contador, listado y marcar como leído
 - [x] Añadir pruebas de permisos, creación de eventos, lectura de notificaciones y ocultamiento para clientes
 - [x] Validar TypeScript, ejecutar la suite completa, verificar vista móvil y publicar
+
+## Mejora visual del buscador móvil
+- [x] Hacer más visible la lupa y reorganizar el control de búsqueda para evitar que el botón Limpiar se superponga al texto
+- [x] Retirar el texto auxiliar inferior del buscador para liberar espacio vertical en móvil
+- [x] Añadir o actualizar pruebas de layout y verificar la vista responsive
+- [x] Validar TypeScript, suite completa y publicar

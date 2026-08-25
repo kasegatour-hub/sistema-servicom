@@ -98,7 +98,10 @@ describe("AccountPage client labels", () => {
     ];
     render(<AccountPage />);
     const search = screen.getByRole("textbox", { name: "Buscar mis envíos" });
-    expect(screen.getByText(/Se aceptan coincidencias parecidas, sin tildes y con pequeños errores/)).toBeTruthy();
+    const clearButton = screen.getByRole("button", { name: "Limpiar" });
+    expect(clearButton.className).toContain("shrink-0");
+    expect(search.parentElement?.querySelector("svg")?.getAttribute("class")).toMatch(/h-6/);
+    expect(screen.queryByText(/Se aceptan coincidencias parecidas, sin tildes y con pequeños errores/)).toBeNull();
     fireEvent.change(search, { target: { value: "sanches" } });
     expect(screen.getByText(/Lucía Sánchez/)).toBeTruthy();
     expect(screen.queryByText(/María Ramos/)).toBeNull();
