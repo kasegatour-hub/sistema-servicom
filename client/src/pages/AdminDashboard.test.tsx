@@ -653,8 +653,8 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.click(screen.getByRole("button", { name: "Nueva encomienda" }));
     expect(screen.getAllByText("Nueva encomienda").length).toBeGreaterThan(0);
     expect(screen.getByText("Peso de la encomienda (kg)")).toBeTruthy();
-    expect(screen.getByText("Total automático: 13.50 €")).toBeTruthy();
-    expect(screen.getByText(/Tarifa automática Lima–Torino: 1\.0 kg × 13,5 EUR\/kg como tarifa base normal/)).toBeTruthy();
+    expect(screen.getByText("Total automático: 15.00 €")).toBeTruthy();
+    expect(screen.getByText(/Tarifa automática Lima–Torino: 1\.0 kg × 15 EUR\/kg como tarifa base normal/)).toBeTruthy();
     expect(screen.queryByDisplayValue("Documentos")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Nueva transferencia" }));
     expect(screen.getByRole("heading", { name: "Transferencia" })).toBeTruthy();

@@ -704,8 +704,11 @@ export default function AdminDashboard() {
       lastGeneratedProvinceExtraRef.current = null;
     }
   }, [watchedProvinceEnabled, selectedRoute, watchedWeightKg, automaticProvincePrice, automaticProvinceExtraPrice, watchedProvinceExtraRaw]);
-  const automaticParcelBaseEur = watchedWeightKg * 13.5;
-  const automaticParcelDescription = `${watchedWeightKg.toFixed(1)} kg × 13,5 EUR/kg como tarifa base normal`;
+  const automaticParcelBillableWeight = watchedWeightKg > 15 ? 10 : watchedWeightKg;
+  const automaticParcelBaseEur = automaticParcelBillableWeight * 15;
+  const automaticParcelDescription = watchedWeightKg > 15
+    ? `${watchedWeightKg.toFixed(1)} kg × 15 EUR/kg; base automática limitada a 10 kg`
+    : `${watchedWeightKg.toFixed(1)} kg × 15 EUR/kg como tarifa base normal`;
   const automaticProvinceDescription = watchedWeightKg <= 5 ? "10,00 EUR adicionales por envío provincial de 1 a 5 kg" : watchedWeightKg <= 10 ? "15,00 EUR adicionales por envío provincial de más de 5 hasta 10 kg" : `15,00 EUR base provincial más ${(watchedProvinceExtraPrice || 0).toFixed(2)} EUR por ${(watchedWeightKg - 10).toFixed(1)} kg excedentes sobre 10 kg (2,00 EUR/kg)`;
   const isParcelCreateForm = selectedShipmentType === "encomienda";
   const createFormTone = isParcelCreateForm
@@ -803,7 +806,8 @@ export default function AdminDashboard() {
       updateForm.setValue("provinceExtraPriceEur", updateProvinceWeight > 15 ? Math.round((updateProvinceWeight - 15) * 1.5 * 100) / 100 : 0, { shouldDirty: true });
     }
   }, [updateProvinceEnabled, updateShipmentRoute, updateProvinceWeight]);
-  const updateBasePriceEur = updateShipmentType === "encomienda" ? Math.min(updateProvinceWeight, 15) * 13.5 : 0;
+  const updateBillableWeight = updateProvinceWeight > 15 ? 10 : updateProvinceWeight;
+  const updateBasePriceEur = updateShipmentType === "encomienda" ? updateBillableWeight * 15 : 0;
   const updateProvinceCustomerPrice = updateProvinceEnabled && updateShipmentRoute === "Torino - Lima" ? Number(updateForm.watch("provinceCustomerPriceEur") || 0) : 0;
   const updateProvinceExtraPrice = updateProvinceEnabled && updateShipmentRoute === "Torino - Lima" ? Number(updateForm.watch("provinceExtraPriceEur") || 0) : 0;
   const updateManualPrice = Number(updateForm.watch("manualPriceEur") || 0);
@@ -3095,7 +3099,7 @@ export default function AdminDashboard() {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Tarifa</label>
                       <select {...updateForm.register("pricingMode")} className="w-full p-2 bg-white border-2 border-slate-200 rounded-md text-sm font-medium focus:border-primary">
-                        <option value="estandar">Estándar: 13,50 €/kg</option>
+                        <option value="estandar">Estándar: 15,00 €/kg</option>
                         <option value="manual">Precio manual en EUR</option>
                       </select>
                     </div>

@@ -1429,3 +1429,9 @@
 - [x] Permitir al Cliente descargar inmediatamente el comprobante al crear un envío de documento
 - [x] Revisar el layout responsive de botones y recibos para evitar superposición y mantener una jerarquía clara
 - [x] Añadir pruebas de validación, descarga directa y responsive; validar TypeScript, suite completa y publicar
+
+## Tarifa de encomienda actualizada a 15 EUR/kg
+- [x] Cambiar la tarifa automática de encomiendas de 13,50 EUR/kg a 15,00 EUR/kg
+- [x] Actualizar cálculos, notas, mensajes y recibos para reflejar 15,00 EUR/kg
+- [x] Actualizar pruebas de tarifas y verificar que el extra provincial siga siendo independiente
+- [x] Validar TypeScript, ejecutar la suite completa y publicar

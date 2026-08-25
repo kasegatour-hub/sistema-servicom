@@ -25,10 +25,10 @@ export type AdminShipmentPricingInput = {
 export function calculateAutomaticParcelPriceEur(weightKg: number, route?: string): { totalEur: number; description: string } {
   const normalizedWeight = Math.max(0.1, Number(weightKg || 1));
   const billableWeight = normalizedWeight > 15 ? 10 : normalizedWeight;
-  const totalEur = billableWeight * 13.5;
+  const totalEur = billableWeight * 15;
   const routeLabel = route === "Torino - Lima" ? "Torino–Lima" : "por peso";
   const capNote = normalizedWeight > 15 ? ` (base automática limitada a ${billableWeight} kg; el excedente se gestiona como adicional provincial si corresponde)` : "";
-  return { totalEur, description: `Encomienda ${routeLabel} (${normalizedWeight} kg @ 13.5 EUR/kg): ${totalEur.toFixed(2)} EUR${capNote}` };
+  return { totalEur, description: `Encomienda ${routeLabel} (${normalizedWeight} kg @ 15 EUR/kg): ${totalEur.toFixed(2)} EUR${capNote}` };
 }
 
 export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) {

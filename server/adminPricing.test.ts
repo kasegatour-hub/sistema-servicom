@@ -2,26 +2,26 @@ import { describe, expect, it } from "vitest";
 import { calculateAdminShipmentPricing } from "./adminPricing";
 
 describe("calculateAdminShipmentPricing", () => {
-  it("calculates an encomienda at 13.5 EUR per kilogram", () => {
+  it("calculates an encomienda at 15 EUR per kilogram", () => {
     const pricing = calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 2.5 });
 
-    expect(pricing.totalEur).toBe(33.75);
+    expect(pricing.totalEur).toBe(37.5);
     expect(pricing.manualPrice).toBeNull();
-    expect(pricing.notes).toContain("2.5 kg @ 13.5 EUR/kg");
+    expect(pricing.notes).toContain("2.5 kg @ 15 EUR/kg");
   });
 
-  it("uses 13.5 EUR per kilogram as the normal Torino–Lima base", () => {
-    expect(calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 1, route: "Torino - Lima" }).totalEur).toBe(13.5);
-    expect(calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 5, route: "Torino - Lima" }).totalEur).toBe(67.5);
-    expect(calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 10, route: "Torino - Lima" }).totalEur).toBe(135);
+  it("uses 15 EUR per kilogram as the normal Torino–Lima base", () => {
+    expect(calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 1, route: "Torino - Lima" }).totalEur).toBe(15);
+    expect(calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 5, route: "Torino - Lima" }).totalEur).toBe(75);
+    expect(calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 10, route: "Torino - Lima" }).totalEur).toBe(150);
   });
 
   it("applies provincial tiers only when province is enabled", () => {
     const normal = calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 10, route: "Torino - Lima" });
     const provincial = calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 10, route: "Torino - Lima", isProvinceDelivery: true });
-    expect(normal.totalEur).toBe(135);
+    expect(normal.totalEur).toBe(150);
     expect(provincial.provinceCustomerPriceEur).toBe(15);
-    expect(provincial.totalEur).toBe(150);
+    expect(provincial.totalEur).toBe(165);
   });
 
   it("incluye en notas solo el tramo provincial que se cobró", () => {
@@ -34,10 +34,10 @@ describe("calculateAdminShipmentPricing", () => {
     expect(aboveFiveKg.notes).not.toContain("+10.00 EUR");
   });
 
-  it("uses the 13.5 EUR/kg base above 10 kg and keeps manual base pricing available", () => {
+  it("uses the 15 EUR/kg base above 10 kg and keeps manual base pricing available", () => {
     const pricing = calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 11, route: "Torino - Lima" });
-    expect(pricing.totalEur).toBe(148.5);
-    expect(pricing.notes).toContain("11 kg @ 13.5 EUR/kg");
+    expect(pricing.totalEur).toBe(165);
+    expect(pricing.notes).toContain("11 kg @ 15 EUR/kg");
     expect(calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 11, route: "Torino - Lima", manualPriceEur: "120" }).totalEur).toBe(120);
   });
 
@@ -50,7 +50,7 @@ describe("calculateAdminShipmentPricing", () => {
   });
 
   it("adds an extra amount to both automatic and manual shipment prices", () => {
-    expect(calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 2, extraPriceEur: "5.50" })).toMatchObject({ totalEur: 32.5, extraPriceEur: 5.5 });
+    expect(calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 2, extraPriceEur: "5.50" })).toMatchObject({ totalEur: 35.5, extraPriceEur: 5.5 });
     expect(calculateAdminShipmentPricing({ shipmentType: "documento", manualPriceEur: "50", extraPriceEur: 3 })).toMatchObject({ totalEur: 53, extraPriceEur: 3 });
   });
 

@@ -4,7 +4,7 @@ import { calculateAdminShipmentPricing } from "./adminPricing";
 describe("calculateAdminShipmentPricing — provincia Italia–Lima", () => {
   it("suma el importe extra a la tarifa automática o manual y permite descontarlo sin reemplazar la base", () => {
     const automatic = calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 2, extraPriceEur: 9 });
-    expect(automatic.totalEur).toBe(36);
+    expect(automatic.totalEur).toBe(39);
     expect(automatic.manualPrice).toBeNull();
 
     const manual = calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 2, manualPriceEur: 40, extraPriceEur: 9 });
@@ -52,7 +52,7 @@ describe("calculateAdminShipmentPricing — provincia Italia–Lima", () => {
     const result = calculateAdminShipmentPricing({ shipmentType: "encomienda", route: "Torino - Lima", weightKg: 15, isProvinceDelivery: true });
     expect(result.provinceCustomerPriceEur).toBe(15);
     expect(result.provinceExtraPriceEur).toBe(10);
-    expect(result.totalEur).toBe(227.5);
+    expect(result.totalEur).toBe(250);
     expect(result.notes).toContain("excedente sobre 10 kg");
 
     const manual = calculateAdminShipmentPricing({ shipmentType: "encomienda", route: "Torino - Lima", weightKg: 16, isProvinceDelivery: true, provinceExtraPriceEur: 9.5 });
@@ -62,18 +62,18 @@ describe("calculateAdminShipmentPricing — provincia Italia–Lima", () => {
 
   it("agrega el excedente provincial sin alterar la tarifa internacional por peso", () => {
     const withoutProvince = calculateAdminShipmentPricing({ shipmentType: "encomienda", route: "Torino - Lima", weightKg: 11 });
-    expect(withoutProvince.totalEur).toBe(148.5);
+    expect(withoutProvince.totalEur).toBe(165);
     const withProvince = calculateAdminShipmentPricing({ shipmentType: "encomienda", route: "Torino - Lima", weightKg: 11, isProvinceDelivery: true });
     expect(withProvince.provinceCustomerPriceEur).toBe(15);
     expect(withProvince.provinceExtraPriceEur).toBe(2);
-    expect(withProvince.totalEur).toBe(165.5);
+    expect(withProvince.totalEur).toBe(182);
   });
 
   it("conserva FedEx y DHL como operadores válidos y regenera el resumen tarifario", () => {
     for (const provinceCarrier of ["fedex", "dhl"] as const) {
       const result = calculateAdminShipmentPricing({ shipmentType: "encomienda", route: "Torino - Lima", weightKg: 10, isProvinceDelivery: true, provinceCarrier, notes: "Cambio solicitado por el cliente" });
       expect(result.provinceCarrier).toBe(provinceCarrier);
-      expect(result.totalEur).toBe(150);
+      expect(result.totalEur).toBe(165);
       expect(result.notes).toContain(`Envío a provincia (${provinceCarrier})`);
       expect(result.notes).toContain("Cambio solicitado por el cliente");
     }
