@@ -2095,13 +2095,19 @@ export default function AdminDashboard() {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Documento</label>
                       <select
+                        aria-label="Tipo de Documento"
                         {...createForm.register("docType")}
                         defaultValue="apostillado"
-                        className="w-full rounded-md border-2 border-slate-200 bg-white p-2.5 text-sm font-medium focus:border-primary"
+                        className="mt-1 min-h-16 w-full rounded-xl border-2 border-slate-300 bg-white px-4 py-3 text-lg font-bold leading-7 text-[#0B2B5E] shadow-sm focus:border-[#0B2B5E] focus:outline-none focus:ring-2 focus:ring-blue-200"
                       >
-                        <option value="simple">Documento simple (45 € hasta 4 hojas, +2 € por hoja adicional)</option>
-                        <option value="apostillado">Documento apostillado (50 € hasta 5 hojas, +10 € adicionales)</option>
+                        <option value="simple">Documento simple</option>
+                        <option value="apostillado">Documento apostillado</option>
                       </select>
+                      <div className="mt-3 rounded-xl border-2 border-blue-100 bg-blue-50 px-4 py-3" aria-live="polite">
+                        <p className="text-xs font-bold uppercase tracking-wide text-[#0B2B5E]">Tipo seleccionado</p>
+                        <p className="mt-1 break-words text-xl font-extrabold leading-7 text-[#0B2B5E]">{createForm.watch("docType") === "simple" ? "Documento simple" : "Documento apostillado"}</p>
+                        <p className="mt-1 text-base font-semibold leading-6 text-slate-700">{createForm.watch("docType") === "simple" ? "45 EUR hasta 4 hojas; +2 EUR por hoja adicional" : "50 EUR hasta 5 hojas; +10 EUR por hoja adicional"}</p>
+                      </div>
                     </div>
                     <QuantityStepper
                       id="admin-sheet-count"
@@ -2872,10 +2878,15 @@ export default function AdminDashboard() {
                   </> : <>
                     <div>
                       <label htmlFor="update-document-type" className="block text-sm font-medium text-gray-700 mb-1">Tipo de documento</label>
-                      <select id="update-document-type" {...updateForm.register("docType")} className="w-full p-2 bg-white border-2 border-[#0B2B5E] rounded-md text-sm font-medium focus:border-primary">
-                        <option value="simple">Documento simple (45 € hasta 4 hojas, +2 € por hoja adicional)</option>
-                        <option value="apostillado">Documento apostillado (50 € hasta 5 hojas, +10 € adicional)</option>
+                      <select id="update-document-type" aria-label="Tipo de documento" {...updateForm.register("docType")} className="mt-1 min-h-16 w-full rounded-xl border-2 border-[#0B2B5E] bg-white px-4 py-3 text-lg font-bold leading-7 text-[#0B2B5E] shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-200">
+                        <option value="simple">Documento simple</option>
+                        <option value="apostillado">Documento apostillado</option>
                       </select>
+                      <div className="mt-3 rounded-xl border-2 border-blue-100 bg-blue-50 px-4 py-3" aria-live="polite">
+                        <p className="text-xs font-bold uppercase tracking-wide text-[#0B2B5E]">Tipo seleccionado</p>
+                        <p className="mt-1 break-words text-xl font-extrabold leading-7 text-[#0B2B5E]">{updateForm.watch("docType") === "simple" ? "Documento simple" : "Documento apostillado"}</p>
+                        <p className="mt-1 text-base font-semibold leading-6 text-slate-700">{updateForm.watch("docType") === "simple" ? "45 EUR hasta 4 hojas; +2 EUR por hoja adicional" : "50 EUR hasta 5 hojas; +10 EUR por hoja adicional"}</p>
+                      </div>
                     </div>
                     <QuantityStepper
                       id="update-document-sheet-count"

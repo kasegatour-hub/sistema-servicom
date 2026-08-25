@@ -112,6 +112,20 @@ describe("AccountPage client labels", () => {
     expect(screen.getByLabelText("Acta de nacimiento")).toBeTruthy();
   });
 
+  it("muestra el tipo documental seleccionado completo con tarifa destacada", async () => {
+    render(<AccountPage />);
+    fireEvent.click(screen.getByRole("button", { name: /Registrar Nuevo Documento/ }));
+
+    const documentType = await screen.findByRole("combobox", { name: "Tipo de Documento" });
+    expect((documentType as HTMLSelectElement).value).toBe("simple");
+    expect(screen.getByText("Tipo seleccionado")).toBeTruthy();
+    expect(screen.getAllByText("Documentos simples").length).toBeGreaterThan(0);
+    expect(screen.getByText("45 EUR hasta 4 hojas; +2 EUR por hoja adicional")).toBeTruthy();
+    fireEvent.change(documentType, { target: { value: "apostillado" } });
+    expect(screen.getAllByText("Documentos apostillados").length).toBeGreaterThan(0);
+    expect(screen.getByText("50 EUR hasta 5 hojas; +10 EUR por hoja adicional")).toBeTruthy();
+  });
+
   it("divide el registro móvil en tres pasos sin recargar la pantalla", async () => {
     window.history.pushState({}, "", "/cuenta?returnTo=%2Fmovil");
     render(<AccountPage />);

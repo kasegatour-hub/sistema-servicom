@@ -787,13 +787,19 @@ export default function AccountPage() {
                   <div className={mobileShipmentStepVisible(1) ? "" : "hidden"}>
                     <Label>Tipo de Documento</Label>
                     <select
+                      aria-label="Tipo de Documento"
                       value={docType}
                       onChange={e => setDocType(e.target.value as "simple" | "apostillado")}
-                      className="w-full mt-1 p-2 bg-white border border-slate-300 rounded-md text-sm font-medium"
+                      className="mt-1 min-h-16 w-full rounded-xl border-2 border-slate-300 bg-white px-4 py-3 text-lg font-bold leading-7 text-[#0B2B5E] shadow-sm focus:border-[#0B2B5E] focus:outline-none focus:ring-2 focus:ring-blue-200"
                     >
-                      <option value="simple">Documentos Simples (45 € hasta 4 hojas, +2 € por hoja adicional)</option>
-                      <option value="apostillado">Documentos Apostillados (50 € base hasta 5 hojas, +10 € adicionales)</option>
+                      <option value="simple">Documentos simples</option>
+                      <option value="apostillado">Documentos apostillados</option>
                     </select>
+                    <div className="mt-3 rounded-xl border-2 border-blue-100 bg-blue-50 px-4 py-3" aria-live="polite">
+                      <p className="text-xs font-bold uppercase tracking-wide text-[#0B2B5E]">Tipo seleccionado</p>
+                      <p className="mt-1 break-words text-xl font-extrabold leading-7 text-[#0B2B5E]">{docType === "simple" ? "Documentos simples" : "Documentos apostillados"}</p>
+                      <p className="mt-1 text-base font-semibold leading-6 text-slate-700">{docType === "simple" ? "45 EUR hasta 4 hojas; +2 EUR por hoja adicional" : "50 EUR hasta 5 hojas; +10 EUR por hoja adicional"}</p>
+                    </div>
                   </div>
                   {shipmentRoute === "Torino - Lima" && (
                     <label className={`${mobileShipmentStepVisible(1) ? "" : "hidden"} md:col-span-2 flex cursor-pointer items-start gap-3 rounded-xl border-2 border-[#0B2B5E] bg-blue-50 p-4 text-sm shadow-sm transition hover:bg-blue-100/70`}>

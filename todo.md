@@ -1286,3 +1286,9 @@
 - [x] Encapsular «Desactivar encomiendas Lima–Torino» en una sección secundaria para Admin y Usuario sin alterar permisos
 - [x] Reorganizar la cabecera administrativa móvil para que botones y datos no se superpongan ni desborden
 - [x] Añadir pruebas, validar en móvil y publicar la refinación
+
+## Selector de tipo de documento visible en móvil
+- [x] Mostrar completo el tipo de documento seleccionado sin truncarlo
+- [x] Aplicar letra grande, altura suficiente y separación segura del icono del selector
+- [x] Revisar la presentación de opciones largas para que no se desborden
+- [x] Añadir pruebas, validar responsive y publicar la corrección
