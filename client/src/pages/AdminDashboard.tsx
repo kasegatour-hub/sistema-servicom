@@ -1905,15 +1905,15 @@ export default function AdminDashboard() {
             <form onSubmit={createForm.handleSubmit(handleCreateShipment, handleCreateShipmentInvalid)} className="space-y-4">
                 {createShipmentValidationError && <div role="status" aria-live="assertive" className="sticky top-2 z-10 rounded-xl border-2 border-rose-300 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-800 shadow-sm"><strong className="block text-base">Revisa este dato antes de continuar</strong><span>{createShipmentValidationError}</span></div>}
               {/* Tarifa y estado del registro; el tipo ya lo define el botón de entrada */}
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3">
+              <div className="flex flex-col rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="order-0 mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wide text-[#0B2B5E]">Formulario de registro</p>
                     <p className="text-lg font-bold text-[#0B2B5E]">{selectedShipmentType === "encomienda" ? "Nueva encomienda" : "Nuevo documento"}</p>
                   </div>
                   <span className="text-xs text-slate-600">El tipo ya fue definido por el botón elegido</span>
                 </div>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div className="order-20 grid grid-cols-1 gap-4 md:grid-cols-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Ruta de envío</label>
                     <Select value={selectedRoute} onValueChange={(value) => {
@@ -1995,7 +1995,7 @@ export default function AdminDashboard() {
                   </div>
                 )}
 
-                <div className="mt-4 grid grid-cols-1 gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+                <div className="order-40 mt-4 grid grid-cols-1 gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
                   <div>
                     <label className="block text-sm font-medium text-emerald-900 mb-2">Cupón de descuento (opcional)</label>
                     <Input placeholder="Ej. SERVI25-VERANO" {...createForm.register("couponCode")} className="border-emerald-300 bg-white uppercase" />
@@ -2005,7 +2005,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {selectedShipmentType === "documento" ? (
-                  <>
+                  <div className="order-10">
                   <div className="mt-4 grid grid-cols-1 gap-4 border-t border-slate-200 pt-4 md:grid-cols-3">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Documento</label>
@@ -2075,9 +2075,9 @@ export default function AdminDashboard() {
                       </div>
                     ) : <p className="mt-3 text-sm text-slate-500">No hay documentos adicionales registrados.</p>}
                   </div>
-                  </>
+                  </div>
                 ) : (
-                  <div className="mt-4 grid grid-cols-1 gap-4 border-t border-slate-200 pt-4 md:grid-cols-3">
+                  <div className="order-10"><div className="mt-4 grid grid-cols-1 gap-4 border-t border-slate-200 pt-4 md:grid-cols-3">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Peso de la encomienda (kg)</label>
                       <Input
@@ -2097,11 +2097,11 @@ export default function AdminDashboard() {
                       <strong className="mt-1 text-3xl font-extrabold tracking-tight">{automaticParcelBaseEur.toFixed(2)} EUR</strong>
                       <span className="mt-1 text-sm font-medium text-[#0B2B5E]/80">{needsManualParcelPrice ? `Base para ${watchedWeightKg.toFixed(1)} kg. El Admin o Usuario debe indicar el precio final al cliente.` : "Importe calculado según el peso registrado."}</span>
                     </div>
-                  </div>
+                  </div></div>
                 )}
               </div>
 
-                      <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-4">
+                      <div className="order-30 mt-4 rounded-xl border border-amber-300 bg-amber-50 p-4">
                 <label className="flex cursor-pointer items-start gap-3 text-sm"><input type="checkbox" aria-label="Envío incompleto" {...createForm.register("isIncomplete")} className="mt-0.5 h-5 w-5" /><span><strong className="block text-base text-amber-900">Envío incompleto</strong><span className="text-amber-800">Marca esta opción si falta algún documento, artículo o dato.</span></span></label>
                 {createForm.watch("isIncomplete") && <Input className="mt-3 bg-white" aria-label="Motivo del envío incompleto" placeholder="Indica qué falta (opcional)" {...createForm.register("incompleteReason")} />}
               </div>

@@ -544,6 +544,24 @@ describe("AdminDashboard Nueva Encomienda", () => {
     expect(checklistHeading.compareDocumentPosition(notesLabel) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
+  it("muestra las opciones operativas después de Tipo de Documento", async () => {
+    render(<AdminDashboard />);
+    fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
+    fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
+    await screen.findByRole("button", { name: "Nuevo documento" });
+    fireEvent.click(screen.getByRole("button", { name: "Nuevo documento" }));
+
+    const documentType = screen.getByText("Tipo de Documento");
+    const route = screen.getByText("Ruta de envío");
+    const price = screen.getByText("Precio manual en EUR (opcional)");
+    const coupon = screen.getByText("Cupón de descuento (opcional)");
+    expect(documentType.closest(".order-10")).toBeTruthy();
+    expect(route.closest(".order-20")).toBeTruthy();
+    expect(price.closest(".order-20")).toBeTruthy();
+    expect(coupon.closest(".order-40")).toBeTruthy();
+  });
+
   it("marca en rojo el checklist obligatorio antes de crear un documento", async () => {
     render(<AdminDashboard />);
     fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });

@@ -1207,3 +1207,8 @@
 - [x] Añadir opción de apostillado al registro documental del cliente
 - [x] Añadir opción de traducción al registro documental del cliente
 - [x] Actualizar total, recibo y pruebas del cliente sin incorporar descuento de extras
+
+## Orden visual del formulario administrativo
+- [x] Mostrar Ruta de envío, Modalidad de entrega, Estados, precios, extras y cupón después de Tipo de documento
+- [x] Mantener el cálculo, validaciones y payload existentes al reordenar los bloques
+- [x] Verificar el orden en escritorio y móvil con pruebas de interfaz
