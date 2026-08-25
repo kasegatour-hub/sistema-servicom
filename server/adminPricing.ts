@@ -52,11 +52,11 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
   const provinceEnabled = Boolean(input.isProvinceDelivery) && route === "Torino - Lima";
   const rawProvinceCustomerPrice = input.provinceCustomerPriceEur === undefined || input.provinceCustomerPriceEur === null ? "" : String(input.provinceCustomerPriceEur).trim();
   const parsedProvinceCustomerPrice = Number(rawProvinceCustomerPrice);
-  const automaticProvincePrice = provinceEnabled ? Math.round(Math.min(weightKg, 10) * 1.5 * 100) / 100 : 0;
-  const provinceCustomerPriceEur = provinceEnabled ? (rawProvinceCustomerPrice !== "" && Number.isFinite(parsedProvinceCustomerPrice) && parsedProvinceCustomerPrice >= 0 ? parsedProvinceCustomerPrice : (automaticProvincePrice || (weightKg > 10 ? 15 : 0))) : 0;
+  const automaticProvincePrice = provinceEnabled ? (weightKg <= 5 ? 10 : 15) : 0;
+  const provinceCustomerPriceEur = provinceEnabled ? (rawProvinceCustomerPrice !== "" && Number.isFinite(parsedProvinceCustomerPrice) && parsedProvinceCustomerPrice >= 0 ? parsedProvinceCustomerPrice : automaticProvincePrice) : 0;
   const rawProvinceExtraPrice = input.provinceExtraPriceEur === undefined || input.provinceExtraPriceEur === null ? "" : String(input.provinceExtraPriceEur).trim();
   const parsedProvinceExtraPrice = Number(rawProvinceExtraPrice);
-  const automaticProvinceExtraPrice = provinceEnabled && weightKg > 10 ? Math.round((weightKg - 10) * 1.5 * 100) / 100 : 0;
+  const automaticProvinceExtraPrice = provinceEnabled && weightKg > 15 ? Math.round((weightKg - 15) * 1.5 * 100) / 100 : 0;
   const provinceExtraPriceEur = provinceEnabled && rawProvinceExtraPrice !== "" && Number.isFinite(parsedProvinceExtraPrice) && parsedProvinceExtraPrice >= 0 ? parsedProvinceExtraPrice : automaticProvinceExtraPrice;
   const rawProvinceOperationalCost = input.provinceOperationalCostSoles === undefined || input.provinceOperationalCostSoles === null ? "" : String(input.provinceOperationalCostSoles).trim();
   const parsedProvinceOperationalCost = Number(rawProvinceOperationalCost);
@@ -90,7 +90,7 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
   }
 
   const totalWithExtraEur = totalEur + extraPriceEur + servicePriceEur + provinceCustomerPriceEur + provinceExtraPriceEur;
-  const provinceDescription = provinceEnabled ? ` Envío a provincia (${provinceCarrier || "agencia seleccionada"}): base cliente +${provinceCustomerPriceEur.toFixed(2)} EUR${provinceExtraPriceEur > 0 ? `; extra provincial +${provinceExtraPriceEur.toFixed(2)} EUR` : ""}.` : "";
+  const provinceDescription = provinceEnabled ? ` Envío a provincia (${provinceCarrier || "agencia seleccionada"}): 1–5 kg +10.00 EUR; más de 5–15 kg +15.00 EUR${provinceExtraPriceEur > 0 ? `; excedente sobre 15 kg +${provinceExtraPriceEur.toFixed(2)} EUR a 1.50 EUR/kg` : ""}.` : "";
   const extraDescription = extraPriceEur > 0 ? ` Importe extra: +${extraPriceEur.toFixed(2)} EUR.` : "";
   const serviceDescription = `${requiresApostilleService ? ` Servicio de apostilla Italia–Lima: +${servicePriceEur.toFixed(2)} EUR y +${(serviceManualPriceSoles ?? 160).toFixed(2)} soles.` : ""}${requiresTranslationService ? ` Servicio de traducción Italia–Lima: +${(serviceManualPriceSoles ?? 200).toFixed(2)} soles.` : ""}`;
   return {

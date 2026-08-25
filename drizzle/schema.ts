@@ -294,6 +294,8 @@ export const shipments = mysqlTable("shipments", {
   contentChecklist: longtext("contentChecklist"), // JSON con la lista de contenido verificado
   isIncomplete: int("isIncomplete").default(0).notNull(),
   incompleteReason: text("incompleteReason"),
+  /** JSON con documentos, artículos o datos pendientes de adjuntar antes del despacho. */
+  missingItems: longtext("missingItems"),
   photoMetadata: longtext("photoMetadata"), // JSON con fotos cargadas en S3
   notes: text("notes"),
   deletedAt: timestamp("deletedAt"),

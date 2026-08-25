@@ -1124,6 +1124,7 @@ export async function createShipment(
   deliveryLocationAddress?: string | null,
   deliveryLocationLatitude?: string | number | null,
   deliveryLocationLongitude?: string | number | null,
+  missingItems?: string[] | string | null,
 ) {
   const db = await getDb();
   if (!db) {
@@ -1173,6 +1174,7 @@ export async function createShipment(
     serviceManualPriceSoles: serviceManualPriceSoles !== undefined && serviceManualPriceSoles !== null && String(serviceManualPriceSoles).trim() !== "" ? String(serviceManualPriceSoles) : null,
     isIncomplete: isIncomplete ? 1 : 0,
     incompleteReason: isIncomplete && incompleteReason ? incompleteReason.trim() : null,
+    missingItems: Array.isArray(missingItems) ? JSON.stringify(missingItems) : missingItems || null,
     weightKg: String(weightKg ?? "1.00"),
     manualPriceEur: manualPriceEur !== undefined && manualPriceEur !== null && String(manualPriceEur).trim() !== "" ? String(manualPriceEur) : null,
     extraPriceEur: extraPriceEur !== undefined && extraPriceEur !== null && String(extraPriceEur).trim() !== "" ? String(Math.max(0, Number(extraPriceEur) || 0)) : "0.00",
@@ -1287,6 +1289,7 @@ export async function updateShipmentStatus(
   deliveryLocationAddress?: string | null,
   deliveryLocationLatitude?: string | number | null,
   deliveryLocationLongitude?: string | number | null,
+  missingItems?: string[] | string | null,
 ) {
   const db = await getDb();
   if (!db) {
@@ -1368,6 +1371,7 @@ export async function updateShipmentStatus(
         deliveryLocationAddress: limaTorinoTransferMode === "persona_autorizada" ? deliveryLocationAddress?.trim() || shipment.deliveryLocationAddress || null : null,
         deliveryLocationLatitude: limaTorinoTransferMode === "persona_autorizada" && deliveryLocationLatitude != null ? String(deliveryLocationLatitude) : shipment.deliveryLocationLatitude ?? null,
         deliveryLocationLongitude: limaTorinoTransferMode === "persona_autorizada" && deliveryLocationLongitude != null ? String(deliveryLocationLongitude) : shipment.deliveryLocationLongitude ?? null,
+        missingItems: missingItems !== undefined ? (Array.isArray(missingItems) ? JSON.stringify(missingItems) : missingItems || null) : shipment.missingItems ?? null,
         updatedAt: new Date(),
       })
       .where(eq(shipments.id, id));

@@ -718,6 +718,7 @@ export const adminRouter = router({
       contentChecklist: z.array(z.string().trim().min(1).max(160)).max(24).min(1, "La lista de cosas enviadas es obligatoria."),
       isIncomplete: z.boolean().default(false),
       incompleteReason: z.string().trim().max(1000).optional(),
+      missingItems: z.array(z.string().trim().min(1).max(160)).max(24).optional(),
       deliveryMode: z.enum(["agencia", "remoto"]).default("agencia"),
       limaTorinoTransferMode: z.enum(["dhl_recogida", "persona_autorizada"]).default("dhl_recogida"),
       deliveryPersonName: optionalPersonNameSchema,
@@ -833,6 +834,7 @@ export const adminRouter = router({
         input.deliveryLocationAddress,
         input.deliveryLocationLatitude,
         input.deliveryLocationLongitude,
+        input.missingItems,
       );
       if (!result) {
         throw new TRPCError({
@@ -922,6 +924,7 @@ export const adminRouter = router({
       deliveryLocationAddress: z.string().trim().max(1000).optional().nullable(),
       deliveryLocationLatitude: z.number().optional().nullable(),
       deliveryLocationLongitude: z.number().optional().nullable(),
+      missingItems: z.array(z.string().trim().min(1).max(160)).optional(),
       pricingMode: z.enum(["estandar", "manual"]).default("estandar"),
       isProvinceDelivery: z.boolean().optional(),
       provinceCustomerPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
@@ -1011,6 +1014,7 @@ export const adminRouter = router({
         input.deliveryLocationAddress,
         input.deliveryLocationLatitude,
         input.deliveryLocationLongitude,
+        input.missingItems,
       );
       if (!result) {
         throw new TRPCError({

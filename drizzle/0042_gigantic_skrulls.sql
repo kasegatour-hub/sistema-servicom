@@ -1,0 +1,1 @@
+ALTER TABLE `shipments` ADD `missingItems` longtext;

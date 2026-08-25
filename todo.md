@@ -1187,3 +1187,10 @@
 - [x] Integrar mapa y opción rápida Nuevo Aeropuerto Internacional Jorge Chávez
 - [x] Mostrar la modalidad y los datos de entrega en recibo, ticket y rastreo
 - [x] Añadir validaciones y pruebas del flujo completo
+
+## Corrección de checklist y tarifas provinciales
+- [x] Añadir checklist independiente de documentos, artículos o datos faltantes antes del envío a provincia
+- [x] Mostrar la sede regular de la agencia antes del selector de destino provincial
+- [x] Hacer visibles todas las empresas regionales del catálogo provincial por zonas
+- [x] Corregir tarifas provinciales: 1–5 kg = 10 EUR; >5–15 kg = 15 EUR; excedente sobre 15 kg = 1,50 EUR/kg
+- [x] Actualizar recibos, notas y pruebas con las nuevas reglas provinciales
