@@ -27,11 +27,11 @@ import { IdentityDocumentField } from "@/components/IdentityDocumentField";
 import { ShipmentTrendCharts } from "@/components/ShipmentTrendCharts";
 import { PasswordRequirements } from "@/components/PasswordRequirements";
 import { AgencyDestinationPicker } from "@/components/AgencyDestinationPicker";
-import { LimaTorinoTransferPanel, type LimaTorinoTransferValue } from "@/components/LimaTorinoTransferPanel";
 import type { IdentityDocumentType } from "@shared/identityDocuments";
 import { getFuzzySearchScore } from "@shared/fuzzySearch";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "@shared/passwordPolicy";
 import { isValidInternationalPhone } from "@shared/phoneValidation";
+import { NotificationBell } from "@/components/NotificationBell";
 
 const brandLogo = "/manus-storage/servicom_logo_final_e7ce35aa.png";
 
@@ -98,7 +98,6 @@ export default function AccountPage() {
   const [requiresApostilleService, setRequiresApostilleService] = useState(false);
   const [requiresTranslationService, setRequiresTranslationService] = useState(false);
   const [destinationAddress, setDestinationAddress] = useState("");
-  const [limaTorinoTransfer, setLimaTorinoTransfer] = useState<LimaTorinoTransferValue>({ locationType: "direccion" });
   const [sheetCount, setSheetCount] = useState(1);
   const [senderName, setSenderName] = useState("");
   const [senderLastName, setSenderLastName] = useState("");
@@ -129,7 +128,6 @@ export default function AccountPage() {
     setRequiresApostilleService(false);
     setRequiresTranslationService(false);
     setDestinationAddress("");
-    setLimaTorinoTransfer({ locationType: "direccion" });
     setSheetCount(1);
     setSenderName("");
     setSenderLastName("");
@@ -491,6 +489,7 @@ export default function AccountPage() {
               <Button aria-label="Comentarios" onClick={() => setShowGeneralFeedback(true)} variant="outline" className="border-white/30 bg-transparent px-2 text-xs text-white hover:bg-white/20 sm:px-3 sm:text-sm">
                 <MessageSquare className="h-4 w-4 sm:mr-2" /><span className="hidden sm:inline">Comentarios</span><span className="sm:hidden">Ayuda</span>
               </Button>
+              <NotificationBell />
               <Button onClick={() => logoutMutation.mutate()} variant="outline" className="border-white/30 bg-transparent px-2 text-xs text-white hover:bg-white/20 sm:px-3 sm:text-sm">
                 <LogOut className="h-4 w-4 sm:mr-2" /><span>Salir</span>
               </Button>
@@ -753,15 +752,6 @@ export default function AccountPage() {
                   requiresApostilleService,
                   requiresTranslationService,
                   destinationAddress,
-                  limaTorinoTransferMode: shipmentRoute === "Lima - Torino" ? limaTorinoTransfer.mode : undefined,
-                  deliveryPersonName: limaTorinoTransfer.personName,
-                  deliveryPersonLastName: limaTorinoTransfer.personLastName,
-                  deliveryPersonDni: limaTorinoTransfer.personDni,
-                  deliveryPersonPhone: limaTorinoTransfer.personPhone,
-                  deliveryLocationType: limaTorinoTransfer.locationType,
-                  deliveryLocationAddress: limaTorinoTransfer.locationAddress,
-                  deliveryLocationLatitude: limaTorinoTransfer.latitude,
-                  deliveryLocationLongitude: limaTorinoTransfer.longitude,
                    senderName: profileName || senderName,
                   senderLastName: profileLastName || senderLastName,
                   senderDni: profileDni || senderDni,
@@ -823,7 +813,6 @@ export default function AccountPage() {
                     </label>
                   )}
                   <div className={`${mobileShipmentStepVisible(1) ? "" : "hidden"} md:col-span-2`}><AgencyDestinationPicker route={shipmentRoute} value={destinationAddress} onChange={setDestinationAddress} /></div>
-                  {shipmentRoute === "Lima - Torino" && <div className={`${mobileShipmentStepVisible(1) ? "" : "hidden"} md:col-span-2`}><LimaTorinoTransferPanel value={limaTorinoTransfer} onChange={setLimaTorinoTransfer} error={shipmentValidationErrors.limaTorinoTransferMode} /></div>}
                   <div className={mobileShipmentStepVisible(2) ? "" : "hidden"}><QuantityStepper
                     id="account-sheet-count"
                     label="Cantidad de Hojas / Documentos"

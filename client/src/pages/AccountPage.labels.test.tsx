@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 
 const mutation = vi.hoisted(() => () => ({ mutate: vi.fn(), isPending: false }));
 const accountMocks = vi.hoisted(() => ({ shipments: [] as any[], deletedShipments: [] as any[], session: { email: "cliente@example.com", name: "Ana", lastName: "López", dni: "71234567", phone: "+51 970188447", reauthRequired: false } as any }));
+const notificationMocks = vi.hoisted(() => ({ data: { items: [] as any[], unreadCount: 0 }, refetch: vi.fn() }));
 
 vi.mock("@/lib/trpc", () => ({
   trpc: {
@@ -27,6 +28,11 @@ vi.mock("@/lib/trpc", () => ({
       requestPasswordReset: { useMutation: mutation },
       resetPassword: { useMutation: mutation },
     },
+    notifications: {
+      list: { useQuery: () => ({ data: notificationMocks.data, isLoading: false, refetch: notificationMocks.refetch }) },
+      markRead: { useMutation: mutation },
+      markAllRead: { useMutation: mutation },
+    },
     analytics: {
       myInsights: { useQuery: () => ({ data: null }) },
     },
@@ -46,6 +52,7 @@ beforeEach(() => {
   accountMocks.shipments = [];
   accountMocks.deletedShipments = [];
   accountMocks.session = { email: "cliente@example.com", name: "Ana", lastName: "López", dni: "71234567", phone: "+51 970188447", reauthRequired: false };
+  notificationMocks.data = { items: [], unreadCount: 0 };
 });
 
 describe("AccountPage client labels", () => {
@@ -110,6 +117,18 @@ describe("AccountPage client labels", () => {
     expect(screen.getByRole("option", { name: "Torino – Lima" })).toBeTruthy();
     expect(screen.getByText(/Lista de documentos/)).toBeTruthy();
     expect(screen.getByLabelText("Acta de nacimiento")).toBeTruthy();
+    expect(screen.queryByText("¿Cómo se trasladará el documento a Torino?")).toBeNull();
+    expect(screen.queryByText("DHL recoge el documento")).toBeNull();
+  });
+
+  it("muestra la campana del Cliente y el aviso de actividad de su cuenta", () => {
+    notificationMocks.data = { items: [{ id: 7, title: "Envío actualizado", message: "Estado: En tránsito.", isRead: 0, createdAt: new Date("2026-08-25T12:00:00.000Z") }], unreadCount: 1 };
+    render(<AccountPage />);
+    expect(screen.getByRole("button", { name: "Notificaciones, 1 sin leer" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Notificaciones, 1 sin leer" }));
+    expect(screen.getByRole("dialog", { name: "Notificaciones" })).toBeTruthy();
+    expect(screen.getByText("Envío actualizado")).toBeTruthy();
+    expect(screen.getByText("Estado: En tránsito.")).toBeTruthy();
   });
 
   it("muestra el tipo documental seleccionado completo con tarifa destacada", async () => {

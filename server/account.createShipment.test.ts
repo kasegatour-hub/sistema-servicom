@@ -73,14 +73,13 @@ describe("account.createMyShipment persistence policy", () => {
   });
 });
 
-  it("acepta DHL como modalidad de traslado Lima–Torino y la conserva en el payload", () => {
-    const input = clientShipmentInputSchema.parse({ route: "Lima - Torino", limaTorinoTransferMode: "dhl_recogida", contentChecklist: ["Documento principal"] });
+  it("rechaza campos operativos de recogida que solo corresponden a Admin y Usuario", () => {
+    expect(() => clientShipmentInputSchema.parse({ route: "Lima - Torino", limaTorinoTransferMode: "dhl_recogida", contentChecklist: ["Documento principal"] })).toThrow(/Unrecognized key|limaTorinoTransferMode/);
+    const input = clientShipmentInputSchema.parse({ route: "Lima - Torino", contentChecklist: ["Documento principal"] });
     const args = buildClientShipmentPersistenceArgs(input, "1234567890", "DOC-2026-ABCD", "Documento", 42);
-    expect(args[49]).toBe("dhl_recogida");
+    expect(args[49]).toBeNull();
   });
 
-  it("exige datos completos para una persona autorizada y acepta el aeropuerto Jorge Chávez", () => {
-    const input = clientShipmentInputSchema.parse({ route: "Lima - Torino", limaTorinoTransferMode: "persona_autorizada", deliveryPersonName: "Ana", deliveryPersonLastName: "Pérez", deliveryPersonDni: "71234567", deliveryPersonPhone: "+51 970188447", deliveryLocationType: "aeropuerto_jorge_chavez", deliveryLocationAddress: "Nuevo Aeropuerto Internacional Jorge Chávez", contentChecklist: ["Documento principal"] });
-    const args = buildClientShipmentPersistenceArgs(input, "1234567890", "DOC-2026-ABCD", "Documento", 42);
-    expect(args.slice(49)).toEqual(["persona_autorizada", "Ana", "Pérez", "71234567", "+51 970188447", "aeropuerto_jorge_chavez", "Nuevo Aeropuerto Internacional Jorge Chávez", undefined, undefined]);
+  it("rechaza datos de persona autorizada y aeropuerto que solo administra el operador", () => {
+    expect(() => clientShipmentInputSchema.parse({ route: "Lima - Torino", limaTorinoTransferMode: "persona_autorizada", deliveryPersonName: "Ana", deliveryPersonLastName: "Pérez", deliveryPersonDni: "71234567", deliveryPersonPhone: "+51 970188447", deliveryLocationType: "aeropuerto_jorge_chavez", deliveryLocationAddress: "Nuevo Aeropuerto Internacional Jorge Chávez", contentChecklist: ["Documento principal"] })).toThrow(/Unrecognized key|limaTorinoTransferMode/);
   });

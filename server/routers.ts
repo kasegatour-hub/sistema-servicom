@@ -16,6 +16,7 @@ import { deriveInteractionInsights } from "./analytics";
 import { sendShipmentSignatureEmail } from "./localAuth";
 import { searchOfficialOlvaAgencies, searchOfficialShalomAgencies } from "./agencyDirectory";
 import { transferRouter } from "./transfer.router";
+import { notificationRouter } from "./notification.router";
 
 export const appRouter = router({
   system: systemRouter,
@@ -34,6 +35,7 @@ export const appRouter = router({
   account: accountRouter,
   feedback: feedbackRouter,
   transfers: transferRouter,
+  notifications: notificationRouter,
   agencies: router({
     olva: publicProcedure.input(z.object({ query: z.string().max(120).default("") })).query(async ({ input }) => {
       try {

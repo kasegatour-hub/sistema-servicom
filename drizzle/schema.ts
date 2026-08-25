@@ -48,6 +48,30 @@ export const localAccounts = mysqlTable("local_accounts", {
 export type LocalAccount = typeof localAccounts.$inferSelect;
 export type InsertLocalAccount = typeof localAccounts.$inferInsert;
 
+/** Notificaciones internas dirigidas a una cuenta Cliente o a un Administrador/Registrador. */
+export const notifications = mysqlTable("notifications", {
+  id: int("id").autoincrement().primaryKey(),
+  recipientType: mysqlEnum("recipientType", ["admin", "account"]).notNull(),
+  recipientId: int("recipientId").notNull(),
+  kind: varchar("kind", { length: 64 }).notNull(),
+  title: varchar("title", { length: 180 }).notNull(),
+  message: text("message").notNull(),
+  entityType: varchar("entityType", { length: 64 }),
+  entityId: int("entityId"),
+  actorType: mysqlEnum("actorType", ["admin", "account", "system"]).notNull(),
+  actorId: int("actorId"),
+  actorLabel: varchar("actorLabel", { length: 255 }),
+  isRead: int("isRead").default(0).notNull(),
+  readAt: timestamp("readAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, table => ({
+  recipientIdx: index("notifications_recipient_idx").on(table.recipientType, table.recipientId, table.createdAt),
+  unreadIdx: index("notifications_unread_idx").on(table.recipientType, table.recipientId, table.isRead, table.createdAt),
+  entityIdx: index("notifications_entity_idx").on(table.entityType, table.entityId),
+}));
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;
+
 /** Registro operativo persistente de remitentes y destinatarios, independiente de las cuentas de acceso. */
 export const clients = mysqlTable("clients", {
   id: int("id").autoincrement().primaryKey(),

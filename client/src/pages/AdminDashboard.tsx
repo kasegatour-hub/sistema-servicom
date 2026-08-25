@@ -40,6 +40,7 @@ import { IdentityDocumentField } from "@/components/IdentityDocumentField";
 import { ShipmentTrendCharts } from "@/components/ShipmentTrendCharts";
 import { InvitationLetterWorkspace } from "@/components/InvitationLetterWorkspace";
 import { PasswordRequirements } from "@/components/PasswordRequirements";
+import { NotificationBell } from "@/components/NotificationBell";
 import { AgencyDestinationPicker, type AgencyProvider } from "@/components/AgencyDestinationPicker";
 import { LimaTorinoTransferPanel } from "@/components/LimaTorinoTransferPanel";
 import { TransferWorkspace } from "@/components/TransferWorkspace";
@@ -1844,6 +1845,7 @@ export default function AdminDashboard() {
               <QrCode className="mr-1.5 h-4 w-4 shrink-0" /> <span>Escanear QR de control</span>
             </Button>
             <Button type="button" onClick={() => setShowGeneralFeedback(true)} variant="outline" className="min-h-12 min-w-0 whitespace-normal rounded-xl border-white px-3 text-center text-xs font-bold leading-4 text-white hover:bg-white/20 sm:text-sm"><MessageSquare className="mr-1.5 h-4 w-4 shrink-0" /> <span>Comentarios</span></Button>
+            <NotificationBell />
             <button
               type="button"
               onClick={() => {

@@ -1,7 +1,7 @@
-import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, like, ne, notInArray, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, gte, inArray, isNotNull, isNull, like, ne, notInArray, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { createHash } from "node:crypto";
-import { InsertUser, users, shipments, shipmentSignatures, shipmentAuditLogs, shipmentFeedback, platformFeedback, interactionEvents, admins, localAccounts, verificationCodes, adminPasswordResetCodes, clients, discountCoupons, shipmentRoutePolicies, invitationLetters, invitationLetterSignatures, transfers } from "../drizzle/schema";
+import { InsertUser, users, shipments, shipmentSignatures, shipmentAuditLogs, shipmentFeedback, platformFeedback, interactionEvents, admins, localAccounts, verificationCodes, adminPasswordResetCodes, clients, discountCoupons, shipmentRoutePolicies, invitationLetters, invitationLetterSignatures, transfers, notifications, type Notification } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { buildShipmentClientDirectoryRecords, type ClientDirectoryRecord, type ShipmentClientDirectoryInput } from "./clientDirectory";
 import { rankFuzzyMatches } from "../shared/fuzzySearch";
@@ -26,6 +26,127 @@ export async function getDb() {
     }
   }
   return _db;
+}
+
+export type NotificationRecipientType = "admin" | "account";
+export type NotificationActor = {
+  actorType: "admin" | "account" | "system" | "public";
+  actorId?: number | null;
+  actorLabel?: string | null;
+};
+
+async function activeAdminIds(options?: { scopedAdminId?: number | null }) {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select({ id: admins.id }).from(admins).where(eq(admins.isActive, 1));
+  if (options?.scopedAdminId && ISOLATED_WORKSPACE_ADMIN_IDS.includes(options.scopedAdminId as (typeof ISOLATED_WORKSPACE_ADMIN_IDS)[number])) {
+    return rows.filter(row => row.id === options.scopedAdminId).map(row => row.id);
+  }
+  return rows.filter(row => !ISOLATED_WORKSPACE_ADMIN_IDS.includes(row.id as (typeof ISOLATED_WORKSPACE_ADMIN_IDS)[number])).map(row => row.id);
+}
+
+export async function listNotificationsForRecipient(input: { recipientType: NotificationRecipientType; recipientId: number; limit?: number }) {
+  const db = await getDb();
+  if (!db) return { items: [] as Notification[], unreadCount: 0 };
+  const limit = Math.max(1, Math.min(input.limit ?? 40, 100));
+  const condition = and(eq(notifications.recipientType, input.recipientType), eq(notifications.recipientId, input.recipientId));
+  const [items, unreadRows] = await Promise.all([
+    db.select().from(notifications).where(condition).orderBy(desc(notifications.createdAt)).limit(limit),
+    db.select({ count: count() }).from(notifications).where(and(condition, eq(notifications.isRead, 0))),
+  ]);
+  return { items, unreadCount: Number(unreadRows[0]?.count || 0) };
+}
+
+export async function markNotificationRead(input: { id: number; recipientType: NotificationRecipientType; recipientId: number }) {
+  const db = await getDb();
+  if (!db) return false;
+  const result = await db.update(notifications).set({ isRead: 1, readAt: new Date() }).where(and(eq(notifications.id, input.id), eq(notifications.recipientType, input.recipientType), eq(notifications.recipientId, input.recipientId), eq(notifications.isRead, 0)));
+  return Number(result[0]?.affectedRows || 0) > 0;
+}
+
+export async function markAllNotificationsRead(input: { recipientType: NotificationRecipientType; recipientId: number }) {
+  const db = await getDb();
+  if (!db) return 0;
+  const result = await db.update(notifications).set({ isRead: 1, readAt: new Date() }).where(and(eq(notifications.recipientType, input.recipientType), eq(notifications.recipientId, input.recipientId), eq(notifications.isRead, 0)));
+  return Number(result[0]?.affectedRows || 0);
+}
+
+async function insertNotifications(rows: Array<typeof notifications.$inferInsert>) {
+  const db = await getDb();
+  if (!db || rows.length === 0) return false;
+  try {
+    await db.insert(notifications).values(rows);
+    return true;
+  } catch (error) {
+    console.warn("[Notifications] No se pudo guardar un aviso:", error);
+    return false;
+  }
+}
+
+export async function notifyShipmentEvent(input: {
+  shipmentId: number;
+  orderNumber: string;
+  code: string;
+  shipmentType: "documento" | "encomienda";
+  accountId?: number | null;
+  registeredByType?: string | null;
+  registeredById?: number | null;
+  action: "created" | "updated" | "deleted" | "restored";
+  actor: NotificationActor;
+  details?: string;
+  notifyAccount?: boolean;
+}) {
+  const scopedAdminId = input.registeredByType === "admin" ? input.registeredById : null;
+  const adminIds = await activeAdminIds({ scopedAdminId });
+  const shipmentLabel = input.shipmentType === "documento" ? "documento" : "encomienda";
+  const actionText = { created: "Nuevo envío creado", updated: "Envío actualizado", deleted: "Envío enviado a la papelera", restored: "Envío restaurado" }[input.action];
+  const defaultDetail = `Orden ${input.orderNumber} · código ${input.code}.`;
+  const message = `${actionText}: ${shipmentLabel}. ${input.details || defaultDetail}`;
+  const recipients = new Map<string, { type: NotificationRecipientType; id: number }>();
+  for (const id of adminIds) recipients.set(`admin:${id}`, { type: "admin", id });
+  if (input.notifyAccount !== false && input.accountId) recipients.set(`account:${input.accountId}`, { type: "account", id: input.accountId });
+  return insertNotifications(Array.from(recipients.values()).map(recipient => ({
+    recipientType: recipient.type,
+    recipientId: recipient.id,
+    kind: `shipment_${input.action}`,
+    title: actionText,
+    message,
+    entityType: "shipment",
+    entityId: input.shipmentId,
+    actorType: input.actor.actorType === "public" ? "system" : input.actor.actorType,
+    actorId: input.actor.actorId ?? null,
+    actorLabel: input.actor.actorLabel ?? null,
+    isRead: 0,
+  })));
+}
+
+export async function notifyAccountEvent(input: {
+  accountId: number;
+  title: string;
+  message: string;
+  kind: "account_created" | "account_updated";
+  actor: NotificationActor;
+  details?: string;
+}) {
+  const adminIds = await activeAdminIds();
+  const message = input.details ? `${input.message} ${input.details}` : input.message;
+  const recipients = [
+    ...adminIds.map(id => ({ type: "admin" as const, id })),
+    { type: "account" as const, id: input.accountId },
+  ];
+  return insertNotifications(recipients.map(recipient => ({
+    recipientType: recipient.type,
+    recipientId: recipient.id,
+    kind: input.kind,
+    title: input.title,
+    message,
+    entityType: "account",
+    entityId: input.accountId,
+    actorType: input.actor.actorType === "public" ? "system" : input.actor.actorType,
+    actorId: input.actor.actorId ?? null,
+    actorLabel: input.actor.actorLabel ?? null,
+    isRead: 0,
+  })));
 }
 
 export async function upsertUser(user: InsertUser): Promise<void> {
@@ -1248,12 +1369,13 @@ export async function createShipment(
   });
 
   const insertedId = Number((result as any)?.insertId ?? 0);
+  const actor = registeredBy
+    ? { actorType: registeredBy.type === "system" ? "system" as const : registeredBy.type, actorId: registeredBy.id ?? null, actorLabel: registeredBy.label }
+    : { actorType: accountId ? "account" as const : "system" as const, actorId: accountId ?? null, actorLabel: accountId ? "Cliente" : "Sistema" };
   if (insertedId > 0) {
     const createdShipment = await getShipmentRecordById(insertedId);
-    const actor = registeredBy
-      ? { actorType: registeredBy.type === "system" ? "system" as const : registeredBy.type, actorId: registeredBy.id ?? null, actorLabel: registeredBy.label }
-      : { actorType: accountId ? "account" as const : "system" as const, actorId: accountId ?? null, actorLabel: accountId ? "Cliente" : "Sistema" };
     await recordShipmentAudit({ shipmentId: insertedId, action: "created", actor, snapshot: createdShipment });
+    await notifyShipmentEvent({ shipmentId: insertedId, orderNumber: normalizedOrder, code: normalizedCode, shipmentType: normalizedShipmentType, accountId: accountId ?? null, registeredByType: registeredBy?.type ?? (accountId ? "account" : "system"), registeredById: registeredBy?.id ?? accountId ?? null, action: "created", actor, details: "Revisa el estado y los datos del registro desde tu panel.", notifyAccount: Boolean(accountId) });
   }
 
   return result;
@@ -1309,6 +1431,7 @@ export async function updateShipmentStatus(
   deliveryLocationLongitude?: string | number | null,
   missingItems?: string[] | string | null,
   extraDiscountEur?: string | number | null,
+  changeActor?: ShipmentAuditActor,
 ) {
   const db = await getDb();
   if (!db) {
@@ -1396,6 +1519,8 @@ export async function updateShipmentStatus(
       })
       .where(eq(shipments.id, id));
 
+    const updatedShipment = await getShipmentRecordById(id);
+    await notifyShipmentEvent({ shipmentId: id, orderNumber: shipment.orderNumber, code: shipment.code, shipmentType: updatedShipmentType, accountId: shipment.accountId, registeredByType: shipment.registeredByType, registeredById: shipment.registeredById, action: "updated", actor: changeActor || { actorType: "system", actorLabel: "Sistema" }, details: `Estado: ${newStatus}.${description ? ` ${description}` : ""}`, notifyAccount: Boolean(shipment.accountId) });
     console.log("[Database] Shipment updated successfully:", { id, newStatus, eventsLength: events.length });
     return result;
   } catch (error) {
@@ -1429,6 +1554,7 @@ export async function deleteShipment(id: number, actor: ShipmentAuditActor = { a
       updatedAt: new Date(),
     }).where(eq(shipments.id, id));
     await recordShipmentAudit({ shipmentId: id, action: "deleted", actor, reason, snapshot: shipment });
+    await notifyShipmentEvent({ shipmentId: id, orderNumber: shipment.orderNumber, code: shipment.code, shipmentType: shipment.shipmentType, accountId: shipment.accountId, registeredByType: shipment.registeredByType, registeredById: shipment.registeredById, action: "deleted", actor, details: reason, notifyAccount: Boolean(shipment.accountId) });
     return true;
   } catch (error) {
     console.error("[Database] Error moving shipment to trash:", error);
@@ -1449,6 +1575,7 @@ export async function restoreShipment(id: number, actor: ShipmentAuditActor = { 
     updatedAt: new Date(),
   }).where(eq(shipments.id, id));
   await recordShipmentAudit({ shipmentId: id, action: "restored", actor, snapshot: shipment });
+  await notifyShipmentEvent({ shipmentId: id, orderNumber: shipment.orderNumber, code: shipment.code, shipmentType: shipment.shipmentType, accountId: shipment.accountId, registeredByType: shipment.registeredByType, registeredById: shipment.registeredById, action: "restored", actor, details: "El registro vuelve a estar disponible para su seguimiento.", notifyAccount: Boolean(shipment.accountId) });
   return true;
 }
 
@@ -1472,6 +1599,7 @@ export async function setShipmentRegistradorVisibility(id: number, hidden: boole
     snapshot: shipment,
     metadata: { hiddenFromRegistradores: hidden },
   });
+  await notifyShipmentEvent({ shipmentId: id, orderNumber: shipment.orderNumber, code: shipment.code, shipmentType: shipment.shipmentType, accountId: shipment.accountId, registeredByType: shipment.registeredByType, registeredById: shipment.registeredById, action: "updated", actor, details: hidden ? `Envío ocultado para Registradores.${reason ? ` Motivo: ${reason.trim()}` : ""}` : "Envío visible nuevamente para Registradores.", notifyAccount: false });
   return true;
 }
 

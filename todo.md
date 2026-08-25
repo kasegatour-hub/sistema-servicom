@@ -1409,3 +1409,11 @@
 **Estado:** Pendiente de implementación.
 
 **Referencia:** PhoneInput, validación de teléfonos y registro móvil.
+
+## Notificaciones y visibilidad operativa
+- [x] Ocultar al cliente las opciones de traslado del documento y los datos sobre quién lo recoge o qué courier interviene
+- [x] Crear persistencia y procedimientos seguros para notificaciones por cuenta con estado leído/no leído
+- [x] Notificar a admins y usuarios la creación de envíos y clientes, y los cambios relevantes de envíos y datos personales
+- [x] Añadir campana de notificaciones para admins y usuarios, con contador, listado y marcar como leído
+- [x] Añadir pruebas de permisos, creación de eventos, lectura de notificaciones y ocultamiento para clientes
+- [x] Validar TypeScript, ejecutar la suite completa, verificar vista móvil y publicar

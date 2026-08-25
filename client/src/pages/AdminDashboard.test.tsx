@@ -56,6 +56,7 @@ const mocks = vi.hoisted(() => ({
       isFetching: false,
     }),
   },
+  notifications: { data: { items: [] as any[], unreadCount: 0 }, refetch: vi.fn(), markRead: { mutate: vi.fn() }, markAllRead: { mutate: vi.fn() } },
 }));
 const receiptMocks = vi.hoisted(() => ({
   download: vi.fn().mockResolvedValue("recibo-documento-giselle-garcia-orden-6352627659.pdf"),
@@ -75,6 +76,11 @@ vi.mock("@/lib/trpc", () => ({
       list: { useQuery: () => mocks.listTransfers },
       create: { useMutation: () => mocks.createTransfer },
       argenperQuote: { useQuery: () => ({ data: { eurPurchaseRate: 3.79, eurSaleRate: 4.02, adjustedPenPerEur: 4.17, fetchedAt: Date.now(), sourceUrl: "https://www.argenper.com.pe/servicios/cambio-moneda" }, isFetching: false, error: null, refetch: vi.fn() }) },
+    },
+    notifications: {
+      list: { useQuery: () => ({ data: mocks.notifications.data, isLoading: false, refetch: mocks.notifications.refetch }) },
+      markRead: { useMutation: () => ({ isPending: false, mutate: mocks.notifications.markRead.mutate }) },
+      markAllRead: { useMutation: () => ({ isPending: false, mutate: mocks.notifications.markAllRead.mutate }) },
     },
     admin: {
       me: { useQuery: () => ({ data: mocks.adminSession, isLoading: false, refetch: mocks.refetchAdminSession }) },
@@ -347,6 +353,19 @@ describe("AdminDashboard Nueva Encomienda", () => {
     expect(screen.getByLabelText("Código de 6 dígitos")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Reenviar código en 60s" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Ya tengo un código" })).toBeNull();
+  });
+
+  it("muestra la campana administrativa con contador y actividad reciente", async () => {
+    mocks.adminSession = { id: 4, email: "admin@servicom.pe", name: "Gian Arteaga", role: "registrador", reauthRequired: false };
+    mocks.notifications.data = { items: [{ id: 12, title: "Nuevo envío creado", message: "Orden 35209927 · código 1ABC.", isRead: 0, createdAt: new Date("2026-08-25T12:00:00.000Z") }], unreadCount: 1 };
+    render(<AdminDashboard />);
+
+    expect(await screen.findByRole("button", { name: "Notificaciones, 1 sin leer" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Notificaciones, 1 sin leer" }));
+    expect(screen.getByRole("dialog", { name: "Notificaciones" })).toBeTruthy();
+    expect(screen.getByText("Nuevo envío creado")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Nuevo envío creado/ }));
+    expect(mocks.notifications.markRead.mutate).toHaveBeenCalledWith({ id: 12 });
   });
 
   it("muestra el perfil administrativo amplio con foto, saludo y acciones de seguridad", async () => {

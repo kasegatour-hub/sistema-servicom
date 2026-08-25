@@ -1063,6 +1063,7 @@ export const adminRouter = router({
         input.deliveryLocationLongitude,
         input.missingItems,
         updatedPricing?.extraDiscountEur ?? input.extraDiscountEur,
+        { actorType: "admin", actorId: ctx.adminSession.adminId, actorLabel: ctx.adminSession.role },
       );
       if (!result) {
         throw new TRPCError({
