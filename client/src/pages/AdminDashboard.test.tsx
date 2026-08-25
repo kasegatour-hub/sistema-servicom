@@ -70,6 +70,7 @@ vi.mock("@/lib/trpc", () => ({
     transfers: {
       list: { useQuery: () => mocks.listTransfers },
       create: { useMutation: () => mocks.createTransfer },
+      argenperQuote: { useQuery: () => ({ data: { eurPurchaseRate: 3.79, eurSaleRate: 4.02, adjustedPenPerEur: 4.17, fetchedAt: Date.now(), sourceUrl: "https://www.argenper.com.pe/servicios/cambio-moneda" }, isFetching: false, error: null, refetch: vi.fn() }) },
     },
     admin: {
       me: { useQuery: () => ({ data: mocks.adminSession, isLoading: false, refetch: mocks.refetchAdminSession }) },

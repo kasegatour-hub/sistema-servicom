@@ -1485,12 +1485,14 @@ export async function createTransfer(input: {
   senderName: string;
   senderPhone?: string | null;
   senderDocument?: string | null;
+  senderDocumentType?: string;
   senderPassport?: string | null;
   senderCity?: string | null;
   senderPaymentMethod?: string | null;
   recipientName: string;
   recipientPhone?: string | null;
   recipientDocument?: string | null;
+  recipientDocumentType?: string;
   recipientPassport?: string | null;
   recipientBank?: string | null;
   recipientIban?: string | null;
@@ -1500,6 +1502,9 @@ export async function createTransfer(input: {
   exchangeRate: string;
   amountReceived: string;
   currency?: string;
+  destinationCurrency?: string;
+  commissionPercent?: string;
+  exchangeRateSource?: string;
   status?: "Registrada" | "Pagada" | "Cancelada";
   notes?: string | null;
 }) {

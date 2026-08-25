@@ -1341,3 +1341,10 @@
 - [x] Garantizar que Nuevo documento, Nueva encomienda y Nueva transferencia abran únicamente su formulario correspondiente
 - [x] Mostrar operadores y sedes solo después de elegir Agencia de destino, incluyendo información completa de empresas terrestres
 - [x] Añadir pruebas Vitest, validar TypeScript y comprobar la adaptación responsive antes de publicar
+
+## Transferencias: identidad, teléfono y cotización
+- [x] Reutilizar DNI, pasaporte o carta de identidad para remitente y destinatario de transferencias
+- [x] Reutilizar el selector buscable de país, indicativo y teléfono de documentos y encomiendas
+- [x] Calcular 3 % de comisión para EUR a EUR y 2 % para PEN a EUR
+- [x] Consultar la cotización pública de Argemper para PEN a EUR, aplicar +0,15 puntos y permitir reemplazo manual
+- [x] Añadir pruebas, validar TypeScript y publicar la actualización

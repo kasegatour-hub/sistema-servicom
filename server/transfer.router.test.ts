@@ -4,7 +4,7 @@ import { calculateTransferAmount } from "./transfer.router";
 describe("transferencias", () => {
   it("calcula el importe recibido descontando comisión y aplicando cambio", () => {
     expect(calculateTransferAmount(309, 9, 1)).toBe(300);
-    expect(calculateTransferAmount(100, 5, 4)).toBe(380);
+    expect(calculateTransferAmount(402, 8.04, 4.02, "PEN", "EUR")).toBeCloseTo(98, 2);
   });
 
   it("nunca devuelve un importe recibido negativo", () => {
