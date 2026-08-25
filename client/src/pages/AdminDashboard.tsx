@@ -50,6 +50,7 @@ import { normalizeIdentityDocument, type IdentityDocumentType } from "@shared/id
 import { getFuzzySearchScore } from "@shared/fuzzySearch";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "@shared/passwordPolicy";
 import { isValidInternationalPhone } from "@shared/phoneValidation";
+import { calculateAdminShipmentPricing, extractFreeformShipmentNotes, mergeShipmentNotes } from "@shared/adminPricing";
 
 type AdminWorkspace = "resumen" | "registros" | "crear" | "cupones" | "papelera" | "usuarios" | "analitica" | "carta" | "remitentes" | "transferencias" | "feedback";
 type CreateRecordTab = "documento" | "encomienda" | "transferencia";
@@ -445,6 +446,8 @@ export default function AdminDashboard() {
   const [deletedLogisticsFilter, setDeletedLogisticsFilter] = useState("all");
   const [deletedTypeFilter, setDeletedTypeFilter] = useState<"all" | "documento" | "encomienda">("all");
   const [deletedCurrentPage, setDeletedCurrentPage] = useState(1);
+  const generatedCreateNoteRef = useRef("");
+  const generatedUpdateNoteRef = useRef("");
   const pageSize = 6;
   const deletedPageSize = 6;
   const printQrRef = useRef<HTMLCanvasElement>(null);
@@ -666,6 +669,7 @@ export default function AdminDashboard() {
   const selectedShipmentType = createForm.watch("shipmentType") || "documento";
 
   const resetCreateForm = () => {
+    generatedCreateNoteRef.current = "";
     createForm.reset({ status: "En agencia", senderName: "", senderLastName: "", senderDni: "", senderDocumentType: "dni_peru", senderPhone: "", recipientName: "", recipientLastName: "", recipientDni: "", recipientDocumentType: "dni_peru", recipientPhone: "", notes: "", shipmentType: "documento", documentCount: 1, docType: "apostillado", sheetCount: 1, requiresApostilleService: false, requiresTranslationService: false, serviceManualPriceEur: "", serviceManualPriceSoles: "", weightKg: 1, manualPriceEur: "", extraPriceEur: 0, extraDiscountEur: 0, paymentStatus: "Falta cancelar", route: "Lima - Torino", originAddress: "", destinationAddress: "", isProvinceDelivery: false, provinceCustomerPriceEur: "", provinceExtraPriceEur: "", provinceOperationalCostSoles: "", provinceCarrier: "shalom", provinceSenderName: "", provinceSenderLastName: "", provinceSenderDni: "", provinceSenderPhone: "", couponCode: "", documentItems: [], contentChecklist: [], missingItems: [], deliveryMode: "agencia", limaTorinoTransferMode: undefined, deliveryPersonName: "", deliveryPersonLastName: "", deliveryPersonDni: "", deliveryPersonPhone: "", deliveryLocationType: "direccion", deliveryLocationAddress: "", deliveryLocationLatitude: null, deliveryLocationLongitude: null });
     setSenderClientQuery("");
     setRecipientClientQuery("");
@@ -690,6 +694,36 @@ export default function AdminDashboard() {
   const automaticProvinceExtraPrice = watchedProvinceEnabled && selectedRoute === "Torino - Lima" && watchedWeightKg > 10 ? Math.round((watchedWeightKg - 10) * 2 * 100) / 100 : 0;
   const watchedProvinceExtraPrice = watchedProvinceExtraRaw !== "" && Number.isFinite(Number(watchedProvinceExtraRaw)) ? Number(watchedProvinceExtraRaw) : automaticProvinceExtraPrice;
   const provincePreviewEur = watchedProvinceEnabled ? watchedProvinceCustomerPrice + watchedProvinceExtraPrice : 0;
+  const createPricingPreview = useMemo(() => calculateAdminShipmentPricing({
+    shipmentType: selectedShipmentType,
+    docType: selectedDocType,
+    sheetCount: Number(createForm.watch("sheetCount")) || 1,
+    documentItems: additionalDocumentItems,
+    weightKg: watchedWeightKg,
+    manualPriceEur: createForm.watch("manualPriceEur"),
+    extraPriceEur: createForm.watch("extraPriceEur"),
+    extraDiscountEur: createForm.watch("extraDiscountEur"),
+    route: selectedRoute,
+    requiresApostilleService: Boolean(createForm.watch("requiresApostilleService")),
+    requiresTranslationService: Boolean(createForm.watch("requiresTranslationService")),
+    serviceManualPriceEur: createForm.watch("serviceManualPriceEur"),
+    serviceManualPriceSoles: createForm.watch("serviceManualPriceSoles"),
+    isProvinceDelivery: watchedProvinceEnabled,
+    provinceCustomerPriceEur: createForm.watch("provinceCustomerPriceEur"),
+    provinceExtraPriceEur: createForm.watch("provinceExtraPriceEur"),
+    provinceOperationalCostSoles: createForm.watch("provinceOperationalCostSoles"),
+    provinceCarrier: createForm.watch("provinceCarrier") || "shalom",
+    notes: extractFreeformShipmentNotes(createForm.watch("notes"), generatedCreateNoteRef.current),
+  }), [selectedShipmentType, selectedDocType, selectedRoute, additionalDocumentItems, watchedWeightKg, watchedProvinceEnabled, watchedProvinceExtraPrice, createForm.watch("sheetCount"), createForm.watch("manualPriceEur"), createForm.watch("extraPriceEur"), createForm.watch("extraDiscountEur"), createForm.watch("requiresApostilleService"), createForm.watch("requiresTranslationService"), createForm.watch("serviceManualPriceEur"), createForm.watch("serviceManualPriceSoles"), createForm.watch("provinceCustomerPriceEur"), createForm.watch("provinceExtraPriceEur"), createForm.watch("provinceOperationalCostSoles"), createForm.watch("provinceCarrier"), createForm.watch("notes")]);
+  useEffect(() => {
+    const currentNotes = String(createForm.getValues("notes") ?? "");
+    const freeformNotes = extractFreeformShipmentNotes(currentNotes, generatedCreateNoteRef.current);
+    const nextNotes = mergeShipmentNotes(createPricingPreview.notes, freeformNotes);
+    generatedCreateNoteRef.current = createPricingPreview.notes;
+    if (currentNotes !== nextNotes) {
+      createForm.setValue("notes", nextNotes, { shouldDirty: currentNotes.trim() !== "" });
+    }
+  }, [createPricingPreview]);
   useEffect(() => {
     if (watchedProvinceEnabled && selectedRoute === "Torino - Lima" && !String(createForm.getValues("provinceCustomerPriceEur") ?? "").trim() && automaticProvincePrice > 0) {
       createForm.setValue("provinceCustomerPriceEur", automaticProvincePrice, { shouldDirty: true });
@@ -804,7 +838,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (updateProvinceEnabled && updateShipmentRoute === "Torino - Lima") {
       updateForm.setValue("provinceCustomerPriceEur", updateProvinceWeight <= 5 ? 10 : 15, { shouldDirty: true });
-      updateForm.setValue("provinceExtraPriceEur", updateProvinceWeight > 15 ? Math.round((updateProvinceWeight - 15) * 1.5 * 100) / 100 : 0, { shouldDirty: true });
+      updateForm.setValue("provinceExtraPriceEur", updateProvinceWeight > 10 ? Math.round((updateProvinceWeight - 10) * 2 * 100) / 100 : 0, { shouldDirty: true });
     }
   }, [updateProvinceEnabled, updateShipmentRoute, updateProvinceWeight]);
   const updateBillableWeight = updateProvinceWeight > 15 ? 10 : updateProvinceWeight;
@@ -815,9 +849,37 @@ export default function AdminDashboard() {
   const updateExtraPrice = Number(updateForm.watch("extraPriceEur") || 0);
   const updateExtraDiscount = Math.min(updateExtraPrice, Math.max(0, Number(updateForm.watch("extraDiscountEur") || 0)));
   const updateNetExtra = Math.max(0, updateExtraPrice - updateExtraDiscount);
-  const updateVisibleParcelTotal = updateForm.watch("pricingMode") === "manual" ? updateManualPrice + updateNetExtra + updateProvinceCustomerPrice + updateProvinceExtraPrice : updateBasePriceEur + updateNetExtra + updateProvinceCustomerPrice + updateProvinceExtraPrice;
+  const updatePricingPreview = useMemo(() => calculateAdminShipmentPricing({
+    shipmentType: updateShipmentType,
+    docType: (updateForm.watch("docType") || "apostillado") as "simple" | "apostillado",
+    sheetCount: Number(updateForm.watch("sheetCount") || 1),
+    weightKg: updateProvinceWeight,
+    manualPriceEur: updateForm.watch("pricingMode") === "manual" ? updateForm.watch("manualPriceEur") : null,
+    extraPriceEur: updateForm.watch("extraPriceEur"),
+    extraDiscountEur: updateForm.watch("extraDiscountEur"),
+    route: updateShipmentRoute,
+    requiresApostilleService: Boolean(updateForm.watch("requiresApostilleService")),
+    isProvinceDelivery: updateProvinceEnabled,
+    provinceCustomerPriceEur: updateForm.watch("provinceCustomerPriceEur"),
+    provinceExtraPriceEur: updateForm.watch("provinceExtraPriceEur"),
+    provinceOperationalCostSoles: updateForm.watch("provinceOperationalCostSoles"),
+    provinceCarrier: updateForm.watch("provinceCarrier") || "shalom",
+    notes: extractFreeformShipmentNotes(updateForm.watch("notes"), generatedUpdateNoteRef.current),
+  }), [updateShipmentType, updateShipmentRoute, updateProvinceWeight, updateProvinceEnabled, updateForm.watch("docType"), updateForm.watch("sheetCount"), updateForm.watch("pricingMode"), updateForm.watch("manualPriceEur"), updateForm.watch("extraPriceEur"), updateForm.watch("extraDiscountEur"), updateForm.watch("requiresApostilleService"), updateForm.watch("provinceCustomerPriceEur"), updateForm.watch("provinceExtraPriceEur"), updateForm.watch("provinceOperationalCostSoles"), updateForm.watch("provinceCarrier"), updateForm.watch("notes")]);
+  const updateVisibleParcelTotal = updatePricingPreview.totalEur;
+
+  useEffect(() => {
+    const currentNotes = String(updateForm.getValues("notes") ?? "");
+    const freeformNotes = extractFreeformShipmentNotes(currentNotes, generatedUpdateNoteRef.current);
+    const nextNotes = mergeShipmentNotes(updatePricingPreview.notes, freeformNotes);
+    generatedUpdateNoteRef.current = updatePricingPreview.notes;
+    if (currentNotes !== nextNotes) {
+      updateForm.setValue("notes", nextNotes, { shouldDirty: currentNotes.trim() !== "" });
+    }
+  }, [updatePricingPreview]);
 
   const openShipmentUpdate = (shipment: any) => {
+    generatedUpdateNoteRef.current = "";
     setSelectedShipmentId(shipment.id);
     setAutoSaveStatusFeedback("");
     updateForm.reset({
@@ -1144,8 +1206,10 @@ export default function AdminDashboard() {
       }
       setCreateShipmentValidationError("");
       createForm.clearErrors("contentChecklist");
+      const currentCreateFreeformNotes = extractFreeformShipmentNotes(String(data.notes ?? ""), generatedCreateNoteRef.current);
       const createdShipment = await createMutation.mutateAsync({
         ...data,
+        notes: mergeShipmentNotes(createPricingPreview.notes, currentCreateFreeformNotes),
         documentItems: data.shipmentType === "documento" ? additionalDocumentItems : [],
         contentChecklist: normalizedChecklist,
         missingItems: missingItems.length ? missingItems : undefined,
@@ -1225,7 +1289,11 @@ export default function AdminDashboard() {
 
   const handleUpdateStatus = async (data: UpdateStatusForm) => {
     try {
-      await updateMutation.mutateAsync(data);
+      const currentUpdateFreeformNotes = extractFreeformShipmentNotes(String(data.notes ?? ""), generatedUpdateNoteRef.current);
+      await updateMutation.mutateAsync({
+        ...data,
+        notes: mergeShipmentNotes(updatePricingPreview.notes, currentUpdateFreeformNotes),
+      });
       toast.success("Estado actualizado correctamente");
       setAutoSaveStatusFeedback("");
       closeUpdateForm();

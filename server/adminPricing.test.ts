@@ -86,3 +86,28 @@ describe("calculateAdminShipmentPricing", () => {
     expect(pricing.notes).toContain("Adicionales:");
   });
 });
+
+  it("regenera una nota antigua cuando cambia la tarifa automática", () => {
+    const refreshed = calculateAdminShipmentPricing({
+      shipmentType: "encomienda",
+      weightKg: 1,
+      route: "Torino - Lima",
+      notes: "Tarifa: Encomienda Torino–Lima (1 kg @ 13.5 EUR/kg): 13.50 EUR",
+    });
+
+    expect(refreshed.notes).toContain("1 kg @ 15 EUR/kg");
+    expect(refreshed.notes).toContain("15.00 EUR");
+    expect(refreshed.notes).not.toContain("13.5");
+    expect(refreshed.notes).not.toContain("13.50");
+  });
+
+  it("actualiza la parte automática sin perder la nota libre separada", () => {
+    const before = calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 1, route: "Torino - Lima" });
+    const withFreeform = `${before.notes}\n\nLlamar antes de entregar.`;
+    const refreshed = calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 2, route: "Torino - Lima", notes: withFreeform });
+
+    expect(refreshed.notes).toContain("2 kg @ 15 EUR/kg");
+    expect(refreshed.notes).toContain("30.00 EUR");
+    expect(refreshed.notes).toContain("Llamar antes de entregar.");
+    expect(refreshed.notes).not.toContain("1 kg @ 15 EUR/kg");
+  });

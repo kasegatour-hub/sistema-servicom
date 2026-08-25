@@ -1445,3 +1445,9 @@
 - [x] Validar TypeScript, ejecutar la suite completa y publicar
 
 - [x] Integrar en la bandeja los comentarios vinculados a cada envío junto con el feedback general, mostrando orden, código y tipo de envío
+
+## Notas dinámicas según precio vigente
+- [x] Regenerar las notas automáticas cuando cambien tarifa, peso, extra, descuento, provincia, agencia o precio manual
+- [x] Reemplazar referencias antiguas como 13,50 EUR por los valores actuales sin sobrescribir notas escritas manualmente
+- [x] Mantener las notas actualizadas en creación, edición, recibos y rastreo
+- [x] Añadir pruebas de cambios de tarifa y total, validar TypeScript, suite completa y publicar

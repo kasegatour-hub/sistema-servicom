@@ -15,7 +15,7 @@ import { admins, shipments } from "../drizzle/schema";
 import { consumeAdminPasswordResetCode, createAdminPasswordResetCode, getActiveAdminPasswordResetCode, getDb, incrementAdminPasswordResetAttempts, updateAdminPassword } from "./db";
 import { eq } from "drizzle-orm";
 import { identityDocumentTypeSchema, identityDocumentValidationMessage, isIdentityDocumentValid, optionalIdentityDocumentNumberSchema, optionalPersonNameSchema, personNameSchema } from "./inputValidation";
-import { calculateAdminShipmentPricing } from "./adminPricing";
+import { calculateAdminShipmentPricing, extractFreeformShipmentNotes } from "./adminPricing";
 import { applyCouponDiscount, isCouponCurrentlyValid, normalizeCouponCode } from "./couponPricing";
 import { isValidInternationalPhone, normalizeInternationalPhone } from "../shared/phoneValidation";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "../shared/passwordPolicy";
@@ -1007,7 +1007,7 @@ export const adminRouter = router({
       const effectiveDocumentKind = input.docType ?? currentShipment.documentKind ?? "apostillado";
       const effectiveDocumentSheetCount = input.sheetCount ?? currentShipment.documentSheetCount ?? 1;
       const effectiveExtraPrice = input.extraPriceEur ?? currentShipment.extraPriceEur ?? 0;
-      const freeformNotes = (input.notes ?? "").trim().startsWith("Tarifa:") ? "" : (input.notes ?? "").trim();
+      const freeformNotes = extractFreeformShipmentNotes(input.notes);
       const pricing = isParcel ? calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: effectiveWeight, manualPriceEur: input.pricingMode === "manual" ? input.manualPriceEur : null, extraPriceEur: effectiveExtraPrice, extraDiscountEur: input.extraDiscountEur ?? currentShipment.extraDiscountEur ?? 0, route: effectiveRoute, notes: freeformNotes, isProvinceDelivery: input.isProvinceDelivery ?? Boolean(currentShipment.isProvinceDelivery), provinceCustomerPriceEur: input.provinceCustomerPriceEur ?? currentShipment.provinceCustomerPriceEur, provinceExtraPriceEur: input.provinceExtraPriceEur ?? currentShipment.provinceExtraPriceEur, provinceOperationalCostSoles: input.provinceOperationalCostSoles ?? currentShipment.provinceOperationalCostSoles, provinceCarrier: input.provinceCarrier ?? currentShipment.provinceCarrier }) : null;
       const documentPricing = !isParcel
         ? calculateAdminShipmentPricing({ shipmentType: "documento", docType: effectiveDocumentKind, sheetCount: effectiveDocumentSheetCount, manualPriceEur: input.pricingMode === "manual" ? input.manualPriceEur : null, extraPriceEur: effectiveExtraPrice, extraDiscountEur: input.extraDiscountEur ?? currentShipment.extraDiscountEur ?? 0, route: effectiveRoute, notes: freeformNotes, requiresApostilleService: input.requiresApostilleService ?? Boolean(currentShipment.requiresApostilleService), requiresTranslationService: input.requiresTranslationService ?? Boolean(currentShipment.requiresTranslationService), isProvinceDelivery: input.isProvinceDelivery ?? Boolean(currentShipment.isProvinceDelivery), provinceCustomerPriceEur: input.provinceCustomerPriceEur ?? currentShipment.provinceCustomerPriceEur, provinceExtraPriceEur: input.provinceExtraPriceEur ?? currentShipment.provinceExtraPriceEur, provinceOperationalCostSoles: input.provinceOperationalCostSoles ?? currentShipment.provinceOperationalCostSoles, provinceCarrier: input.provinceCarrier ?? currentShipment.provinceCarrier })

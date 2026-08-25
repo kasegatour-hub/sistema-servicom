@@ -863,12 +863,11 @@ describe("AdminDashboard Nueva Encomienda", () => {
     expect(screen.getByText("Define si el envío se registra como pagado o pendiente de pago.")).toBeTruthy();
   });
 
-  it("separa las vistas de documentos y encomiendas en pestañas", async () => {
+    it("separa las vistas de documentos y encomiendas en pestañas", async () => {
     render(<AdminDashboard />);
     fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
     fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
     fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
-
     await waitFor(() => expect(screen.getByRole("tab", { name: /Documentos/ })).toBeTruthy());
     expect(screen.getByRole("heading", { name: "Documentos Registrados" })).toBeTruthy();
     fireEvent.click(screen.getByRole("tab", { name: /Encomiendas/ }));
@@ -876,4 +875,51 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.click(screen.getByRole("tab", { name: /Documentos/ }));
     expect(screen.getByRole("heading", { name: "Documentos Registrados" })).toBeTruthy();
   });
+
+  it("sincroniza la nota de una encomienda cuando cambia el peso y la tarifa vigente", async () => {
+    mocks.shipments = [{
+      id: 303,
+      shipmentType: "encomienda",
+      senderName: "Ana",
+      senderLastName: "Pérez",
+      recipientName: "Marco",
+      recipientLastName: "Rossi",
+      senderDni: "70445566",
+      recipientDni: "71234567",
+      senderPhone: "+51 970188447",
+      recipientPhone: "+39 3518642795",
+      status: "En agencia",
+      paymentStatus: "Pagado",
+      route: "Torino - Lima",
+      weightKg: "1",
+      notes: "Tarifa: Encomienda Torino–Lima (1 kg @ 13.5 EUR/kg): 13.50 EUR",
+      orderNumber: "63526276",
+      code: "ENC-2026-ABCD",
+      createdAt: new Date("2026-08-25T10:00:00.000Z"),
+    }];
+    render(<AdminDashboard />);
+    fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
+    fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
+    await screen.findByRole("textbox", { name: "Buscar registros" });
+    fireEvent.click(screen.getByRole("tab", { name: /Encomiendas/ }));
+    const shipmentRow = screen.getByText("63526276").closest("tr");
+    expect(shipmentRow).toBeTruthy();
+    fireEvent.click(within(shipmentRow as HTMLElement).getByRole("button", { name: "Actualizar" }));
+
+    const notes = await screen.findByPlaceholderText("Notas adicionales sobre el envío") as HTMLTextAreaElement;
+    await waitFor(() => {
+      expect(notes.value).toContain("1 kg @ 15 EUR/kg");
+      expect(notes.value).toContain("15.00 EUR");
+      expect(notes.value).not.toContain("13.5");
+    });
+
+    fireEvent.change(screen.getByDisplayValue("1"), { target: { value: "2" } });
+    await waitFor(() => {
+      expect(notes.value).toContain("2 kg @ 15 EUR/kg");
+      expect(notes.value).toContain("30.00 EUR");
+      expect(notes.value).not.toContain("1 kg @ 15 EUR/kg");
+    });
+  });
 });
+
