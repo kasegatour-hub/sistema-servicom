@@ -1705,23 +1705,23 @@ export default function AdminDashboard() {
 
       {/* Header */}
       <header className="bg-primary text-white shadow-md sticky top-0 z-40">
-        <div className="mx-auto flex w-[min(96vw,1560px)] items-center justify-between px-5 py-5">
-          <div>
-            <h1 className="text-2xl font-bold">Panel de Administración</h1>
-            <p className="text-sm opacity-90">Servicom Internacional - Gestión de Encomiendas</p>
+        <div className="mx-auto flex w-[min(96vw,1560px)] flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-5">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold leading-tight sm:text-3xl">Panel de Administración</h1>
+            <p className="mt-1 max-w-xl text-sm leading-5 opacity-90">Servicom Internacional - Gestión de Encomiendas</p>
           </div>
-          <div className="flex flex-wrap items-center justify-end gap-2 md:gap-4">
-            <a href="/" className="rounded-md border border-white/70 px-3 py-2 text-sm font-semibold text-white transition hover:bg-white/20">Inicio</a>
-            <Button type="button" onClick={() => setDeliveryScannerOpen(true)} variant="outline" className="border-white bg-white text-primary hover:bg-blue-50" aria-label="Escanear QR de control para actualizar un envío">
-              <QrCode className="mr-2 h-4 w-4" /> Escanear QR de control
+          <div className="grid w-full min-w-0 grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:justify-end sm:gap-3">
+            <a href="/" className="flex min-h-12 min-w-0 items-center justify-center rounded-xl border border-white/70 px-3 py-2 text-center text-sm font-semibold text-white transition hover:bg-white/20">Inicio</a>
+            <Button type="button" onClick={() => setDeliveryScannerOpen(true)} variant="outline" className="min-h-12 min-w-0 whitespace-normal rounded-xl border-white bg-white px-3 text-center text-xs font-bold leading-4 text-primary hover:bg-blue-50 sm:text-sm" aria-label="Escanear QR de control para actualizar un envío">
+              <QrCode className="mr-1.5 h-4 w-4 shrink-0" /> <span>Escanear QR de control</span>
             </Button>
-            <Button type="button" onClick={() => setShowGeneralFeedback(true)} variant="outline" className="border-white text-white hover:bg-white/20"><MessageSquare className="mr-2 h-4 w-4" /> Comentarios</Button>
+            <Button type="button" onClick={() => setShowGeneralFeedback(true)} variant="outline" className="min-h-12 min-w-0 whitespace-normal rounded-xl border-white px-3 text-center text-xs font-bold leading-4 text-white hover:bg-white/20 sm:text-sm"><MessageSquare className="mr-1.5 h-4 w-4 shrink-0" /> <span>Comentarios</span></Button>
             <button
               type="button"
               onClick={() => setShowAdminProfile(previous => !previous)}
               aria-expanded={showAdminProfile}
               aria-controls="admin-profile-panel"
-              className="flex min-h-14 items-center gap-3 rounded-2xl border border-white/40 bg-white/10 px-3 py-2 text-left transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              className="col-span-2 flex min-h-14 min-w-0 w-full items-center gap-3 rounded-2xl border border-white/40 bg-white/10 px-3 py-2 text-left transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:col-span-1 sm:w-auto"
             >
               {admin?.profilePhoto?.url ? (
                 <img src={admin.profilePhoto.url} alt={`Foto de perfil de ${admin?.name || "administrador"}`} className="h-11 w-11 rounded-full object-cover ring-2 ring-white/80" />
@@ -1729,8 +1729,8 @@ export default function AdminDashboard() {
                 <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/20 text-white ring-2 ring-white/50"><UserRound className="h-6 w-6" aria-hidden="true" /></span>
               )}
               <span className="min-w-0">
-                <span className="block max-w-40 truncate text-sm font-extrabold">Hola, {admin?.name || "Administrador"}</span>
-                <span className="block text-xs opacity-80">{admin?.role === "superadmin" ? "Master Admin" : "Registrador"} · Mi perfil</span>
+                <span className="block max-w-[13rem] truncate text-sm font-extrabold">Hola, {admin?.name || "Administrador"}</span>
+                <span className="block truncate text-xs opacity-80">{admin?.role === "superadmin" ? "Master Admin" : "Registrador"} · Mi perfil</span>
               </span>
             </button>
             <Button
@@ -1741,16 +1741,16 @@ export default function AdminDashboard() {
                 setShowPasswordForm(previous => !previous);
               }}
               variant="outline"
-              className="border-white text-white hover:bg-white/20"
+              className="min-h-12 min-w-0 whitespace-normal rounded-xl border-white px-3 text-center text-xs font-bold leading-4 text-white hover:bg-white/20 sm:text-sm"
             >
               Cambiar contraseña
             </Button>
             <Button
               onClick={handleLogout}
               variant="outline"
-              className="border-white text-white hover:bg-white/20"
+              className="min-h-12 min-w-0 whitespace-normal rounded-xl border-white px-3 text-center text-xs font-bold leading-4 text-white hover:bg-white/20 sm:text-sm"
             >
-              <LogOut className="w-4 h-4 mr-2" />
+              <LogOut className="mr-2 h-4 w-4 shrink-0" />
               Cerrar Sesión
             </Button>
           </div>
@@ -1972,15 +1972,18 @@ export default function AdminDashboard() {
           )}
 
           {admin?.role === "superadmin" && (
-            <div className={`mt-4 flex flex-col gap-3 rounded-xl border p-4 md:flex-row md:items-center md:justify-between ${limaTorinoEncomiendasEnabled ? "border-amber-200 bg-amber-50" : "border-red-200 bg-red-50"}`}>
-              <div>
-                <p className="font-semibold text-slate-900">Control de encomiendas Lima – Torino</p>
-                <p className="mt-1 text-sm text-slate-600">{limaTorinoEncomiendasEnabled ? "Las encomiendas están habilitadas actualmente." : "Restringidas por control de seguridad; solo se permiten documentos en esta ruta."}</p>
+            <details className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+              <summary className="cursor-pointer list-none px-4 py-3 text-sm font-bold text-[#0B2B5E] transition hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B2B5E] [&::-webkit-details-marker]:hidden"><span className="flex items-center justify-between gap-3"><span>Opciones avanzadas de seguridad</span><span className="text-xs font-medium text-slate-500">Política de encomiendas Lima–Torino</span></span></summary>
+              <div className={`flex flex-col gap-3 border-t p-4 md:flex-row md:items-center md:justify-between ${limaTorinoEncomiendasEnabled ? "border-amber-200 bg-amber-50" : "border-red-200 bg-red-50"}`}>
+                <div className="min-w-0">
+                  <p className="font-semibold text-slate-900">Control de encomiendas Lima – Torino</p>
+                  <p className="mt-1 text-sm leading-5 text-slate-600">{limaTorinoEncomiendasEnabled ? "Las encomiendas están habilitadas actualmente." : "Restringidas por control de seguridad; solo se permiten documentos en esta ruta."}</p>
+                </div>
+                <Button type="button" variant="outline" onClick={handleLimaTorinoEncomiendaPolicy} disabled={setLimaTorinoEncomiendasEnabledMutation.isPending} className={`min-h-12 w-full whitespace-normal text-center sm:w-auto ${limaTorinoEncomiendasEnabled ? "border-red-300 text-red-700 hover:bg-red-100" : "border-emerald-300 text-emerald-700 hover:bg-emerald-100"}`}>
+                  {setLimaTorinoEncomiendasEnabledMutation.isPending ? "Actualizando..." : limaTorinoEncomiendasEnabled ? "Desactivar encomiendas Lima – Torino" : "Habilitar encomiendas Lima – Torino"}
+                </Button>
               </div>
-              <Button type="button" variant="outline" onClick={handleLimaTorinoEncomiendaPolicy} disabled={setLimaTorinoEncomiendasEnabledMutation.isPending} className={limaTorinoEncomiendasEnabled ? "border-red-300 text-red-700 hover:bg-red-100" : "border-emerald-300 text-emerald-700 hover:bg-emerald-100"}>
-                {setLimaTorinoEncomiendasEnabledMutation.isPending ? "Actualizando..." : limaTorinoEncomiendasEnabled ? "Desactivar encomiendas Lima – Torino" : "Habilitar encomiendas Lima – Torino"}
-              </Button>
-            </div>
+            </details>
           )}
 
           {showCreateForm && (

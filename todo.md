@@ -1280,3 +1280,9 @@
 - [x] Mantener un avatar de respaldo cuando no exista foto guardada
 - [x] Verificar que el perfil administrativo incluya cambio de contraseña, cierre de sesión y carga de foto
 - [x] Añadir pruebas, validar responsive y publicar la mejora
+
+## Refinación responsive móvil de cliente y administración
+- [x] Mostrar la foto de perfil del cliente en tamaño amplio en su cuenta y app móvil
+- [x] Encapsular «Desactivar encomiendas Lima–Torino» en una sección secundaria para Admin y Usuario sin alterar permisos
+- [x] Reorganizar la cabecera administrativa móvil para que botones y datos no se superpongan ni desborden
+- [x] Añadir pruebas, validar en móvil y publicar la refinación

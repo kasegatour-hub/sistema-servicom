@@ -325,6 +325,19 @@ describe("AdminDashboard Nueva Encomienda", () => {
     expect(screen.getByRole("button", { name: /Cerrar sesión/ })).toBeTruthy();
   });
 
+  it("oculta la política Lima–Torino en opciones avanzadas hasta que el Master Admin la abra", async () => {
+    mocks.adminSession = { id: 4, email: "admin@servicom.pe", name: "Master", role: "superadmin", reauthRequired: false };
+    render(<AdminDashboard />);
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Registrar envío" })).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "Registrar envío" }));
+    const advancedOptions = screen.getByText("Opciones avanzadas de seguridad").closest("details") as HTMLDetailsElement;
+    expect(advancedOptions.open).toBe(false);
+    fireEvent.click(screen.getByText("Opciones avanzadas de seguridad"));
+    expect(advancedOptions.open).toBe(true);
+    expect(screen.getByRole("button", { name: "Desactivar encomiendas Lima – Torino" })).toBeTruthy();
+  });
+
   it("shows coupon management for an authenticated operator", async () => {
     render(<AdminDashboard />);
     fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
