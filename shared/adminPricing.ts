@@ -1,5 +1,7 @@
 import { calculateAdditionalDocumentItems, type AdditionalDocumentItemInput } from "./documentPricing";
 
+import { isProvinceShipmentRoute, isTorinoLimaRoute } from "./shipmentRoutes";
+
 export type AdminShipmentPricingInput = {
   shipmentType?: "documento" | "encomienda";
   docType?: "simple" | "apostillado";
@@ -26,7 +28,7 @@ export function calculateAutomaticParcelPriceEur(weightKg: number, route?: strin
   const normalizedWeight = Math.max(0.1, Number(weightKg || 1));
   const billableWeight = normalizedWeight > 15 ? 10 : normalizedWeight;
   const totalEur = billableWeight * 15;
-  const routeLabel = route === "Torino - Lima" ? "Torino–Lima" : "por peso";
+  const routeLabel = isTorinoLimaRoute(route) ? "Torino–Lima" : "por peso";
   const capNote = normalizedWeight > 15 ? ` (base automática limitada a ${billableWeight} kg; el excedente se gestiona como adicional provincial si corresponde)` : "";
   return { totalEur, description: `Encomienda ${routeLabel} (${normalizedWeight} kg @ 15 EUR/kg): ${totalEur.toFixed(2)} EUR${capNote}` };
 }
@@ -62,12 +64,12 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
   const rawServiceManualSoles = input.serviceManualPriceSoles === undefined || input.serviceManualPriceSoles === null ? "" : String(input.serviceManualPriceSoles).trim();
   const parsedServiceManualSoles = Number(rawServiceManualSoles);
   const serviceManualPriceSoles = rawServiceManualSoles !== "" && Number.isFinite(parsedServiceManualSoles) && parsedServiceManualSoles >= 0 ? parsedServiceManualSoles : null;
-  const servicesAllowed = shipmentType === "documento" && route === "Torino - Lima";
+  const servicesAllowed = shipmentType === "documento" && isTorinoLimaRoute(route);
   const requiresApostilleService = Boolean(input.requiresApostilleService) && servicesAllowed;
   const requiresTranslationService = Boolean(input.requiresTranslationService) && servicesAllowed;
   const servicePriceEur = requiresApostilleService ? serviceManualPriceEur ?? 40 : 0;
   const servicePriceSoles = (requiresApostilleService ? serviceManualPriceSoles ?? 160 : 0) + (requiresTranslationService ? serviceManualPriceSoles ?? 200 : 0);
-  const provinceEnabled = Boolean(input.isProvinceDelivery) && route === "Torino - Lima";
+  const provinceEnabled = (Boolean(input.isProvinceDelivery) || isProvinceShipmentRoute(route)) && isTorinoLimaRoute(route);
   const rawProvinceCustomerPrice = input.provinceCustomerPriceEur === undefined || input.provinceCustomerPriceEur === null ? "" : String(input.provinceCustomerPriceEur).trim();
   const parsedProvinceCustomerPrice = Number(rawProvinceCustomerPrice);
   const automaticProvincePrice = provinceEnabled ? (weightKg <= 5 ? 10 : 15) : 0;

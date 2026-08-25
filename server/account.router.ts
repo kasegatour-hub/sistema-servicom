@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { publicProcedure, router } from "./_core/trpc";
+import { SHIPMENT_ROUTES, isTorinoLimaRoute } from "../shared/shipmentRoutes";
 import {
   consumeVerificationCode,
   createLocalAccount,
@@ -105,12 +106,12 @@ export const clientShipmentInputSchema = z.object({
   serviceManualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
   serviceManualPriceSoles: z.union([z.string(), z.number()]).optional().nullable(),
   isIncomplete: z.literal(false).default(false),
-  route: z.enum(["Lima - Torino", "Torino - Lima"]).default("Lima - Torino"),
+  route: z.enum([SHIPMENT_ROUTES.LIMA_TORINO, SHIPMENT_ROUTES.TORINO_LIMA, SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE]).default(SHIPMENT_ROUTES.LIMA_TORINO),
   destinationAddress: z.string().trim().max(1000).optional(),
 }).strict().superRefine((input, ctx) => {
   if (input.senderDni && !isIdentityDocumentValid(input.senderDni, input.senderDocumentType)) ctx.addIssue({ code: "custom", path: ["senderDni"], message: identityDocumentValidationMessage(input.senderDocumentType) });
   if (input.recipientDni && !isIdentityDocumentValid(input.recipientDni, input.recipientDocumentType)) ctx.addIssue({ code: "custom", path: ["recipientDni"], message: identityDocumentValidationMessage(input.recipientDocumentType) });
-  if (input.requiresApostilleService && input.route !== "Torino - Lima") ctx.addIssue({ code: "custom", path: ["requiresApostilleService"], message: "La opción «Documentos para apostillar» solo está disponible para la ruta Torino - Lima." });
+  if (input.requiresApostilleService && !isTorinoLimaRoute(input.route)) ctx.addIssue({ code: "custom", path: ["requiresApostilleService"], message: "La opción «Documentos para apostillar» solo está disponible para la ruta Torino - Lima." });
 });
 
 export function buildClientShipmentPersistenceArgs(
@@ -433,10 +434,10 @@ reauthRequired: session.reauthRequired,
         totalEur = sheetCount <= 5 ? 50 : 50 + 10;
         tariffDesc = `Documento Apostillado (${sheetCount} hoja${sheetCount > 1 ? 's' : ''}): ${totalEur} EUR`;
       }
-      const apostilleEur = input.requiresApostilleService && input.route === "Torino - Lima" ? 40 : 0;
-      const apostilleSoles = input.requiresApostilleService && input.route === "Torino - Lima" ? 160 : 0;
-      const translationEur = input.requiresTranslationService && input.route === "Torino - Lima" ? 50 : 0;
-      const translationSoles = input.requiresTranslationService && input.route === "Torino - Lima" ? 200 : 0;
+      const apostilleEur = input.requiresApostilleService && isTorinoLimaRoute(input.route) ? 40 : 0;
+      const apostilleSoles = input.requiresApostilleService && isTorinoLimaRoute(input.route) ? 160 : 0;
+      const translationEur = input.requiresTranslationService && isTorinoLimaRoute(input.route) ? 50 : 0;
+      const translationSoles = input.requiresTranslationService && isTorinoLimaRoute(input.route) ? 200 : 0;
       totalEur += apostilleEur + translationEur;
       const serviceNotes = `${apostilleEur ? ` Apostilla: +${apostilleEur.toFixed(2)} EUR (${apostilleSoles.toFixed(2)} soles de referencia); plazo estimado: 7 días hábiles.` : ""}${translationEur ? ` Traducción: +${translationEur.toFixed(2)} EUR (${translationSoles.toFixed(2)} soles de referencia); plazo estimado: 7 días hábiles.` : ""}`;
       const calculatedNotes = `Tarifa: ${tariffDesc}.${serviceNotes} ${input.notes || ""}`.trim();

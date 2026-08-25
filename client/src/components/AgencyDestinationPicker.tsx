@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { MapView } from "@/components/Map";
 import { trpc } from "@/lib/trpc";
 import { REGIONAL_TRANSPORT_BY_ID, REGIONAL_TRANSPORT_DIRECTORY, REGIONAL_TRANSPORT_IDS, type RegionalTransportProvider } from "@/lib/regionalTransportDirectory";
+import { isTorinoLimaRoute } from "@shared/shipmentRoutes";
 
 const SERVICOM_LIMA = "SERVICOM INTERNACIONAL — Jr. de la Unión Nro. 518 Int. S101, Cercado de Lima";
 const SERVICOM_TORINO = "SERVICOM INTERNACIONAL — Corso Peschiera 162A, Torino, Italia";
@@ -13,7 +14,7 @@ export type AgencyProvider = "olva" | "shalom" | "fedex" | "dhl" | RegionalTrans
 type ProviderFilter = AgencyProvider;
 type Agency = { id: string; provider: string; name: string; address: string; department: string; province: string; district: string; kind: string; latitude: number | null; longitude: number | null; phone?: string; reference?: string; businessHours?: string; sundayHours?: string; sourceUrl: string };
 
-function defaultDestination(route: string) { return route === "Torino - Lima" ? SERVICOM_LIMA : SERVICOM_TORINO; }
+function defaultDestination(route: string) { return isTorinoLimaRoute(route) ? SERVICOM_LIMA : SERVICOM_TORINO; }
 function formatDestination(provider: string, name: string, address: string) { return `${provider} — ${name}${address && address !== name ? ` · ${address}` : ""}`; }
 
 export function normalizeCarrierPlace(result: google.maps.places.PlaceResult, provider: "fedex" | "dhl"): Agency | null {

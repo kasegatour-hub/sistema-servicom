@@ -32,11 +32,13 @@ import { getFuzzySearchScore } from "@shared/fuzzySearch";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "@shared/passwordPolicy";
 import { isValidInternationalPhone } from "@shared/phoneValidation";
 import { NotificationBell } from "@/components/NotificationBell";
+import { SHIPMENT_ROUTES, isTorinoLimaRoute } from "@shared/shipmentRoutes";
 
 const brandLogo = "/manus-storage/servicom_logo_final_e7ce35aa.png";
 
 type AccountMode = "login" | "register" | "request" | "reset";
 type ClientWorkspace = "envios" | "registrar" | "papelera" | "perfil" | "seguridad" | "resumen" | "analitica";
+type ClientShipmentRoute = typeof SHIPMENT_ROUTES.LIMA_TORINO | typeof SHIPMENT_ROUTES.TORINO_LIMA | typeof SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE;
 const getLockoutSecondsFromMessage = (message: string) => Number(message.match(/espera\s+(\d+)\s+segundos/i)?.[1] || 0);
 
 export default function AccountPage() {
@@ -94,7 +96,7 @@ export default function AccountPage() {
   const [clientTrashCurrentPage, setClientTrashCurrentPage] = useState(1);
   const [documentCount, setDocumentCount] = useState(1);
   const [docType, setDocType] = useState<"simple" | "apostillado">("simple");
-  const [shipmentRoute, setShipmentRoute] = useState<"Lima - Torino" | "Torino - Lima">("Lima - Torino");
+  const [shipmentRoute, setShipmentRoute] = useState<ClientShipmentRoute>(SHIPMENT_ROUTES.LIMA_TORINO);
   const [requiresApostilleService, setRequiresApostilleService] = useState(false);
   const [requiresTranslationService, setRequiresTranslationService] = useState(false);
   const [destinationAddress, setDestinationAddress] = useState("");
@@ -808,11 +810,12 @@ export default function AccountPage() {
                     <select
                       aria-label="Ruta de envío"
                       value={shipmentRoute}
-                      onChange={e => setShipmentRoute(e.target.value as "Lima - Torino" | "Torino - Lima")}
+                      onChange={e => { setShipmentRoute(e.target.value as ClientShipmentRoute); setDestinationAddress(""); }}
                       className="w-full mt-1 p-2 bg-white border border-slate-300 rounded-md text-sm font-medium"
                     >
-                      <option value="Lima - Torino">Lima – Torino</option>
-                      <option value="Torino - Lima">Torino – Lima</option>
+                      <option value={SHIPMENT_ROUTES.LIMA_TORINO}>Lima – Torino</option>
+                      <option value={SHIPMENT_ROUTES.TORINO_LIMA}>Torino – Lima</option>
+                      <option value={SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE}>Torino – Lima + provincia</option>
                     </select>
                     <p className="mt-1 text-[10px] text-gray-500">Selecciona la sede a la que llegará tu envío.</p>
                   </div>
@@ -833,13 +836,13 @@ export default function AccountPage() {
                       <p className="mt-1 text-base font-semibold leading-6 text-slate-700">{docType === "simple" ? "45 EUR hasta 4 hojas; +2 EUR por hoja adicional" : "50 EUR hasta 5 hojas; +10 EUR por cada bloque adicional de 5 hojas del mismo tipo"}</p>
                     </div>
                   </div>
-                  {shipmentRoute === "Torino - Lima" && (
+                  {isTorinoLimaRoute(shipmentRoute) && (
                     <label className={`${mobileShipmentStepVisible(1) ? "" : "hidden"} md:col-span-2 flex cursor-pointer items-start gap-3 rounded-xl border-2 border-[#0B2B5E] bg-blue-50 p-4 text-sm shadow-sm transition hover:bg-blue-100/70`}>
                       <input type="checkbox" aria-label="Documentos para apostillar" checked={requiresApostilleService} onChange={event => setRequiresApostilleService(event.target.checked)} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-[#0B2B5E] focus:ring-[#0B2B5E]" />
                       <span><strong className="block text-base text-[#0B2B5E]">Documentos para apostillar — 40 EUR (160 soles)</strong><span className="mt-1 block text-slate-700">Solicita el servicio de apostilla para documentos Torino – Lima. Plazo estimado: 7 días hábiles. El importe se suma al precio del documento.</span></span>
                     </label>
                   )}
-                  {shipmentRoute === "Torino - Lima" && (
+                  {isTorinoLimaRoute(shipmentRoute) && (
                     <label className={`${mobileShipmentStepVisible(1) ? "" : "hidden"} md:col-span-2 flex cursor-pointer items-start gap-3 rounded-xl border-2 border-[#0B2B5E] bg-blue-50 p-4 text-sm shadow-sm transition hover:bg-blue-100/70`}>
                       <input type="checkbox" aria-label="Documentos para traducir" checked={requiresTranslationService} onChange={event => setRequiresTranslationService(event.target.checked)} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-[#0B2B5E] focus:ring-[#0B2B5E]" />
                       <span><strong className="block text-base text-[#0B2B5E]">Documentos para traducir — 50 EUR (200 soles)</strong><span className="mt-1 block text-slate-700">Solicita la traducción de tus documentos Torino – Lima. Plazo estimado: 7 días hábiles. Puedes combinar este servicio con la apostilla.</span></span>
@@ -856,8 +859,8 @@ export default function AccountPage() {
                     description={docType === "simple" ? "Máximo 8 hojas por registro." : "Máximo 10 hojas por registro."}
                   />
                   </div>
-                   <div className={mobileShipmentStepVisible(2) ? "" : "hidden"}><DocumentPricePreview docType={docType} sheetCount={sheetCount} additionalTotalEur={(shipmentRoute === "Torino - Lima" ? (requiresApostilleService ? 40 : 0) + (requiresTranslationService ? 50 : 0) : 0)} /></div>
-                   {shipmentRoute === "Torino - Lima" && <div className={`${mobileShipmentStepVisible(2) ? "" : "hidden"} md:col-span-2 rounded-xl border-2 border-[#0B2B5E]/20 bg-slate-50 p-4`} aria-live="polite">
+                   <div className={mobileShipmentStepVisible(2) ? "" : "hidden"}><DocumentPricePreview docType={docType} sheetCount={sheetCount} additionalTotalEur={(isTorinoLimaRoute(shipmentRoute) ? (requiresApostilleService ? 40 : 0) + (requiresTranslationService ? 50 : 0) : 0)} /></div>
+                   {isTorinoLimaRoute(shipmentRoute) && <div className={`${mobileShipmentStepVisible(2) ? "" : "hidden"} md:col-span-2 rounded-xl border-2 border-[#0B2B5E]/20 bg-slate-50 p-4`} aria-live="polite">
                      <p className="text-sm font-bold uppercase tracking-wide text-[#0B2B5E]">Servicios adicionales opcionales</p>
                      <div className="mt-2 grid gap-2 text-sm text-slate-700 sm:grid-cols-2">
                        <p className={requiresApostilleService ? "font-semibold text-[#0B2B5E]" : ""}>Apostillado: {requiresApostilleService ? "+40,00 EUR (160,00 soles) · 7 días hábiles" : "no seleccionado"}</p>

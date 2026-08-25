@@ -109,7 +109,7 @@ describe("AccountPage client labels", () => {
     expect((search as HTMLInputElement).value).toBe("");
   });
 
-  it("shows the two shipment route options when the client starts a document registration", async () => {
+  it("shows the three shipment route options when the client starts a document registration", async () => {
     render(<AccountPage />);
     fireEvent.click(screen.getByRole("button", { name: /Registrar Nuevo Documento/ }));
 
@@ -118,6 +118,7 @@ describe("AccountPage client labels", () => {
     expect(routeSelect).toBeTruthy();
     expect(screen.getByRole("option", { name: "Lima – Torino" })).toBeTruthy();
     expect(screen.getByRole("option", { name: "Torino – Lima" })).toBeTruthy();
+    expect(screen.getByRole("option", { name: "Torino – Lima + provincia" })).toBeTruthy();
     expect(screen.getByText(/Lista de documentos/)).toBeTruthy();
     expect(screen.getByLabelText("Acta de nacimiento")).toBeTruthy();
     expect(screen.queryByText("¿Cómo se trasladará el documento a Torino?")).toBeNull();

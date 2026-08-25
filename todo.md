@@ -1457,3 +1457,17 @@
 - [x] Restaurar Carta d’identità, pasaporte o DNI al editar y validar según su formato real
 - [x] Mostrar en recibos, detalles y rastreo la etiqueta del tipo documental guardado
 - [x] Añadir pruebas de persistencia, edición y validación; ejecutar la suite completa y publicar
+
+## Acceso móvil al sitio publicado
+- [x] Verificar el dominio público estable y reactivar la vista previa temporal si fuera necesario
+- [x] Comprobar que el sitio publicado cargue desde una vista móvil y comunicar el enlace correcto
+
+## Estimación de notificaciones de estado
+- [x] Consultar costos vigentes de WhatsApp, SMS y llamadas o mensajes de voz para Perú e Italia
+- [x] Comparar el costo por cambio de estado, envío y volumen mensual con supuestos explícitos
+
+## Ruta con modalidad provincial integrada
+- [x] Añadir la tercera ruta «Torino – Lima + provincia» y conservarla al crear o actualizar un envío
+- [x] Integrar en esa ruta las agencias, destino provincial, precios, checklist y reglas que hoy dependen de un control separado
+- [x] Completar Jr. de la Unión para Torino – Lima y Via Muriaglio 12, Torino para Lima – Torino en el entorno de Magdalena
+- [x] Cubrir creación, actualización y recibos con pruebas; validar TypeScript, suite completa y publicar

@@ -21,6 +21,15 @@ describe("route presentation", () => {
     expect(presentation.deliveryTitle).toBe("CONTROL DE ENTREGA — LIMA, PERÚ");
   });
 
+  it("keeps the Torino–Lima direction and Lima delivery office for the provincial route", () => {
+    const presentation = getRoutePresentation("Torino - Lima + provincia");
+
+    expect(presentation.route).toBe("Torino - Lima + provincia");
+    expect(presentation.originPrintLabel).toBe("TORINO, ITALIA");
+    expect(presentation.destinationPrintLabel).toBe("LIMA, PERÚ");
+    expect(presentation.destination.address).toContain("Jr. de la Unión Nro. 518");
+  });
+
   it("preserves an agency selected in the map as the delivery destination", () => {
     const presentation = getRoutePresentation("Torino - Lima", "OLVA COURIER — Agencia San Isidro · Av. Arequipa 3200, Lima");
 

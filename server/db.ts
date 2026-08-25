@@ -7,6 +7,7 @@ import { buildShipmentClientDirectoryRecords, type ClientDirectoryRecord, type S
 import { rankFuzzyMatches } from "../shared/fuzzySearch";
 import { searchInvitationPeople, type InvitationPersonSeed } from "../shared/invitationPeople";
 import { getFailureUpdate } from "./loginProtection";
+import { isProvinceShipmentRoute, isTorinoLimaRoute } from "../shared/shipmentRoutes";
 
 // Normalizar números de orden y códigos: remover espacios y convertir a mayúsculas
 function normalizeOrderCode(value: string): string {
@@ -1373,8 +1374,8 @@ export async function createShipment(
   const normalizedCode = normalizeOrderCode(code);
   const normalizedShipmentType = shipmentType || "documento";
   const normalizedRoute = route || "Lima - Torino";
-  const canRequireApostilleService = normalizedShipmentType === "documento" && normalizedRoute === "Torino - Lima";
-  const provinceDelivery = Boolean(isProvinceDelivery) && normalizedRoute === "Torino - Lima";
+  const canRequireApostilleService = normalizedShipmentType === "documento" && isTorinoLimaRoute(normalizedRoute);
+  const provinceDelivery = (Boolean(isProvinceDelivery) || isProvinceShipmentRoute(normalizedRoute)) && isTorinoLimaRoute(normalizedRoute);
 
   const events = [
     {
@@ -1545,7 +1546,8 @@ export async function updateShipmentStatus(
     const updatedShipmentType = shipmentType ?? shipment.shipmentType ?? "documento";
     const updatedRoute = route ?? shipment.route ?? "Lima - Torino";
     const shouldRequireApostilleService = requiresApostilleService ?? shipment.requiresApostilleService === 1;
-    const canRequireApostilleService = updatedShipmentType === "documento" && updatedRoute === "Torino - Lima";
+    const canRequireApostilleService = updatedShipmentType === "documento" && isTorinoLimaRoute(updatedRoute);
+    const updatedProvinceDelivery = (Boolean(isProvinceDelivery ?? shipment.isProvinceDelivery) || isProvinceShipmentRoute(updatedRoute)) && isTorinoLimaRoute(updatedRoute);
 
     let events = [];
     try {
@@ -1584,15 +1586,15 @@ export async function updateShipmentStatus(
         documentKind: documentKind ?? shipment.documentKind ?? "apostillado",
         documentSheetCount: documentSheetCount !== undefined ? Math.max(1, Math.min(10, Math.round(Number(documentSheetCount) || 1))) : shipment.documentSheetCount ?? 1,
         requiresApostilleService: shouldRequireApostilleService && canRequireApostilleService ? 1 : 0,
-        isProvinceDelivery: Boolean(isProvinceDelivery ?? shipment.isProvinceDelivery) && updatedRoute === "Torino - Lima" ? 1 : 0,
-        provinceCustomerPriceEur: Boolean(isProvinceDelivery ?? shipment.isProvinceDelivery) && updatedRoute === "Torino - Lima" ? (provinceCustomerPriceEur !== undefined && provinceCustomerPriceEur !== null && String(provinceCustomerPriceEur).trim() !== "" ? String(provinceCustomerPriceEur) : shipment.provinceCustomerPriceEur) : null,
-        provinceExtraPriceEur: Boolean(isProvinceDelivery ?? shipment.isProvinceDelivery) && updatedRoute === "Torino - Lima" ? (provinceExtraPriceEur !== undefined && provinceExtraPriceEur !== null && String(provinceExtraPriceEur).trim() !== "" ? String(Math.max(0, Number(provinceExtraPriceEur) || 0)) : shipment.provinceExtraPriceEur ?? "0.00") : "0.00",
-        provinceOperationalCostSoles: Boolean(isProvinceDelivery ?? shipment.isProvinceDelivery) && updatedRoute === "Torino - Lima" ? (provinceOperationalCostSoles !== undefined && provinceOperationalCostSoles !== null && String(provinceOperationalCostSoles).trim() !== "" ? String(provinceOperationalCostSoles) : shipment.provinceOperationalCostSoles) : null,
-        provinceCarrier: (Boolean(isProvinceDelivery ?? shipment.isProvinceDelivery) && updatedRoute === "Torino - Lima" ? (provinceCarrier ?? shipment.provinceCarrier ?? "shalom") : null) as any,
-        provinceSenderName: Boolean(isProvinceDelivery ?? shipment.isProvinceDelivery) && updatedRoute === "Torino - Lima" ? (provinceSenderName ?? shipment.provinceSenderName ?? senderName ?? shipment.senderName) : null,
-        provinceSenderLastName: Boolean(isProvinceDelivery ?? shipment.isProvinceDelivery) && updatedRoute === "Torino - Lima" ? (provinceSenderLastName ?? shipment.provinceSenderLastName ?? senderLastName ?? shipment.senderLastName) : null,
-        provinceSenderDni: Boolean(isProvinceDelivery ?? shipment.isProvinceDelivery) && updatedRoute === "Torino - Lima" ? (provinceSenderDni ?? shipment.provinceSenderDni ?? senderDni ?? shipment.senderDni) : null,
-        provinceSenderPhone: Boolean(isProvinceDelivery ?? shipment.isProvinceDelivery) && updatedRoute === "Torino - Lima" ? (provinceSenderPhone ?? shipment.provinceSenderPhone ?? senderPhone ?? shipment.senderPhone) : null,
+        isProvinceDelivery: updatedProvinceDelivery ? 1 : 0,
+        provinceCustomerPriceEur: updatedProvinceDelivery ? (provinceCustomerPriceEur !== undefined && provinceCustomerPriceEur !== null && String(provinceCustomerPriceEur).trim() !== "" ? String(provinceCustomerPriceEur) : shipment.provinceCustomerPriceEur) : null,
+        provinceExtraPriceEur: updatedProvinceDelivery ? (provinceExtraPriceEur !== undefined && provinceExtraPriceEur !== null && String(provinceExtraPriceEur).trim() !== "" ? String(Math.max(0, Number(provinceExtraPriceEur) || 0)) : shipment.provinceExtraPriceEur ?? "0.00") : "0.00",
+        provinceOperationalCostSoles: updatedProvinceDelivery ? (provinceOperationalCostSoles !== undefined && provinceOperationalCostSoles !== null && String(provinceOperationalCostSoles).trim() !== "" ? String(provinceOperationalCostSoles) : shipment.provinceOperationalCostSoles) : null,
+        provinceCarrier: (updatedProvinceDelivery ? (provinceCarrier ?? shipment.provinceCarrier ?? "shalom") : null) as any,
+        provinceSenderName: updatedProvinceDelivery ? (provinceSenderName ?? shipment.provinceSenderName ?? senderName ?? shipment.senderName) : null,
+        provinceSenderLastName: updatedProvinceDelivery ? (provinceSenderLastName ?? shipment.provinceSenderLastName ?? senderLastName ?? shipment.senderLastName) : null,
+        provinceSenderDni: updatedProvinceDelivery ? (provinceSenderDni ?? shipment.provinceSenderDni ?? senderDni ?? shipment.senderDni) : null,
+        provinceSenderPhone: updatedProvinceDelivery ? (provinceSenderPhone ?? shipment.provinceSenderPhone ?? senderPhone ?? shipment.senderPhone) : null,
         weightKg: weightKg !== undefined ? String(weightKg) : shipment.weightKg ?? "1.00",
         manualPriceEur: manualPriceEur !== undefined ? (manualPriceEur !== null && String(manualPriceEur).trim() !== "" ? String(manualPriceEur) : null) : shipment.manualPriceEur,
         extraPriceEur: extraPriceEur !== undefined ? String(Math.max(0, Number(extraPriceEur) || 0)) : shipment.extraPriceEur ?? "0.00",

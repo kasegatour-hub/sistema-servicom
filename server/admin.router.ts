@@ -20,6 +20,7 @@ import { applyCouponDiscount, isCouponCurrentlyValid, normalizeCouponCode } from
 import { isValidInternationalPhone, normalizeInternationalPhone } from "../shared/phoneValidation";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "../shared/passwordPolicy";
 import { generateShipmentCode, generateShipmentOrderNumber } from "../shared/shipmentIdentifiers";
+import { SHIPMENT_ROUTES, isProvinceShipmentRoute, isTorinoLimaRoute } from "../shared/shipmentRoutes";
 import { invokeLLM } from "./_core/llm";
 import { createSignatureToken } from "./signatureTokens";
 import { storagePut } from "./storage";
@@ -28,7 +29,7 @@ const MASTER_ADMIN_EMAIL = "peruservicom@gmail.com";
 const MASTER_ADMIN_PASSWORD = "@m*M.mTt@~ADkHpvBbLm+5CD=3ao@DngYa+3Kea6U=qX%r9EJ8-1QFc#,hD3r4Dsis9:9^i-zZJ}pT#aQAcnm^+XMAhV9u3VdrZ3.";
 export const ADMIN_REAUTH_REQUIRED_MESSAGE = "Por seguridad, vuelve a escribir tu contraseña administrativa para continuar.";
 const ADMIN_PASSWORD_RESET_RESEND_SECONDS = 60;
-const ROUTE_VALUES = ["Lima - Torino", "Torino - Lima"] as const;
+const ROUTE_VALUES = [SHIPMENT_ROUTES.LIMA_TORINO, SHIPMENT_ROUTES.TORINO_LIMA, SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE] as const;
 const COUPON_SCOPE_VALUES = ["ambos", "documento", "encomienda"] as const;
 const INVITATION_SIGNATURE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const PASSWORD_REUSE_MESSAGE = "La nueva contraseña no puede ser igual a la contraseña vigente.";
@@ -777,9 +778,9 @@ export const adminRouter = router({
     }).superRefine((input, ctx) => {
       if (input.senderDni && !isIdentityDocumentValid(input.senderDni, input.senderDocumentType)) ctx.addIssue({ code: "custom", path: ["senderDni"], message: identityDocumentValidationMessage(input.senderDocumentType) });
       if (input.recipientDni && !isIdentityDocumentValid(input.recipientDni, input.recipientDocumentType)) ctx.addIssue({ code: "custom", path: ["recipientDni"], message: identityDocumentValidationMessage(input.recipientDocumentType) });
-      if (input.requiresApostilleService && (input.shipmentType !== "documento" || input.route !== "Torino - Lima")) ctx.addIssue({ code: "custom", path: ["requiresApostilleService"], message: "La opción «Documentos para apostillar» solo está disponible para documentos en la ruta Torino - Lima." });
-      if (input.requiresTranslationService && (input.shipmentType !== "documento" || input.route !== "Torino - Lima")) ctx.addIssue({ code: "custom", path: ["requiresTranslationService"], message: "La traducción solo está disponible para documentos en la ruta Torino - Lima." });
-      if (input.isProvinceDelivery && input.route !== "Torino - Lima") ctx.addIssue({ code: "custom", path: ["isProvinceDelivery"], message: "El envío a provincia solo está disponible para la ruta Italia–Lima." });
+      if (input.requiresApostilleService && (input.shipmentType !== "documento" || !isTorinoLimaRoute(input.route))) ctx.addIssue({ code: "custom", path: ["requiresApostilleService"], message: "La opción «Documentos para apostillar» solo está disponible para documentos en la ruta Torino - Lima." });
+      if (input.requiresTranslationService && (input.shipmentType !== "documento" || !isTorinoLimaRoute(input.route))) ctx.addIssue({ code: "custom", path: ["requiresTranslationService"], message: "La traducción solo está disponible para documentos en la ruta Torino - Lima." });
+      if (input.isProvinceDelivery && !isTorinoLimaRoute(input.route)) ctx.addIssue({ code: "custom", path: ["isProvinceDelivery"], message: "El envío a provincia solo está disponible para la ruta Italia–Lima." });
       // El excedente provincial se calcula automáticamente y puede editarse; no bloquea la creación.
       const transferRequired = input.shipmentType === "documento" && input.route === "Lima - Torino";
       if (transferRequired && !input.limaTorinoTransferMode) ctx.addIssue({ code: "custom", path: ["limaTorinoTransferMode"], message: "Selecciona cómo se trasladará el documento a Torino." });
@@ -801,8 +802,8 @@ export const adminRouter = router({
       }
       const orderNumber = generateShipmentOrderNumber();
       const code = generateShipmentCode();
-      
-      const pricing = calculateAdminShipmentPricing(input);
+      const effectiveProvinceDelivery = input.isProvinceDelivery || isProvinceShipmentRoute(input.route);
+      const pricing = calculateAdminShipmentPricing({ ...input, isProvinceDelivery: effectiveProvinceDelivery });
       const couponCode = normalizeCouponCode(input.couponCode);
       const coupon = couponCode ? await getDiscountCouponByCode(couponCode) : undefined;
       if (couponCode && !coupon) {
@@ -1011,7 +1012,8 @@ export const adminRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: identityDocumentValidationMessage(effectiveRecipientDocumentType) });
       }
       const effectiveRequiresApostilleService = input.requiresApostilleService ?? currentShipment.requiresApostilleService === 1;
-      if (effectiveRequiresApostilleService && (effectiveType !== "documento" || effectiveRoute !== "Torino - Lima")) {
+      const effectiveProvinceDelivery = Boolean(input.isProvinceDelivery ?? currentShipment.isProvinceDelivery) || isProvinceShipmentRoute(effectiveRoute);
+      if (effectiveRequiresApostilleService && (effectiveType !== "documento" || !isTorinoLimaRoute(effectiveRoute))) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "La opción «Documentos para apostillar» solo está disponible para documentos en la ruta Torino - Lima." });
       }
       const isParcel = effectiveType === "encomienda";
@@ -1020,9 +1022,9 @@ export const adminRouter = router({
       const effectiveDocumentSheetCount = input.sheetCount ?? currentShipment.documentSheetCount ?? 1;
       const effectiveExtraPrice = input.extraPriceEur ?? currentShipment.extraPriceEur ?? 0;
       const freeformNotes = extractFreeformShipmentNotes(input.notes);
-      const pricing = isParcel ? calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: effectiveWeight, manualPriceEur: input.pricingMode === "manual" ? input.manualPriceEur : null, extraPriceEur: effectiveExtraPrice, extraDiscountEur: input.extraDiscountEur ?? currentShipment.extraDiscountEur ?? 0, route: effectiveRoute, notes: freeformNotes, isProvinceDelivery: input.isProvinceDelivery ?? Boolean(currentShipment.isProvinceDelivery), provinceCustomerPriceEur: input.provinceCustomerPriceEur ?? currentShipment.provinceCustomerPriceEur, provinceExtraPriceEur: input.provinceExtraPriceEur ?? currentShipment.provinceExtraPriceEur, provinceOperationalCostSoles: input.provinceOperationalCostSoles ?? currentShipment.provinceOperationalCostSoles, provinceCarrier: input.provinceCarrier ?? currentShipment.provinceCarrier }) : null;
+      const pricing = isParcel ? calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: effectiveWeight, manualPriceEur: input.pricingMode === "manual" ? input.manualPriceEur : null, extraPriceEur: effectiveExtraPrice, extraDiscountEur: input.extraDiscountEur ?? currentShipment.extraDiscountEur ?? 0, route: effectiveRoute, notes: freeformNotes, isProvinceDelivery: effectiveProvinceDelivery, provinceCustomerPriceEur: input.provinceCustomerPriceEur ?? currentShipment.provinceCustomerPriceEur, provinceExtraPriceEur: input.provinceExtraPriceEur ?? currentShipment.provinceExtraPriceEur, provinceOperationalCostSoles: input.provinceOperationalCostSoles ?? currentShipment.provinceOperationalCostSoles, provinceCarrier: input.provinceCarrier ?? currentShipment.provinceCarrier }) : null;
       const documentPricing = !isParcel
-        ? calculateAdminShipmentPricing({ shipmentType: "documento", docType: effectiveDocumentKind, sheetCount: effectiveDocumentSheetCount, manualPriceEur: input.pricingMode === "manual" ? input.manualPriceEur : null, extraPriceEur: effectiveExtraPrice, extraDiscountEur: input.extraDiscountEur ?? currentShipment.extraDiscountEur ?? 0, route: effectiveRoute, notes: freeformNotes, requiresApostilleService: input.requiresApostilleService ?? Boolean(currentShipment.requiresApostilleService), requiresTranslationService: input.requiresTranslationService ?? Boolean(currentShipment.requiresTranslationService), isProvinceDelivery: input.isProvinceDelivery ?? Boolean(currentShipment.isProvinceDelivery), provinceCustomerPriceEur: input.provinceCustomerPriceEur ?? currentShipment.provinceCustomerPriceEur, provinceExtraPriceEur: input.provinceExtraPriceEur ?? currentShipment.provinceExtraPriceEur, provinceOperationalCostSoles: input.provinceOperationalCostSoles ?? currentShipment.provinceOperationalCostSoles, provinceCarrier: input.provinceCarrier ?? currentShipment.provinceCarrier })
+        ? calculateAdminShipmentPricing({ shipmentType: "documento", docType: effectiveDocumentKind, sheetCount: effectiveDocumentSheetCount, manualPriceEur: input.pricingMode === "manual" ? input.manualPriceEur : null, extraPriceEur: effectiveExtraPrice, extraDiscountEur: input.extraDiscountEur ?? currentShipment.extraDiscountEur ?? 0, route: effectiveRoute, notes: freeformNotes, requiresApostilleService: input.requiresApostilleService ?? Boolean(currentShipment.requiresApostilleService), requiresTranslationService: input.requiresTranslationService ?? Boolean(currentShipment.requiresTranslationService), isProvinceDelivery: effectiveProvinceDelivery, provinceCustomerPriceEur: input.provinceCustomerPriceEur ?? currentShipment.provinceCustomerPriceEur, provinceExtraPriceEur: input.provinceExtraPriceEur ?? currentShipment.provinceExtraPriceEur, provinceOperationalCostSoles: input.provinceOperationalCostSoles ?? currentShipment.provinceOperationalCostSoles, provinceCarrier: input.provinceCarrier ?? currentShipment.provinceCarrier })
         : null;
       const updatedPricing = pricing || documentPricing;
       const result = await updateShipmentStatus(
@@ -1057,7 +1059,7 @@ export const adminRouter = router({
         effectiveDocumentKind,
         effectiveDocumentSheetCount,
         effectiveRequiresApostilleService,
-        input.isProvinceDelivery,
+        effectiveProvinceDelivery,
         input.provinceCustomerPriceEur,
         input.provinceExtraPriceEur,
         input.provinceOperationalCostSoles,

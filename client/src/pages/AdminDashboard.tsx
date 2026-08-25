@@ -51,6 +51,7 @@ import { getFuzzySearchScore } from "@shared/fuzzySearch";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "@shared/passwordPolicy";
 import { isValidInternationalPhone } from "@shared/phoneValidation";
 import { calculateAdminShipmentPricing, extractFreeformShipmentNotes, mergeShipmentNotes } from "@shared/adminPricing";
+import { KASEGA_TORINO_ADDRESS, LIMA_SERVICOM_ADDRESS, SHIPMENT_ROUTES, isProvinceShipmentRoute, isTorinoLimaRoute } from "@shared/shipmentRoutes";
 
 type AdminWorkspace = "resumen" | "registros" | "crear" | "cupones" | "papelera" | "usuarios" | "analitica" | "carta" | "remitentes" | "transferencias" | "feedback";
 type CreateRecordTab = "documento" | "encomienda" | "transferencia";
@@ -697,12 +698,12 @@ export default function AdminDashboard() {
   const selectedRoute = createForm.watch("route") || "Lima - Torino";
   const limaTorinoEncomiendasEnabled = limaTorinoPolicy?.encomiendasEnabled !== false;
   const watchedWeightKg = Number(createForm.watch("weightKg")) || 0.1;
-  const watchedProvinceEnabled = Boolean(createForm.watch("isProvinceDelivery"));
+  const watchedProvinceEnabled = isProvinceShipmentRoute(selectedRoute) || Boolean(createForm.watch("isProvinceDelivery"));
   const watchedProvinceExtraRaw = String(createForm.watch("provinceExtraPriceEur") ?? "").trim();
   const lastGeneratedProvinceExtraRef = React.useRef<number | null>(null);
   const automaticProvincePrice = watchedWeightKg <= 5 ? 10 : 15;
   const watchedProvinceCustomerPrice = Number(createForm.watch("provinceCustomerPriceEur")) || (watchedProvinceEnabled ? automaticProvincePrice : 0);
-  const automaticProvinceExtraPrice = watchedProvinceEnabled && selectedRoute === "Torino - Lima" && watchedWeightKg > 10 ? Math.round((watchedWeightKg - 10) * 2 * 100) / 100 : 0;
+  const automaticProvinceExtraPrice = watchedProvinceEnabled && isTorinoLimaRoute(selectedRoute) && watchedWeightKg > 10 ? Math.round((watchedWeightKg - 10) * 2 * 100) / 100 : 0;
   const watchedProvinceExtraPrice = watchedProvinceExtraRaw !== "" && Number.isFinite(Number(watchedProvinceExtraRaw)) ? Number(watchedProvinceExtraRaw) : automaticProvinceExtraPrice;
   const provincePreviewEur = watchedProvinceEnabled ? watchedProvinceCustomerPrice + watchedProvinceExtraPrice : 0;
   const createPricingPreview = useMemo(() => calculateAdminShipmentPricing({
@@ -736,10 +737,10 @@ export default function AdminDashboard() {
     }
   }, [createPricingPreview]);
   useEffect(() => {
-    if (watchedProvinceEnabled && selectedRoute === "Torino - Lima" && !String(createForm.getValues("provinceCustomerPriceEur") ?? "").trim() && automaticProvincePrice > 0) {
+    if (watchedProvinceEnabled && isTorinoLimaRoute(selectedRoute) && !String(createForm.getValues("provinceCustomerPriceEur") ?? "").trim() && automaticProvincePrice > 0) {
       createForm.setValue("provinceCustomerPriceEur", automaticProvincePrice, { shouldDirty: true });
     }
-    if (watchedProvinceEnabled && selectedRoute === "Torino - Lima") {
+    if (watchedProvinceEnabled && isTorinoLimaRoute(selectedRoute)) {
       const currentExtra = Number(watchedProvinceExtraRaw);
       const isAutoValue = watchedProvinceExtraRaw === "" || currentExtra === 0 || currentExtra === lastGeneratedProvinceExtraRef.current;
       if (isAutoValue) {
@@ -778,7 +779,7 @@ export default function AdminDashboard() {
   }, [selectedDocType]);
 
   useEffect(() => {
-    if ((selectedShipmentType !== "documento" || selectedRoute !== "Torino - Lima") && createForm.getValues("requiresApostilleService")) {
+    if ((selectedShipmentType !== "documento" || !isTorinoLimaRoute(selectedRoute)) && createForm.getValues("requiresApostilleService")) {
       createForm.setValue("requiresApostilleService", false, { shouldValidate: true, shouldDirty: true });
     }
   }, [selectedShipmentType, selectedRoute]);
@@ -842,22 +843,22 @@ export default function AdminDashboard() {
   const updateShipmentRoute = updateForm.watch("route") || "Lima - Torino";
 
   useEffect(() => {
-    if ((updateShipmentType !== "documento" || updateShipmentRoute !== "Torino - Lima") && updateForm.getValues("requiresApostilleService")) {
+    if ((updateShipmentType !== "documento" || !isTorinoLimaRoute(updateShipmentRoute)) && updateForm.getValues("requiresApostilleService")) {
       updateForm.setValue("requiresApostilleService", false, { shouldValidate: true, shouldDirty: true });
     }
   }, [updateShipmentType, updateShipmentRoute]);
-  const updateProvinceEnabled = Boolean(updateForm.watch("isProvinceDelivery"));
+  const updateProvinceEnabled = isProvinceShipmentRoute(updateShipmentRoute) || Boolean(updateForm.watch("isProvinceDelivery"));
   const updateProvinceWeight = Number(updateForm.watch("weightKg") || 0.1);
   useEffect(() => {
-    if (updateProvinceEnabled && updateShipmentRoute === "Torino - Lima") {
+    if (updateProvinceEnabled && isTorinoLimaRoute(updateShipmentRoute)) {
       updateForm.setValue("provinceCustomerPriceEur", updateProvinceWeight <= 5 ? 10 : 15, { shouldDirty: true });
       updateForm.setValue("provinceExtraPriceEur", updateProvinceWeight > 10 ? Math.round((updateProvinceWeight - 10) * 2 * 100) / 100 : 0, { shouldDirty: true });
     }
   }, [updateProvinceEnabled, updateShipmentRoute, updateProvinceWeight]);
   const updateBillableWeight = updateProvinceWeight > 15 ? 10 : updateProvinceWeight;
   const updateBasePriceEur = updateShipmentType === "encomienda" ? updateBillableWeight * 15 : 0;
-  const updateProvinceCustomerPrice = updateProvinceEnabled && updateShipmentRoute === "Torino - Lima" ? Number(updateForm.watch("provinceCustomerPriceEur") || 0) : 0;
-  const updateProvinceExtraPrice = updateProvinceEnabled && updateShipmentRoute === "Torino - Lima" ? Number(updateForm.watch("provinceExtraPriceEur") || 0) : 0;
+  const updateProvinceCustomerPrice = updateProvinceEnabled && isTorinoLimaRoute(updateShipmentRoute) ? Number(updateForm.watch("provinceCustomerPriceEur") || 0) : 0;
+  const updateProvinceExtraPrice = updateProvinceEnabled && isTorinoLimaRoute(updateShipmentRoute) ? Number(updateForm.watch("provinceExtraPriceEur") || 0) : 0;
   const updateManualPrice = Number(updateForm.watch("manualPriceEur") || 0);
   const updateExtraPrice = Number(updateForm.watch("extraPriceEur") || 0);
   const updateExtraDiscount = Math.min(updateExtraPrice, Math.max(0, Number(updateForm.watch("extraDiscountEur") || 0)));
@@ -915,7 +916,7 @@ export default function AdminDashboard() {
       sheetCount: Number(shipment.documentSheetCount || 1),
       requiresApostilleService: shipment.requiresApostilleService === 1,
       paymentStatus: shipment.paymentStatus || "Falta cancelar",
-      route: shipment.route || "Lima - Torino",
+      route: Boolean(shipment.isProvinceDelivery) && shipment.route === SHIPMENT_ROUTES.TORINO_LIMA ? SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE : shipment.route || SHIPMENT_ROUTES.LIMA_TORINO,
       originAddress: shipment.originAddress || "",
       destinationAddress: shipment.destinationAddress || "",
       weightKg: Number(shipment.weightKg || 1),
@@ -2281,13 +2282,19 @@ export default function AdminDashboard() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Ruta de envío</label>
                     <Select value={selectedRoute} onValueChange={(value) => {
-                      createForm.setValue("route", value as "Lima - Torino" | "Torino - Lima", { shouldValidate: true, shouldDirty: true });
-                      if (String(admin?.id ?? "") === "210001" && value === "Lima - Torino") createForm.setValue("destinationAddress", "Via Muriaglio 12, Torino, Italia", { shouldValidate: true, shouldDirty: true });
+                      const nextRoute = value as string;
+                      const provinceRoute = isProvinceShipmentRoute(nextRoute);
+                      createForm.setValue("route", nextRoute, { shouldValidate: true, shouldDirty: true });
+                      createForm.setValue("isProvinceDelivery", provinceRoute, { shouldValidate: true, shouldDirty: true });
+                      const isKasegaWorkspace = [210001, 210002].includes(Number(admin?.id));
+                      const nextDestination = isTorinoLimaRoute(nextRoute) ? LIMA_SERVICOM_ADDRESS : isKasegaWorkspace ? KASEGA_TORINO_ADDRESS : "";
+                      createForm.setValue("destinationAddress", nextDestination, { shouldValidate: true, shouldDirty: true });
                     }}>
                       <SelectTrigger className="border-2 focus:border-primary"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Lima - Torino">Lima – Torino</SelectItem>
-                        <SelectItem value="Torino - Lima">Torino – Lima</SelectItem>
+                        <SelectItem value={SHIPMENT_ROUTES.LIMA_TORINO}>Lima – Torino</SelectItem>
+                        <SelectItem value={SHIPMENT_ROUTES.TORINO_LIMA}>Torino – Lima</SelectItem>
+                        <SelectItem value={SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE}>Torino – Lima + provincia</SelectItem>
                       </SelectContent>
                     </Select>
                     <p className="mt-1 text-xs text-slate-500">Origen definido manualmente; no usa IP, GPS ni geolocalización.</p>
@@ -2399,7 +2406,7 @@ export default function AdminDashboard() {
                     />
                     <DocumentPricePreview docType={selectedDocType} sheetCount={Number(createForm.watch("sheetCount")) || 1} additionalTotalEur={additionalDocumentAutoTotal} manualPriceEur={createForm.watch("manualPriceEur")} extraPriceEur={createForm.watch("extraPriceEur")} extraDiscountEur={createForm.watch("extraDiscountEur")} />
                   </div>
-                                     {selectedRoute === "Torino - Lima" && (
+                                     {isTorinoLimaRoute(selectedRoute) && (
                      <>
                        <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border-2 border-[#0B2B5E] bg-blue-50 p-4 text-sm shadow-sm transition hover:bg-blue-100/70">
                          <input type="checkbox" aria-label="Documentos para apostillar" {...createForm.register("requiresApostilleService")} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-[#0B2B5E] focus:ring-[#0B2B5E]" />
@@ -2457,7 +2464,7 @@ export default function AdminDashboard() {
                         {...createForm.register("weightKg", { valueAsNumber: true })}
                         className="border-2 focus:border-primary"
                       />
-                      <p className={`mt-1 text-base font-semibold ${automaticParcelBaseEur === null ? "text-amber-900" : "text-[#0B2B5E]"}`}>Tarifa automática {selectedRoute === "Torino - Lima" ? "Torino–Lima" : "Lima–Torino"}: {automaticParcelDescription}{watchedProvinceEnabled ? ` · Provincia: ${automaticProvinceDescription}` : ""}.</p>
+                      <p className={`mt-1 text-base font-semibold ${automaticParcelBaseEur === null ? "text-amber-900" : "text-[#0B2B5E]"}`}>Tarifa automática {isTorinoLimaRoute(selectedRoute) ? "Torino–Lima" : "Lima–Torino"}: {automaticParcelDescription}{watchedProvinceEnabled ? ` · Provincia: ${automaticProvinceDescription}` : ""}.</p>
                     </div>
                     <div className={`flex items-end rounded-md p-4 text-lg font-bold ring-1 ${needsManualParcelPrice && !hasValidManualParcelPrice ? "bg-amber-50 text-amber-900 ring-amber-200" : "bg-emerald-50 text-[#0B2B5E] ring-emerald-200"}`}>
                       {hasValidManualParcelPrice ? `Total manual: ${(manualParcelPrice + Math.max(0, Number(createForm.watch("extraPriceEur")) || 0) - Math.min(Math.max(0, Number(createForm.watch("extraPriceEur")) || 0), Math.max(0, Number(createForm.watch("extraDiscountEur")) || 0)) + provincePreviewEur).toFixed(2)} €` : needsManualParcelPrice ? "Precio final pendiente" : `Total automático: ${(automaticParcelBaseEur + Math.max(0, Number(createForm.watch("extraPriceEur")) || 0) - Math.min(Math.max(0, Number(createForm.watch("extraPriceEur")) || 0), Math.max(0, Number(createForm.watch("extraDiscountEur")) || 0)) + provincePreviewEur).toFixed(2)} €`}
@@ -2628,13 +2635,13 @@ export default function AdminDashboard() {
                 </div>
               )}
 
-              {selectedRoute === "Torino - Lima" && <section className={`mt-4 rounded-xl border border-orange-200 bg-orange-50 p-4 ${mobileSectionClass(3)}`}><label className="flex cursor-pointer items-start gap-3 text-sm font-semibold text-[#0B2B5E]"><input type="checkbox" aria-label="Envío a provincia" {...createForm.register("isProvinceDelivery")} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-[#0B2B5E]" /><span><span className="block">Envío a provincia</span><span className="mt-1 block text-xs font-normal text-slate-700">La sede regular de agencia aparece primero; después puedes elegir otra sede de Olva, Shalom, FedEx, DHL o una empresa regional.</span></span></label>{createForm.watch("isProvinceDelivery") && <><div className="mb-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3"><p className="text-sm font-extrabold text-[#0B2B5E]">Sede regular de la agencia</p><p className="mt-1 text-sm font-medium text-slate-700">SERVICOM INTERNACIONAL — Jr. de la Unión Nro. 518 Int. S101, Cercado de Lima</p><p className="mt-1 text-xs text-slate-600">Puedes usar esta sede o cambiarla por una agencia de destino.</p></div><AgencyDestinationPicker route={selectedRoute} value={createForm.watch("destinationAddress") || ""} onChange={(destinationAddress) => createForm.setValue("destinationAddress", destinationAddress, { shouldValidate: true, shouldDirty: true })} /><div className="mt-3 rounded-xl border border-blue-200 bg-blue-50 p-4"><p className="text-sm font-bold text-[#0B2B5E]">Remitente para provincia</p><p className="mt-1 text-xs text-slate-600">Si no completas estos datos, se usará automáticamente el remitente internacional.</p><ProvinceSenderPicker senders={shipmentSenders as ProvinceSenderRecord[]} value={[createForm.watch("provinceSenderName"), createForm.watch("provinceSenderLastName"), createForm.watch("provinceSenderDni")].filter(Boolean).join("|")} onSelect={(sender) => {
+              {isProvinceShipmentRoute(selectedRoute) && <section className={`mt-4 rounded-xl border border-orange-200 bg-orange-50 p-4 ${mobileSectionClass(3)}`}><div className="mb-3 text-sm font-semibold text-[#0B2B5E]"><span className="block text-base">Entrega a provincia después de Lima</span><span className="mt-1 block text-xs font-normal text-slate-700">Elige una agencia de Olva, Shalom, FedEx, DHL u otra empresa regional. Esta ruta activa automáticamente los precios y datos provinciales.</span></div><><div className="mb-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3"><p className="text-sm font-extrabold text-[#0B2B5E]">Sede regular de la agencia</p><p className="mt-1 text-sm font-medium text-slate-700">SERVICOM INTERNACIONAL — Jr. de la Unión Nro. 518 Int. S101, Cercado de Lima</p><p className="mt-1 text-xs text-slate-600">Puedes usar esta sede o cambiarla por una agencia de destino.</p></div><AgencyDestinationPicker route={selectedRoute} value={createForm.watch("destinationAddress") || ""} onChange={(destinationAddress) => createForm.setValue("destinationAddress", destinationAddress, { shouldValidate: true, shouldDirty: true })} /><div className="mt-3 rounded-xl border border-blue-200 bg-blue-50 p-4"><p className="text-sm font-bold text-[#0B2B5E]">Remitente para provincia</p><p className="mt-1 text-xs text-slate-600">Si no completas estos datos, se usará automáticamente el remitente internacional.</p><ProvinceSenderPicker senders={shipmentSenders as ProvinceSenderRecord[]} value={[createForm.watch("provinceSenderName"), createForm.watch("provinceSenderLastName"), createForm.watch("provinceSenderDni")].filter(Boolean).join("|")} onSelect={(sender) => {
   createForm.setValue("provinceSenderName", sender?.name || "", { shouldDirty: true });
   createForm.setValue("provinceSenderLastName", sender?.lastName || "", { shouldDirty: true });
   createForm.setValue("provinceSenderDni", sender?.dni || "", { shouldDirty: true });
   createForm.setValue("provinceSenderPhone", sender?.phone || "", { shouldDirty: true, shouldValidate: true });
 }} /><div className="mt-3 grid gap-3 sm:grid-cols-2"><Input placeholder="Nombres del remitente provincial" {...createForm.register("provinceSenderName")} /><Input placeholder="Apellidos del remitente provincial" {...createForm.register("provinceSenderLastName")} /><Input placeholder="DNI del remitente provincial" inputMode="numeric" maxLength={8} {...createForm.register("provinceSenderDni")} /><PhoneInput value={createForm.watch("provinceSenderPhone") || ""} onChange={(value) => createForm.setValue("provinceSenderPhone", value, { shouldDirty: true, shouldValidate: true })} placeholder="Celular del remitente provincial" /></div></div><div className="mt-3 grid gap-3 sm:grid-cols-2"><div><p className="mb-1 text-sm font-semibold text-slate-700">Peso enviado</p><p className="rounded-md bg-white px-3 py-2 text-base font-bold text-[#0B2B5E]">{selectedShipmentType === "encomienda" ? `${watchedWeightKg.toFixed(1)} kg` : "No aplica a documentos"}</p></div><div><label className="mb-1 block text-sm font-semibold text-slate-700">Precio al cliente (EUR)</label>    <Input type="number" min="0" step="0.01" placeholder="Ej. 10.00" {...createForm.register("provinceCustomerPriceEur")} />
-<div><label className="mb-1 block text-sm font-semibold text-slate-700">Extra provincial proporcional (EUR)</label><Input type="number" min="0" step="0.01" placeholder={watchedWeightKg > 10 ? `Automático: ${automaticProvinceExtraPrice.toFixed(2)}` : "0.00"} {...createForm.register("provinceExtraPriceEur")} /><p className="mt-1 text-xs text-slate-600">Solo para provincia: se calcula automáticamente como los kg por encima de 10 × 2,00 EUR; puedes modificarlo si lo deseas. Este importe no impide crear la encomienda.</p></div></div><div><label className="mb-1 block text-sm font-semibold text-slate-700">Costo operativo (soles)</label><Input type="number" min="0" step="0.01" placeholder={selectedShipmentType === "documento" ? "8.00 automático" : "Ej. 12.00"} {...createForm.register("provinceOperationalCostSoles")} /><p className="mt-1 text-xs text-slate-600">Documentos: S/ 8.00 por defecto.</p></div><div className="rounded-md bg-white px-3 py-2 text-sm text-slate-700"><strong>Courier:</strong> Se usará la agencia seleccionada arriba.</div></div></>}</section>}
+<div><label className="mb-1 block text-sm font-semibold text-slate-700">Extra provincial proporcional (EUR)</label><Input type="number" min="0" step="0.01" placeholder={watchedWeightKg > 10 ? `Automático: ${automaticProvinceExtraPrice.toFixed(2)}` : "0.00"} {...createForm.register("provinceExtraPriceEur")} /><p className="mt-1 text-xs text-slate-600">Solo para provincia: se calcula automáticamente como los kg por encima de 10 × 2,00 EUR; puedes modificarlo si lo deseas. Este importe no impide crear la encomienda.</p></div></div><div><label className="mb-1 block text-sm font-semibold text-slate-700">Costo operativo (soles)</label><Input type="number" min="0" step="0.01" placeholder={selectedShipmentType === "documento" ? "8.00 automático" : "Ej. 12.00"} {...createForm.register("provinceOperationalCostSoles")} /><p className="mt-1 text-xs text-slate-600">Documentos: S/ 8.00 por defecto.</p></div><div className="rounded-md bg-white px-3 py-2 text-sm text-slate-700"><strong>Courier:</strong> Se usará la agencia seleccionada arriba.</div></div></></section>}
 
               {selectedShipmentType === "documento" && selectedRoute === "Lima - Torino" && <div className={`mt-4 ${mobileSectionClass(3)}`}><LimaTorinoTransferPanel value={{ mode: createForm.watch("limaTorinoTransferMode"), personName: createForm.watch("deliveryPersonName"), personLastName: createForm.watch("deliveryPersonLastName"), personDni: createForm.watch("deliveryPersonDni"), personPhone: createForm.watch("deliveryPersonPhone"), locationType: createForm.watch("deliveryLocationType"), locationAddress: createForm.watch("deliveryLocationAddress"), latitude: createForm.watch("deliveryLocationLatitude"), longitude: createForm.watch("deliveryLocationLongitude") }} onChange={(next) => { createForm.setValue("limaTorinoTransferMode", next.mode, { shouldDirty: true, shouldValidate: true }); createForm.setValue("deliveryPersonName", next.personName || "", { shouldDirty: true }); createForm.setValue("deliveryPersonLastName", next.personLastName || "", { shouldDirty: true }); createForm.setValue("deliveryPersonDni", next.personDni || "", { shouldDirty: true }); createForm.setValue("deliveryPersonPhone", next.personPhone || "", { shouldDirty: true }); createForm.setValue("deliveryLocationType", next.locationType, { shouldDirty: true }); createForm.setValue("deliveryLocationAddress", next.locationAddress || "", { shouldDirty: true }); createForm.setValue("deliveryLocationLatitude", next.latitude ?? null, { shouldDirty: true }); createForm.setValue("deliveryLocationLongitude", next.longitude ?? null, { shouldDirty: true }); }} error={createForm.formState.errors.limaTorinoTransferMode?.message as string | undefined} /></div>}
 
@@ -3172,11 +3179,19 @@ export default function AdminDashboard() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Ruta</label>
                     <select
-                      {...updateForm.register("route")}
+                      {...updateForm.register("route", { onChange: (event) => {
+                        const nextRoute = String(event.target.value);
+                        const provinceRoute = isProvinceShipmentRoute(nextRoute);
+                        updateForm.setValue("isProvinceDelivery", provinceRoute, { shouldValidate: true, shouldDirty: true });
+                        const isKasegaWorkspace = [210001, 210002].includes(Number(admin?.id));
+                        const nextDestination = isTorinoLimaRoute(nextRoute) ? LIMA_SERVICOM_ADDRESS : isKasegaWorkspace ? KASEGA_TORINO_ADDRESS : "";
+                        updateForm.setValue("destinationAddress", nextDestination, { shouldValidate: true, shouldDirty: true });
+                      } })}
                       className="w-full p-2 bg-white border-2 border-slate-200 rounded-md text-sm font-medium focus:border-primary"
                     >
-                      <option value="Lima - Torino">Lima - Torino</option>
-                      <option value="Torino - Lima">Torino - Lima</option>
+                      <option value={SHIPMENT_ROUTES.LIMA_TORINO}>Lima - Torino</option>
+                      <option value={SHIPMENT_ROUTES.TORINO_LIMA}>Torino - Lima</option>
+                      <option value={SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE}>Torino - Lima + provincia</option>
                     </select>
                   </div>
                     <div className="md:col-span-2">
@@ -3233,20 +3248,19 @@ export default function AdminDashboard() {
                         <option value="manual">Precio manual en EUR</option>
                       </select>
                     </div>
-                    {updateForm.watch("route") === "Torino - Lima" && (
+                    {isTorinoLimaRoute(updateForm.watch("route")) && (
                       <label className="md:col-span-2 flex cursor-pointer items-start gap-3 rounded-xl border-2 border-[#0B2B5E] bg-blue-50 p-4 text-sm shadow-sm transition hover:bg-blue-100/70">
                         <input type="checkbox" aria-label="Documentos para apostillar" {...updateForm.register("requiresApostilleService")} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-[#0B2B5E] focus:ring-[#0B2B5E]" />
                         <span><strong className="block text-base text-[#0B2B5E]">Documentos para apostillar</strong><span className="mt-1 block text-slate-700">Se conserva esta solicitud únicamente para documentos en la ruta Torino – Lima.</span></span>
                       </label>
                     )}
                   </>}
-                  {updateForm.watch("route") === "Torino - Lima" && (
+                  {isProvinceShipmentRoute(updateForm.watch("route")) && (
                     <div className="md:col-span-2 rounded-xl border border-orange-200 bg-orange-50 p-4">
-                      <label className="flex items-start gap-3 text-sm font-semibold text-[#0B2B5E]">
-                        <input type="checkbox" {...updateForm.register("isProvinceDelivery")} className="mt-0.5 h-5 w-5" />
-                        <span>Envío a provincia después de Lima<span className="mt-1 block text-xs font-normal text-slate-700">Puedes cambiar la agencia y la sede en cualquier actualización. El precio se recalcula automáticamente.</span></span>
-                      </label>
-                      {updateForm.watch("isProvinceDelivery") && (
+                      <div className="text-sm font-semibold text-[#0B2B5E]">
+                        <span className="block text-base">Entrega a provincia después de Lima</span><span className="mt-1 block text-xs font-normal text-slate-700">Puedes cambiar la agencia, la sede y el precio provincial en cualquier actualización.</span>
+                      </div>
+                      {(
                         <>
                         <div className="mt-3 rounded-xl border border-blue-200 bg-blue-50 p-4"><p className="text-sm font-bold text-[#0B2B5E]">Remitente para provincia</p><p className="mt-1 text-xs text-slate-600">Puedes cambiarlo para este despacho. Si queda vacío, se conserva el remitente internacional.</p><div className="mt-3 grid gap-3 sm:grid-cols-2"><Input placeholder="Nombres del remitente provincial" {...updateForm.register("provinceSenderName")} /><Input placeholder="Apellidos del remitente provincial" {...updateForm.register("provinceSenderLastName")} /><Input placeholder="DNI del remitente provincial" inputMode="numeric" maxLength={8} {...updateForm.register("provinceSenderDni")} /><Input placeholder="Celular del remitente provincial" inputMode="tel" {...updateForm.register("provinceSenderPhone")} /></div></div>
                         <div className="mt-3 grid gap-3 sm:grid-cols-2">

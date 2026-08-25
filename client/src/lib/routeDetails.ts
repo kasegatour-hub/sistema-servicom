@@ -1,7 +1,6 @@
-export const ROUTES = {
-  LIMA_TORINO: "Lima - Torino",
-  TORINO_LIMA: "Torino - Lima",
-} as const;
+import { SHIPMENT_ROUTES, isTorinoLimaRoute } from "@shared/shipmentRoutes";
+
+export const ROUTES = SHIPMENT_ROUTES;
 
 export type ShipmentRoute = (typeof ROUTES)[keyof typeof ROUTES];
 
@@ -22,12 +21,12 @@ const TORINO = {
 };
 
 export function getRoutePresentation(route?: string | null, destinationAddress?: string | null) {
-  const isTorinoToLima = route === ROUTES.TORINO_LIMA;
+  const isTorinoToLima = isTorinoLimaRoute(route);
   const origin = isTorinoToLima ? TORINO : LIMA;
   const defaultDestination = isTorinoToLima ? LIMA : TORINO;
   const destination = destinationAddress?.trim() ? { ...defaultDestination, officeLabel: "Agencia de destino seleccionada", address: destinationAddress.trim() } : defaultDestination;
   return {
-    route: isTorinoToLima ? ROUTES.TORINO_LIMA : ROUTES.LIMA_TORINO,
+    route: route === ROUTES.TORINO_LIMA_PROVINCE ? ROUTES.TORINO_LIMA_PROVINCE : isTorinoToLima ? ROUTES.TORINO_LIMA : ROUTES.LIMA_TORINO,
     origin,
     destination,
     originLabel: origin.shortLabel,

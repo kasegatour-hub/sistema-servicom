@@ -90,6 +90,30 @@ describe("admin.createShipment", () => {
     expect(dbMocks.createShipment.mock.calls[0][34]).toBe(true);
   });
 
+  it("derives province delivery from the Torino–Lima + provincia route", async () => {
+    const caller = appRouter.createCaller(createAdminContext());
+    const result = await caller.admin.createShipment({
+      status: "En agencia",
+      senderName: "Ana",
+      senderLastName: "Pérez",
+      recipientName: "Marco",
+      recipientLastName: "Rossi",
+      shipmentType: "encomienda",
+      weightKg: 12,
+      paymentStatus: "Falta cancelar",
+      route: "Torino - Lima + provincia",
+      destinationAddress: "SHALOM — Agencia Huancayo · Av. Ferrocarril 123",
+      contentChecklist: ["Paquete sellado"],
+    });
+
+    const args = dbMocks.createShipment.mock.calls[0];
+    expect(args[18]).toBe("Torino - Lima + provincia");
+    expect(args[20]).toContain("Agencia Huancayo");
+    expect(args[40]).toBe(true);
+    expect(result.provinceCustomerPriceEur).toBe(15);
+    expect(result.provinceExtraPriceEur).toBe(4);
+  });
+
   it("rejects the apostille service outside the Torino–Lima document route", async () => {
     const caller = appRouter.createCaller(createAdminContext());
     await expect(caller.admin.createShipment({
