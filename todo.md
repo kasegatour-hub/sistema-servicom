@@ -1237,3 +1237,20 @@
 - [x] Añadir sedes diferenciadas de Expreso Lobato en Mazamari, San Martín de Pangoa y Terminal Terrestre de Satipo
 - [x] Integrar selector de país e indicativo al celular del remitente provincial
 - [x] Actualizar recibos, extracción y pruebas de sede y teléfono provincial
+
+## Corrección de presentación EUR y soles
+- [ ] Mostrar apostillado como 40 EUR (160 soles) sin sumar los soles al importe
+- [ ] Mostrar traducción como 50 EUR (200 soles) sin sumar los soles al importe
+- [ ] Sincronizar tarjetas, total, recibos y versión móvil
+- [ ] Añadir pruebas para evitar que los soles se acumulen como cargo adicional
+
+## Refinación final de servicios documentales
+- [x] Mostrar apostillado como 40 EUR (160 soles de referencia), sin sumar soles al total EUR
+- [x] Mostrar traducción como 50 EUR (200 soles de referencia), sin sumar soles al total EUR
+- [x] Incluir 7 días hábiles para apostillado y traducción en cliente, notas persistidas y recibos
+- [x] Unificar el control de entrega del recibo con importes EUR y soles entre paréntesis
+- [x] Ejecutar TypeScript y suite completa: 327 pruebas aprobadas
+- [x] Verificar visualmente la pantalla pública responsive
+
+## Pendiente histórico
+- [ ] Mantener bajo revisión las mejoras futuras de UX, catálogos de agencias y funcionalidades no relacionadas con esta refinación
