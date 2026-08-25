@@ -1389,3 +1389,9 @@
 - [x] Mantener el extra editable sin reemplazar el cálculo cuando no corresponde a provincia
 - [x] Mostrar en recibos provinciales la dirección de agencia o destino elegido y, en los demás, la sede Servicom correcta
 - [x] Añadir pruebas, validar TypeScript y publicar la corrección
+
+## Excedente, identidad visual y registro móvil
+- [x] Cambiar el excedente provincial automático a 2 EUR por kg sobre 10 kg y reflejarlo en notas y total
+- [x] Aplicar azul para documentos, naranja para encomiendas y verde para transferencias en sus formularios activos
+- [x] Mantener el registro móvil dividido en pasos claros para documento, encomienda y transferencia
+- [x] Añadir pruebas, validar TypeScript y publicar los ajustes

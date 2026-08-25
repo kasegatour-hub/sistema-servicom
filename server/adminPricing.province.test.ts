@@ -48,11 +48,11 @@ describe("calculateAdminShipmentPricing — provincia Italia–Lima", () => {
     }
   });
 
-  it("calcula 1,50 EUR por cada kg excedente sobre 10 kg y permite editarlo", () => {
+  it("calcula 2,00 EUR por cada kg excedente sobre 10 kg y permite editarlo", () => {
     const result = calculateAdminShipmentPricing({ shipmentType: "encomienda", route: "Torino - Lima", weightKg: 15, isProvinceDelivery: true });
     expect(result.provinceCustomerPriceEur).toBe(15);
-    expect(result.provinceExtraPriceEur).toBe(7.5);
-    expect(result.totalEur).toBe(225);
+    expect(result.provinceExtraPriceEur).toBe(10);
+    expect(result.totalEur).toBe(227.5);
     expect(result.notes).toContain("excedente sobre 10 kg");
 
     const manual = calculateAdminShipmentPricing({ shipmentType: "encomienda", route: "Torino - Lima", weightKg: 16, isProvinceDelivery: true, provinceExtraPriceEur: 9.5 });
@@ -65,8 +65,8 @@ describe("calculateAdminShipmentPricing — provincia Italia–Lima", () => {
     expect(withoutProvince.totalEur).toBe(148.5);
     const withProvince = calculateAdminShipmentPricing({ shipmentType: "encomienda", route: "Torino - Lima", weightKg: 11, isProvinceDelivery: true });
     expect(withProvince.provinceCustomerPriceEur).toBe(15);
-    expect(withProvince.provinceExtraPriceEur).toBe(1.5);
-    expect(withProvince.totalEur).toBe(165);
+    expect(withProvince.provinceExtraPriceEur).toBe(2);
+    expect(withProvince.totalEur).toBe(165.5);
   });
 
   it("conserva FedEx y DHL como operadores válidos y regenera el resumen tarifario", () => {

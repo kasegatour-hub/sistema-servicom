@@ -57,7 +57,7 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
   const provinceCustomerPriceEur = provinceEnabled ? (rawProvinceCustomerPrice !== "" && Number.isFinite(parsedProvinceCustomerPrice) && parsedProvinceCustomerPrice >= 0 ? parsedProvinceCustomerPrice : automaticProvincePrice) : 0;
   const rawProvinceExtraPrice = input.provinceExtraPriceEur === undefined || input.provinceExtraPriceEur === null ? "" : String(input.provinceExtraPriceEur).trim();
   const parsedProvinceExtraPrice = Number(rawProvinceExtraPrice);
-  const automaticProvinceExtraPrice = provinceEnabled && weightKg > 10 ? Math.round((weightKg - 10) * 1.5 * 100) / 100 : 0;
+  const automaticProvinceExtraPrice = provinceEnabled && weightKg > 10 ? Math.round((weightKg - 10) * 2 * 100) / 100 : 0;
   const provinceExtraPriceEur = provinceEnabled && rawProvinceExtraPrice !== "" && Number.isFinite(parsedProvinceExtraPrice) && parsedProvinceExtraPrice >= 0 ? parsedProvinceExtraPrice : automaticProvinceExtraPrice;
   const rawProvinceOperationalCost = input.provinceOperationalCostSoles === undefined || input.provinceOperationalCostSoles === null ? "" : String(input.provinceOperationalCostSoles).trim();
   const parsedProvinceOperationalCost = Number(rawProvinceOperationalCost);
@@ -98,7 +98,7 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
   const usesAutomaticProvincePrice = provinceEnabled && rawProvinceCustomerPrice === "";
   const provinceTierLabel = weightKg <= 5 ? "hasta 5 kg" : "más de 5 kg";
   const provinceDescription = provinceEnabled
-    ? ` Envío a provincia (${provinceCarrier || "agencia seleccionada"}): +${provinceCustomerPriceEur.toFixed(2)} EUR${usesAutomaticProvincePrice ? ` (${provinceTierLabel})` : ""}${provinceExtraPriceEur > 0 ? `; excedente sobre 10 kg: +${provinceExtraPriceEur.toFixed(2)} EUR` : ""}.`
+    ? ` Envío a provincia (${provinceCarrier || "agencia seleccionada"}): +${provinceCustomerPriceEur.toFixed(2)} EUR${usesAutomaticProvincePrice ? ` (${provinceTierLabel})` : ""}${provinceExtraPriceEur > 0 ? `; excedente sobre 10 kg (2,00 EUR/kg): +${provinceExtraPriceEur.toFixed(2)} EUR` : ""}.`
     : "";
   const extraDescription = extraPriceEur > 0 ? ` Importe extra: +${extraPriceEur.toFixed(2)} EUR${extraDiscountEur > 0 ? `; descuento del extra: -${extraDiscountEur.toFixed(2)} EUR; extra neto: +${netExtraPriceEur.toFixed(2)} EUR` : ""}.` : "";
   const serviceDescription = `${requiresApostilleService ? ` Servicio de apostilla Italia–Lima: +${servicePriceEur.toFixed(2)} EUR y +${(serviceManualPriceSoles ?? 160).toFixed(2)} soles.` : ""}${requiresTranslationService ? ` Servicio de traducción Italia–Lima: +${(serviceManualPriceSoles ?? 200).toFixed(2)} soles.` : ""}`;

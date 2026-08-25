@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from "react";
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 
 const quoteState = {
   data: { eurPurchaseRate: 3.79, eurSaleRate: 4.02, adjustedPenPerEur: 4.17, fetchedAt: Date.now(), sourceUrl: "https://www.argenper.com.pe/servicios/cambio-moneda" },
@@ -44,5 +44,24 @@ describe("TransferWorkspace", () => {
     expect(screen.getByText("Cotización Argemper aplicada")).toBeTruthy();
     expect(screen.queryByText(/No fue posible actualizar Argenper/)).toBeNull();
     quoteState.error = null;
+  });
+
+  it("usa identidad verde y divide el registro móvil de transferencias en pasos", () => {
+    const { container } = render(<TransferWorkspace mobileRegistrationMode />);
+    const view = within(container);
+
+    const transferHeading = view.getAllByText("Transferencia").find(element => element.tagName === "H2");
+    expect(transferHeading?.className).toContain("text-emerald-950");
+    expect(view.getByRole("region", { name: "Pasos de transferencia móvil" })).toBeTruthy();
+    expect(view.getAllByText("Ruta de transferencia *").length).toBeGreaterThan(0);
+    expect(view.queryByText("Remitente")).toBeNull();
+
+    fireEvent.click(view.getByRole("button", { name: "Personas" }));
+    expect(view.getByText("Remitente")).toBeTruthy();
+    expect(view.queryByText("Datos de transferencia")).toBeNull();
+
+    fireEvent.click(view.getByRole("button", { name: "Importe" }));
+    expect(view.getByText("Datos de transferencia")).toBeTruthy();
+    expect(view.queryByText("Remitente")).toBeNull();
   });
 });

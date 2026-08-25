@@ -672,7 +672,7 @@ describe("AdminDashboard Nueva Encomienda", () => {
     expect(weightInput).toBeTruthy();
     expect(provinceExtraInput).toBeTruthy();
     fireEvent.change(weightInput!, { target: { value: "15" } });
-    await waitFor(() => expect((provinceExtraInput as HTMLInputElement).value).toBe("7.5"));
+    await waitFor(() => expect((provinceExtraInput as HTMLInputElement).value).toBe("10"));
     const search = screen.getByRole("textbox", { name: "Buscar remitente provincial" });
     fireEvent.change(search, { target: { value: "Marco" } });
     const senderSelect = screen.getByRole("combobox", { name: "Remitente provincial guardado" });
