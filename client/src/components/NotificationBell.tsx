@@ -55,12 +55,14 @@ export function NotificationBell() {
         {unreadCount > 0 && <span aria-label={`${unreadCount} notificaciones sin leer`} className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-orange-500 px-1 text-[10px] font-black text-white ring-2 ring-[#0B2B5E]">{unreadCount > 99 ? "99+" : unreadCount}</span>}
       </Button>
       {open && <div role="dialog" aria-label="Notificaciones" className="absolute right-0 z-50 mt-2 w-[min(92vw,24rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-          <div><h2 className="text-base font-extrabold text-[#0B2B5E]">Notificaciones</h2><p className="text-xs text-slate-500">Avisos de actividad de tu cuenta</p></div>
-          <div className="flex items-center gap-1">
-            <Button type="button" variant="ghost" size="sm" aria-label={soundEnabled ? "Desactivar sonido de notificaciones" : "Activar sonido de notificaciones"} aria-pressed={soundEnabled} onClick={toggleSound} className="h-9 px-2 text-xs text-[#0B2B5E]" title={soundEnabled ? "Sonido activado" : "Sonido desactivado"}>{soundEnabled ? <Volume2 className="mr-1 h-4 w-4" /> : <VolumeX className="mr-1 h-4 w-4" />}<span className="hidden sm:inline">Sonido</span></Button>
-            {unreadCount > 0 && <Button type="button" variant="ghost" size="sm" aria-label="Marcar todas como leídas" onClick={() => markAllReadMutation.mutate()} disabled={markAllReadMutation.isPending} className="h-9 px-2 text-xs text-[#0B2B5E]"><CheckCheck className="mr-1 h-4 w-4" />Leer todo</Button>}
-            <Button type="button" variant="outline" size="icon" aria-label="Cerrar notificaciones" onClick={() => setOpen(false)} className="h-9 w-9 border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-800"><X className="h-4 w-4 stroke-[3]" /></Button>
+        <div className="border-b border-slate-100 px-4 py-3">
+          <div className="flex min-w-0 items-start justify-between gap-3">
+            <div className="min-w-0"><h2 className="text-base font-extrabold text-[#0B2B5E]">Notificaciones</h2><p className="text-xs text-slate-500">Avisos de actividad de tu cuenta</p></div>
+            <Button type="button" variant="outline" size="icon" aria-label="Cerrar notificaciones" onClick={() => setOpen(false)} className="h-10 w-10 shrink-0 border-rose-400 bg-rose-50 text-rose-700 shadow-sm hover:bg-rose-100 hover:text-rose-800"><X className="h-5 w-5 stroke-[3]" /></Button>
+          </div>
+          <div className={`mt-3 grid gap-2 border-t border-slate-100 pt-3 ${unreadCount > 0 ? "grid-cols-2" : "grid-cols-1"} sm:flex sm:justify-end`}>
+            <Button type="button" variant="ghost" size="sm" aria-label={soundEnabled ? "Desactivar sonido de notificaciones" : "Activar sonido de notificaciones"} aria-pressed={soundEnabled} onClick={toggleSound} className="h-10 min-w-0 justify-center px-2 text-xs font-semibold text-[#0B2B5E] sm:px-3" title={soundEnabled ? "Sonido activado" : "Sonido desactivado"}>{soundEnabled ? <Volume2 className="mr-1.5 h-4 w-4 shrink-0" /> : <VolumeX className="mr-1.5 h-4 w-4 shrink-0" />}<span>Sonido</span></Button>
+            {unreadCount > 0 && <Button type="button" variant="ghost" size="sm" aria-label="Marcar todas como leídas" onClick={() => markAllReadMutation.mutate()} disabled={markAllReadMutation.isPending} className="h-10 min-w-0 justify-center px-2 text-xs font-semibold text-[#0B2B5E] sm:px-3"><CheckCheck className="mr-1.5 h-4 w-4 shrink-0" /><span>Marcar leídas</span></Button>}
           </div>
         </div>
         <div className="max-h-[min(65vh,28rem)] overflow-y-auto p-2">

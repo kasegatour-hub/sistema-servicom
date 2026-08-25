@@ -1491,3 +1491,8 @@
 - [x] Añadir una X roja visible y accesible para cerrar la campana de notificaciones y Mi perfil
 - [x] Ocultar Feedback recibido para Usuarios registradores y Clientes
 - [x] Restringir el endpoint de feedback recibido exclusivamente a Administradores y cubrirlo con pruebas
+
+## Corrección móvil de la campana
+- [x] Mantener la X roja de cierre siempre visible en la cabecera de notificaciones móvil
+- [x] Evitar el solapamiento entre sonido, marcar leídas y cierre en la cabecera móvil
+- [x] Añadir prueba responsive, validar y publicar la corrección

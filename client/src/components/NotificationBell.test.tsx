@@ -55,8 +55,10 @@ describe("NotificationBell", () => {
     expect(read.className).toContain("bg-slate-100");
 
     const closeButton = screen.getByRole("button", { name: "Cerrar notificaciones" });
-    expect(closeButton.className).toContain("border-rose-300");
+    expect(closeButton.className).toContain("border-rose-400");
     expect(closeButton.className).toContain("text-rose-700");
+    expect(closeButton.className).toContain("shrink-0");
+    expect(screen.getByRole("button", { name: "Marcar todas como leídas" }).textContent).toContain("Marcar leídas");
     fireEvent.click(closeButton);
     expect(screen.queryByRole("dialog", { name: "Notificaciones" })).toBeNull();
   });
