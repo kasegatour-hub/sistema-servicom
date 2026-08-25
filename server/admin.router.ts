@@ -942,10 +942,12 @@ export const adminRouter = router({
       senderName: optionalPersonNameSchema,
       senderLastName: optionalPersonNameSchema,
       senderDni: optionalIdentityDocumentNumberSchema,
+      senderDocumentType: identityDocumentTypeSchema.optional(),
       senderPhone: optionalInternationalPhoneSchema,
       recipientName: optionalPersonNameSchema,
       recipientLastName: optionalPersonNameSchema,
       recipientDni: optionalIdentityDocumentNumberSchema,
+      recipientDocumentType: identityDocumentTypeSchema.optional(),
       recipientPhone: optionalInternationalPhoneSchema,
       notes: z.string().optional(),
       shipmentType: z.enum(["documento", "encomienda"]).optional(),
@@ -998,6 +1000,16 @@ export const adminRouter = router({
       }
       const effectiveType = input.shipmentType ?? currentShipment.shipmentType;
       const effectiveRoute = input.route ?? currentShipment.route ?? "Lima - Torino";
+      const effectiveSenderDocumentType = input.senderDocumentType ?? currentShipment.senderDocumentType ?? "dni_peru";
+      const effectiveRecipientDocumentType = input.recipientDocumentType ?? currentShipment.recipientDocumentType ?? "dni_peru";
+      const effectiveSenderDocument = input.senderDni ?? currentShipment.senderDni;
+      const effectiveRecipientDocument = input.recipientDni ?? currentShipment.recipientDni;
+      if (!isIdentityDocumentValid(effectiveSenderDocument, effectiveSenderDocumentType)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: identityDocumentValidationMessage(effectiveSenderDocumentType) });
+      }
+      if (!isIdentityDocumentValid(effectiveRecipientDocument, effectiveRecipientDocumentType)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: identityDocumentValidationMessage(effectiveRecipientDocumentType) });
+      }
       const effectiveRequiresApostilleService = input.requiresApostilleService ?? currentShipment.requiresApostilleService === 1;
       if (effectiveRequiresApostilleService && (effectiveType !== "documento" || effectiveRoute !== "Torino - Lima")) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "La opción «Documentos para apostillar» solo está disponible para documentos en la ruta Torino - Lima." });
@@ -1025,6 +1037,8 @@ export const adminRouter = router({
         input.recipientLastName,
         input.recipientDni,
         input.recipientPhone,
+        effectiveSenderDocumentType,
+        effectiveRecipientDocumentType,
         updatedPricing?.notes ?? input.notes,
         input.shipmentType,
         input.weightKg,

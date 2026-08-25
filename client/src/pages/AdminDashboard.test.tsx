@@ -921,5 +921,49 @@ describe("AdminDashboard Nueva Encomienda", () => {
       expect(notes.value).not.toContain("1 kg @ 15 EUR/kg");
     });
   });
-});
 
+  it("restaura Carta d’identità italiana al editar y la mantiene en la actualización", async () => {
+    mocks.shipments = [{
+      id: 304,
+      shipmentType: "documento",
+      senderName: "Cajacuri Espinoza",
+      senderLastName: "Artemio Vicente",
+      senderDni: "10597707",
+      senderDocumentType: "dni_peru",
+      senderPhone: "+51 961701943",
+      recipientName: "Carolay Alexandra",
+      recipientLastName: "Cajacuri Michi",
+      recipientDni: "CA74437MJ",
+      recipientDocumentType: "carta_identita_italia",
+      recipientPhone: "+39 3490688907",
+      status: "En agencia",
+      paymentStatus: "Pagado",
+      route: "Lima - Torino",
+      orderNumber: "63526277",
+      code: "DOC-2026-CIE1",
+      createdAt: new Date("2026-08-25T10:00:00.000Z"),
+    }];
+    render(<AdminDashboard />);
+    fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
+    fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
+    await screen.findByRole("textbox", { name: "Buscar registros" });
+    const shipmentRow = screen.getByText("63526277").closest("tr");
+    expect(shipmentRow).toBeTruthy();
+    fireEvent.click(within(shipmentRow as HTMLElement).getByRole("button", { name: "Actualizar" }));
+
+    const recipientType = await screen.findByLabelText("Documento del destinatario - tipo de identificación") as HTMLSelectElement;
+    const recipientNumber = screen.getByLabelText("Documento del destinatario - número de identificación") as HTMLInputElement;
+    expect(recipientType.value).toBe("carta_identita_italia");
+    expect(recipientNumber.value).toBe("CA74437MJ");
+    expect(recipientNumber.maxLength).toBe(9);
+    expect(recipientNumber.inputMode).toBe("text");
+    expect(screen.getByText("2 letras, 5 números y 2 letras (9 caracteres).")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Guardar cambios" }));
+    await waitFor(() => expect(mocks.updateStatus.mutateAsync).toHaveBeenCalledWith(expect.objectContaining({
+      recipientDni: "CA74437MJ",
+      recipientDocumentType: "carta_identita_italia",
+    })));
+  });
+});

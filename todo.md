@@ -1451,3 +1451,9 @@
 - [x] Reemplazar referencias antiguas como 13,50 EUR por los valores actuales sin sobrescribir notas escritas manualmente
 - [x] Mantener las notas actualizadas en creación, edición, recibos y rastreo
 - [x] Añadir pruebas de cambios de tarifa y total, validar TypeScript, suite completa y publicar
+
+## Tipo de identidad consistente en los envíos
+- [x] Conservar para remitente y destinatario el tipo seleccionado al crear el envío
+- [x] Restaurar Carta d’identità, pasaporte o DNI al editar y validar según su formato real
+- [x] Mostrar en recibos, detalles y rastreo la etiqueta del tipo documental guardado
+- [x] Añadir pruebas de persistencia, edición y validación; ejecutar la suite completa y publicar

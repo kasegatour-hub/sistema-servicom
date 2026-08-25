@@ -81,6 +81,27 @@ describe("receipt window helpers", () => {
     expect(word).toContain("Miguel Díaz Ojitos");
   });
 
+  it("muestra el tipo de identidad guardado en lugar de etiquetar la Carta d’identità como DNI", () => {
+    const markdown = buildReceiptMarkdown({
+      orderNumber: "63526277",
+      code: "DOC-2026-CIE1",
+      shipmentType: "documento",
+      route: "Lima - Torino",
+      senderName: "Artemio",
+      senderLastName: "Cajacuri",
+      senderDni: "10597707",
+      senderDocumentType: "dni_peru",
+      recipientName: "Carolay",
+      recipientLastName: "Cajacuri",
+      recipientDni: "CA74437MJ",
+      recipientDocumentType: "carta_identita_italia",
+    });
+
+    expect(markdown).toContain("**DNI peruano:** 10597707");
+    expect(markdown).toContain("**Carta d’identità italiana (CIE):** CA74437MJ");
+    expect(markdown).not.toContain("**DNI peruano:** CA74437MJ");
+  });
+
   it("prioriza la agencia provincial elegida sobre la sede Kasega al generar el comprobante", () => {
     const shipment = {
       orderNumber: "3289150599",

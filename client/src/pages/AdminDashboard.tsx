@@ -46,7 +46,7 @@ import { AgencyDestinationPicker, type AgencyProvider } from "@/components/Agenc
 import { LimaTorinoTransferPanel } from "@/components/LimaTorinoTransferPanel";
 import { TransferWorkspace } from "@/components/TransferWorkspace";
 import { QRScanner } from "@/components/QRScanner";
-import { normalizeIdentityDocument, type IdentityDocumentType } from "@shared/identityDocuments";
+import { isValidIdentityDocument, normalizeIdentityDocument, type IdentityDocumentType } from "@shared/identityDocuments";
 import { getFuzzySearchScore } from "@shared/fuzzySearch";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "@shared/passwordPolicy";
 import { isValidInternationalPhone } from "@shared/phoneValidation";
@@ -301,10 +301,12 @@ const updateStatusSchema = z.object({
   senderName: optionalTextField,
   senderLastName: optionalTextField,
   senderDni: optionalDocumentNumberField,
+  senderDocumentType: z.enum(["dni_peru", "pasaporte", "carta_identita_italia"]).optional(),
   senderPhone: z.string().optional(),
   recipientName: optionalTextField,
   recipientLastName: optionalTextField,
   recipientDni: optionalDocumentNumberField,
+  recipientDocumentType: z.enum(["dni_peru", "pasaporte", "carta_identita_italia"]).optional(),
   recipientPhone: z.string().optional(),
   notes: z.string().optional(),
   shipmentType: z.enum(["documento", "encomienda"]).optional(),
@@ -330,6 +332,15 @@ const updateStatusSchema = z.object({
   provinceSenderLastName: z.string().trim().max(255).optional(),
   provinceSenderDni: z.string().trim().max(20).optional(),
   provinceSenderPhone: z.string().trim().max(20).optional(),
+}).superRefine((value, ctx) => {
+  const senderDocumentType = value.senderDocumentType ?? "dni_peru";
+  const recipientDocumentType = value.recipientDocumentType ?? "dni_peru";
+  if (value.senderDni && !isValidIdentityDocument(value.senderDni, senderDocumentType)) {
+    ctx.addIssue({ code: "custom", path: ["senderDni"], message: "El documento del remitente no coincide con el tipo seleccionado." });
+  }
+  if (value.recipientDni && !isValidIdentityDocument(value.recipientDni, recipientDocumentType)) {
+    ctx.addIssue({ code: "custom", path: ["recipientDni"], message: "El documento del destinatario no coincide con el tipo seleccionado." });
+  }
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
@@ -803,10 +814,12 @@ export default function AdminDashboard() {
       senderName: '',
       senderLastName: '',
       senderDni: '',
+      senderDocumentType: 'dni_peru',
       senderPhone: '',
       recipientName: '',
       recipientLastName: '',
       recipientDni: '',
+      recipientDocumentType: 'dni_peru',
       recipientPhone: '',
       notes: '',
       shipmentType: 'documento',
@@ -889,10 +902,12 @@ export default function AdminDashboard() {
       senderName: shipment.senderName || "",
       senderLastName: shipment.senderLastName || "",
       senderDni: shipment.senderDni || "",
+      senderDocumentType: shipment.senderDocumentType || "dni_peru",
       senderPhone: shipment.senderPhone || "",
       recipientName: shipment.recipientName || "",
       recipientLastName: shipment.recipientLastName || "",
       recipientDni: shipment.recipientDni || "",
+      recipientDocumentType: shipment.recipientDocumentType || "dni_peru",
       recipientPhone: shipment.recipientPhone || "",
       notes: shipment.notes || "",
       shipmentType: shipment.shipmentType || "documento",
@@ -3108,9 +3123,16 @@ export default function AdminDashboard() {
                     <Input placeholder="Apellido" inputMode="text" {...updateForm.register("senderLastName", textRegisterOptions(updateForm, "senderLastName", "El apellido"))} />
                     <p className="text-xs text-gray-500">Solo letras y espacios.</p>
                     {updateForm.formState.errors.senderLastName?.message && <p className="text-xs text-red-600">{String(updateForm.formState.errors.senderLastName.message)}</p>}
-                    <Input placeholder="DNI" inputMode="numeric" pattern="[0-9]*" maxLength={DNI_MAX_LENGTH} {...updateForm.register("senderDni", digitsRegisterOptions(updateForm, "senderDni"))} />
-                    <p className="text-xs text-gray-500">Solo números, máximo 8 dígitos.</p>
-                    {updateForm.formState.errors.senderDni?.message && <p className="text-xs text-red-600">{String(updateForm.formState.errors.senderDni.message)}</p>}
+                    <IdentityDocumentField
+                      id="update-sender-document"
+                      label="Documento del remitente"
+                      required
+                      documentType={(updateForm.watch("senderDocumentType") || "dni_peru") as IdentityDocumentType}
+                      onDocumentTypeChange={(value) => updateForm.setValue("senderDocumentType", value, { shouldDirty: true, shouldValidate: true })}
+                      value={updateForm.watch("senderDni") || ""}
+                      onValueChange={(value) => updateForm.setValue("senderDni", value, { shouldDirty: true, shouldValidate: true })}
+                      error={String(updateForm.formState.errors.senderDni?.message || "")}
+                    />
                     <PhoneInput
                       value={updateForm.watch("senderPhone") || ""}
                       onChange={(value) => updateForm.setValue("senderPhone", value, { shouldDirty: true })}
@@ -3128,9 +3150,16 @@ export default function AdminDashboard() {
                     <Input placeholder="Apellido" inputMode="text" {...updateForm.register("recipientLastName", textRegisterOptions(updateForm, "recipientLastName", "El apellido"))} />
                     <p className="text-xs text-gray-500">Solo letras y espacios.</p>
                     {updateForm.formState.errors.recipientLastName?.message && <p className="text-xs text-red-600">{String(updateForm.formState.errors.recipientLastName.message)}</p>}
-                    <Input placeholder="DNI" inputMode="numeric" pattern="[0-9]*" maxLength={DNI_MAX_LENGTH} {...updateForm.register("recipientDni", digitsRegisterOptions(updateForm, "recipientDni"))} />
-                    <p className="text-xs text-gray-500">Solo números, máximo 8 dígitos.</p>
-                    {updateForm.formState.errors.recipientDni?.message && <p className="text-xs text-red-600">{String(updateForm.formState.errors.recipientDni.message)}</p>}
+                    <IdentityDocumentField
+                      id="update-recipient-document"
+                      label="Documento del destinatario"
+                      required
+                      documentType={(updateForm.watch("recipientDocumentType") || "dni_peru") as IdentityDocumentType}
+                      onDocumentTypeChange={(value) => updateForm.setValue("recipientDocumentType", value, { shouldDirty: true, shouldValidate: true })}
+                      value={updateForm.watch("recipientDni") || ""}
+                      onValueChange={(value) => updateForm.setValue("recipientDni", value, { shouldDirty: true, shouldValidate: true })}
+                      error={String(updateForm.formState.errors.recipientDni?.message || "")}
+                    />
                     <PhoneInput
                       value={updateForm.watch("recipientPhone") || ""}
                       onChange={(value) => updateForm.setValue("recipientPhone", value, { shouldDirty: true })}

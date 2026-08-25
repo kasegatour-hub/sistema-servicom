@@ -49,3 +49,8 @@ export function getIdentityDocumentError(type: IdentityDocumentType): string {
   if (type === "pasaporte") return "El pasaporte debe contener entre 6 y 9 caracteres alfanuméricos, sin espacios.";
   return "La carta d’identità italiana debe tener el formato AA12345BB: 2 letras, 5 números y 2 letras.";
 }
+
+export function getIdentityDocumentLabel(type: string | null | undefined): string {
+  const normalizedType = IDENTITY_DOCUMENT_TYPES.includes(type as IdentityDocumentType) ? type as IdentityDocumentType : "dni_peru";
+  return IDENTITY_DOCUMENT_DEFINITIONS[normalizedType].label;
+}

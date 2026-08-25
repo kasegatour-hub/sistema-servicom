@@ -6,6 +6,7 @@ import { buildReceiptPriceHtml } from "./receiptPrice";
 import { getRoutePresentation } from "./routeDetails";
 import { buildElectronicSignatureHtml, buildReceiptDownloadFilename, getReceiptBranding } from "./userReceipt";
 import { buildShipmentDeliveryStatusUrl, buildTrackingUrl, TRACKING_QR_OPTIONS } from "./tracking";
+import { getIdentityDocumentLabel } from "@shared/identityDocuments";
 
 type AdminReceiptDocumentInput = {
   shipment: any;
@@ -199,9 +200,9 @@ export async function downloadAdminReceiptPdf(input: AdminReceiptDocumentInput, 
   y = addSection("Ruta y comprobante", y);
   y = addRows([["Ruta", route.route], ["Orden", order], ["Código", code], ["Estado", String(shipment.status || "No especificado")], ["Estado de pago", paymentLabel], ...apostilleRows], y);
   y = addSection("Datos del remitente", y + 4);
-  y = addRows([["Remitente", sender], ["Documento", String(shipment.senderDni || "No especificado")], ["Celular", formatPhoneNumber(shipment.senderPhone) || "No especificado"]], y);
+  y = addRows([["Remitente", sender], [getIdentityDocumentLabel(shipment.senderDocumentType), String(shipment.senderDni || "No especificado")], ["Celular", formatPhoneNumber(shipment.senderPhone) || "No especificado"]], y);
   y = addSection("Datos del destinatario", y + 4);
-  y = addRows([["Destinatario", recipient], ["Documento", String(shipment.recipientDni || "No especificado")], ["Celular", formatPhoneNumber(shipment.recipientPhone) || "No especificado"], ["Sede de entrega", `${route.destinationPrintLabel} · ${route.destination.officeLabel}`], ["Dirección", route.destination.address]], y);
+  y = addRows([["Destinatario", recipient], [getIdentityDocumentLabel(shipment.recipientDocumentType), String(shipment.recipientDni || "No especificado")], ["Celular", formatPhoneNumber(shipment.recipientPhone) || "No especificado"], ["Sede de entrega", `${route.destinationPrintLabel} · ${route.destination.officeLabel}`], ["Dirección", route.destination.address]], y);
   y = addSection("Contenido y precio", y + 4);
   const checklist = getChecklist(shipment);
   y = addRows([["Lista de cosas", checklist.length ? checklist.join(" · ") : "Sin ítems registrados"], ["Notas", String(shipment.notes || "Sin notas")], ["Precio final", `${Number(shipment.finalPriceEur ?? shipment.basePriceEur ?? 0).toFixed(2)} EUR`]], y);
