@@ -438,9 +438,10 @@ reauthRequired: session.reauthRequired,
       }
       const apostilleEur = input.requiresApostilleService && input.route === "Torino - Lima" ? 40 : 0;
       const apostilleSoles = input.requiresApostilleService && input.route === "Torino - Lima" ? 160 : 0;
+      const translationEur = input.requiresTranslationService && input.route === "Torino - Lima" ? 50 : 0;
       const translationSoles = input.requiresTranslationService && input.route === "Torino - Lima" ? 200 : 0;
-      totalEur += apostilleEur;
-      const serviceNotes = `${apostilleEur ? ` Apostilla: +${apostilleEur.toFixed(2)} EUR y +${apostilleSoles.toFixed(2)} soles.` : ""}${translationSoles ? ` Traducción: +${translationSoles.toFixed(2)} soles.` : ""}`;
+      totalEur += apostilleEur + translationEur;
+      const serviceNotes = `${apostilleEur ? ` Apostilla: +${apostilleEur.toFixed(2)} EUR y +${apostilleSoles.toFixed(2)} soles; plazo estimado: 7 días hábiles.` : ""}${translationEur ? ` Traducción: +${translationEur.toFixed(2)} EUR y +${translationSoles.toFixed(2)} soles; plazo estimado: 7 días hábiles.` : ""}`;
       const calculatedNotes = `Tarifa: ${tariffDesc}.${serviceNotes} ${input.notes || ""}`.trim();
 
       const result = await createShipment(

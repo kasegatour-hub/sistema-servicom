@@ -138,8 +138,9 @@ describe("AccountPage client labels", () => {
     fireEvent.click(apostilleOption);
     expect(apostilleOption.checked).toBe(true);
     expect(screen.getByText("Servicios adicionales opcionales")).toBeTruthy();
-    expect(screen.getByText(/Apostillado: \+40,00 EUR \+ 160,00 soles/)).toBeTruthy();
+    expect(screen.getByText(/Apostillado: \+40,00 EUR \+ 160,00 soles · 7 días hábiles/)).toBeTruthy();
     expect(screen.getByText(/Traducción: no seleccionada/)).toBeTruthy();
+    expect(screen.getAllByText(/Plazo estimado: 7 días hábiles/).length).toBeGreaterThanOrEqual(1);
 
     fireEvent.change(routeSelect, { target: { value: "Lima - Torino" } });
     await waitFor(() => expect(screen.queryByLabelText("Documentos para apostillar")).toBeNull());

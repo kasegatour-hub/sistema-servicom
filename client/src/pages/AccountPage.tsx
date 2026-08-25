@@ -535,7 +535,7 @@ export default function AccountPage() {
                       <div><strong>Fecha:</strong> {new Date(receiptShipment.createdAt || Date.now()).toLocaleDateString()}</div>
                       <div className="col-span-2"><strong>Estado de Pago:</strong> <span className={`inline-flex rounded px-2 py-0.5 font-semibold ${receiptPaymentUi?.badgeClass}`}>{receiptPaymentUi?.label}</span></div>
                        {(receiptShipment.requiresApostilleService === true || Number(receiptShipment.requiresApostilleService) === 1) && <div className="col-span-2 rounded-md border border-[#0B2B5E]/20 bg-blue-50 px-3 py-2 font-semibold text-[#0B2B5E]"><strong>Servicio solicitado:</strong> Documentos para apostillar — 40 EUR + 160 soles</div>}
-                       {(receiptShipment.requiresTranslationService === true || Number(receiptShipment.requiresTranslationService) === 1) && <div className="col-span-2 rounded-md border border-[#0B2B5E]/20 bg-blue-50 px-3 py-2 font-semibold text-[#0B2B5E]"><strong>Servicio solicitado:</strong> Documentos para traducir — 200 soles</div>}
+                       {(receiptShipment.requiresTranslationService === true || Number(receiptShipment.requiresTranslationService) === 1) && <div className="col-span-2 rounded-md border border-[#0B2B5E]/20 bg-blue-50 px-3 py-2 font-semibold text-[#0B2B5E]"><strong>Servicio solicitado:</strong> Documentos para traducir — 50 EUR + 200 soles · plazo estimado: 7 días hábiles</div>}
                       <div className="col-span-2"><strong>Descripción / Notas:</strong> {receiptShipment.notes || "Documentación lícita"}</div>
                     </div>
                   </div>
@@ -792,13 +792,13 @@ export default function AccountPage() {
                   {shipmentRoute === "Torino - Lima" && (
                     <label className={`${mobileShipmentStepVisible(1) ? "" : "hidden"} md:col-span-2 flex cursor-pointer items-start gap-3 rounded-xl border-2 border-[#0B2B5E] bg-blue-50 p-4 text-sm shadow-sm transition hover:bg-blue-100/70`}>
                       <input type="checkbox" aria-label="Documentos para apostillar" checked={requiresApostilleService} onChange={event => setRequiresApostilleService(event.target.checked)} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-[#0B2B5E] focus:ring-[#0B2B5E]" />
-                      <span><strong className="block text-base text-[#0B2B5E]">Documentos para apostillar — 40 EUR + 160 soles</strong><span className="mt-1 block text-slate-700">Solicita el servicio de apostilla para documentos Torino – Lima. El importe automático coincide con la tarifa administrativa.</span></span>
+                      <span><strong className="block text-base text-[#0B2B5E]">Documentos para apostillar — 40 EUR + 160 soles</strong><span className="mt-1 block text-slate-700">Solicita el servicio de apostilla para documentos Torino – Lima. Plazo estimado: 7 días hábiles. El importe se suma al precio del documento.</span></span>
                     </label>
                   )}
                   {shipmentRoute === "Torino - Lima" && (
                     <label className={`${mobileShipmentStepVisible(1) ? "" : "hidden"} md:col-span-2 flex cursor-pointer items-start gap-3 rounded-xl border-2 border-[#0B2B5E] bg-blue-50 p-4 text-sm shadow-sm transition hover:bg-blue-100/70`}>
                       <input type="checkbox" aria-label="Documentos para traducir" checked={requiresTranslationService} onChange={event => setRequiresTranslationService(event.target.checked)} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-[#0B2B5E] focus:ring-[#0B2B5E]" />
-                      <span><strong className="block text-base text-[#0B2B5E]">Documentos para traducir — 200 soles</strong><span className="mt-1 block text-slate-700">Solicita la traducción de tus documentos Torino – Lima. Puedes combinar este servicio con la apostilla.</span></span>
+                      <span><strong className="block text-base text-[#0B2B5E]">Documentos para traducir — 50 EUR + 200 soles</strong><span className="mt-1 block text-slate-700">Solicita la traducción de tus documentos Torino – Lima. Plazo estimado: 7 días hábiles. Puedes combinar este servicio con la apostilla.</span></span>
                     </label>
                   )}
                   <div className={`${mobileShipmentStepVisible(1) ? "" : "hidden"} md:col-span-2`}><AgencyDestinationPicker route={shipmentRoute} value={destinationAddress} onChange={setDestinationAddress} /></div>
@@ -817,8 +817,8 @@ export default function AccountPage() {
                    {shipmentRoute === "Torino - Lima" && <div className={`${mobileShipmentStepVisible(2) ? "" : "hidden"} md:col-span-2 rounded-xl border-2 border-[#0B2B5E]/20 bg-slate-50 p-4`} aria-live="polite">
                      <p className="text-sm font-bold uppercase tracking-wide text-[#0B2B5E]">Servicios adicionales opcionales</p>
                      <div className="mt-2 grid gap-2 text-sm text-slate-700 sm:grid-cols-2">
-                       <p className={requiresApostilleService ? "font-semibold text-[#0B2B5E]" : ""}>Apostillado: {requiresApostilleService ? "+40,00 EUR + 160,00 soles" : "no seleccionado"}</p>
-                       <p className={requiresTranslationService ? "font-semibold text-[#0B2B5E]" : ""}>Traducción: {requiresTranslationService ? "+200,00 soles" : "no seleccionada"}</p>
+                       <p className={requiresApostilleService ? "font-semibold text-[#0B2B5E]" : ""}>Apostillado: {requiresApostilleService ? "+40,00 EUR + 160,00 soles · 7 días hábiles" : "no seleccionado"}</p>
+                       <p className={requiresTranslationService ? "font-semibold text-[#0B2B5E]" : ""}>Traducción: {requiresTranslationService ? "+50,00 EUR + 200,00 soles · 7 días hábiles" : "no seleccionada"}</p>
                      </div>
                      <p className="mt-2 text-xs text-slate-500">El precio base del documento se mantiene sin cambios. Solo se agrega el servicio que marques.</p>
                    </div>}

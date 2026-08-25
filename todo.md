@@ -1212,3 +1212,9 @@
 - [x] Mostrar Ruta de envío, Modalidad de entrega, Estados, precios, extras y cupón después de Tipo de documento
 - [x] Mantener el cálculo, validaciones y payload existentes al reordenar los bloques
 - [x] Verificar el orden en escritorio y móvil con pruebas de interfaz
+
+## Cotización y plazo de servicios del cliente
+- [x] Mostrar apostillado como adicional de 40 EUR y 160 soles
+- [x] Mostrar traducción como adicional de 50 EUR y 200 soles
+- [x] Indicar 7 días hábiles de plazo para cada servicio en confirmación y recibo
+- [x] Añadir pruebas de cotización y plazo sin alterar la tarifa base del cliente
