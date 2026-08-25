@@ -1125,6 +1125,7 @@ export async function createShipment(
   deliveryLocationLatitude?: string | number | null,
   deliveryLocationLongitude?: string | number | null,
   missingItems?: string[] | string | null,
+  extraDiscountEur?: string | number | null,
 ) {
   const db = await getDb();
   if (!db) {
@@ -1178,6 +1179,7 @@ export async function createShipment(
     weightKg: String(weightKg ?? "1.00"),
     manualPriceEur: manualPriceEur !== undefined && manualPriceEur !== null && String(manualPriceEur).trim() !== "" ? String(manualPriceEur) : null,
     extraPriceEur: extraPriceEur !== undefined && extraPriceEur !== null && String(extraPriceEur).trim() !== "" ? String(Math.max(0, Number(extraPriceEur) || 0)) : "0.00",
+    extraDiscountEur: extraDiscountEur !== undefined && extraDiscountEur !== null && String(extraDiscountEur).trim() !== "" ? String(Math.max(0, Number(extraDiscountEur) || 0)) : "0.00",
     couponCode: couponCode ? normalizeOrderCode(couponCode) : null,
     basePriceEur: basePriceEur !== undefined && basePriceEur !== null && String(basePriceEur).trim() !== "" ? String(basePriceEur) : null,
     discountPercent: discountPercent !== undefined && discountPercent !== null && String(discountPercent).trim() !== "" ? String(discountPercent) : "0.00",
@@ -1290,6 +1292,7 @@ export async function updateShipmentStatus(
   deliveryLocationLatitude?: string | number | null,
   deliveryLocationLongitude?: string | number | null,
   missingItems?: string[] | string | null,
+  extraDiscountEur?: string | number | null,
 ) {
   const db = await getDb();
   if (!db) {
@@ -1352,6 +1355,7 @@ export async function updateShipmentStatus(
         weightKg: weightKg !== undefined ? String(weightKg) : shipment.weightKg ?? "1.00",
         manualPriceEur: manualPriceEur !== undefined ? (manualPriceEur !== null && String(manualPriceEur).trim() !== "" ? String(manualPriceEur) : null) : shipment.manualPriceEur,
         extraPriceEur: extraPriceEur !== undefined ? String(Math.max(0, Number(extraPriceEur) || 0)) : shipment.extraPriceEur ?? "0.00",
+        extraDiscountEur: extraDiscountEur !== undefined ? String(Math.max(0, Math.min(Number(extraPriceEur ?? shipment.extraPriceEur ?? 0) || 0, Number(extraDiscountEur) || 0))) : shipment.extraDiscountEur ?? "0.00",
         couponCode: couponCode !== undefined ? (couponCode ? normalizeOrderCode(couponCode) : null) : shipment.couponCode,
         basePriceEur: basePriceEur !== undefined ? (basePriceEur !== null && String(basePriceEur).trim() !== "" ? String(basePriceEur) : null) : shipment.basePriceEur,
         discountPercent: discountPercent !== undefined ? (discountPercent !== null && String(discountPercent).trim() !== "" ? String(discountPercent) : "0.00") : shipment.discountPercent,

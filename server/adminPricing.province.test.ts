@@ -2,6 +2,22 @@ import { describe, expect, it } from "vitest";
 import { calculateAdminShipmentPricing } from "./adminPricing";
 
 describe("calculateAdminShipmentPricing — provincia Italia–Lima", () => {
+  it("suma el importe extra a la tarifa automática o manual y permite descontarlo sin reemplazar la base", () => {
+    const automatic = calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 2, extraPriceEur: 9 });
+    expect(automatic.totalEur).toBe(36);
+    expect(automatic.manualPrice).toBeNull();
+
+    const manual = calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 2, manualPriceEur: 40, extraPriceEur: 9 });
+    expect(manual.totalEur).toBe(49);
+
+    const discounted = calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: 2, manualPriceEur: 40, extraPriceEur: 9, extraDiscountEur: 4 });
+    expect(discounted.totalEur).toBe(45);
+    expect(discounted.extraPriceEur).toBe(9);
+    expect(discounted.extraDiscountEur).toBe(4);
+    expect(discounted.netExtraPriceEur).toBe(5);
+    expect(discounted.notes).toContain("descuento del extra: -4.00 EUR");
+  });
+
   it("suma el precio provincial cobrado al cliente y aplica S/ 8 para documentos por defecto", () => {
     const result = calculateAdminShipmentPricing({
       shipmentType: "documento",

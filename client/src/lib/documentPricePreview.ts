@@ -6,6 +6,7 @@ export type DocumentPricePreviewInput = {
   additionalTotalEur?: number;
   manualPriceEur?: string | number | null;
   extraPriceEur?: string | number | null;
+  extraDiscountEur?: string | number | null;
 };
 
 export function getDocumentPricePreview(input: DocumentPricePreviewInput) {
@@ -26,7 +27,11 @@ export function getDocumentPricePreview(input: DocumentPricePreviewInput) {
   const rawExtraPrice = input.extraPriceEur === undefined || input.extraPriceEur === null ? "0" : String(input.extraPriceEur).trim();
   const parsedExtraPrice = Number(rawExtraPrice);
   const extraPriceEur = Number.isFinite(parsedExtraPrice) && parsedExtraPrice >= 0 ? parsedExtraPrice : 0;
-  const totalEur = (usesManualPrice ? parsedManualPrice : automaticMainEur + additionalTotalEur) + extraPriceEur;
+  const rawExtraDiscount = input.extraDiscountEur === undefined || input.extraDiscountEur === null ? "0" : String(input.extraDiscountEur).trim();
+  const parsedExtraDiscount = Number(rawExtraDiscount);
+  const extraDiscountEur = Number.isFinite(parsedExtraDiscount) && parsedExtraDiscount >= 0 ? Math.min(parsedExtraDiscount, extraPriceEur) : 0;
+  const netExtraPriceEur = Math.max(0, extraPriceEur - extraDiscountEur);
+  const totalEur = (usesManualPrice ? parsedManualPrice : automaticMainEur + additionalTotalEur) + netExtraPriceEur;
   const label = docType === "simple" ? "Documento simple" : "Documento apostillado";
   const nextChargeDescription = docType === "simple"
     ? `La hoja ${includedSheets + 1} agrega 2,00 €.`
@@ -44,6 +49,8 @@ export function getDocumentPricePreview(input: DocumentPricePreviewInput) {
     automaticMainEur,
     additionalTotalEur,
     extraPriceEur,
+    extraDiscountEur,
+    netExtraPriceEur,
     usesManualPrice,
     totalEur,
     isAtIncludedLimit: sheetCount === includedSheets,

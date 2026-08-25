@@ -8,6 +8,7 @@ export type AdminShipmentPricingInput = {
   weightKg?: number;
   manualPriceEur?: string | number | null;
   extraPriceEur?: string | number | null;
+  extraDiscountEur?: string | number | null;
   route?: string;
   requiresApostilleService?: boolean;
   requiresTranslationService?: boolean;
@@ -65,6 +66,10 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
   const rawExtraPrice = input.extraPriceEur === undefined || input.extraPriceEur === null ? "0" : String(input.extraPriceEur).trim();
   const parsedExtraPrice = Number(rawExtraPrice);
   const extraPriceEur = Number.isFinite(parsedExtraPrice) && parsedExtraPrice >= 0 ? parsedExtraPrice : 0;
+  const rawExtraDiscount = input.extraDiscountEur === undefined || input.extraDiscountEur === null ? "0" : String(input.extraDiscountEur).trim();
+  const parsedExtraDiscount = Number(rawExtraDiscount);
+  const extraDiscountEur = Number.isFinite(parsedExtraDiscount) && parsedExtraDiscount >= 0 ? Math.min(parsedExtraDiscount, extraPriceEur) : 0;
+  const netExtraPriceEur = Math.max(0, extraPriceEur - extraDiscountEur);
 
   let totalEur: number;
   let tariffDescription: string;
@@ -89,9 +94,9 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
     tariffDescription = `Documento apostillado (${sheetCount} hoja${sheetCount > 1 ? "s" : ""}): ${basePrice} EUR${additionalDocuments.items.length ? `. Adicionales: ${additionalDocuments.items.map(item => item.description).join("; ")}` : ""}`;
   }
 
-  const totalWithExtraEur = totalEur + extraPriceEur + servicePriceEur + provinceCustomerPriceEur + provinceExtraPriceEur;
+  const totalWithExtraEur = totalEur + netExtraPriceEur + servicePriceEur + provinceCustomerPriceEur + provinceExtraPriceEur;
   const provinceDescription = provinceEnabled ? ` Envío a provincia (${provinceCarrier || "agencia seleccionada"}): 1–5 kg +10.00 EUR; más de 5–15 kg +15.00 EUR${provinceExtraPriceEur > 0 ? `; excedente sobre 15 kg +${provinceExtraPriceEur.toFixed(2)} EUR a 1.50 EUR/kg` : ""}.` : "";
-  const extraDescription = extraPriceEur > 0 ? ` Importe extra: +${extraPriceEur.toFixed(2)} EUR.` : "";
+  const extraDescription = extraPriceEur > 0 ? ` Importe extra: +${extraPriceEur.toFixed(2)} EUR${extraDiscountEur > 0 ? `; descuento del extra: -${extraDiscountEur.toFixed(2)} EUR; extra neto: +${netExtraPriceEur.toFixed(2)} EUR` : ""}.` : "";
   const serviceDescription = `${requiresApostilleService ? ` Servicio de apostilla Italia–Lima: +${servicePriceEur.toFixed(2)} EUR y +${(serviceManualPriceSoles ?? 160).toFixed(2)} soles.` : ""}${requiresTranslationService ? ` Servicio de traducción Italia–Lima: +${(serviceManualPriceSoles ?? 200).toFixed(2)} soles.` : ""}`;
   return {
     shipmentType,
@@ -100,6 +105,8 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
     weightKg,
     manualPrice,
     extraPriceEur,
+    extraDiscountEur,
+    netExtraPriceEur,
     route,
     requiresApostilleService,
     requiresTranslationService,

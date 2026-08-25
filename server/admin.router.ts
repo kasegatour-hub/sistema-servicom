@@ -701,6 +701,7 @@ export const adminRouter = router({
       weightKg: z.number().min(0.1).default(1),
       manualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
       extraPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
+      extraDiscountEur: z.union([z.string(), z.number()]).optional().nullable(),
       paymentStatus: z.enum(["Pagado", "Falta cancelar"]).default("Falta cancelar"),
       route: z.enum(ROUTE_VALUES).default("Lima - Torino"),
       originAddress: z.string().optional(),
@@ -835,6 +836,7 @@ export const adminRouter = router({
         input.deliveryLocationLatitude,
         input.deliveryLocationLongitude,
         input.missingItems,
+        pricing.extraDiscountEur,
       );
       if (!result) {
         throw new TRPCError({
@@ -910,6 +912,7 @@ export const adminRouter = router({
       weightKg: z.number().optional(),
       manualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
       extraPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
+      extraDiscountEur: z.union([z.string(), z.number()]).optional().nullable(),
       paymentStatus: z.enum(["Pagado", "Falta cancelar"]).optional(),
       route: z.string().optional(),
       originAddress: z.string().optional(),
@@ -961,9 +964,9 @@ export const adminRouter = router({
       const effectiveDocumentSheetCount = input.sheetCount ?? currentShipment.documentSheetCount ?? 1;
       const effectiveExtraPrice = input.extraPriceEur ?? currentShipment.extraPriceEur ?? 0;
       const freeformNotes = (input.notes ?? "").trim().startsWith("Tarifa:") ? "" : (input.notes ?? "").trim();
-      const pricing = isParcel ? calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: effectiveWeight, manualPriceEur: input.pricingMode === "manual" ? input.manualPriceEur : null, extraPriceEur: effectiveExtraPrice, route: effectiveRoute, notes: freeformNotes, isProvinceDelivery: input.isProvinceDelivery ?? Boolean(currentShipment.isProvinceDelivery), provinceCustomerPriceEur: input.provinceCustomerPriceEur ?? currentShipment.provinceCustomerPriceEur, provinceExtraPriceEur: input.provinceExtraPriceEur ?? currentShipment.provinceExtraPriceEur, provinceOperationalCostSoles: input.provinceOperationalCostSoles ?? currentShipment.provinceOperationalCostSoles, provinceCarrier: input.provinceCarrier ?? currentShipment.provinceCarrier }) : null;
+      const pricing = isParcel ? calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: effectiveWeight, manualPriceEur: input.pricingMode === "manual" ? input.manualPriceEur : null, extraPriceEur: effectiveExtraPrice, extraDiscountEur: input.extraDiscountEur ?? currentShipment.extraDiscountEur ?? 0, route: effectiveRoute, notes: freeformNotes, isProvinceDelivery: input.isProvinceDelivery ?? Boolean(currentShipment.isProvinceDelivery), provinceCustomerPriceEur: input.provinceCustomerPriceEur ?? currentShipment.provinceCustomerPriceEur, provinceExtraPriceEur: input.provinceExtraPriceEur ?? currentShipment.provinceExtraPriceEur, provinceOperationalCostSoles: input.provinceOperationalCostSoles ?? currentShipment.provinceOperationalCostSoles, provinceCarrier: input.provinceCarrier ?? currentShipment.provinceCarrier }) : null;
       const documentPricing = !isParcel
-        ? calculateAdminShipmentPricing({ shipmentType: "documento", docType: effectiveDocumentKind, sheetCount: effectiveDocumentSheetCount, manualPriceEur: input.pricingMode === "manual" ? input.manualPriceEur : null, extraPriceEur: effectiveExtraPrice, route: effectiveRoute, notes: freeformNotes, requiresApostilleService: input.requiresApostilleService ?? Boolean(currentShipment.requiresApostilleService), requiresTranslationService: input.requiresTranslationService ?? Boolean(currentShipment.requiresTranslationService), isProvinceDelivery: input.isProvinceDelivery ?? Boolean(currentShipment.isProvinceDelivery), provinceCustomerPriceEur: input.provinceCustomerPriceEur ?? currentShipment.provinceCustomerPriceEur, provinceExtraPriceEur: input.provinceExtraPriceEur ?? currentShipment.provinceExtraPriceEur, provinceOperationalCostSoles: input.provinceOperationalCostSoles ?? currentShipment.provinceOperationalCostSoles, provinceCarrier: input.provinceCarrier ?? currentShipment.provinceCarrier })
+        ? calculateAdminShipmentPricing({ shipmentType: "documento", docType: effectiveDocumentKind, sheetCount: effectiveDocumentSheetCount, manualPriceEur: input.pricingMode === "manual" ? input.manualPriceEur : null, extraPriceEur: effectiveExtraPrice, extraDiscountEur: input.extraDiscountEur ?? currentShipment.extraDiscountEur ?? 0, route: effectiveRoute, notes: freeformNotes, requiresApostilleService: input.requiresApostilleService ?? Boolean(currentShipment.requiresApostilleService), requiresTranslationService: input.requiresTranslationService ?? Boolean(currentShipment.requiresTranslationService), isProvinceDelivery: input.isProvinceDelivery ?? Boolean(currentShipment.isProvinceDelivery), provinceCustomerPriceEur: input.provinceCustomerPriceEur ?? currentShipment.provinceCustomerPriceEur, provinceExtraPriceEur: input.provinceExtraPriceEur ?? currentShipment.provinceExtraPriceEur, provinceOperationalCostSoles: input.provinceOperationalCostSoles ?? currentShipment.provinceOperationalCostSoles, provinceCarrier: input.provinceCarrier ?? currentShipment.provinceCarrier })
         : null;
       const updatedPricing = pricing || documentPricing;
       const result = await updateShipmentStatus(
@@ -1015,6 +1018,7 @@ export const adminRouter = router({
         input.deliveryLocationLatitude,
         input.deliveryLocationLongitude,
         input.missingItems,
+        updatedPricing?.extraDiscountEur ?? input.extraDiscountEur,
       );
       if (!result) {
         throw new TRPCError({

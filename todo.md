@@ -1194,3 +1194,10 @@
 - [x] Hacer visibles todas las empresas regionales del catálogo provincial por zonas
 - [x] Corregir tarifas provinciales: 1–5 kg = 10 EUR; >5–15 kg = 15 EUR; excedente sobre 15 kg = 1,50 EUR/kg
 - [x] Actualizar recibos, notas y pruebas con las nuevas reglas provinciales
+
+## Corrección de importe extra y descuento flexible
+- [x] Hacer que el importe extra se sume al precio base automático
+- [x] Hacer que el importe extra también se sume al precio base manual
+- [x] Añadir una opción independiente para descontar o quitar parte del importe extra
+- [x] Actualizar el desglose visual, notas, recibos y edición del envío
+- [x] Añadir pruebas de suma base/manual más extra y descuento del extra

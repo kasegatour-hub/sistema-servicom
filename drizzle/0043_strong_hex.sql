@@ -1,0 +1,1 @@
+ALTER TABLE `shipments` ADD `extraDiscountEur` decimal(10,2) DEFAULT '0.00' NOT NULL;

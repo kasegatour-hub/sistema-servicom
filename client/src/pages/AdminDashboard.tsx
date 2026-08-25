@@ -214,6 +214,7 @@ const createShipmentSchema = z.object({
   weightKg: z.number().min(0.1).default(1),
   manualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
   extraPriceEur: z.union([z.string(), z.number()]).default(0),
+  extraDiscountEur: z.union([z.string(), z.number()]).default(0),
   paymentStatus: z.enum(["Pagado", "Falta cancelar"]).default("Falta cancelar"),
   route: z.string().default("Lima - Torino"),
   originAddress: z.string().optional(),
@@ -271,6 +272,7 @@ const updateStatusSchema = z.object({
   weightKg: z.number().min(0.1).optional(),
   manualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
   extraPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
+  extraDiscountEur: z.union([z.string(), z.number()]).optional().nullable(),
   deliveryMode: z.enum(["agencia", "remoto"]).optional(),
   pricingMode: z.enum(["estandar", "manual"]).optional(),
   isProvinceDelivery: z.boolean().optional(),
@@ -568,6 +570,7 @@ export default function AdminDashboard() {
       weightKg: 1,
       manualPriceEur: '',
       extraPriceEur: 0,
+      extraDiscountEur: 0,
       paymentStatus: 'Falta cancelar',
       route: 'Lima - Torino',
       isProvinceDelivery: false,
@@ -592,7 +595,7 @@ export default function AdminDashboard() {
   const selectedShipmentType = createForm.watch("shipmentType") || "documento";
 
   const resetCreateForm = () => {
-    createForm.reset({ status: "En agencia", senderName: "", senderLastName: "", senderDni: "", senderDocumentType: "dni_peru", senderPhone: "", recipientName: "", recipientLastName: "", recipientDni: "", recipientDocumentType: "dni_peru", recipientPhone: "", notes: "", shipmentType: "documento", documentCount: 1, docType: "apostillado", sheetCount: 1, requiresApostilleService: false, requiresTranslationService: false, serviceManualPriceEur: "", serviceManualPriceSoles: "", weightKg: 1, manualPriceEur: "", extraPriceEur: 0, paymentStatus: "Falta cancelar", route: "Lima - Torino", originAddress: "", destinationAddress: "", isProvinceDelivery: false, provinceCustomerPriceEur: "", provinceExtraPriceEur: "", provinceOperationalCostSoles: "", provinceCarrier: "shalom", provinceSenderName: "", provinceSenderLastName: "", provinceSenderDni: "", provinceSenderPhone: "", couponCode: "", documentItems: [], contentChecklist: [], missingItems: [], deliveryMode: "agencia", limaTorinoTransferMode: undefined, deliveryPersonName: "", deliveryPersonLastName: "", deliveryPersonDni: "", deliveryPersonPhone: "", deliveryLocationType: "direccion", deliveryLocationAddress: "", deliveryLocationLatitude: null, deliveryLocationLongitude: null });
+    createForm.reset({ status: "En agencia", senderName: "", senderLastName: "", senderDni: "", senderDocumentType: "dni_peru", senderPhone: "", recipientName: "", recipientLastName: "", recipientDni: "", recipientDocumentType: "dni_peru", recipientPhone: "", notes: "", shipmentType: "documento", documentCount: 1, docType: "apostillado", sheetCount: 1, requiresApostilleService: false, requiresTranslationService: false, serviceManualPriceEur: "", serviceManualPriceSoles: "", weightKg: 1, manualPriceEur: "", extraPriceEur: 0, extraDiscountEur: 0, paymentStatus: "Falta cancelar", route: "Lima - Torino", originAddress: "", destinationAddress: "", isProvinceDelivery: false, provinceCustomerPriceEur: "", provinceExtraPriceEur: "", provinceOperationalCostSoles: "", provinceCarrier: "shalom", provinceSenderName: "", provinceSenderLastName: "", provinceSenderDni: "", provinceSenderPhone: "", couponCode: "", documentItems: [], contentChecklist: [], missingItems: [], deliveryMode: "agencia", limaTorinoTransferMode: undefined, deliveryPersonName: "", deliveryPersonLastName: "", deliveryPersonDni: "", deliveryPersonPhone: "", deliveryLocationType: "direccion", deliveryLocationAddress: "", deliveryLocationLatitude: null, deliveryLocationLongitude: null });
     setSenderClientQuery("");
     setRecipientClientQuery("");
     setAdditionalDocumentItems([]);
@@ -694,6 +697,7 @@ export default function AdminDashboard() {
       weightKg: 1,
       manualPriceEur: '',
       extraPriceEur: 0,
+      extraDiscountEur: 0,
       deliveryMode: 'agencia',
       pricingMode: 'estandar',
     },
@@ -719,7 +723,9 @@ export default function AdminDashboard() {
   const updateProvinceExtraPrice = updateProvinceEnabled && updateShipmentRoute === "Torino - Lima" ? Number(updateForm.watch("provinceExtraPriceEur") || 0) : 0;
   const updateManualPrice = Number(updateForm.watch("manualPriceEur") || 0);
   const updateExtraPrice = Number(updateForm.watch("extraPriceEur") || 0);
-  const updateVisibleParcelTotal = updateForm.watch("pricingMode") === "manual" ? updateManualPrice + updateExtraPrice + updateProvinceCustomerPrice + updateProvinceExtraPrice : updateBasePriceEur + updateExtraPrice + updateProvinceCustomerPrice + updateProvinceExtraPrice;
+  const updateExtraDiscount = Math.min(updateExtraPrice, Math.max(0, Number(updateForm.watch("extraDiscountEur") || 0)));
+  const updateNetExtra = Math.max(0, updateExtraPrice - updateExtraDiscount);
+  const updateVisibleParcelTotal = updateForm.watch("pricingMode") === "manual" ? updateManualPrice + updateNetExtra + updateProvinceCustomerPrice + updateProvinceExtraPrice : updateBasePriceEur + updateNetExtra + updateProvinceCustomerPrice + updateProvinceExtraPrice;
 
   const openShipmentUpdate = (shipment: any) => {
     setSelectedShipmentId(shipment.id);
@@ -747,6 +753,7 @@ export default function AdminDashboard() {
       weightKg: Number(shipment.weightKg || 1),
       manualPriceEur: shipment.manualPriceEur || "",
       extraPriceEur: Number(shipment.extraPriceEur || 0),
+      extraDiscountEur: Number(shipment.extraDiscountEur || 0),
       deliveryMode: shipment.deliveryMode || "agencia",
       pricingMode: "estandar",
       isProvinceDelivery: Boolean(shipment.isProvinceDelivery),
@@ -1973,7 +1980,12 @@ export default function AdminDashboard() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Importe extra en EUR</label>
                     <Input type="number" min="0" step="0.01" aria-label="Importe extra en EUR" {...createForm.register("extraPriceEur")} />
-                    <p className="mt-1 text-xs text-slate-500">Por defecto es 0. Se suma al precio final, incluso con tarifa manual.</p>
+                    <p className="mt-1 text-xs text-slate-500">Se suma al precio base automático o al precio manual.</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Descuento del importe extra en EUR</label>
+                    <Input type="number" min="0" step="0.01" aria-label="Descuento del importe extra en EUR" {...createForm.register("extraDiscountEur")} />
+                    <p className="mt-1 text-xs text-slate-500">Permite quitar una parte o todo el extra, sin modificar la tarifa base. No puede superar el importe extra.</p>
                   </div>
                 </div>
 
@@ -2015,7 +2027,7 @@ export default function AdminDashboard() {
                       onChange={(nextValue) => createForm.setValue("sheetCount", nextValue, { shouldValidate: true, shouldDirty: true })}
                       description={createForm.watch("docType") === "simple" ? "Máximo 8 hojas por registro." : "Máximo 10 hojas por registro."}
                     />
-                    <DocumentPricePreview docType={selectedDocType} sheetCount={Number(createForm.watch("sheetCount")) || 1} additionalTotalEur={additionalDocumentAutoTotal} manualPriceEur={createForm.watch("manualPriceEur")} extraPriceEur={createForm.watch("extraPriceEur")} />
+                    <DocumentPricePreview docType={selectedDocType} sheetCount={Number(createForm.watch("sheetCount")) || 1} additionalTotalEur={additionalDocumentAutoTotal} manualPriceEur={createForm.watch("manualPriceEur")} extraPriceEur={createForm.watch("extraPriceEur")} extraDiscountEur={createForm.watch("extraDiscountEur")} />
                   </div>
                                      {selectedRoute === "Torino - Lima" && (
                      <>
@@ -2078,7 +2090,7 @@ export default function AdminDashboard() {
                       <p className={`mt-1 text-base font-semibold ${automaticParcelBaseEur === null ? "text-amber-900" : "text-[#0B2B5E]"}`}>Tarifa automática {selectedRoute === "Torino - Lima" ? "Torino–Lima" : "Lima–Torino"}: {automaticParcelDescription}{watchedProvinceEnabled ? ` · Provincia: ${automaticProvinceDescription}` : ""}.</p>
                     </div>
                     <div className={`flex items-end rounded-md p-4 text-lg font-bold ring-1 ${needsManualParcelPrice && !hasValidManualParcelPrice ? "bg-amber-50 text-amber-900 ring-amber-200" : "bg-emerald-50 text-[#0B2B5E] ring-emerald-200"}`}>
-                      {hasValidManualParcelPrice ? `Total manual: ${(manualParcelPrice + Math.max(0, Number(createForm.watch("extraPriceEur")) || 0) + provincePreviewEur).toFixed(2)} €` : needsManualParcelPrice ? "Precio final pendiente" : `Total automático: ${(automaticParcelBaseEur + Math.max(0, Number(createForm.watch("extraPriceEur")) || 0) + provincePreviewEur).toFixed(2)} €`}
+                      {hasValidManualParcelPrice ? `Total manual: ${(manualParcelPrice + Math.max(0, Number(createForm.watch("extraPriceEur")) || 0) - Math.min(Math.max(0, Number(createForm.watch("extraPriceEur")) || 0), Math.max(0, Number(createForm.watch("extraDiscountEur")) || 0)) + provincePreviewEur).toFixed(2)} €` : needsManualParcelPrice ? "Precio final pendiente" : `Total automático: ${(automaticParcelBaseEur + Math.max(0, Number(createForm.watch("extraPriceEur")) || 0) - Math.min(Math.max(0, Number(createForm.watch("extraPriceEur")) || 0), Math.max(0, Number(createForm.watch("extraDiscountEur")) || 0)) + provincePreviewEur).toFixed(2)} €`}
                     </div>
                     <div className="flex flex-col justify-center rounded-xl border-2 border-[#0B2B5E]/20 bg-blue-50 p-4 text-[#0B2B5E] shadow-sm ring-1 ring-blue-100">
                       <span className="text-xs font-bold uppercase tracking-wide text-[#0B2B5E]/70">Precio base calculado</span>
@@ -2835,8 +2847,9 @@ export default function AdminDashboard() {
                     </div>
                   )}
                   {updateForm.watch("pricingMode") === "manual" && <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Precio manual (EUR)</label><Input type="number" min="0" step="0.01" {...updateForm.register("manualPriceEur")} placeholder="Ej.: 25.00" /><p className="mt-1 text-xs text-slate-500">Guarda una tarifa para que los pagos de este envío se contabilicen correctamente.</p></div>}
-                  <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Importe extra (EUR)</label><Input type="number" min="0" step="0.01" aria-label="Importe extra de actualización" {...updateForm.register("extraPriceEur")} /><p className="mt-1 text-xs text-slate-500">Por defecto es 0 y se suma al total de documento o encomienda.</p></div>
-                  {updateForm.watch("shipmentType") === "documento" && <div className="md:col-span-2 rounded-xl border-2 border-blue-200 bg-blue-50 p-3"><p className="text-xs font-bold uppercase tracking-wide text-[#0B2B5E]">Precio actualizado</p><DocumentPricePreview docType={(updateForm.watch("docType") || "apostillado") as "simple" | "apostillado"} sheetCount={Number(updateForm.watch("sheetCount") || 1)} manualPriceEur={updateForm.watch("pricingMode") === "manual" ? updateForm.watch("manualPriceEur") : null} extraPriceEur={updateForm.watch("extraPriceEur")} /></div>}
+                  <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Importe extra (EUR)</label><Input type="number" min="0" step="0.01" aria-label="Importe extra de actualización" {...updateForm.register("extraPriceEur")} /><p className="mt-1 text-xs text-slate-500">Se suma al precio base automático o al precio manual.</p></div>
+                  <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Descuento del importe extra (EUR)</label><Input type="number" min="0" step="0.01" aria-label="Descuento del importe extra de actualización" {...updateForm.register("extraDiscountEur")} /><p className="mt-1 text-xs text-slate-500">Reduce únicamente el extra. Si escribes un descuento mayor, se limita al importe extra.</p><p className="mt-1 text-sm font-semibold text-[#0B2B5E]">Extra neto aplicado: {updateNetExtra.toFixed(2)} EUR</p></div>
+                  {updateForm.watch("shipmentType") === "documento" && <div className="md:col-span-2 rounded-xl border-2 border-blue-200 bg-blue-50 p-3"><p className="text-xs font-bold uppercase tracking-wide text-[#0B2B5E]">Precio actualizado</p><DocumentPricePreview docType={(updateForm.watch("docType") || "apostillado") as "simple" | "apostillado"} sheetCount={Number(updateForm.watch("sheetCount") || 1)} manualPriceEur={updateForm.watch("pricingMode") === "manual" ? updateForm.watch("manualPriceEur") : null} extraPriceEur={updateForm.watch("extraPriceEur")} extraDiscountEur={updateForm.watch("extraDiscountEur")} /></div>}
                   {updateForm.watch("shipmentType") === "encomienda" && <div className="md:col-span-2 rounded-xl border-2 border-blue-200 bg-blue-50 p-4" aria-live="polite"><p className="text-xs font-bold uppercase tracking-wide text-[#0B2B5E]">Precio actualizado</p><p className="mt-1 text-3xl font-extrabold tabular-nums text-[#0B2B5E]">{updateVisibleParcelTotal.toFixed(2)} EUR</p><p className="mt-1 text-sm text-slate-700">Se recalcula con el peso, la tarifa, el extra provincial y la agencia seleccionada.</p></div>}
                 </div>
 
