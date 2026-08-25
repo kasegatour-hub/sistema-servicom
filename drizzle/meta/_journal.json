@@ -288,6 +288,13 @@
       "when": 1787617370262,
       "tag": "0040_familiar_the_executioner",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "5",
+      "when": 1787618092597,
+      "tag": "0041_faithful_revanche",
+      "breakpoints": true
     }
   ]
 }

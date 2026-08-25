@@ -719,6 +719,15 @@ export const adminRouter = router({
       isIncomplete: z.boolean().default(false),
       incompleteReason: z.string().trim().max(1000).optional(),
       deliveryMode: z.enum(["agencia", "remoto"]).default("agencia"),
+      limaTorinoTransferMode: z.enum(["dhl_recogida", "persona_autorizada"]).default("dhl_recogida"),
+      deliveryPersonName: optionalPersonNameSchema,
+      deliveryPersonLastName: optionalPersonNameSchema,
+      deliveryPersonDni: optionalIdentityDocumentNumberSchema,
+      deliveryPersonPhone: optionalInternationalPhoneSchema,
+      deliveryLocationType: z.enum(["direccion", "aeropuerto_jorge_chavez"]).optional(),
+      deliveryLocationAddress: z.string().trim().max(1000).optional(),
+      deliveryLocationLatitude: z.number().optional().nullable(),
+      deliveryLocationLongitude: z.number().optional().nullable(),
     }).superRefine((input, ctx) => {
       if (input.senderDni && !isIdentityDocumentValid(input.senderDni, input.senderDocumentType)) ctx.addIssue({ code: "custom", path: ["senderDni"], message: identityDocumentValidationMessage(input.senderDocumentType) });
       if (input.recipientDni && !isIdentityDocumentValid(input.recipientDni, input.recipientDocumentType)) ctx.addIssue({ code: "custom", path: ["recipientDni"], message: identityDocumentValidationMessage(input.recipientDocumentType) });
@@ -726,6 +735,16 @@ export const adminRouter = router({
       if (input.requiresTranslationService && (input.shipmentType !== "documento" || input.route !== "Torino - Lima")) ctx.addIssue({ code: "custom", path: ["requiresTranslationService"], message: "La traducción solo está disponible para documentos en la ruta Torino - Lima." });
       if (input.isProvinceDelivery && input.route !== "Torino - Lima") ctx.addIssue({ code: "custom", path: ["isProvinceDelivery"], message: "El envío a provincia solo está disponible para la ruta Italia–Lima." });
       // El excedente provincial se calcula automáticamente y puede editarse; no bloquea la creación.
+      const transferRequired = input.shipmentType === "documento" && input.route === "Lima - Torino";
+      if (transferRequired && !input.limaTorinoTransferMode) ctx.addIssue({ code: "custom", path: ["limaTorinoTransferMode"], message: "Selecciona cómo se trasladará el documento a Torino." });
+      if (input.limaTorinoTransferMode === "persona_autorizada") {
+        if (!input.deliveryPersonName?.trim()) ctx.addIssue({ code: "custom", path: ["deliveryPersonName"], message: "Indica el nombre de la persona autorizada." });
+        if (!input.deliveryPersonLastName?.trim()) ctx.addIssue({ code: "custom", path: ["deliveryPersonLastName"], message: "Indica el apellido de la persona autorizada." });
+        if (!input.deliveryPersonDni?.trim()) ctx.addIssue({ code: "custom", path: ["deliveryPersonDni"], message: "Indica el DNI de la persona autorizada." });
+        if (!input.deliveryPersonPhone?.trim()) ctx.addIssue({ code: "custom", path: ["deliveryPersonPhone"], message: "Indica el celular de la persona autorizada." });
+        if (!input.deliveryLocationType) ctx.addIssue({ code: "custom", path: ["deliveryLocationType"], message: "Selecciona el lugar de entrega." });
+        if (input.deliveryLocationType === "direccion" && !input.deliveryLocationAddress?.trim()) ctx.addIssue({ code: "custom", path: ["deliveryLocationAddress"], message: "Indica la dirección de entrega o selecciónala en el mapa." });
+      }
     }))
     .mutation(async ({ input, ctx }) => {
       if (input.shipmentType === "encomienda" && input.route === "Lima - Torino" && !await isEncomiendaEnabledForRoute(input.route)) {
@@ -805,6 +824,15 @@ export const adminRouter = router({
         input.provinceSenderLastName,
         input.provinceSenderDni,
         input.provinceSenderPhone,
+        input.limaTorinoTransferMode,
+        input.deliveryPersonName,
+        input.deliveryPersonLastName,
+        input.deliveryPersonDni,
+        input.deliveryPersonPhone,
+        input.deliveryLocationType,
+        input.deliveryLocationAddress,
+        input.deliveryLocationLatitude,
+        input.deliveryLocationLongitude,
       );
       if (!result) {
         throw new TRPCError({
@@ -885,6 +913,15 @@ export const adminRouter = router({
       originAddress: z.string().optional(),
       destinationAddress: z.string().optional(),
       deliveryMode: z.enum(["agencia", "remoto"]).optional(),
+      limaTorinoTransferMode: z.enum(["dhl_recogida", "persona_autorizada"]).optional().nullable(),
+      deliveryPersonName: optionalPersonNameSchema,
+      deliveryPersonLastName: optionalPersonNameSchema,
+      deliveryPersonDni: optionalIdentityDocumentNumberSchema,
+      deliveryPersonPhone: optionalInternationalPhoneSchema,
+      deliveryLocationType: z.enum(["direccion", "aeropuerto_jorge_chavez"]).optional().nullable(),
+      deliveryLocationAddress: z.string().trim().max(1000).optional().nullable(),
+      deliveryLocationLatitude: z.number().optional().nullable(),
+      deliveryLocationLongitude: z.number().optional().nullable(),
       pricingMode: z.enum(["estandar", "manual"]).default("estandar"),
       isProvinceDelivery: z.boolean().optional(),
       provinceCustomerPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
@@ -965,6 +1002,15 @@ export const adminRouter = router({
         input.provinceSenderLastName,
         input.provinceSenderDni,
         input.provinceSenderPhone,
+        input.limaTorinoTransferMode,
+        input.deliveryPersonName,
+        input.deliveryPersonLastName,
+        input.deliveryPersonDni,
+        input.deliveryPersonPhone,
+        input.deliveryLocationType,
+        input.deliveryLocationAddress,
+        input.deliveryLocationLatitude,
+        input.deliveryLocationLongitude,
       );
       if (!result) {
         throw new TRPCError({

@@ -27,6 +27,7 @@ import { IdentityDocumentField } from "@/components/IdentityDocumentField";
 import { ShipmentTrendCharts } from "@/components/ShipmentTrendCharts";
 import { PasswordRequirements } from "@/components/PasswordRequirements";
 import { AgencyDestinationPicker } from "@/components/AgencyDestinationPicker";
+import { LimaTorinoTransferPanel, type LimaTorinoTransferValue } from "@/components/LimaTorinoTransferPanel";
 import type { IdentityDocumentType } from "@shared/identityDocuments";
 import { getFuzzySearchScore } from "@shared/fuzzySearch";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "@shared/passwordPolicy";
@@ -97,6 +98,7 @@ export default function AccountPage() {
   const [requiresApostilleService, setRequiresApostilleService] = useState(false);
   const [requiresTranslationService, setRequiresTranslationService] = useState(false);
   const [destinationAddress, setDestinationAddress] = useState("");
+  const [limaTorinoTransfer, setLimaTorinoTransfer] = useState<LimaTorinoTransferValue>({ locationType: "direccion" });
   const [sheetCount, setSheetCount] = useState(1);
   const [senderName, setSenderName] = useState("");
   const [senderLastName, setSenderLastName] = useState("");
@@ -127,6 +129,7 @@ export default function AccountPage() {
     setRequiresApostilleService(false);
     setRequiresTranslationService(false);
     setDestinationAddress("");
+    setLimaTorinoTransfer({ locationType: "direccion" });
     setSheetCount(1);
     setSenderName("");
     setSenderLastName("");
@@ -735,7 +738,16 @@ export default function AccountPage() {
                   requiresApostilleService,
                   requiresTranslationService,
                   destinationAddress,
-                  senderName: profileName || senderName,
+                  limaTorinoTransferMode: shipmentRoute === "Lima - Torino" ? limaTorinoTransfer.mode : undefined,
+                  deliveryPersonName: limaTorinoTransfer.personName,
+                  deliveryPersonLastName: limaTorinoTransfer.personLastName,
+                  deliveryPersonDni: limaTorinoTransfer.personDni,
+                  deliveryPersonPhone: limaTorinoTransfer.personPhone,
+                  deliveryLocationType: limaTorinoTransfer.locationType,
+                  deliveryLocationAddress: limaTorinoTransfer.locationAddress,
+                  deliveryLocationLatitude: limaTorinoTransfer.latitude,
+                  deliveryLocationLongitude: limaTorinoTransfer.longitude,
+                   senderName: profileName || senderName,
                   senderLastName: profileLastName || senderLastName,
                   senderDni: profileDni || senderDni,
                   senderDocumentType: profileDocumentType,
@@ -790,6 +802,7 @@ export default function AccountPage() {
                     </label>
                   )}
                   <div className={`${mobileShipmentStepVisible(1) ? "" : "hidden"} md:col-span-2`}><AgencyDestinationPicker route={shipmentRoute} value={destinationAddress} onChange={setDestinationAddress} /></div>
+                  {shipmentRoute === "Lima - Torino" && <div className={`${mobileShipmentStepVisible(1) ? "" : "hidden"} md:col-span-2`}><LimaTorinoTransferPanel value={limaTorinoTransfer} onChange={setLimaTorinoTransfer} error={shipmentValidationErrors.limaTorinoTransferMode} /></div>}
                   <div className={mobileShipmentStepVisible(2) ? "" : "hidden"}><QuantityStepper
                     id="account-sheet-count"
                     label="Cantidad de Hojas / Documentos"

@@ -1115,6 +1115,15 @@ export async function createShipment(
   provinceSenderLastName?: string | null,
   provinceSenderDni?: string | null,
   provinceSenderPhone?: string | null,
+  limaTorinoTransferMode?: "dhl_recogida" | "persona_autorizada" | null,
+  deliveryPersonName?: string | null,
+  deliveryPersonLastName?: string | null,
+  deliveryPersonDni?: string | null,
+  deliveryPersonPhone?: string | null,
+  deliveryLocationType?: "direccion" | "aeropuerto_jorge_chavez" | null,
+  deliveryLocationAddress?: string | null,
+  deliveryLocationLatitude?: string | number | null,
+  deliveryLocationLongitude?: string | number | null,
 ) {
   const db = await getDb();
   if (!db) {
@@ -1188,6 +1197,15 @@ export async function createShipment(
     documentItems: documentItems || null,
     contentChecklist: contentChecklist || null,
     deliveryMode: deliveryMode || "agencia",
+    limaTorinoTransferMode: normalizedShipmentType === "documento" && normalizedRoute === "Lima - Torino" ? limaTorinoTransferMode || null : null,
+    deliveryPersonName: limaTorinoTransferMode === "persona_autorizada" ? deliveryPersonName?.trim() || null : null,
+    deliveryPersonLastName: limaTorinoTransferMode === "persona_autorizada" ? deliveryPersonLastName?.trim() || null : null,
+    deliveryPersonDni: limaTorinoTransferMode === "persona_autorizada" ? deliveryPersonDni?.trim() || null : null,
+    deliveryPersonPhone: limaTorinoTransferMode === "persona_autorizada" ? deliveryPersonPhone?.trim() || null : null,
+    deliveryLocationType: limaTorinoTransferMode === "persona_autorizada" ? deliveryLocationType || null : null,
+    deliveryLocationAddress: limaTorinoTransferMode === "persona_autorizada" ? deliveryLocationAddress?.trim() || null : null,
+    deliveryLocationLatitude: limaTorinoTransferMode === "persona_autorizada" && deliveryLocationLatitude != null ? String(deliveryLocationLatitude) : null,
+    deliveryLocationLongitude: limaTorinoTransferMode === "persona_autorizada" && deliveryLocationLongitude != null ? String(deliveryLocationLongitude) : null,
     registeredByType: registeredBy?.type || (accountId ? "account" : "system"),
     registeredById: registeredBy?.id ?? accountId ?? null,
     registeredByEmail: registeredBy?.email || null,
@@ -1260,6 +1278,15 @@ export async function updateShipmentStatus(
   provinceSenderLastName?: string | null,
   provinceSenderDni?: string | null,
   provinceSenderPhone?: string | null,
+  limaTorinoTransferMode?: "dhl_recogida" | "persona_autorizada" | null,
+  deliveryPersonName?: string | null,
+  deliveryPersonLastName?: string | null,
+  deliveryPersonDni?: string | null,
+  deliveryPersonPhone?: string | null,
+  deliveryLocationType?: "direccion" | "aeropuerto_jorge_chavez" | null,
+  deliveryLocationAddress?: string | null,
+  deliveryLocationLatitude?: string | number | null,
+  deliveryLocationLongitude?: string | number | null,
 ) {
   const db = await getDb();
   if (!db) {
@@ -1332,6 +1359,15 @@ export async function updateShipmentStatus(
         originAddress: originAddress ?? shipment.originAddress ?? "",
         destinationAddress: destinationAddress ?? shipment.destinationAddress ?? "",
         deliveryMode: deliveryMode ?? shipment.deliveryMode ?? "agencia",
+        limaTorinoTransferMode: updatedShipmentType === "documento" && updatedRoute === "Lima - Torino" ? (limaTorinoTransferMode ?? shipment.limaTorinoTransferMode ?? null) : null,
+        deliveryPersonName: limaTorinoTransferMode === "persona_autorizada" ? deliveryPersonName?.trim() || shipment.deliveryPersonName || null : null,
+        deliveryPersonLastName: limaTorinoTransferMode === "persona_autorizada" ? deliveryPersonLastName?.trim() || shipment.deliveryPersonLastName || null : null,
+        deliveryPersonDni: limaTorinoTransferMode === "persona_autorizada" ? deliveryPersonDni?.trim() || shipment.deliveryPersonDni || null : null,
+        deliveryPersonPhone: limaTorinoTransferMode === "persona_autorizada" ? deliveryPersonPhone?.trim() || shipment.deliveryPersonPhone || null : null,
+        deliveryLocationType: limaTorinoTransferMode === "persona_autorizada" ? deliveryLocationType ?? shipment.deliveryLocationType ?? null : null,
+        deliveryLocationAddress: limaTorinoTransferMode === "persona_autorizada" ? deliveryLocationAddress?.trim() || shipment.deliveryLocationAddress || null : null,
+        deliveryLocationLatitude: limaTorinoTransferMode === "persona_autorizada" && deliveryLocationLatitude != null ? String(deliveryLocationLatitude) : shipment.deliveryLocationLatitude ?? null,
+        deliveryLocationLongitude: limaTorinoTransferMode === "persona_autorizada" && deliveryLocationLongitude != null ? String(deliveryLocationLongitude) : shipment.deliveryLocationLongitude ?? null,
         updatedAt: new Date(),
       })
       .where(eq(shipments.id, id));

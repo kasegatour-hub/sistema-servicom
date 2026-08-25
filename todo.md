@@ -1180,3 +1180,10 @@
 - [x] Usar automáticamente el remitente de Italia cuando todos los remitentes nacionales estén inactivos
 - [x] Mostrar siempre RUC y logo en el ticket, diferenciando remitente provincial e internacional
 - [x] Añadir pruebas de permisos, respaldo automático y generación del ticket
+
+## Modalidad de traslado Lima–Torino
+- [x] Añadir modalidad DHL recoge o entrega a persona autorizada solo para documentos Lima–Torino
+- [x] Persistir nombre, apellido, DNI, celular y dirección o punto de entrega
+- [x] Integrar mapa y opción rápida Nuevo Aeropuerto Internacional Jorge Chávez
+- [x] Mostrar la modalidad y los datos de entrega en recibo, ticket y rastreo
+- [x] Añadir validaciones y pruebas del flujo completo

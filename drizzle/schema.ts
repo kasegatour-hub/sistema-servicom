@@ -280,6 +280,16 @@ export const shipments = mysqlTable("shipments", {
   provinceOperationalCostSoles: decimal("provinceOperationalCostSoles", { precision: 10, scale: 2 }),
   provinceCarrier: mysqlEnum("provinceCarrier", ["olva", "shalom", "fedex", "dhl", "cruz-del-sur", "movil-bus", "civa-excluciva", "transportes-linea", "oltursa", "z-buss", "erick-el-rojo", "america-express", "turismo-dias", "itttsa-bus", "allin-bus", "ronco-peru", "inca-atahualpa", "eurobus", "expreso-lobato", "molina-union", "transportes-apocalipsis", "nacional-fano", "bahia-plaza", "transmar", "turismo-raraz", "giga-bus-megabus", "expreso-selva", "grupo-palomino", "perubus-soyuz", "flores-hermanos", "cromotex", "expreso-ormeno", "expreso-antezana", "saky", "cetur", "san-cristobal-del-sur", "turismo-oropesa"]).default("shalom"),
   deliveryMode: mysqlEnum("deliveryMode", ["agencia", "remoto"]).default("agencia").notNull(),
+  /** Modalidad logística específica para documentos Lima–Torino. */
+  limaTorinoTransferMode: mysqlEnum("limaTorinoTransferMode", ["dhl_recogida", "persona_autorizada"]),
+  deliveryPersonName: varchar("deliveryPersonName", { length: 255 }),
+  deliveryPersonLastName: varchar("deliveryPersonLastName", { length: 255 }),
+  deliveryPersonDni: varchar("deliveryPersonDni", { length: 20 }),
+  deliveryPersonPhone: varchar("deliveryPersonPhone", { length: 32 }),
+  deliveryLocationType: mysqlEnum("deliveryLocationType", ["direccion", "aeropuerto_jorge_chavez"]),
+  deliveryLocationAddress: text("deliveryLocationAddress"),
+  deliveryLocationLatitude: decimal("deliveryLocationLatitude", { precision: 10, scale: 7 }),
+  deliveryLocationLongitude: decimal("deliveryLocationLongitude", { precision: 10, scale: 7 }),
   documentItems: longtext("documentItems"), // JSON con documentos adicionales y sus recargos/manuales
   contentChecklist: longtext("contentChecklist"), // JSON con la lista de contenido verificado
   isIncomplete: int("isIncomplete").default(0).notNull(),
