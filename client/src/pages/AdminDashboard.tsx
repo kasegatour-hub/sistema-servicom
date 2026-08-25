@@ -12,7 +12,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import { Lock, LogOut, Plus, RefreshCw, Download, Printer, RotateCcw, Search, Trash2, MessageSquare, Calculator, Eye, EyeOff, Send, QrCode, ImagePlus, UserRound } from "lucide-react";
+import { Lock, LogOut, Plus, RefreshCw, Download, Printer, RotateCcw, Search, Trash2, MessageSquare, Calculator, Eye, EyeOff, Send, QrCode, ImagePlus, UserRound, X } from "lucide-react";
 import QRCode from "qrcode";
 import { buildShipmentManagementUrl, buildTrackingUrl, normalizeTrackingValue, TRACKING_QR_OPTIONS } from "@/lib/tracking";
 import { PhoneInput } from "@/components/PhoneInput";
@@ -805,6 +805,12 @@ export default function AdminDashboard() {
       setIsLoggedIn(false);
     }
   }, [currentAdminSession, loadingAdminSession]);
+
+  useEffect(() => {
+    if (admin?.role !== "superadmin" && adminWorkspace === "feedback") {
+      setAdminWorkspace("registros");
+    }
+  }, [admin?.role, adminWorkspace]);
 
   const updateForm = useForm<UpdateStatusForm>({
     resolver: zodResolver(updateStatusSchema),
@@ -2035,9 +2041,8 @@ export default function AdminDashboard() {
               ["papelera", `Papelera (${deletedShipments.length})`],
               ["resumen", "Resumen"],
               ["analitica", "Analítica"],
-              ["feedback", "Feedback recibido"],
               ["remitentes", "Remitentes provinciales"],
-              ...(admin?.role === "superadmin" ? [["usuarios", "Registradores"]] : []),
+              ...(admin?.role === "superadmin" ? [["feedback", "Feedback recibido"], ["usuarios", "Registradores"]] : []),
             ] as Array<[AdminWorkspace, string]>).map(([workspace, label]) => (
               <Button key={workspace} type="button" size="sm" variant={adminWorkspace === workspace ? "default" : "outline"} onClick={() => setAdminWorkspace(workspace)} className={adminWorkspace === workspace ? "bg-primary text-white" : "border-slate-300 text-slate-700"}>{label}</Button>
             ))}
@@ -2047,7 +2052,8 @@ export default function AdminDashboard() {
         </Card>}
         {showAdminProfile && (
           <Card id="admin-profile-panel" className="mb-8 overflow-hidden border-0 p-0 shadow-lg" aria-label="Mi perfil administrativo">
-            <div className="bg-gradient-to-r from-[#0B2B5E] to-[#174a89] p-6 text-white sm:p-8">
+            <div className="relative bg-gradient-to-r from-[#0B2B5E] to-[#174a89] p-6 text-white sm:p-8">
+              <Button type="button" variant="outline" size="icon" aria-label="Cerrar Mi perfil" onClick={() => { setShowAdminProfile(false); setAdminWorkspace("registros"); setAdminProfileEditOpen(false); }} className="absolute right-4 top-4 h-11 w-11 border-rose-200 bg-rose-50 text-rose-700 shadow-md hover:bg-rose-100 hover:text-rose-800 sm:right-6 sm:top-6"><X className="h-5 w-5 stroke-[3]" /></Button>
               <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center">
                 {admin?.profilePhoto?.url ? (
                   <img src={admin.profilePhoto.url} alt={`Foto de perfil de ${admin?.name || "administrador"}`} className="h-36 w-36 rounded-[2rem] object-cover shadow-2xl ring-4 ring-white/80 sm:h-48 sm:w-48" />
@@ -2124,7 +2130,7 @@ export default function AdminDashboard() {
 
         {adminWorkspace === "analitica" && <Card className="mb-8 border-0 p-6 shadow-lg"><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-semibold text-gray-900">Analítica de interacción y tendencias</h2><p className="mt-1 text-sm text-slate-500">Esta área se abre solo al revisar la operación. No inspecciona nombres, documentos, teléfonos ni notas.</p></div>{adminInsights && <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-bold text-[#0B2B5E]">Puntaje {adminInsights.engagementScore}/100</span>}</div>{adminInsights && <><div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4"><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Interacciones</p><strong>{adminInsights.totalEvents}</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Sesiones</p><strong>{adminInsights.uniqueSessions}</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Continuidad</p><strong>{Math.round(adminInsights.completionRate * 100)}%</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Anomalía</p><strong>{adminInsights.anomalyScore}/100</strong></div></div><ul className="mt-4 space-y-1 text-sm text-slate-700">{adminInsights.insights.map((insight: string) => <li key={insight}>• {insight}</li>)}</ul></>}<div className="mt-6"><ShipmentTrendCharts shipments={shipments} /></div></Card>}
 
-        {adminWorkspace === "feedback" && <AdminFeedbackInbox />}
+        {admin?.role === "superadmin" && adminWorkspace === "feedback" && <AdminFeedbackInbox />}
 
         {adminWorkspace === "carta" && <InvitationLetterWorkspace shipments={shipments} />}
 

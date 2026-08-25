@@ -128,6 +128,7 @@ vi.mock("@/lib/trpc", () => ({
     },
     feedback: {
       list: { useQuery: () => ({ data: [], isLoading: false, refetch: vi.fn() }) },
+      listAdmin: { useQuery: () => ({ data: [], isLoading: false, error: null }) },
       create: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
     },
   },
@@ -403,10 +404,24 @@ describe("AdminDashboard Nueva Encomienda", () => {
     expect(screen.queryByLabelText("Accesos de nuevo registro")).toBeNull();
     expect(screen.queryByRole("button", { name: "Nueva encomienda" })).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: /Hola, Gian Arteaga/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Cerrar Mi perfil" }));
     const recordsButton = screen.getByRole("button", { name: "Ver registros" });
     expect(recordsButton.className).toContain("bg-primary");
     expect(screen.getByText("Ingresos confirmados").closest(".hidden")).toBeTruthy();
+  });
+
+  it("muestra Feedback recibido solo al Master Admin", async () => {
+    mocks.adminSession = { id: 4, email: "operador@servicom.pe", name: "Operador", role: "registrador", reauthRequired: false };
+    const view = render(<AdminDashboard />);
+
+    await screen.findByRole("button", { name: "Ver registros" });
+    expect(screen.queryByRole("button", { name: "Feedback recibido" })).toBeNull();
+
+    mocks.adminSession = { id: 5, email: "master@servicom.pe", name: "Master", role: "superadmin", reauthRequired: false };
+    view.rerender(<AdminDashboard />);
+    const feedbackButton = await screen.findByRole("button", { name: "Feedback recibido" });
+    fireEvent.click(feedbackButton);
+    expect(screen.getByRole("heading", { name: "Feedback recibido" })).toBeTruthy();
   });
 
   it("oculta la política Lima–Torino en opciones avanzadas hasta que el Master Admin la abra", async () => {

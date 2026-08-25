@@ -60,7 +60,7 @@ export function NotificationBell() {
           <div className="flex items-center gap-1">
             <Button type="button" variant="ghost" size="sm" aria-label={soundEnabled ? "Desactivar sonido de notificaciones" : "Activar sonido de notificaciones"} aria-pressed={soundEnabled} onClick={toggleSound} className="h-9 px-2 text-xs text-[#0B2B5E]" title={soundEnabled ? "Sonido activado" : "Sonido desactivado"}>{soundEnabled ? <Volume2 className="mr-1 h-4 w-4" /> : <VolumeX className="mr-1 h-4 w-4" />}<span className="hidden sm:inline">Sonido</span></Button>
             {unreadCount > 0 && <Button type="button" variant="ghost" size="sm" aria-label="Marcar todas como leídas" onClick={() => markAllReadMutation.mutate()} disabled={markAllReadMutation.isPending} className="h-9 px-2 text-xs text-[#0B2B5E]"><CheckCheck className="mr-1 h-4 w-4" />Leer todo</Button>}
-            <Button type="button" variant="ghost" size="icon" aria-label="Cerrar notificaciones" onClick={() => setOpen(false)} className="h-9 w-9 text-slate-500"><X className="h-4 w-4" /></Button>
+            <Button type="button" variant="outline" size="icon" aria-label="Cerrar notificaciones" onClick={() => setOpen(false)} className="h-9 w-9 border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-800"><X className="h-4 w-4 stroke-[3]" /></Button>
           </div>
         </div>
         <div className="max-h-[min(65vh,28rem)] overflow-y-auto p-2">

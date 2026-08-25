@@ -1486,3 +1486,8 @@
 ## Notificaciones leídas distinguibles
 - [x] Mejorar el contraste de las notificaciones leídas con fondo, borde, icono y etiqueta visibles
 - [x] Mantener los avisos nuevos con mayor prioridad visual y añadir pruebas, validar la suite y publicar
+
+## Cierre visible y feedback solo administrativo
+- [x] Añadir una X roja visible y accesible para cerrar la campana de notificaciones y Mi perfil
+- [x] Ocultar Feedback recibido para Usuarios registradores y Clientes
+- [x] Restringir el endpoint de feedback recibido exclusivamente a Administradores y cubrirlo con pruebas

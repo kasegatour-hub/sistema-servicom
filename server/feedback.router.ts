@@ -68,7 +68,7 @@ export const feedbackRouter = router({
   }),
   listAdmin: publicProcedure.input(adminFeedbackFilters).query(async ({ input, ctx }) => {
     const author = await resolveFeedbackAuthor(ctx.req);
-    if (!author.isAdmin) throw new TRPCError({ code: "FORBIDDEN", message: "Solo el equipo administrativo puede consultar la bandeja de feedback." });
+    if (!author.isAdmin || author.role !== "superadmin") throw new TRPCError({ code: "FORBIDDEN", message: "Solo el Master Admin puede consultar la bandeja de feedback." });
     const [general, shipment] = await Promise.all([
       listPlatformFeedback(author, input),
       listShipmentFeedbackForAdmin({ workspaceKey: author.workspaceKey, workspaceAdminId: author.workspaceAdminId, filters: input }),

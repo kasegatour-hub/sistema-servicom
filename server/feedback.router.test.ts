@@ -25,8 +25,14 @@ describe("feedback administrativo y trazabilidad", () => {
     await expect(caller.feedback.listAdmin()).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
-  it("permite al equipo administrativo consultar solo su entorno", async () => {
+  it("impide que un Registrador consulte la bandeja global de feedback", async () => {
     const token = createAdminSession(90001, "registrador");
+    const caller = appRouter.createCaller(contextWithCookie(`servicom_admin_session=${token}`));
+    await expect(caller.feedback.listAdmin({ authorType: "account", search: "cliente", limit: 5 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("permite únicamente al Master Admin consultar su entorno de feedback", async () => {
+    const token = createAdminSession(90001, "superadmin");
     const caller = appRouter.createCaller(contextWithCookie(`servicom_admin_session=${token}`));
     const result = await caller.feedback.listAdmin({ authorType: "account", search: "cliente", limit: 5 });
     expect(Array.isArray(result)).toBe(true);
