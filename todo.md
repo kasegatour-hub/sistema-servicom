@@ -1167,3 +1167,9 @@
 - [x] Mostrar remitente, destinatario, ruta, sede, estado, precio, notas y checklist en una ventana ordenada
 - [x] Permitir extraer o copiar rápidamente los datos completos con feedback claro
 - [x] Añadir pruebas de apertura, contenido, copia y diseño responsive de la ventana
+
+## Empresas de transporte provinciales
+- [x] Incorporar las empresas Norte, Centro/Selva Central y Sur proporcionadas por el usuario
+- [x] Asociar a cada empresa sus destinos y cobertura para la selección provincial
+- [x] Mantener selección de empresa, búsqueda y sede/destino manual con feedback claro
+- [x] Añadir pruebas de catálogo, búsqueda, selección y diseño responsive

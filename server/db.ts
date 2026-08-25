@@ -1087,7 +1087,7 @@ export async function createShipment(
   provinceCustomerPriceEur?: string | number | null,
   provinceExtraPriceEur?: string | number | null,
   provinceOperationalCostSoles?: string | number | null,
-  provinceCarrier?: "olva" | "shalom" | "fedex" | "dhl" | null,
+  provinceCarrier?: string | null,
 ) {
   const db = await getDb();
   if (!db) {
@@ -1153,7 +1153,7 @@ export async function createShipment(
     provinceCustomerPriceEur: provinceDelivery && provinceCustomerPriceEur !== undefined && provinceCustomerPriceEur !== null && String(provinceCustomerPriceEur).trim() !== "" ? String(provinceCustomerPriceEur) : null,
     provinceExtraPriceEur: provinceDelivery && provinceExtraPriceEur !== undefined && provinceExtraPriceEur !== null && String(provinceExtraPriceEur).trim() !== "" ? String(Math.max(0, Number(provinceExtraPriceEur) || 0)) : "0.00",
     provinceOperationalCostSoles: provinceDelivery && provinceOperationalCostSoles !== undefined && provinceOperationalCostSoles !== null && String(provinceOperationalCostSoles).trim() !== "" ? String(provinceOperationalCostSoles) : null,
-    provinceCarrier: provinceDelivery ? provinceCarrier || "shalom" : null,
+    provinceCarrier: (provinceDelivery ? provinceCarrier || "shalom" : null) as any,
     documentItems: documentItems || null,
     contentChecklist: contentChecklist || null,
     deliveryMode: deliveryMode || "agencia",
@@ -1224,7 +1224,7 @@ export async function updateShipmentStatus(
   provinceCustomerPriceEur?: string | number | null,
   provinceExtraPriceEur?: string | number | null,
   provinceOperationalCostSoles?: string | number | null,
-  provinceCarrier?: "olva" | "shalom" | "fedex" | "dhl" | null,
+  provinceCarrier?: string | null,
 ) {
   const db = await getDb();
   if (!db) {
@@ -1279,7 +1279,7 @@ export async function updateShipmentStatus(
         provinceCustomerPriceEur: Boolean(isProvinceDelivery ?? shipment.isProvinceDelivery) && updatedRoute === "Torino - Lima" ? (provinceCustomerPriceEur !== undefined && provinceCustomerPriceEur !== null && String(provinceCustomerPriceEur).trim() !== "" ? String(provinceCustomerPriceEur) : shipment.provinceCustomerPriceEur) : null,
         provinceExtraPriceEur: Boolean(isProvinceDelivery ?? shipment.isProvinceDelivery) && updatedRoute === "Torino - Lima" ? (provinceExtraPriceEur !== undefined && provinceExtraPriceEur !== null && String(provinceExtraPriceEur).trim() !== "" ? String(Math.max(0, Number(provinceExtraPriceEur) || 0)) : shipment.provinceExtraPriceEur ?? "0.00") : "0.00",
         provinceOperationalCostSoles: Boolean(isProvinceDelivery ?? shipment.isProvinceDelivery) && updatedRoute === "Torino - Lima" ? (provinceOperationalCostSoles !== undefined && provinceOperationalCostSoles !== null && String(provinceOperationalCostSoles).trim() !== "" ? String(provinceOperationalCostSoles) : shipment.provinceOperationalCostSoles) : null,
-        provinceCarrier: Boolean(isProvinceDelivery ?? shipment.isProvinceDelivery) && updatedRoute === "Torino - Lima" ? (provinceCarrier ?? shipment.provinceCarrier ?? "shalom") : null,
+        provinceCarrier: (Boolean(isProvinceDelivery ?? shipment.isProvinceDelivery) && updatedRoute === "Torino - Lima" ? (provinceCarrier ?? shipment.provinceCarrier ?? "shalom") : null) as any,
         weightKg: weightKg !== undefined ? String(weightKg) : shipment.weightKg ?? "1.00",
         manualPriceEur: manualPriceEur !== undefined ? (manualPriceEur !== null && String(manualPriceEur).trim() !== "" ? String(manualPriceEur) : null) : shipment.manualPriceEur,
         extraPriceEur: extraPriceEur !== undefined ? String(Math.max(0, Number(extraPriceEur) || 0)) : shipment.extraPriceEur ?? "0.00",

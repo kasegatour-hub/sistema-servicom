@@ -221,7 +221,7 @@ const createShipmentSchema = z.object({
   provinceCustomerPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
   provinceExtraPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
   provinceOperationalCostSoles: z.union([z.string(), z.number()]).optional().nullable(),
-  provinceCarrier: z.enum(["olva", "shalom", "fedex", "dhl"]).default("shalom"),
+  provinceCarrier: z.string().min(1).max(64).default("shalom"),
   couponCode: z.string().trim().max(64).optional(),
   documentItems: z.array(z.object({
     docType: z.enum(["simple", "apostillado"]),
@@ -262,7 +262,7 @@ const updateStatusSchema = z.object({
   provinceCustomerPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
   provinceExtraPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
   provinceOperationalCostSoles: z.union([z.string(), z.number()]).optional().nullable(),
-  provinceCarrier: z.enum(["olva", "shalom", "fedex", "dhl"]).optional(),
+  provinceCarrier: z.string().min(1).max(64).optional(),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;

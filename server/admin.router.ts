@@ -690,7 +690,7 @@ export const adminRouter = router({
       provinceCustomerPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
       provinceExtraPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
       provinceOperationalCostSoles: z.union([z.string(), z.number()]).optional().nullable(),
-      provinceCarrier: z.enum(["olva", "shalom", "fedex", "dhl"]).default("shalom"),
+      provinceCarrier: z.string().min(1).max(64).default("shalom"),
       couponCode: z.string().trim().max(64).optional(),
       contentChecklist: z.array(z.string().trim().min(1).max(160)).max(24).min(1, "La lista de cosas enviadas es obligatoria."),
       isIncomplete: z.boolean().default(false),
@@ -863,7 +863,7 @@ export const adminRouter = router({
       provinceCustomerPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
       provinceExtraPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
       provinceOperationalCostSoles: z.union([z.string(), z.number()]).optional().nullable(),
-      provinceCarrier: z.enum(["olva", "shalom", "fedex", "dhl"]).optional(),
+      provinceCarrier: z.string().min(1).max(64).optional(),
     }).superRefine((input, ctx) => {
       if ((input.shipmentType ?? "documento") === "documento" && input.docType === "simple" && (input.sheetCount ?? 1) > 8) {
         ctx.addIssue({ code: "custom", path: ["sheetCount"], message: "Los documentos simples permiten un máximo de 8 hojas por registro." });

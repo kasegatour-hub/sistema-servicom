@@ -45,7 +45,7 @@ export function buildAdminDeliveryTicketHtml(data: {
   requiresApostilleService?: boolean | number;
   requiresTranslationService?: boolean | number;
   isProvinceDelivery?: boolean | number;
-  provinceCarrier?: "olva" | "shalom" | "fedex" | "dhl" | null;
+  provinceCarrier?: string | null;
 }) {
   const route = getRoutePresentation(data.route, data.destinationAddress);
   const shipmentLabel = data.shipmentType === "encomienda" ? "ENCOMIENDA" : "DOCUMENTO";

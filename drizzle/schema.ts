@@ -270,7 +270,7 @@ export const shipments = mysqlTable("shipments", {
   provinceCustomerPriceEur: decimal("provinceCustomerPriceEur", { precision: 10, scale: 2 }),
   provinceExtraPriceEur: decimal("provinceExtraPriceEur", { precision: 10, scale: 2 }).default("0.00").notNull(),
   provinceOperationalCostSoles: decimal("provinceOperationalCostSoles", { precision: 10, scale: 2 }),
-  provinceCarrier: mysqlEnum("provinceCarrier", ["olva", "shalom", "fedex", "dhl"]).default("shalom"),
+  provinceCarrier: mysqlEnum("provinceCarrier", ["olva", "shalom", "fedex", "dhl", "cruz-del-sur", "movil-bus", "civa-excluciva", "transportes-linea", "oltursa", "z-buss", "erick-el-rojo", "america-express", "turismo-dias", "itttsa-bus", "allin-bus", "ronco-peru", "inca-atahualpa", "eurobus", "expreso-lobato", "molina-union", "transportes-apocalipsis", "nacional-fano", "bahia-plaza", "transmar", "turismo-raraz", "giga-bus-megabus", "expreso-selva", "grupo-palomino", "perubus-soyuz", "flores-hermanos", "cromotex", "expreso-ormeno", "expreso-antezana", "saky", "cetur", "san-cristobal-del-sur", "turismo-oropesa"]).default("shalom"),
   deliveryMode: mysqlEnum("deliveryMode", ["agencia", "remoto"]).default("agencia").notNull(),
   documentItems: longtext("documentItems"), // JSON con documentos adicionales y sus recargos/manuales
   contentChecklist: longtext("contentChecklist"), // JSON con la lista de contenido verificado

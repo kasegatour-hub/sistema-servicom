@@ -56,6 +56,29 @@ describe("AgencyDestinationPicker", () => {
     expect(screen.getByRole("link", { name: /Abrir localizador de DHL/i }).getAttribute("href")).toBe("https://locator.dhl.com/?l=en");
   });
 
+  it("permite seleccionar una empresa regional y completar uno de sus destinos", () => {
+    const onChange = vi.fn();
+    const onProviderChange = vi.fn();
+    render(<AgencyDestinationPicker route="Torino - Lima" value="DESTINO ACTUAL" onChange={onChange} onProviderChange={onProviderChange} />);
+    fireEvent.click(screen.getByRole("button", { name: "Elegir agencia" }));
+    const regionalSelect = screen.getByRole("combobox", { name: "Empresas regionales" });
+    fireEvent.change(regionalSelect, { target: { value: "flores-hermanos" } });
+    expect(onProviderChange).toHaveBeenCalledWith("flores-hermanos");
+    expect(screen.getByText(/Rutas hacia el sur del país/i)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Arequipa/i }));
+    expect(onChange).toHaveBeenCalledWith(expect.stringContaining("Flores Hermanos — Arequipa"));
+  });
+
+  it("filtra los destinos regionales por texto sin cargar un mapa externo", () => {
+    render(<AgencyDestinationPicker route="Torino - Lima" value="" onChange={() => undefined} />);
+    fireEvent.click(screen.getByRole("button", { name: "Elegir agencia" }));
+    fireEvent.change(screen.getByRole("combobox", { name: "Empresas regionales" }), { target: { value: "perubus-soyuz" } });
+    const search = screen.getByLabelText(/Busca un destino de PeruBus \/ Soyuz/i);
+    fireEvent.change(search, { target: { value: "Ica" } });
+    expect(screen.getByRole("button", { name: /Ica/i })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Cañete/i })).toBeNull();
+  });
+
   it("permite guardar una sede manual cuando no se dispone del directorio", () => {
     const onChange = vi.fn();
     render(<AgencyDestinationPicker route="Torino - Lima" value="DESTINO ACTUAL" onChange={onChange} />);
