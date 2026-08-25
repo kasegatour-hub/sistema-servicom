@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { buildTrackingUrl, TRACKING_QR_OPTIONS, normalizeTrackingValue } from "@/lib/tracking";
-import { printUserShipmentReceipt } from "@/lib/userReceipt";
+import { downloadShipmentReceipt, printUserShipmentReceipt } from "@/lib/userReceipt";
 import { DNI_MAX_LENGTH, digitsOnly, dniDigitsOnly, isDigitsOnly, isTextOnly, isValidDni, textOnly } from "@/lib/inputValidation";
 import { getPaymentStatusUi } from "@/lib/paymentStatus";
 import { getRoutePresentation } from "@/lib/routeDetails";
@@ -184,6 +184,16 @@ export default function AccountPage() {
     } catch {
       await printUserShipmentReceipt(receiptShipment);
       toast.info("El recibo se imprimió con la última información disponible en pantalla.");
+    }
+  };
+  const handleDownloadReceipt = async () => {
+    if (!receiptShipment) return;
+    try {
+      const freshShipment = await utils.shipment.search.fetch({ orderNumber: String(receiptShipment.orderNumber), code: String(receiptShipment.code) });
+      const filename = await downloadShipmentReceipt(freshShipment || receiptShipment, "pdf");
+      toast.success(`Comprobante descargado: ${filename}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo descargar el comprobante. Inténtalo nuevamente.");
     }
   };
   const { data: me, isLoading: meLoading } = trpc.account.me.useQuery();
@@ -423,14 +433,33 @@ export default function AccountPage() {
       toast.error(message);
     },
   });
+  const focusClientShipmentField = (field: string) => {
+    const isPersonField = ["recipientName", "recipientLastName", "recipientDni", "recipientPhone"].includes(field);
+    if (mobileClientMode) setShipmentStep(isPersonField ? 2 : 3);
+    const targetId: Record<string, string> = {
+      recipientName: "account-recipient-name",
+      recipientLastName: "account-recipient-last-name",
+      recipientDni: "account-recipient-document-number",
+      recipientPhone: "account-recipient-phone",
+      contentChecklist: "account-document-document-search",
+    };
+    window.setTimeout(() => {
+      const element = document.getElementById(targetId[field]) || document.querySelector(`[name="${field}"]`);
+      if (!(element instanceof HTMLElement)) return;
+      if (typeof element.scrollIntoView === "function") element.scrollIntoView({ behavior: "smooth", block: "center" });
+      element.focus({ preventScroll: true });
+    }, 50);
+  };
   const validateClientShipment = () => {
     const errors: Record<string, string> = {};
-    if (!recipientName.trim() || !isTextOnly(recipientName)) errors.recipientName = "Completa los nombres del destinatario usando solo letras.";
-    if (!recipientLastName.trim() || !isTextOnly(recipientLastName)) errors.recipientLastName = "Completa los apellidos del destinatario usando solo letras.";
-    if (!recipientDni.trim()) errors.recipientDni = "Completa el documento de identidad del destinatario.";
-    if (!isValidInternationalPhone(recipientPhone)) errors.recipientPhone = "Completa un teléfono válido con código de país.";
-    if (catalogDocumentsToChecklist(catalogDocuments).length === 0) errors.contentChecklist = "Agrega al menos un elemento a la lista de cosas enviadas.";
+    if (!recipientName.trim() || !isTextOnly(recipientName)) errors.recipientName = "Este campo es obligatorio. Completa los nombres usando solo letras.";
+    if (!recipientLastName.trim() || !isTextOnly(recipientLastName)) errors.recipientLastName = "Este campo es obligatorio. Completa los apellidos usando solo letras.";
+    if (!recipientDni.trim()) errors.recipientDni = "Este campo es obligatorio. Completa el documento de identidad.";
+    if (!isValidInternationalPhone(recipientPhone)) errors.recipientPhone = "Este campo es obligatorio. Completa un teléfono válido con código de país.";
+    if (catalogDocumentsToChecklist(catalogDocuments).length === 0) errors.contentChecklist = "Este campo es obligatorio. Agrega al menos un elemento a la lista de cosas enviadas.";
     setShipmentValidationErrors(errors);
+    const firstField = ["recipientName", "recipientLastName", "recipientDni", "recipientPhone", "contentChecklist"].find(field => errors[field]);
+    if (firstField) focusClientShipmentField(firstField);
     return Object.keys(errors).length === 0;
   };
   const deleteMyShipmentMutation = trpc.account.deleteMyShipment.useMutation({
@@ -522,7 +551,7 @@ export default function AccountPage() {
           )}
           {receiptShipment && (
             <Dialog open={!!receiptShipment} onOpenChange={(open) => { if (!open) setReceiptShipment(null); }}>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="w-[calc(100vw-1rem)] max-w-2xl max-h-[92vh] overflow-y-auto p-4 sm:p-6">
                 <DialogHeader>
                   <DialogTitle className="text-xl font-bold text-[#0B2B5E] flex items-center gap-2">
                     <CheckCircle2 className="h-5 w-5 text-green-600" /> Vista Previa del Recibo y Declaración Jurada
@@ -530,11 +559,11 @@ export default function AccountPage() {
                 </DialogHeader>
                 <div className="space-y-4 text-sm text-slate-700">
                   <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
-                    <div className="flex justify-between items-center font-bold text-[#0B2B5E] border-b pb-2">
-                      <span>Orden: {receiptShipment.orderNumber}</span>
-                      <span className="bg-blue-100 text-[#0B2B5E] px-2 py-0.5 rounded text-xs">Código: {receiptShipment.code}</span>
+                    <div className="flex flex-col gap-2 border-b pb-3 font-bold text-[#0B2B5E] sm:flex-row sm:items-center sm:justify-between">
+                      <span className="break-words">Orden: {receiptShipment.orderNumber}</span>
+                      <span className="max-w-full break-all rounded bg-blue-100 px-2 py-1 text-xs text-[#0B2B5E]">Código: {receiptShipment.code}</span>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                    <div className="grid min-w-0 grid-cols-1 gap-3 text-sm">
                       <div><strong>Remitente:</strong> {receiptShipment.senderName} {receiptShipment.senderLastName}</div>
                       <div><strong>DNI Remitente:</strong> {receiptShipment.senderDni || '-'}</div>
                       <div><strong>Cel. Remitente:</strong> {formatPhoneNumber(receiptShipment.senderPhone) || '-'}</div>
@@ -568,10 +597,13 @@ export default function AccountPage() {
                     <strong>Declaración Jurada y Exención de Responsabilidad Legal:</strong> El remitente declara bajo juramento que el envío contiene única y exclusivamente documentación lícita, eximiendo a Servicom Internacional de cualquier responsabilidad y firmando electrónicamente.
                   </div>
                 </div>
-                <div className="flex justify-end gap-3 pt-4 border-t">
-                  <Button type="button" variant="outline" onClick={() => setReceiptShipment(null)}>Cerrar</Button>
-                  <Button onClick={handlePrintReceipt} className="bg-[#0B2B5E] text-white hover:bg-[#123d78]">
-                    <Printer className="mr-2 h-4 w-4" /> Imprimir Recibo Ahora
+                <div className="flex flex-col gap-2 border-t pt-4 sm:flex-row sm:flex-wrap sm:justify-end">
+                  <Button type="button" variant="outline" onClick={() => setReceiptShipment(null)} className="w-full sm:w-auto">Cerrar</Button>
+                  <Button type="button" variant="outline" onClick={handleDownloadReceipt} className="w-full min-w-0 whitespace-normal border-[#0B2B5E]/30 px-3 text-[#0B2B5E] sm:w-auto">
+                    <Download className="mr-2 h-4 w-4" /> Descargar PDF
+                  </Button>
+                  <Button type="button" onClick={handlePrintReceipt} className="w-full min-w-0 whitespace-normal bg-[#0B2B5E] px-3 text-white hover:bg-[#123d78] sm:w-auto">
+                    <Printer className="mr-2 h-4 w-4" /> Imprimir recibo
                   </Button>
                 </div>
               </DialogContent>
@@ -767,8 +799,9 @@ export default function AccountPage() {
                   deliveryMode: "remoto",
                 });
                   }} className="shipment-form bg-blue-50/50 p-5 md:p-7 rounded-xl mb-6 space-y-5 border border-blue-100 text-base">
-                        <h3 className="font-bold text-[#0B2B5E]">Detalles del envío de documentos</h3>
-                        {mobileClientMode && <div className="mt-4 rounded-xl border border-blue-100 bg-white p-3" aria-label="Pasos del registro"><div className="flex items-center justify-between gap-2 text-xs font-semibold"><span className={shipmentStep >= 1 ? "text-[#0B2B5E]" : "text-slate-400"}>1. Sede y tipo</span><span className={shipmentStep >= 2 ? "text-[#0B2B5E]" : "text-slate-400"}>2. Personas</span><span className={shipmentStep >= 3 ? "text-[#0B2B5E]" : "text-slate-400"}>3. Contenido</span></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-[#F28C00] transition-all" style={{ width: `${shipmentStep * 33.333}%` }} /></div><p className="mt-2 text-xs text-slate-500">Paso {shipmentStep} de 3. Tus datos se conservan mientras avanzas.</p></div>}
+                                        <h3 className="font-bold text-[#0B2B5E]">Detalles del envío de documentos</h3>
+                {Object.keys(shipmentValidationErrors).length > 0 && <div role="alert" className="rounded-xl border-2 border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-800"><strong className="block text-base">Completa los campos obligatorios marcados en rojo.</strong><span>Te llevaremos al primer campo pendiente para que puedas corregirlo.</span></div>}
+                {mobileClientMode && <div className="mt-4 rounded-xl border border-blue-100 bg-white p-3" aria-label="Pasos del registro"><div className="flex items-center justify-between gap-2 text-xs font-semibold"><span className={shipmentStep >= 1 ? "text-[#0B2B5E]" : "text-slate-400"}>1. Sede y tipo</span><span className={shipmentStep >= 2 ? "text-[#0B2B5E]" : "text-slate-400"}>2. Personas</span><span className={shipmentStep >= 3 ? "text-[#0B2B5E]" : "text-slate-400"}>3. Contenido</span></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-[#F28C00] transition-all" style={{ width: `${shipmentStep * 33.333}%` }} /></div><p className="mt-2 text-xs text-slate-500">Paso {shipmentStep} de 3. Tus datos se conservan mientras avanzas.</p></div>}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className={mobileShipmentStepVisible(1) ? "" : "hidden"}>
                     <Label>Ruta de envío</Label>
@@ -858,26 +891,26 @@ export default function AccountPage() {
                   </div>
                   <div className={mobileShipmentStepVisible(2) ? "" : "hidden"}>
                     <Label>Destinatario - Nombres</Label>
-                    <Input value={recipientName} onChange={e => updateTextValue("recipientName", e.target.value, setRecipientName, "El nombre")} placeholder="Ej: María" autoComplete="given-name" required aria-invalid={Boolean(shipmentValidationErrors.recipientName || identityErrors.recipientName)} className={`mt-1 bg-white ${shipmentValidationErrors.recipientName || identityErrors.recipientName ? "border-rose-500 ring-1 ring-rose-200" : ""}`} />
+                    <Input id="account-recipient-name" value={recipientName} onChange={e => { updateTextValue("recipientName", e.target.value, setRecipientName, "El nombre"); setShipmentValidationErrors(current => ({ ...current, recipientName: "" })); }} placeholder="Ej: María" autoComplete="given-name" required aria-invalid={Boolean(shipmentValidationErrors.recipientName || identityErrors.recipientName)} className={`mt-1 bg-white ${shipmentValidationErrors.recipientName || identityErrors.recipientName ? "border-rose-500 bg-rose-50 ring-1 ring-rose-200" : ""}`} />
                     <p className="mt-1 text-xs text-slate-500">Solo letras y espacios.</p>
                     {(shipmentValidationErrors.recipientName || identityErrors.recipientName) && <p role="alert" className="text-xs text-red-600">{shipmentValidationErrors.recipientName || identityErrors.recipientName}</p>}
                   </div>
                   <div className={mobileShipmentStepVisible(2) ? "" : "hidden"}>
                     <Label>Destinatario - Apellidos</Label>
-                    <Input value={recipientLastName} onChange={e => updateTextValue("recipientLastName", e.target.value, setRecipientLastName, "El apellido")} placeholder="Ej: López" autoComplete="family-name" required aria-invalid={Boolean(shipmentValidationErrors.recipientLastName || identityErrors.recipientLastName)} className={`mt-1 bg-white ${shipmentValidationErrors.recipientLastName || identityErrors.recipientLastName ? "border-rose-500 ring-1 ring-rose-200" : ""}`} />
+                    <Input id="account-recipient-last-name" value={recipientLastName} onChange={e => { updateTextValue("recipientLastName", e.target.value, setRecipientLastName, "El apellido"); setShipmentValidationErrors(current => ({ ...current, recipientLastName: "" })); }} placeholder="Ej: López" autoComplete="family-name" required aria-invalid={Boolean(shipmentValidationErrors.recipientLastName || identityErrors.recipientLastName)} className={`mt-1 bg-white ${shipmentValidationErrors.recipientLastName || identityErrors.recipientLastName ? "border-rose-500 bg-rose-50 ring-1 ring-rose-200" : ""}`} />
                     <p className="mt-1 text-xs text-slate-500">Solo letras y espacios.</p>
                     {(shipmentValidationErrors.recipientLastName || identityErrors.recipientLastName) && <p role="alert" className="text-xs text-red-600">{shipmentValidationErrors.recipientLastName || identityErrors.recipientLastName}</p>}
                   </div>
-                  <div className={mobileShipmentStepVisible(2) ? "" : "hidden"}><IdentityDocumentField id="recipient-document" label="Destinatario - documento de identidad" documentType={recipientDocumentType} onDocumentTypeChange={setRecipientDocumentType} value={recipientDni} onValueChange={setRecipientDni} required error={shipmentValidationErrors.recipientDni || ""} /></div>
+                  <div className={mobileShipmentStepVisible(2) ? "" : "hidden"}><IdentityDocumentField id="account-recipient-document" label="Destinatario - documento de identidad" documentType={recipientDocumentType} onDocumentTypeChange={setRecipientDocumentType} value={recipientDni} onValueChange={(value) => { setRecipientDni(value); setShipmentValidationErrors(current => ({ ...current, recipientDni: "" })); }} required error={shipmentValidationErrors.recipientDni || ""} /></div>
                   <div className={mobileShipmentStepVisible(2) ? "" : "hidden"}>
                     <Label>Destinatario - Teléfono</Label>
                     <div className="mt-1">
-                      <PhoneInput value={recipientPhone} onChange={setRecipientPhone} placeholder="987654321" required className={shipmentValidationErrors.recipientPhone ? "rounded-md ring-1 ring-rose-300" : ""} />
+                      <PhoneInput id="account-recipient-phone" value={recipientPhone} onChange={(value) => { setRecipientPhone(value); setShipmentValidationErrors(current => ({ ...current, recipientPhone: "" })); }} placeholder="987654321" required className={shipmentValidationErrors.recipientPhone ? "rounded-md ring-1 ring-rose-300" : ""} />
                     </div>
                     {shipmentValidationErrors.recipientPhone && <p role="alert" className="mt-1 text-xs text-rose-700">{shipmentValidationErrors.recipientPhone}</p>}
                   </div>
                   <div className={`${mobileShipmentStepVisible(3) ? "" : "hidden"} md:col-span-2`}>
-                    <div className={shipmentValidationErrors.contentChecklist ? "rounded-lg border border-rose-300 bg-rose-50 p-3" : ""}><DocumentCatalogSelector value={catalogDocuments} onChange={items => { setCatalogDocuments(items); if (items.length) setShipmentValidationErrors(current => ({ ...current, contentChecklist: "" })); }} idPrefix="account-document" />{shipmentValidationErrors.contentChecklist && <p role="alert" className="mt-2 text-sm font-medium text-rose-700">{shipmentValidationErrors.contentChecklist}</p>}</div>
+                    <div className={shipmentValidationErrors.contentChecklist ? "rounded-lg border border-rose-300 bg-rose-50 p-3" : ""}><DocumentCatalogSelector value={catalogDocuments} onChange={items => { setCatalogDocuments(items); if (items.length) setShipmentValidationErrors(current => ({ ...current, contentChecklist: "" })); }} idPrefix="account-document" error={shipmentValidationErrors.contentChecklist || ""} /></div>
                   </div>
                    <div className={`${mobileShipmentStepVisible(3) ? "" : "hidden"} md:col-span-2`}>
                      <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-base leading-6 text-[#0B2B5E]"><strong>Antes de crear el envío:</strong> entrega todos los documentos y datos solicitados en la agencia o completa la firma remota. El Cliente no puede registrar envíos incompletos.</div>

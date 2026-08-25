@@ -1423,3 +1423,9 @@
 - [x] Retirar el texto auxiliar inferior del buscador para liberar espacio vertical en móvil
 - [x] Añadir o actualizar pruebas de layout y verificar la vista responsive
 - [x] Validar TypeScript, suite completa y publicar
+
+## Validación y comprobante del Cliente
+- [x] Mostrar feedback claro de campos obligatorios para Cliente, Usuario y Admin, marcar en rojo los faltantes y enfocar o redirigir al primer campo pendiente
+- [x] Permitir al Cliente descargar inmediatamente el comprobante al crear un envío de documento
+- [x] Revisar el layout responsive de botones y recibos para evitar superposición y mantener una jerarquía clara
+- [x] Añadir pruebas de validación, descarga directa y responsive; validar TypeScript, suite completa y publicar

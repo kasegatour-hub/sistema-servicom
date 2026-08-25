@@ -48,9 +48,11 @@ import { QRScanner } from "@/components/QRScanner";
 import { normalizeIdentityDocument, type IdentityDocumentType } from "@shared/identityDocuments";
 import { getFuzzySearchScore } from "@shared/fuzzySearch";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "@shared/passwordPolicy";
+import { isValidInternationalPhone } from "@shared/phoneValidation";
 
 type AdminWorkspace = "resumen" | "registros" | "crear" | "cupones" | "papelera" | "usuarios" | "analitica" | "carta" | "remitentes" | "transferencias";
 type CreateRecordTab = "documento" | "encomienda" | "transferencia";
+const createShipmentFieldLabels: Record<string, string> = { senderName: "nombre del remitente", senderLastName: "apellido del remitente", senderDni: "documento del remitente", senderPhone: "celular del remitente", recipientName: "nombre del destinatario", recipientLastName: "apellido del destinatario", recipientDni: "documento del destinatario", recipientPhone: "celular del destinatario", weightKg: "peso del envío", provinceCustomerPriceEur: "precio al cliente para provincia", provinceExtraPriceEur: "extra provincial", destinationAddress: "sede de destino", contentChecklist: "lista de cosas enviadas", limaTorinoTransferMode: "forma de traslado a Torino", deliveryPersonName: "nombre de la persona autorizada", deliveryPersonLastName: "apellido de la persona autorizada", deliveryPersonDni: "documento de la persona autorizada", deliveryPersonPhone: "celular de la persona autorizada", deliveryLocationType: "lugar de entrega", deliveryLocationAddress: "dirección de entrega" };
 
 function renderQrCode(canvas: HTMLCanvasElement | null, trackingUrl: string, width: number) {
   if (!canvas) return;
@@ -1066,33 +1068,77 @@ export default function AdminDashboard() {
     }
   };
 
+  const focusCreateShipmentField = (field: string) => {
+    const stepByField: Record<string, 1 | 2 | 3> = {
+      senderName: 2, senderLastName: 2, senderDni: 2, senderPhone: 2,
+      recipientName: 2, recipientLastName: 2, recipientDni: 2, recipientPhone: 2,
+      weightKg: 1, provinceCustomerPriceEur: 1, provinceExtraPriceEur: 1, destinationAddress: 1,
+      contentChecklist: 3, limaTorinoTransferMode: 3, deliveryPersonName: 3, deliveryPersonLastName: 3,
+      deliveryPersonDni: 3, deliveryPersonPhone: 3, deliveryLocationType: 3, deliveryLocationAddress: 3,
+    };
+    if (mobileRegistrationMode && stepByField[field]) setMobileRegistrationStep(stepByField[field]);
+    const targetIds: Record<string, string> = {
+      senderPhone: "admin-sender-phone", recipientPhone: "admin-recipient-phone",
+      senderDni: "admin-sender-document-number", recipientDni: "admin-recipient-document-number",
+      contentChecklist: selectedShipmentType === "documento" ? "admin-document-document-search" : "admin-content-checklist-0",
+      destinationAddress: "agency-directory-search",
+    };
+    window.setTimeout(() => {
+      const element = document.getElementById(targetIds[field]) || document.querySelector(`[name="${field}"]`);
+      if (!(element instanceof HTMLElement)) return;
+      if (typeof element.scrollIntoView === "function") element.scrollIntoView({ behavior: "smooth", block: "center" });
+      element.focus({ preventScroll: true });
+    }, 50);
+  };
   const handleCreateShipmentInvalid = (errors: Record<string, any>) => {
-    const fieldOrder = ["senderName", "senderLastName", "senderDni", "senderPhone", "recipientName", "recipientLastName", "recipientDni", "recipientPhone", "weightKg", "provinceCustomerPriceEur", "provinceExtraPriceEur", "destinationAddress", "contentChecklist"];
+    const fieldOrder = ["senderName", "senderLastName", "senderDni", "senderPhone", "recipientName", "recipientLastName", "recipientDni", "recipientPhone", "weightKg", "provinceCustomerPriceEur", "provinceExtraPriceEur", "destinationAddress", "contentChecklist", "limaTorinoTransferMode", "deliveryPersonName", "deliveryPersonLastName", "deliveryPersonDni", "deliveryPersonPhone", "deliveryLocationType", "deliveryLocationAddress"];
     const firstField = fieldOrder.find(field => errors[field]);
-    const fieldLabels: Record<string, string> = { senderName: "nombre del remitente", senderLastName: "apellido del remitente", senderDni: "documento del remitente", senderPhone: "celular del remitente", recipientName: "nombre del destinatario", recipientLastName: "apellido del destinatario", recipientDni: "documento del destinatario", recipientPhone: "celular del destinatario", weightKg: "peso del envío", provinceCustomerPriceEur: "precio al cliente para provincia", provinceExtraPriceEur: "extra provincial", destinationAddress: "sede de destino", contentChecklist: "lista de cosas enviadas" };
-    const message = firstField ? `Revisa el campo «${fieldLabels[firstField] || firstField}». ${String(errors[firstField]?.message || "Completa este dato para continuar.")}` : "Revisa los campos señalados en rojo antes de continuar.";
+    const message = firstField ? `Revisa el campo «${createShipmentFieldLabels[firstField] || firstField}». ${String(errors[firstField]?.message || "Completa este dato para continuar.")}` : "Revisa los campos señalados en rojo antes de continuar.";
     setCreateShipmentValidationError(message);
-    if (firstField) {
-      window.setTimeout(() => {
-        const selector = `[name="${firstField}"]`;
-        const element = document.querySelector(selector) as HTMLElement | null;
-        element?.scrollIntoView({ behavior: "smooth", block: "center" });
-        element?.focus({ preventScroll: true });
-      }, 0);
-    }
+    if (firstField) focusCreateShipmentField(firstField);
   };
 
+  const validateRequiredAdminShipmentFields = (data: any) => {
+    const requiredFields: Array<{ field: string; value: unknown; label: string }> = [
+      { field: "senderName", value: data.senderName, label: "nombre del remitente" },
+      { field: "senderLastName", value: data.senderLastName, label: "apellido del remitente" },
+      { field: "senderDni", value: data.senderDni, label: "documento del remitente" },
+      { field: "senderPhone", value: data.senderPhone, label: "celular del remitente" },
+      { field: "recipientName", value: data.recipientName, label: "nombre del destinatario" },
+      { field: "recipientLastName", value: data.recipientLastName, label: "apellido del destinatario" },
+      { field: "recipientDni", value: data.recipientDni, label: "documento del destinatario" },
+      { field: "recipientPhone", value: data.recipientPhone, label: "celular del destinatario" },
+    ];
+    const missingFields = requiredFields.filter(({ field, value }) => {
+      const text = String(value ?? "").trim();
+      if (!text) return true;
+      return field.endsWith("Phone") && !isValidInternationalPhone(text);
+    });
+    if (!missingFields.length) return true;
+    missingFields.forEach(({ field, label }) => createForm.setError(field as keyof CreateShipmentForm, { type: "required", message: `Este campo es obligatorio: completa el ${label}.` }));
+    const first = missingFields[0];
+    const message = `Falta completar el ${first.label}. El campo fue marcado en rojo.`;
+    setCreateShipmentValidationError(message);
+    toast.error(message);
+    focusCreateShipmentField(first.field);
+    return false;
+  };
   const handleCreateShipment = async (data: any) => {
     try {
+      if (!validateRequiredAdminShipmentFields(data)) return;
       const normalizedChecklist = data.shipmentType === "documento"
         ? catalogDocumentsToChecklist(catalogDocuments)
         : contentChecklist.map(item => item.trim()).filter(Boolean);
       if (normalizedChecklist.length === 0) {
-        setCreateShipmentValidationError("Agrega al menos un elemento a la lista de cosas enviadas.");
-        toast.error("Agrega al menos un elemento a la lista de cosas enviadas.");
+        const message = "Este campo es obligatorio. Agrega al menos un elemento a la lista de cosas enviadas.";
+        createForm.setError("contentChecklist", { type: "required", message });
+        setCreateShipmentValidationError(message);
+        toast.error(message);
+        focusCreateShipmentField("contentChecklist");
         return;
       }
       setCreateShipmentValidationError("");
+      createForm.clearErrors("contentChecklist");
       const createdShipment = await createMutation.mutateAsync({
         ...data,
         documentItems: data.shipmentType === "documento" ? additionalDocumentItems : [],
@@ -1141,6 +1187,7 @@ export default function AdminDashboard() {
       const rawMessage = String(error?.message || "");
       const phoneField = rawMessage.includes("senderPhone") ? "senderPhone" : rawMessage.includes("recipientPhone") ? "recipientPhone" : rawMessage.includes("deliveryPersonPhone") ? "deliveryPersonPhone" : "";
       const phoneLabels: Record<string, string> = { senderPhone: "celular del remitente", recipientPhone: "celular del destinatario", deliveryPersonPhone: "celular de entrega" };
+      const serverField = ["senderName", "senderLastName", "senderDni", "senderPhone", "recipientName", "recipientLastName", "recipientDni", "recipientPhone", "limaTorinoTransferMode", "deliveryPersonName", "deliveryPersonLastName", "deliveryPersonDni", "deliveryPersonPhone", "deliveryLocationType", "deliveryLocationAddress"].find(field => rawMessage.includes(field));
       const phoneFriendlyMessage = phoneField ? `Corrige el ${phoneLabels[phoneField]}. Para Perú escribe 9 dígitos después de +51, por ejemplo 970 188 447.` : "";
       const isManualPriceError = rawMessage.includes("manualPriceEur") || rawMessage.includes("Precio manual");
       const friendlyMessage = phoneFriendlyMessage || (isManualPriceError
@@ -1149,6 +1196,12 @@ export default function AdminDashboard() {
       if (phoneField) {
         createForm.setError(phoneField as any, { type: "server", message: phoneFriendlyMessage });
         setCreateShipmentValidationError(friendlyMessage);
+        focusCreateShipmentField(phoneField);
+      } else if (serverField) {
+        const fieldMessage = `Este campo es obligatorio o necesita corrección: ${createShipmentFieldLabels[serverField] || serverField}.`;
+        createForm.setError(serverField as keyof CreateShipmentForm, { type: "server", message: fieldMessage });
+        setCreateShipmentValidationError(fieldMessage);
+        focusCreateShipmentField(serverField);
       } else if (isManualPriceError) {
         setCreateShipmentValidationError(friendlyMessage);
         createForm.setError("manualPriceEur", { type: "required", message: friendlyMessage });
@@ -2361,38 +2414,43 @@ export default function AdminDashboard() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Nombre</label>
+                    <label htmlFor="admin-sender-name" className="block text-sm font-medium text-gray-700 mb-2">Nombre <span className="text-rose-600" aria-hidden="true">*</span></label>
                     <Input
+                      id="admin-sender-name"
                       placeholder="Nombre"
                       inputMode="text"
                       {...createForm.register("senderName", textRegisterOptions(createForm, "senderName", "El nombre"))}
-                      className="border-2 focus:border-primary"
+                      aria-invalid={Boolean(createForm.formState.errors.senderName)}
+                      className={`border-2 focus:border-primary ${createForm.formState.errors.senderName ? "border-rose-500 bg-rose-50 ring-1 ring-rose-200" : ""}`}
                     />
                     <p className="mt-1 text-xs text-gray-500">Solo letras y espacios.</p>
                     {createForm.formState.errors.senderName?.message && <p className="text-xs text-red-600">{String(createForm.formState.errors.senderName.message)}</p>}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Apellido</label>
+                    <label htmlFor="admin-sender-last-name" className="block text-sm font-medium text-gray-700 mb-2">Apellido <span className="text-rose-600" aria-hidden="true">*</span></label>
                     <Input
+                      id="admin-sender-last-name"
                       placeholder="Apellido"
                       inputMode="text"
                       {...createForm.register("senderLastName", textRegisterOptions(createForm, "senderLastName", "El apellido"))}
-                      className="border-2 focus:border-primary"
+                      aria-invalid={Boolean(createForm.formState.errors.senderLastName)}
+                      className={`border-2 focus:border-primary ${createForm.formState.errors.senderLastName ? "border-rose-500 bg-rose-50 ring-1 ring-rose-200" : ""}`}
                     />
                     <p className="mt-1 text-xs text-gray-500">Solo letras y espacios.</p>
                     {createForm.formState.errors.senderLastName?.message && <p className="text-xs text-red-600">{String(createForm.formState.errors.senderLastName.message)}</p>}
                   </div>
                   <div>
-                    <IdentityDocumentField id="admin-sender-document" label="Documento de remitente" documentType={(createForm.watch("senderDocumentType") || "dni_peru") as IdentityDocumentType} onDocumentTypeChange={(value) => createForm.setValue("senderDocumentType", value, { shouldDirty: true, shouldValidate: true })} value={createForm.watch("senderDni") || ""} onValueChange={(value) => createForm.setValue("senderDni", value, { shouldDirty: true, shouldValidate: true })} />
+                    <IdentityDocumentField id="admin-sender-document" label="Documento de remitente" required documentType={(createForm.watch("senderDocumentType") || "dni_peru") as IdentityDocumentType} onDocumentTypeChange={(value) => createForm.setValue("senderDocumentType", value, { shouldDirty: true, shouldValidate: true })} value={createForm.watch("senderDni") || ""} onValueChange={(value) => createForm.setValue("senderDni", value, { shouldDirty: true, shouldValidate: true })} error={String(createForm.formState.errors.senderDni?.message || "")} />
                     {createForm.formState.errors.senderDni?.message && <p className="text-xs text-red-600">{String(createForm.formState.errors.senderDni.message)}</p>}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Teléfono</label>
+                    <label htmlFor="admin-sender-phone" className="block text-sm font-medium text-gray-700 mb-2">Teléfono <span className="text-rose-600" aria-hidden="true">*</span></label>
                     <PhoneInput
                       id="admin-sender-phone"
                       value={createForm.watch("senderPhone") || "+51 "}
                       onChange={(val) => createForm.setValue("senderPhone", val, { shouldDirty: true, shouldValidate: true })}
                       placeholder="970 188 447"
+                      required
                     />
                     {createForm.formState.errors.senderPhone?.message && <p role="alert" className="mt-1 text-xs font-semibold text-red-600">{String(createForm.formState.errors.senderPhone.message)}</p>}
                   </div>
@@ -2415,38 +2473,43 @@ export default function AdminDashboard() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Nombre</label>
+                    <label htmlFor="admin-recipient-name" className="block text-sm font-medium text-gray-700 mb-2">Nombre <span className="text-rose-600" aria-hidden="true">*</span></label>
                     <Input
+                      id="admin-recipient-name"
                       placeholder="Nombre"
                       inputMode="text"
                       {...createForm.register("recipientName", textRegisterOptions(createForm, "recipientName", "El nombre"))}
-                      className="border-2 focus:border-primary"
+                      aria-invalid={Boolean(createForm.formState.errors.recipientName)}
+                      className={`border-2 focus:border-primary ${createForm.formState.errors.recipientName ? "border-rose-500 bg-rose-50 ring-1 ring-rose-200" : ""}`}
                     />
                     <p className="mt-1 text-xs text-gray-500">Solo letras y espacios.</p>
                     {createForm.formState.errors.recipientName?.message && <p className="text-xs text-red-600">{String(createForm.formState.errors.recipientName.message)}</p>}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Apellido</label>
+                    <label htmlFor="admin-recipient-last-name" className="block text-sm font-medium text-gray-700 mb-2">Apellido <span className="text-rose-600" aria-hidden="true">*</span></label>
                     <Input
+                      id="admin-recipient-last-name"
                       placeholder="Apellido"
                       inputMode="text"
                       {...createForm.register("recipientLastName", textRegisterOptions(createForm, "recipientLastName", "El apellido"))}
-                      className="border-2 focus:border-primary"
+                      aria-invalid={Boolean(createForm.formState.errors.recipientLastName)}
+                      className={`border-2 focus:border-primary ${createForm.formState.errors.recipientLastName ? "border-rose-500 bg-rose-50 ring-1 ring-rose-200" : ""}`}
                     />
                     <p className="mt-1 text-xs text-gray-500">Solo letras y espacios.</p>
                     {createForm.formState.errors.recipientLastName?.message && <p className="text-xs text-red-600">{String(createForm.formState.errors.recipientLastName.message)}</p>}
                   </div>
                   <div>
-                    <IdentityDocumentField id="admin-recipient-document" label="Documento de destinatario" documentType={(createForm.watch("recipientDocumentType") || "dni_peru") as IdentityDocumentType} onDocumentTypeChange={(value) => createForm.setValue("recipientDocumentType", value, { shouldDirty: true, shouldValidate: true })} value={createForm.watch("recipientDni") || ""} onValueChange={(value) => createForm.setValue("recipientDni", value, { shouldDirty: true, shouldValidate: true })} />
+                    <IdentityDocumentField id="admin-recipient-document" label="Documento de destinatario" required documentType={(createForm.watch("recipientDocumentType") || "dni_peru") as IdentityDocumentType} onDocumentTypeChange={(value) => createForm.setValue("recipientDocumentType", value, { shouldDirty: true, shouldValidate: true })} value={createForm.watch("recipientDni") || ""} onValueChange={(value) => createForm.setValue("recipientDni", value, { shouldDirty: true, shouldValidate: true })} error={String(createForm.formState.errors.recipientDni?.message || "")} />
                     {createForm.formState.errors.recipientDni?.message && <p className="text-xs text-red-600">{String(createForm.formState.errors.recipientDni.message)}</p>}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Teléfono</label>
+                    <label htmlFor="admin-recipient-phone" className="block text-sm font-medium text-gray-700 mb-2">Teléfono <span className="text-rose-600" aria-hidden="true">*</span></label>
                     <PhoneInput
                       id="admin-recipient-phone"
                       value={createForm.watch("recipientPhone") || "+51 "}
                       onChange={(val) => createForm.setValue("recipientPhone", val, { shouldDirty: true, shouldValidate: true })}
                       placeholder="908 722 617"
+                      required
                     />
                     {createForm.formState.errors.recipientPhone?.message && <p role="alert" className="mt-1 text-xs font-semibold text-red-600">{String(createForm.formState.errors.recipientPhone.message)}</p>}
                   </div>
@@ -2454,7 +2517,7 @@ export default function AdminDashboard() {
               </div>
 
               {selectedShipmentType === "documento" ? (
-                <div className={`border-t pt-4 ${mobileSectionClass(3)} ${createShipmentValidationError ? "rounded-lg border border-rose-300 bg-rose-50 p-3" : ""}`}><DocumentCatalogSelector value={catalogDocuments} onChange={items => { setCatalogDocuments(items); if (items.length) setCreateShipmentValidationError(""); }} idPrefix="admin-document" />{createShipmentValidationError && <p role="alert" className="mt-2 text-sm font-medium text-rose-700">{createShipmentValidationError}</p>}</div>
+                <div className={`border-t pt-4 ${mobileSectionClass(3)} ${createShipmentValidationError ? "rounded-lg border border-rose-300 bg-rose-50 p-3" : ""}`}><DocumentCatalogSelector value={catalogDocuments} onChange={items => { setCatalogDocuments(items); if (items.length) { setCreateShipmentValidationError(""); createForm.clearErrors("contentChecklist"); } }} idPrefix="admin-document" error={createForm.formState.errors.contentChecklist?.message ? String(createForm.formState.errors.contentChecklist.message) : undefined} /></div>
               ) : (
                 <div className={`border-t pt-4 ${mobileSectionClass(3)} ${createShipmentValidationError ? "rounded-lg border border-rose-300 bg-rose-50 p-3" : ""}`}>
                   <div className="flex flex-wrap items-center justify-between gap-3">
@@ -2466,11 +2529,11 @@ export default function AdminDashboard() {
                   </div>
                   {contentChecklist.length > 0 && <div className="mt-3 space-y-2">
                     {contentChecklist.map((item, index) => <div key={`content-check-${index}`} className="flex gap-2">
-                      <Input aria-label={`Ítem de checklist ${index + 1}`} value={item} maxLength={160} onChange={(event) => setContentChecklist(items => items.map((current, itemIndex) => itemIndex === index ? event.target.value : current))} placeholder="Ej. Paquete sellado" />
+                      <Input id={index === 0 ? "admin-content-checklist-0" : undefined} aria-label={`Ítem de checklist ${index + 1}`} value={item} maxLength={160} onChange={(event) => setContentChecklist(items => items.map((current, itemIndex) => itemIndex === index ? event.target.value : current))} placeholder="Ej. Paquete sellado" />
                       <Button type="button" size="sm" variant="outline" onClick={() => setContentChecklist(items => items.filter((_, itemIndex) => itemIndex !== index))} className="shrink-0 border-red-200 text-red-700 hover:bg-red-50">Quitar</Button>
                     </div>)}
                   </div>}
-                  {createShipmentValidationError && <p role="alert" className="mt-2 text-sm font-medium text-rose-700">{createShipmentValidationError}</p>}
+                  {createShipmentValidationError && <p role="status" aria-live="assertive" className="mt-2 text-sm font-medium text-rose-700">{createShipmentValidationError}</p>}
                 </div>
               )}
 

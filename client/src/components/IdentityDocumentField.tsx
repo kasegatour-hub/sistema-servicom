@@ -18,7 +18,7 @@ type IdentityDocumentFieldProps = {
 export function IdentityDocumentField({ id, label, documentType, onDocumentTypeChange, value, onValueChange, required, className, error = "" }: IdentityDocumentFieldProps) {
   const definition = IDENTITY_DOCUMENT_DEFINITIONS[documentType];
   return <div className={className}>
-    <Label htmlFor={`${id}-number`}>{label}</Label>
+    <div className="flex items-center gap-1"><Label htmlFor={`${id}-number`}>{label}</Label>{required && <span className="text-rose-600" aria-hidden="true">*</span>}</div>
     <div className="mt-1 grid grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)] gap-2">
       <select id={`${id}-type`} aria-label={`${label} - tipo de identificación`} value={documentType} onChange={(event) => {
         const nextType = event.target.value as IdentityDocumentType;

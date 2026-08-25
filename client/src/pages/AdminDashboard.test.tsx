@@ -750,6 +750,16 @@ describe("AdminDashboard Nueva Encomienda", () => {
     await screen.findByRole("button", { name: "Nuevo documento" });
 
     fireEvent.click(screen.getByRole("button", { name: "Nuevo documento" }));
+    const names = screen.getAllByPlaceholderText("Nombre") as HTMLInputElement[];
+    const lastNames = screen.getAllByPlaceholderText("Apellido") as HTMLInputElement[];
+    fireEvent.change(names[0], { target: { value: "Ana" } });
+    fireEvent.change(lastNames[0], { target: { value: "Pérez" } });
+    fireEvent.change(screen.getByLabelText("Documento de remitente - número de identificación"), { target: { value: "70445566" } });
+    fireEvent.change(document.getElementById("admin-sender-phone") as HTMLInputElement, { target: { value: "970188447" } });
+    fireEvent.change(names[1], { target: { value: "Marco" } });
+    fireEvent.change(lastNames[1], { target: { value: "Rossi" } });
+    fireEvent.change(screen.getByLabelText("Documento de destinatario - número de identificación"), { target: { value: "71234567" } });
+    fireEvent.change(document.getElementById("admin-recipient-phone") as HTMLInputElement, { target: { value: "945612378" } });
     fireEvent.click(screen.getByRole("button", { name: "Crear Documento" }));
 
     await waitFor(() => expect(screen.getByRole("alert").textContent).toMatch(/Agrega al menos un elemento/i));
@@ -784,6 +794,16 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
         await waitFor(() => expect(screen.getByRole("button", { name: "Nuevo documento" })).toBeTruthy());
     fireEvent.click(screen.getByRole("button", { name: "Nuevo documento" }));
+    const documentNames = screen.getAllByPlaceholderText("Nombre") as HTMLInputElement[];
+    const documentLastNames = screen.getAllByPlaceholderText("Apellido") as HTMLInputElement[];
+    fireEvent.change(documentNames[0], { target: { value: "Ana" } });
+    fireEvent.change(documentLastNames[0], { target: { value: "Pérez" } });
+    fireEvent.change(screen.getByLabelText("Documento de remitente - número de identificación"), { target: { value: "70445566" } });
+    fireEvent.change(document.getElementById("admin-sender-phone") as HTMLInputElement, { target: { value: "970188447" } });
+    fireEvent.change(documentNames[1], { target: { value: "Marco" } });
+    fireEvent.change(documentLastNames[1], { target: { value: "Rossi" } });
+    fireEvent.change(screen.getByLabelText("Documento de destinatario - número de identificación"), { target: { value: "71234567" } });
+    fireEvent.change(document.getElementById("admin-recipient-phone") as HTMLInputElement, { target: { value: "945612378" } });
     fireEvent.click(screen.getByLabelText("Acta de nacimiento"));
     fireEvent.click(screen.getByRole("combobox", { name: "Estado de Pago" }));
     fireEvent.click(screen.getByRole("option", { name: "Pagado" }));
@@ -801,6 +821,16 @@ describe("AdminDashboard Nueva Encomienda", () => {
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Nueva encomienda" }));
+    const parcelNames = screen.getAllByPlaceholderText("Nombre") as HTMLInputElement[];
+    const parcelLastNames = screen.getAllByPlaceholderText("Apellido") as HTMLInputElement[];
+    fireEvent.change(parcelNames[0], { target: { value: "Ana" } });
+    fireEvent.change(parcelLastNames[0], { target: { value: "Pérez" } });
+    fireEvent.change(screen.getByLabelText("Documento de remitente - número de identificación"), { target: { value: "70445566" } });
+    fireEvent.change(document.getElementById("admin-sender-phone") as HTMLInputElement, { target: { value: "970188447" } });
+    fireEvent.change(parcelNames[1], { target: { value: "Marco" } });
+    fireEvent.change(parcelLastNames[1], { target: { value: "Rossi" } });
+    fireEvent.change(screen.getByLabelText("Documento de destinatario - número de identificación"), { target: { value: "71234567" } });
+    fireEvent.change(document.getElementById("admin-recipient-phone") as HTMLInputElement, { target: { value: "945612378" } });
     fireEvent.change(screen.getByDisplayValue("1"), { target: { value: "2.5" } });
     fireEvent.change(screen.getByPlaceholderText("Ej. 75.00"), { target: { value: "40" } });
     fireEvent.click(screen.getByRole("button", { name: "Añadir ítem" }));

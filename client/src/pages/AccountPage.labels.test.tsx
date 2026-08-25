@@ -190,7 +190,7 @@ describe("AccountPage client labels", () => {
     fireEvent.click(screen.getByRole("button", { name: "Guardar envío" }));
 
     await waitFor(() => expect((screen.getByPlaceholderText("Ej: María") as HTMLInputElement).getAttribute("aria-invalid")).toBe("true"));
-    expect(screen.getByText(/Completa los nombres del destinatario/i)).toBeTruthy();
+    expect(screen.getByText(/Este campo es obligatorio.*nombres/i)).toBeTruthy();
     expect(screen.getByText(/Agrega al menos un elemento a la lista de cosas enviadas/i)).toBeTruthy();
   });
 

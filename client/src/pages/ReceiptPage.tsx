@@ -88,7 +88,7 @@ export default function ReceiptPage() {
           <img src="/manus-storage/servicom_logo_final_e7ce35aa.png" alt="Servicom Internacional" className="h-14 w-auto rounded bg-white p-1 shadow-sm" />
         </div>
 
-        <Card className="border-0 bg-white p-6 shadow-lg ring-1 ring-slate-200 md:p-8">
+        <Card className="min-w-0 border-0 bg-white p-4 shadow-lg ring-1 ring-slate-200 sm:p-6 md:p-8">
           <div className="border-b-2 border-[#F28C00] pb-4">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#F28C00]">Servicom Internacional</p>
             <h1 className="mt-1 text-2xl font-bold">Recibo de envío</h1>
@@ -109,7 +109,7 @@ export default function ReceiptPage() {
             </div>
           ) : (
             <div className="mt-6 space-y-5">
-              <div className="grid gap-3 rounded-lg bg-slate-50 p-4 text-sm md:grid-cols-2">
+              <div className="grid min-w-0 grid-cols-1 gap-3 rounded-lg bg-slate-50 p-4 text-sm">
                 <p><strong>Orden:</strong> {shipment.orderNumber}</p>
                 <p><strong>Código de envío:</strong> {shipment.code}</p>
                 <p><strong>Remitente:</strong> {shipment.senderName || "No especificado"} {shipment.senderLastName || ""}</p>
@@ -158,16 +158,16 @@ export default function ReceiptPage() {
                   <p className="font-semibold">Recibo listo para descargar o imprimir</p>
                   <p className="text-sm text-slate-600">Selecciona PDF, Word o Markdown. El archivo se descarga con el nombre del destinatario; la impresión es independiente.</p>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <select aria-label="Formato de descarga" value={downloadFormat} onChange={(event) => setDownloadFormat(event.target.value as ReceiptDownloadFormat)} disabled={isDownloading} className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-800 focus:border-[#0B2B5E] focus:outline-none">
+                <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap">
+                  <select aria-label="Formato de descarga" value={downloadFormat} onChange={(event) => setDownloadFormat(event.target.value as ReceiptDownloadFormat)} disabled={isDownloading} className="h-12 min-w-0 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-800 focus:border-[#0B2B5E] focus:outline-none sm:h-10">
                     <option value="pdf">PDF (predeterminado)</option>
                     <option value="word">Word (.doc)</option>
                     <option value="md">Markdown (.md)</option>
                   </select>
-                  <Button type="button" onClick={handleDownloadReceipt} disabled={isDownloading} className="bg-[#0B2B5E] text-white hover:bg-[#123d78]">
+                  <Button type="button" onClick={handleDownloadReceipt} disabled={isDownloading} className="min-h-12 min-w-0 whitespace-normal bg-[#0B2B5E] px-3 text-white hover:bg-[#123d78] sm:min-h-10">
                     <Download className="mr-2 h-4 w-4" aria-hidden="true" /> {isDownloading ? "Generando archivo…" : `Descargar ${downloadFormat === "word" ? "Word" : downloadFormat === "md" ? "MD" : "PDF"}`}
                   </Button>
-                  <Button type="button" variant="outline" onClick={handlePrintReceipt}>
+                  <Button type="button" variant="outline" onClick={handlePrintReceipt} className="min-h-12 min-w-0 whitespace-normal px-3 sm:min-h-10">
                     <Printer className="mr-2 h-4 w-4" aria-hidden="true" /> Imprimir recibo
                   </Button>
                 </div>

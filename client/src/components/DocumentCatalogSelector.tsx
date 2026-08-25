@@ -15,12 +15,13 @@ type DocumentCatalogSelectorProps = {
   value: CatalogDocumentItem[];
   onChange: (items: CatalogDocumentItem[]) => void;
   idPrefix: string;
+  error?: string;
 };
 
 const catalogOptions = [...DOCUMENT_CATALOG, { id: "otro-simple", label: "Otro documento simple" }];
 const treatments = Object.entries(DOCUMENT_TREATMENT_LABELS) as Array<[DocumentTreatment, string]>;
 
-export function DocumentCatalogSelector({ value, onChange, idPrefix }: DocumentCatalogSelectorProps) {
+export function DocumentCatalogSelector({ value, onChange, idPrefix, error = "" }: DocumentCatalogSelectorProps) {
   const [search, setSearch] = React.useState("");
   const selectedItem = (id: string) => value.find(item => item.id === id);
   const matchingOptions = catalogOptions.filter(option => matchesDocumentCatalogSearch(option.label, search));
@@ -40,14 +41,15 @@ export function DocumentCatalogSelector({ value, onChange, idPrefix }: DocumentC
   };
 
   return (
-    <fieldset className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+    <fieldset className={`rounded-xl border bg-amber-50 p-4 ${error ? "border-rose-500 ring-1 ring-rose-200" : "border-amber-200"}`} aria-invalid={Boolean(error)} aria-describedby={error ? `${idPrefix}-documents-error` : undefined}>
       <legend className="px-1 text-sm font-semibold text-[#0B2B5E]">Lista de documentos <span className="text-red-600">*</span></legend>
       <p className="mb-3 text-xs text-slate-600">Marca cada documento. Al seleccionarlo inicia en cantidad 1; usa los controles <strong>−</strong> y <strong>+</strong> para ajustarlo. Las notas son opcionales.</p>
       <div className="mb-3">
         <label htmlFor={`${idPrefix}-document-search`} className="sr-only">Buscar documento</label>
-        <Input id={`${idPrefix}-document-search`} type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar documento: ej. matrimonio, nacimento, predios…" className="bg-white" />
+        <Input id={`${idPrefix}-document-search`} type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar documento: ej. matrimonio, nacimento, predios…" aria-invalid={Boolean(error)} className={`bg-white ${error ? "border-rose-500 bg-rose-50 ring-1 ring-rose-200" : ""}`} />
         <p role="status" className="mt-1 text-xs text-slate-600">{search.trim() ? `${visibleOptions.length} resultado(s). Los documentos seleccionados se mantienen visibles.` : "Busca por nombre, palabras parciales, sin tildes o con pequeños errores."}</p>
       </div>
+      {error && <p id={`${idPrefix}-documents-error`} role="alert" className="mb-3 text-sm font-semibold text-rose-700">{error}</p>}
       <div className="space-y-2">
         {visibleOptions.map(option => {
           const item = selectedItem(option.id);
