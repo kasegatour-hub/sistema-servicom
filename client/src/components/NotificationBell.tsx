@@ -1,7 +1,8 @@
-import React, { useState } from "react";
-import { Bell, Check, CheckCheck, X } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { Bell, Check, CheckCheck, Volume2, VolumeX, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
+import { getNotificationSoundPreference, playAscendingNotificationChime, prepareNotificationChime, setNotificationSoundPreference } from "@/lib/notificationChime";
 
 function formatNotificationDate(value: Date | string | null | undefined) {
   if (!value) return "Ahora";
@@ -11,11 +12,34 @@ function formatNotificationDate(value: Date | string | null | undefined) {
 
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(getNotificationSoundPreference);
+  const knownNotificationIds = useRef(new Set<number>());
+  const hasLoadedNotifications = useRef(false);
   const notificationsQuery = trpc.notifications.list.useQuery(undefined, { refetchInterval: 30_000, retry: false });
   const markReadMutation = trpc.notifications.markRead.useMutation({ onSuccess: () => { void notificationsQuery.refetch(); } });
   const markAllReadMutation = trpc.notifications.markAllRead.useMutation({ onSuccess: () => { void notificationsQuery.refetch(); } });
   const items = notificationsQuery.data?.items || [];
   const unreadCount = notificationsQuery.data?.unreadCount || 0;
+
+  useEffect(() => {
+    if (!notificationsQuery.data) return;
+    const currentIds = new Set(items.map(item => item.id));
+    if (!hasLoadedNotifications.current) {
+      knownNotificationIds.current = currentIds;
+      hasLoadedNotifications.current = true;
+      return;
+    }
+    const newUnreadItems = items.filter(item => !item.isRead && !knownNotificationIds.current.has(item.id));
+    knownNotificationIds.current = currentIds;
+    if (soundEnabled && newUnreadItems.length > 0) playAscendingNotificationChime();
+  }, [items, notificationsQuery.data, soundEnabled]);
+
+  const toggleSound = () => {
+    const next = !soundEnabled;
+    setSoundEnabled(next);
+    setNotificationSoundPreference(next);
+    if (next) playAscendingNotificationChime();
+  };
 
   return (
     <div className="relative">
@@ -24,7 +48,7 @@ export function NotificationBell() {
         variant="outline"
         aria-label={`Notificaciones${unreadCount ? `, ${unreadCount} sin leer` : ""}`}
         aria-expanded={open}
-        onClick={() => setOpen(value => !value)}
+        onClick={() => { prepareNotificationChime(); setOpen(value => !value); }}
         className="relative min-h-12 min-w-12 rounded-xl border-white/70 bg-white/10 px-3 text-white hover:bg-white/20"
       >
         <Bell className="h-5 w-5" aria-hidden="true" />
@@ -34,12 +58,13 @@ export function NotificationBell() {
         <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
           <div><h2 className="text-base font-extrabold text-[#0B2B5E]">Notificaciones</h2><p className="text-xs text-slate-500">Avisos de actividad de tu cuenta</p></div>
           <div className="flex items-center gap-1">
+            <Button type="button" variant="ghost" size="sm" aria-label={soundEnabled ? "Desactivar sonido de notificaciones" : "Activar sonido de notificaciones"} aria-pressed={soundEnabled} onClick={toggleSound} className="h-9 px-2 text-xs text-[#0B2B5E]" title={soundEnabled ? "Sonido activado" : "Sonido desactivado"}>{soundEnabled ? <Volume2 className="mr-1 h-4 w-4" /> : <VolumeX className="mr-1 h-4 w-4" />}<span className="hidden sm:inline">Sonido</span></Button>
             {unreadCount > 0 && <Button type="button" variant="ghost" size="sm" aria-label="Marcar todas como leídas" onClick={() => markAllReadMutation.mutate()} disabled={markAllReadMutation.isPending} className="h-9 px-2 text-xs text-[#0B2B5E]"><CheckCheck className="mr-1 h-4 w-4" />Leer todo</Button>}
             <Button type="button" variant="ghost" size="icon" aria-label="Cerrar notificaciones" onClick={() => setOpen(false)} className="h-9 w-9 text-slate-500"><X className="h-4 w-4" /></Button>
           </div>
         </div>
         <div className="max-h-[min(65vh,28rem)] overflow-y-auto p-2">
-          {notificationsQuery.isLoading ? <p className="px-3 py-6 text-center text-sm text-slate-500">Cargando avisos…</p> : items.length === 0 ? <div className="px-3 py-8 text-center"><Bell className="mx-auto h-8 w-8 text-slate-300" /><p className="mt-2 text-sm font-semibold text-slate-600">No tienes notificaciones nuevas.</p><p className="mt-1 text-xs text-slate-500">Aquí verás las creaciones y modificaciones relevantes.</p></div> : items.map(item => <button key={item.id} type="button" onClick={() => { if (!item.isRead) markReadMutation.mutate({ id: item.id }); }} className={`w-full rounded-xl p-3 text-left transition hover:bg-blue-50 ${item.isRead ? "bg-white" : "bg-blue-50/70"}`}><div className="flex items-start gap-3"><span className={`mt-0.5 rounded-full p-1.5 ${item.isRead ? "bg-slate-100 text-slate-500" : "bg-[#0B2B5E] text-white"}`}>{item.isRead ? <Check className="h-3.5 w-3.5" /> : <Bell className="h-3.5 w-3.5" />}</span><span className="min-w-0 flex-1"><span className="block text-sm font-bold text-[#0B2B5E]">{item.title}</span><span className="mt-1 block text-xs leading-5 text-slate-600">{item.message}</span><span className="mt-1 block text-[11px] text-slate-400">{formatNotificationDate(item.createdAt)}</span></span></div></button>)}
+          {notificationsQuery.isLoading ? <p className="px-3 py-6 text-center text-sm text-slate-500">Cargando avisos…</p> : items.length === 0 ? <div className="px-3 py-8 text-center"><Bell className="mx-auto h-8 w-8 text-slate-300" /><p className="mt-2 text-sm font-semibold text-slate-600">No tienes notificaciones nuevas.</p><p className="mt-1 text-xs text-slate-500">Aquí verás las creaciones y modificaciones relevantes.</p></div> : items.map(item => <button key={item.id} type="button" onClick={() => { if (!item.isRead) markReadMutation.mutate({ id: item.id }); }} className={`w-full rounded-xl p-3 text-left transition hover:bg-blue-50 ${item.isRead ? "bg-white" : "bg-blue-50/70"}`}><div className="flex items-start gap-3"><span className={`mt-0.5 rounded-full p-1.5 ${item.isRead ? "bg-slate-100 text-slate-500" : "bg-[#0B2B5E] text-white"}`}>{item.isRead ? <Check className="h-3.5 w-3.5" /> : <Bell className="h-3.5 w-3.5" />}</span><span className="min-w-0 flex-1"><span className="block text-sm font-bold text-[#0B2B5E]">{item.title}</span><span className="mt-1 block whitespace-pre-line text-xs leading-5 text-slate-600">{item.message}</span><span className="mt-1 block text-[11px] text-slate-400">{formatNotificationDate(item.createdAt)}</span></span></div></button>)}
         </div>
       </div>}
     </div>

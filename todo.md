@@ -1471,3 +1471,9 @@
 - [x] Integrar en esa ruta las agencias, destino provincial, precios, checklist y reglas que hoy dependen de un control separado
 - [x] Completar Jr. de la Unión para Torino – Lima y Via Muriaglio 12, Torino para Lima – Torino en el entorno de Magdalena
 - [x] Cubrir creación, actualización y recibos con pruebas; validar TypeScript, suite completa y publicar
+
+## Notificaciones trazables con sonido
+- [x] Incluir envío, orden, código, destinatario, actor y rol en los avisos de creación, actualización, papelera y restauración
+- [x] Mostrar estado anterior y nuevo cuando se actualice un envío
+- [x] Reproducir un ding ascendente de dos notas para avisos nuevos, con preferencia configurable y respeto al silencio del dispositivo
+- [x] Añadir pruebas de mensajes, sonido y bandeja; validar TypeScript, suite completa y publicar
