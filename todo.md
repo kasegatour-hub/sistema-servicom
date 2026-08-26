@@ -1518,3 +1518,8 @@
 - [x] Sustituir la tabla horizontal de registros por tarjetas verticales completas en pantallas móviles
 - [x] Mantener visibles destinatario, estado, pago, orden, código, fecha y todas las acciones sin recorte lateral
 - [x] Añadir pruebas responsive, validar y publicar el rediseño móvil
+
+## Tarifa exclusiva Kasega Tour
+- [x] Aplicar 13 EUR/kg solo a encomiendas de Magdalena y kasegatour@gmail.com
+- [x] Mantener 15 EUR/kg para Servicom y los demás entornos, incluso en notas, edición y recibos
+- [x] Añadir pruebas de aislamiento tarifario, validar y publicar

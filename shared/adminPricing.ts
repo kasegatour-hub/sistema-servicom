@@ -1,6 +1,7 @@
 import { calculateAdditionalDocumentItems, type AdditionalDocumentItemInput } from "./documentPricing";
 
 import { isProvinceShipmentRoute, isTorinoLimaRoute } from "./shipmentRoutes";
+import { getParcelRateEurPerKg } from "./workspacePricing";
 
 export type AdminShipmentPricingInput = {
   shipmentType?: "documento" | "encomienda";
@@ -22,15 +23,17 @@ export type AdminShipmentPricingInput = {
   provinceOperationalCostSoles?: string | number | null;
   provinceCarrier?: string | null;
   notes?: string;
+  workspaceAdminId?: number | null;
+  workspaceAdminEmail?: string | null;
 };
 
-export function calculateAutomaticParcelPriceEur(weightKg: number, route?: string): { totalEur: number; description: string } {
+export function calculateAutomaticParcelPriceEur(weightKg: number, route?: string, rateEurPerKg = 15): { totalEur: number; description: string } {
   const normalizedWeight = Math.max(0.1, Number(weightKg || 1));
   const billableWeight = normalizedWeight > 15 ? 10 : normalizedWeight;
-  const totalEur = billableWeight * 15;
+  const totalEur = billableWeight * rateEurPerKg;
   const routeLabel = isTorinoLimaRoute(route) ? "Torino–Lima" : "por peso";
   const capNote = normalizedWeight > 15 ? ` (base automática limitada a ${billableWeight} kg; el excedente se gestiona como adicional provincial si corresponde)` : "";
-  return { totalEur, description: `Encomienda ${routeLabel} (${normalizedWeight} kg @ 15 EUR/kg): ${totalEur.toFixed(2)} EUR${capNote}` };
+  return { totalEur, description: `Encomienda ${routeLabel} (${normalizedWeight} kg @ ${rateEurPerKg} EUR/kg): ${totalEur.toFixed(2)} EUR${capNote}` };
 }
 
 export const GENERATED_SHIPMENT_NOTE_PREFIX = "Tarifa:";
@@ -89,6 +92,7 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
   const parsedExtraDiscount = Number(rawExtraDiscount);
   const extraDiscountEur = Number.isFinite(parsedExtraDiscount) && parsedExtraDiscount >= 0 ? Math.min(parsedExtraDiscount, extraPriceEur) : 0;
   const netExtraPriceEur = Math.max(0, extraPriceEur - extraDiscountEur);
+  const parcelRateEurPerKg = getParcelRateEurPerKg(input);
 
   let totalEur: number;
   let tariffDescription: string;
@@ -100,7 +104,7 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
       ? `Encomienda (${weightKg} kg, tarifa manual): ${totalEur.toFixed(2)} EUR`
       : `Documento (${docType}, ${sheetCount} hojas, tarifa manual): ${totalEur.toFixed(2)} EUR`;
   } else if (shipmentType === "encomienda") {
-    const automaticParcelPrice = calculateAutomaticParcelPriceEur(weightKg, route);
+    const automaticParcelPrice = calculateAutomaticParcelPriceEur(weightKg, route, parcelRateEurPerKg);
     totalEur = automaticParcelPrice.totalEur;
     tariffDescription = automaticParcelPrice.description;
   } else if (docType === "simple") {
@@ -127,6 +131,7 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
     docType,
     sheetCount,
     weightKg,
+    parcelRateEurPerKg,
     manualPrice,
     extraPriceEur,
     extraDiscountEur,

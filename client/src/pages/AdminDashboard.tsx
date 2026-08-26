@@ -53,6 +53,7 @@ import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "@shared/passwor
 import { isValidInternationalPhone } from "@shared/phoneValidation";
 import { calculateAdminShipmentPricing, extractFreeformShipmentNotes, mergeShipmentNotes } from "@shared/adminPricing";
 import { KASEGA_TORINO_ADDRESS, LIMA_SERVICOM_ADDRESS, SHIPMENT_ROUTES, isProvinceShipmentRoute, isTorinoLimaRoute } from "@shared/shipmentRoutes";
+import { getParcelRateEurPerKg } from "@shared/workspacePricing";
 import { useIsMobile } from "@/hooks/useMobile";
 
 type AdminWorkspace = "resumen" | "registros" | "crear" | "cupones" | "papelera" | "usuarios" | "analitica" | "carta" | "remitentes" | "transferencias" | "contabilidad" | "feedback";
@@ -699,6 +700,7 @@ export default function AdminDashboard() {
   };
   const selectedDocType = createForm.watch("docType") || "apostillado";
   const selectedRoute = createForm.watch("route") || "Lima - Torino";
+  const activeParcelRateEurPerKg = getParcelRateEurPerKg({ workspaceAdminId: admin?.id, workspaceAdminEmail: admin?.email });
   const limaTorinoEncomiendasEnabled = limaTorinoPolicy?.encomiendasEnabled !== false;
   const watchedWeightKg = Number(createForm.watch("weightKg")) || 0.1;
   const watchedProvinceEnabled = isProvinceShipmentRoute(selectedRoute) || Boolean(createForm.watch("isProvinceDelivery"));
@@ -728,8 +730,10 @@ export default function AdminDashboard() {
     provinceExtraPriceEur: createForm.watch("provinceExtraPriceEur"),
     provinceOperationalCostSoles: createForm.watch("provinceOperationalCostSoles"),
     provinceCarrier: createForm.watch("provinceCarrier") || "shalom",
+    workspaceAdminId: admin?.id,
+    workspaceAdminEmail: admin?.email,
     notes: extractFreeformShipmentNotes(createForm.watch("notes"), generatedCreateNoteRef.current),
-  }), [selectedShipmentType, selectedDocType, selectedRoute, additionalDocumentItems, watchedWeightKg, watchedProvinceEnabled, watchedProvinceExtraPrice, createForm.watch("sheetCount"), createForm.watch("manualPriceEur"), createForm.watch("extraPriceEur"), createForm.watch("extraDiscountEur"), createForm.watch("requiresApostilleService"), createForm.watch("requiresTranslationService"), createForm.watch("serviceManualPriceEur"), createForm.watch("serviceManualPriceSoles"), createForm.watch("provinceCustomerPriceEur"), createForm.watch("provinceExtraPriceEur"), createForm.watch("provinceOperationalCostSoles"), createForm.watch("provinceCarrier"), createForm.watch("notes")]);
+  }), [selectedShipmentType, selectedDocType, selectedRoute, additionalDocumentItems, watchedWeightKg, watchedProvinceEnabled, watchedProvinceExtraPrice, admin?.id, admin?.email, createForm.watch("sheetCount"), createForm.watch("manualPriceEur"), createForm.watch("extraPriceEur"), createForm.watch("extraDiscountEur"), createForm.watch("requiresApostilleService"), createForm.watch("requiresTranslationService"), createForm.watch("serviceManualPriceEur"), createForm.watch("serviceManualPriceSoles"), createForm.watch("provinceCustomerPriceEur"), createForm.watch("provinceExtraPriceEur"), createForm.watch("provinceOperationalCostSoles"), createForm.watch("provinceCarrier"), createForm.watch("notes")]);
   useEffect(() => {
     const currentNotes = String(createForm.getValues("notes") ?? "");
     const freeformNotes = extractFreeformShipmentNotes(currentNotes, generatedCreateNoteRef.current);
@@ -755,10 +759,10 @@ export default function AdminDashboard() {
     }
   }, [watchedProvinceEnabled, selectedRoute, watchedWeightKg, automaticProvincePrice, automaticProvinceExtraPrice, watchedProvinceExtraRaw]);
   const automaticParcelBillableWeight = watchedWeightKg > 15 ? 10 : watchedWeightKg;
-  const automaticParcelBaseEur = automaticParcelBillableWeight * 15;
+  const automaticParcelBaseEur = automaticParcelBillableWeight * activeParcelRateEurPerKg;
   const automaticParcelDescription = watchedWeightKg > 15
-    ? `${watchedWeightKg.toFixed(1)} kg × 15 EUR/kg; base automática limitada a 10 kg`
-    : `${watchedWeightKg.toFixed(1)} kg × 15 EUR/kg como tarifa base normal`;
+    ? `${watchedWeightKg.toFixed(1)} kg × ${activeParcelRateEurPerKg} EUR/kg; base automática limitada a 10 kg`
+    : `${watchedWeightKg.toFixed(1)} kg × ${activeParcelRateEurPerKg} EUR/kg como tarifa base normal`;
   const automaticProvinceDescription = watchedWeightKg <= 5 ? "10,00 EUR adicionales por envío provincial de 1 a 5 kg" : watchedWeightKg <= 10 ? "15,00 EUR adicionales por envío provincial de más de 5 hasta 10 kg" : `15,00 EUR base provincial más ${(watchedProvinceExtraPrice || 0).toFixed(2)} EUR por ${(watchedWeightKg - 10).toFixed(1)} kg excedentes sobre 10 kg (2,00 EUR/kg)`;
   const isParcelCreateForm = selectedShipmentType === "encomienda";
   const createFormTone = isParcelCreateForm
@@ -865,7 +869,7 @@ export default function AdminDashboard() {
     }
   }, [updateProvinceEnabled, updateShipmentRoute, updateProvinceWeight]);
   const updateBillableWeight = updateProvinceWeight > 15 ? 10 : updateProvinceWeight;
-  const updateBasePriceEur = updateShipmentType === "encomienda" ? updateBillableWeight * 15 : 0;
+  const updateBasePriceEur = updateShipmentType === "encomienda" ? updateBillableWeight * activeParcelRateEurPerKg : 0;
   const updateProvinceCustomerPrice = updateProvinceEnabled && isTorinoLimaRoute(updateShipmentRoute) ? Number(updateForm.watch("provinceCustomerPriceEur") || 0) : 0;
   const updateProvinceExtraPrice = updateProvinceEnabled && isTorinoLimaRoute(updateShipmentRoute) ? Number(updateForm.watch("provinceExtraPriceEur") || 0) : 0;
   const updateManualPrice = Number(updateForm.watch("manualPriceEur") || 0);
@@ -887,8 +891,10 @@ export default function AdminDashboard() {
     provinceExtraPriceEur: updateForm.watch("provinceExtraPriceEur"),
     provinceOperationalCostSoles: updateForm.watch("provinceOperationalCostSoles"),
     provinceCarrier: updateForm.watch("provinceCarrier") || "shalom",
+    workspaceAdminId: admin?.id,
+    workspaceAdminEmail: admin?.email,
     notes: extractFreeformShipmentNotes(updateForm.watch("notes"), generatedUpdateNoteRef.current),
-  }), [updateShipmentType, updateShipmentRoute, updateProvinceWeight, updateProvinceEnabled, updateForm.watch("docType"), updateForm.watch("sheetCount"), updateForm.watch("pricingMode"), updateForm.watch("manualPriceEur"), updateForm.watch("extraPriceEur"), updateForm.watch("extraDiscountEur"), updateForm.watch("requiresApostilleService"), updateForm.watch("provinceCustomerPriceEur"), updateForm.watch("provinceExtraPriceEur"), updateForm.watch("provinceOperationalCostSoles"), updateForm.watch("provinceCarrier"), updateForm.watch("notes")]);
+  }), [updateShipmentType, updateShipmentRoute, updateProvinceWeight, updateProvinceEnabled, admin?.id, admin?.email, updateForm.watch("docType"), updateForm.watch("sheetCount"), updateForm.watch("pricingMode"), updateForm.watch("manualPriceEur"), updateForm.watch("extraPriceEur"), updateForm.watch("extraDiscountEur"), updateForm.watch("requiresApostilleService"), updateForm.watch("provinceCustomerPriceEur"), updateForm.watch("provinceExtraPriceEur"), updateForm.watch("provinceOperationalCostSoles"), updateForm.watch("provinceCarrier"), updateForm.watch("notes")]);
   const updateVisibleParcelTotal = updatePricingPreview.totalEur;
 
   useEffect(() => {
