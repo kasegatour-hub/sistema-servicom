@@ -1685,3 +1685,9 @@
 - [x] Paginar el historial en grupos de cinco registros
 - [x] Añadir pruebas de apertura, cierre, orden, paginación y permisos
 - [x] Ejecutar suite, build y revisión responsive antes de publicar
+
+## Corrección urgente de firma Kasega/Magda
+- [x] Permitir que un enlace válido de firma abra el formulario para el cliente sin bloqueo indebido por cuenta vinculada
+- [x] Mantener la validación de token, expiración, uso único y asociación con orden/código
+- [x] Añadir regresiones para Kasega/Magda y enlace manual sin cuenta
+- [x] Ejecutar pruebas, build y publicar la corrección urgente

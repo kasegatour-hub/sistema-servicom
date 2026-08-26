@@ -46,10 +46,10 @@ describe("ShipmentSignaturePage", () => {
     expect(screen.getAllByText("SERVICOM INTERNACIONAL").length).toBeGreaterThan(0);
   });
 
-  it("bloquea la firma si el enlace corresponde a otra cuenta Cliente", () => {
-    accountQuery.data = { id: 99 };
+  it("permite firmar a un cliente desde un enlace seguro aunque aún no haya iniciado sesión", () => {
+    accountQuery.data = null;
     render(<ShipmentSignaturePage />);
-    expect(screen.queryByRole("button", { name: "Firmar ahora" })).toBeNull();
-    expect(screen.getByText(/requiere la cuenta Cliente vinculada/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Firmar ahora" })).toBeTruthy();
+    expect(screen.queryByText(/requiere la cuenta Cliente vinculada/)).toBeNull();
   });
 });

@@ -21,14 +21,14 @@ export default function ShipmentSignaturePage() {
   const query = getSignatureQuery();
   const enabled = Boolean(query.orderNumber && query.code && query.token.length >= 20);
   const shipmentQuery = trpc.shipment.search.useQuery({ orderNumber: query.orderNumber, code: query.code }, { enabled });
-  const accountQuery = trpc.account.me.useQuery();
   const completeMutation = trpc.shipment.completeSignature.useMutation();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [error, setError] = useState("");
   const shipment = shipmentQuery.data;
   const signed = shipment?.signature?.status === "signed";
-  const accountCanSign = !shipment?.accountId || accountQuery.data?.id === shipment.accountId;
-  const canSign = Boolean(shipment && !signed && shipment.deliveryMode === "remoto" && accountCanSign);
+  // El enlace ya fue validado por el token seguro, su orden y su código en el servidor.
+  // La firma pública debe funcionar igual que Carta de invitación, incluso si el cliente aún no inició sesión.
+  const canSign = Boolean(shipment && !signed && shipment.deliveryMode === "remoto");
   const brandingName = isKasegaShipment(shipment) ? "KASEGA TOUR EIRL" : "SERVICOM INTERNACIONAL";
   const route = getRoutePresentation(shipment?.route, shipment?.destinationAddress);
   const sender = `${shipment?.senderName || ""} ${shipment?.senderLastName || ""}`.trim() || "No especificado";
@@ -58,7 +58,7 @@ export default function ShipmentSignaturePage() {
         <section className="rounded-xl border border-slate-200 bg-white p-4"><h2 className="text-base font-extrabold text-[#0B2B5E]">Declaración jurada de contenido</h2><p className="mt-3 text-sm leading-6 text-slate-700">Declaro que el envío corresponde a la información indicada, que su contenido es lícito y autorizo a {brandingName} a realizar la recepción, revisión y traslado conforme a la ruta <strong>{route.route}</strong>.</p><div className="mt-4 grid gap-3 sm:grid-cols-2"><div className="rounded-lg border border-slate-200 bg-slate-50 p-3"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Origen</p><p className="mt-1 font-semibold text-slate-900">{route.originPrintLabel}</p><p className="text-sm text-slate-600">{route.origin.address}</p></div><div className="rounded-lg border border-slate-200 bg-slate-50 p-3"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Destino</p><p className="mt-1 font-semibold text-slate-900">{route.destinationPrintLabel}</p><p className="text-sm text-slate-600">{route.destination.address}</p></div></div></section>
         <section className="rounded-xl border border-slate-200 bg-white p-4"><div className="flex items-start gap-3"><ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-[#0B2B5E]" /><p className="text-sm text-slate-600">Al firmar, confirmas que revisaste la declaración jurada. El trazo, el consentimiento, la fecha y la huella criptográfica quedan asociados únicamente a esta orden y código.</p></div></section>
         {error && <p className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700" role="alert">{error}</p>}
-        {!signed && !canSign && <p className="rounded-lg border border-orange-200 bg-orange-50 p-3 text-sm text-orange-900">Este enlace requiere la cuenta Cliente vinculada al envío para firmar.</p>}
+        {!signed && !canSign && <p className="rounded-lg border border-orange-200 bg-orange-50 p-3 text-sm text-orange-900">Este enlace no está disponible para firmar. Solicita un nuevo enlace a {brandingName}.</p>}
         {!signed && canSign && <Button type="button" className="w-full bg-[#0B2B5E] text-white hover:bg-[#123d78]" onClick={() => setDialogOpen(true)} disabled={completeMutation.isPending}><FileSignature className="mr-2 h-4 w-4" />Firmar ahora</Button>}
         <div className="border-t border-slate-200 pt-4 text-center"><p className="text-xs text-slate-500">Al cerrar esta ventana volverás al rastreo público.</p><a href="/" className="mt-2 inline-flex text-sm font-semibold text-[#0B2B5E] underline">Ir al rastreo de envíos</a></div>
       </div>
