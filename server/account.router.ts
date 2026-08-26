@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { publicProcedure, router } from "./_core/trpc";
-import { SHIPMENT_ROUTES, isTorinoLimaRoute } from "../shared/shipmentRoutes";
+import { SHIPMENT_ROUTES, isProvinceShipmentRoute, isTorinoLimaRoute } from "../shared/shipmentRoutes";
 import {
   consumeVerificationCode,
   createLocalAccount,
@@ -26,6 +26,7 @@ import {
   updateLocalAccountPassword,
   upsertClient,
   notifyAccountEvent,
+  listShipmentOrderNumbersByPrefix,
 } from "./db";
 import { getRemainingLockoutSeconds, MAX_PASSWORD_FAILURES, PASSWORD_LOCKOUT_SECONDS } from "./loginProtection";
 import {
@@ -42,7 +43,7 @@ import { AccountSessionPayload, clearAccountSession, getAccountSession, setAccou
 import { identityDocumentNumberSchema, identityDocumentTypeSchema, isIdentityDocumentValid, identityDocumentValidationMessage, optionalIdentityDocumentNumberSchema, optionalPersonNameSchema, personNameSchema } from "./inputValidation";
 import { isValidInternationalPhone, normalizeInternationalPhone } from "../shared/phoneValidation";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "../shared/passwordPolicy";
-import { generateShipmentCode, generateShipmentOrderNumber } from "../shared/shipmentIdentifiers";
+import { generateMonthlyParcelOrderNumber, generateShipmentCode, getMonthlyParcelOrderPrefix } from "../shared/shipmentIdentifiers";
 import { storagePut } from "./storage";
 import { localAccounts, shipments } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
@@ -412,8 +413,18 @@ reauthRequired: session.reauthRequired,
     .mutation(async ({ input, ctx }) => {
       const session = await requireFreshAccountSession(ctx.req, "registrar un envío");
       const account = await getLocalAccountById(session.accountId);
-      // Generación automática: orden de 8 dígitos y código de 4 caracteres (1 dígito + 3 letras)
-      const orderNumber = generateShipmentOrderNumber();
+      const now = new Date();
+      const reservedOrders = await listShipmentOrderNumbersByPrefix(getMonthlyParcelOrderPrefix(now));
+      let orderNumber: string;
+      try {
+        orderNumber = generateMonthlyParcelOrderNumber({
+          existingOrderNumbers: reservedOrders,
+          isProvinceDelivery: isProvinceShipmentRoute(input.route),
+          date: now,
+        });
+      } catch (error: any) {
+        throw new TRPCError({ code: "CONFLICT", message: error?.message || "No quedan correlativos disponibles para este mes." });
+      }
       const code = generateShipmentCode();
       
       const docType = input.docType || 'apostillado';

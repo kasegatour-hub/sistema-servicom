@@ -2,7 +2,7 @@ const CODE_LETTERS = "ABCDEFGHJKLMNPQRSTUVWXYZ";
 const LEGACY_ORDER_NUMBER_PATTERN = /^\d{8}$/;
 const MONTHLY_PARCEL_ORDER_PATTERN = /^\d{4}-\d{4}$/;
 
-/** Identificador numérico para nuevos envíos: exactamente 8 dígitos. */
+/** Generador legado de identificadores numéricos de ocho dígitos, conservado para compatibilidad histórica. */
 export function generateShipmentOrderNumber(random = Math.random): string {
   return Math.floor(10_000_000 + random() * 90_000_000).toString();
 }
@@ -13,7 +13,7 @@ export function getMonthlyParcelOrderPrefix(date = new Date()): string {
 }
 
 /**
- * Orden única de encomienda con el formato MMAA-XXXX.
+ * Orden única de documento o encomienda con el formato MMAA-XXXX.
  * Los dos últimos dígitos son el rango operativo: 01–20 para sede Lima y 01–14 para provincia.
  * Los dos dígitos anteriores permiten hasta 100 series mensuales sin reutilizar una orden.
  */
@@ -33,7 +33,7 @@ export function generateMonthlyParcelOrderNumber(input: {
     }
   }
 
-  throw new Error(`Se agotaron las órdenes mensuales disponibles para ${input.isProvinceDelivery ? "encomiendas a provincia" : "encomiendas de sede"}.`);
+  throw new Error(`Se agotaron las órdenes mensuales disponibles para ${input.isProvinceDelivery ? "envíos a provincia" : "envíos de sede"}.`);
 }
 
 /** Código corto para nuevos envíos: un dígito seguido de tres letras mayúsculas. */
@@ -55,6 +55,6 @@ export function isNewShipmentCode(value: string): boolean {
   return /^\d[A-Z]{3}$/.test(value.trim().toUpperCase());
 }
 
-export const SHIPMENT_ORDER_HELP = "8 dígitos sin espacios, o MMAA-XXXX para encomiendas";
+export const SHIPMENT_ORDER_HELP = "MMAA-XXXX para nuevos documentos y encomiendas; 8 dígitos para órdenes históricas";
 export const SHIPMENT_CODE_HELP = "1 dígito y 3 letras";
 export const SHIPMENT_CODE_EXAMPLE = "7ABC";

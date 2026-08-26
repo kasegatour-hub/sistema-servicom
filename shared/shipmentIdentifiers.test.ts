@@ -25,6 +25,19 @@ describe("shipment identifiers", () => {
     expect(generateMonthlyParcelOrderNumber({ existingOrderNumbers: provinceUsed, isProvinceDelivery: true, date: august2026 })).toBe("0826-0101");
   });
 
+  it("usa la misma secuencia mensual para documentos y encomiendas", () => {
+    const august2026 = new Date("2026-08-15T12:00:00.000Z");
+    const firstDocument = generateMonthlyParcelOrderNumber({ existingOrderNumbers: [], isProvinceDelivery: false, date: august2026 });
+    const firstEncomienda = generateMonthlyParcelOrderNumber({ existingOrderNumbers: [firstDocument], isProvinceDelivery: false, date: august2026 });
+    const firstProvinceDocument = generateMonthlyParcelOrderNumber({ existingOrderNumbers: [firstDocument, firstEncomienda], isProvinceDelivery: true, date: august2026 });
+
+    expect(firstDocument).toBe("0826-0001");
+    expect(firstEncomienda).toBe("0826-0002");
+    expect(firstProvinceDocument).toBe("0826-0003");
+    expect(firstDocument).toMatch(/^\d{4}-\d{4}$/);
+    expect(firstProvinceDocument).toMatch(/^\d{4}-\d{4}$/);
+  });
+
   it("genera códigos nuevos con un dígito y tres letras", () => {
     expect(generateShipmentCode(() => 0)).toBe("0AAA");
     expect(generateShipmentCode(() => 0.999999)).toMatch(/^\d[A-Z]{3}$/);

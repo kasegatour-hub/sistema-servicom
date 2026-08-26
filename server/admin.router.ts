@@ -808,15 +808,13 @@ export const adminRouter = router({
         });
       }
       const effectiveProvinceDelivery = input.isProvinceDelivery || isProvinceShipmentRoute(input.route);
-      let orderNumber = generateShipmentOrderNumber();
-      if (input.shipmentType === "encomienda") {
-        const now = new Date();
-        const reservedOrders = await listShipmentOrderNumbersByPrefix(getMonthlyParcelOrderPrefix(now));
-        try {
-          orderNumber = generateMonthlyParcelOrderNumber({ existingOrderNumbers: reservedOrders, isProvinceDelivery: effectiveProvinceDelivery, date: now });
-        } catch (error: any) {
-          throw new TRPCError({ code: "CONFLICT", message: error?.message || "No quedan correlativos disponibles para esta encomienda durante el mes actual." });
-        }
+      const now = new Date();
+      let orderNumber: string;
+      const reservedOrders = await listShipmentOrderNumbersByPrefix(getMonthlyParcelOrderPrefix(now));
+      try {
+        orderNumber = generateMonthlyParcelOrderNumber({ existingOrderNumbers: reservedOrders, isProvinceDelivery: effectiveProvinceDelivery, date: now });
+      } catch (error: any) {
+        throw new TRPCError({ code: "CONFLICT", message: error?.message || "No quedan correlativos disponibles durante el mes actual." });
       }
       const code = generateShipmentCode();
       const db = await getDb();
