@@ -1697,3 +1697,9 @@
 - [x] Alinear Kasega y Magda con el flujo de firma funcional de Servicom sin eliminar la validación segura
 - [x] Añadir una regresión específica por marca y por enlace con cuenta vinculada
 - [x] Ejecutar pruebas completas, build y publicar la corrección
+
+## Bloqueo general de firma pública
+- [x] Corregir la condición que oculta «Firmar ahora» en enlaces pendientes de Servicom, Kasega y Magda
+- [x] Mantener rechazo para enlaces vencidos, inválidos, ya firmados o no remotos
+- [x] Añadir regresiones con solicitudes pendientes de las tres marcas y el enlace 0826-0002 / 4LRY
+- [x] Ejecutar pruebas completas, build y publicar la corrección

@@ -28,7 +28,9 @@ export default function ShipmentSignaturePage() {
   const signed = shipment?.signature?.status === "signed";
   // El enlace ya fue validado por el token seguro, su orden y su código en el servidor.
   // La firma pública debe funcionar igual que Carta de invitación, incluso si el cliente aún no inició sesión.
-  const canSign = Boolean(shipment && !signed && shipment.deliveryMode === "remoto");
+  // Si el servidor generó una solicitud de firma pendiente, el enlace ya autoriza este flujo.
+  // No se debe volver a filtrar por deliveryMode: Kasega, Magda y Servicom pueden usar agencia, DHL o traslado remoto.
+  const canSign = Boolean(shipment && !signed);
   const brandingName = isKasegaShipment(shipment) ? "KASEGA TOUR EIRL" : "SERVICOM INTERNACIONAL";
   const route = getRoutePresentation(shipment?.route, shipment?.destinationAddress);
   const sender = `${shipment?.senderName || ""} ${shipment?.senderLastName || ""}`.trim() || "No especificado";
