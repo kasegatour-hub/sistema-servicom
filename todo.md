@@ -1545,3 +1545,9 @@
 - [x] Añadir una animación accesible de avión y vehículo rumbo a destino en la pantalla de rastreo
 - [x] Añadir pruebas de regresión y validar en web/móvil
 - [x] Publicar la corrección
+
+## Servicios y destino provincial en actualización
+- [x] Añadir Traducción con tarifas definidas al formulario de actualización de documentos para Admin, Usuario y Cliente
+- [x] Mantener apostilla y traducción con sus importes EUR/PEN al actualizar y reflejarlos en total, notas y recibos
+- [x] Ocultar la sede regular de Servicom al elegir Torino–Lima + provincia y mostrar solo la agencia provincial seleccionada
+- [x] Añadir pruebas, validar web/móvil y publicar

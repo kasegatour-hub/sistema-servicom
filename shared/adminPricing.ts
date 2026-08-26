@@ -70,8 +70,12 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
   const servicesAllowed = shipmentType === "documento" && isTorinoLimaRoute(route);
   const requiresApostilleService = Boolean(input.requiresApostilleService) && servicesAllowed;
   const requiresTranslationService = Boolean(input.requiresTranslationService) && servicesAllowed;
-  const servicePriceEur = requiresApostilleService ? serviceManualPriceEur ?? 40 : 0;
-  const servicePriceSoles = (requiresApostilleService ? serviceManualPriceSoles ?? 160 : 0) + (requiresTranslationService ? serviceManualPriceSoles ?? 200 : 0);
+  const apostillePriceEur = requiresApostilleService ? serviceManualPriceEur ?? 40 : 0;
+  const translationPriceEur = requiresTranslationService ? 50 : 0;
+  const servicePriceEur = apostillePriceEur + translationPriceEur;
+  const apostillePriceSoles = requiresApostilleService ? serviceManualPriceSoles ?? 160 : 0;
+  const translationPriceSoles = requiresTranslationService ? 200 : 0;
+  const servicePriceSoles = apostillePriceSoles + translationPriceSoles;
   const provinceEnabled = (Boolean(input.isProvinceDelivery) || isProvinceShipmentRoute(route)) && isTorinoLimaRoute(route);
   const rawProvinceCustomerPrice = input.provinceCustomerPriceEur === undefined || input.provinceCustomerPriceEur === null ? "" : String(input.provinceCustomerPriceEur).trim();
   const parsedProvinceCustomerPrice = Number(rawProvinceCustomerPrice);
@@ -124,7 +128,7 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
     ? ` Envío a provincia (${provinceCarrier || "agencia seleccionada"}): +${provinceCustomerPriceEur.toFixed(2)} EUR${usesAutomaticProvincePrice ? ` (${provinceTierLabel})` : ""}${provinceExtraPriceEur > 0 ? `; excedente sobre 10 kg (2,00 EUR/kg): +${provinceExtraPriceEur.toFixed(2)} EUR` : ""}.`
     : "";
   const extraDescription = extraPriceEur > 0 ? ` Importe extra: +${extraPriceEur.toFixed(2)} EUR${extraDiscountEur > 0 ? `; descuento del extra: -${extraDiscountEur.toFixed(2)} EUR; extra neto: +${netExtraPriceEur.toFixed(2)} EUR` : ""}.` : "";
-  const serviceDescription = `${requiresApostilleService ? ` Servicio de apostilla Italia–Lima: +${servicePriceEur.toFixed(2)} EUR y +${(serviceManualPriceSoles ?? 160).toFixed(2)} soles.` : ""}${requiresTranslationService ? ` Servicio de traducción Italia–Lima: +${(serviceManualPriceSoles ?? 200).toFixed(2)} soles.` : ""}`;
+  const serviceDescription = `${requiresApostilleService ? ` Servicio de apostilla Italia–Lima: +${apostillePriceEur.toFixed(2)} EUR y +${apostillePriceSoles.toFixed(2)} soles.` : ""}${requiresTranslationService ? ` Servicio de traducción Italia–Lima: +${translationPriceEur.toFixed(2)} EUR y +${translationPriceSoles.toFixed(2)} soles.` : ""}`;
   const generatedNote = `${GENERATED_SHIPMENT_NOTE_PREFIX} ${tariffDescription}.${serviceDescription}${provinceDescription}${extraDescription}`.trim();
   return {
     shipmentType,

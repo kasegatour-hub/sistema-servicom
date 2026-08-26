@@ -1738,6 +1738,9 @@ export async function updateShipmentStatus(
   documentKind?: "simple" | "apostillado",
   documentSheetCount?: number,
   requiresApostilleService?: boolean,
+  requiresTranslationService?: boolean,
+  serviceManualPriceEur?: string | number | null,
+  serviceManualPriceSoles?: string | number | null,
   isProvinceDelivery?: boolean,
   provinceCustomerPriceEur?: string | number | null,
   provinceExtraPriceEur?: string | number | null,
@@ -1772,6 +1775,7 @@ export async function updateShipmentStatus(
     const updatedShipmentType = shipmentType ?? shipment.shipmentType ?? "documento";
     const updatedRoute = route ?? shipment.route ?? "Lima - Torino";
     const shouldRequireApostilleService = requiresApostilleService ?? shipment.requiresApostilleService === 1;
+    const shouldRequireTranslationService = requiresTranslationService ?? shipment.requiresTranslationService === 1;
     const canRequireApostilleService = updatedShipmentType === "documento" && isTorinoLimaRoute(updatedRoute);
     const updatedProvinceDelivery = (Boolean(isProvinceDelivery ?? shipment.isProvinceDelivery) || isProvinceShipmentRoute(updatedRoute)) && isTorinoLimaRoute(updatedRoute);
 
@@ -1812,6 +1816,9 @@ export async function updateShipmentStatus(
         documentKind: documentKind ?? shipment.documentKind ?? "apostillado",
         documentSheetCount: documentSheetCount !== undefined ? Math.max(1, Math.min(10, Math.round(Number(documentSheetCount) || 1))) : shipment.documentSheetCount ?? 1,
         requiresApostilleService: shouldRequireApostilleService && canRequireApostilleService ? 1 : 0,
+        requiresTranslationService: shouldRequireTranslationService && canRequireApostilleService ? 1 : 0,
+        serviceManualPriceEur: serviceManualPriceEur !== undefined ? (serviceManualPriceEur !== null && String(serviceManualPriceEur).trim() !== "" ? String(serviceManualPriceEur) : null) : shipment.serviceManualPriceEur,
+        serviceManualPriceSoles: serviceManualPriceSoles !== undefined ? (serviceManualPriceSoles !== null && String(serviceManualPriceSoles).trim() !== "" ? String(serviceManualPriceSoles) : null) : shipment.serviceManualPriceSoles,
         isProvinceDelivery: updatedProvinceDelivery ? 1 : 0,
         provinceCustomerPriceEur: updatedProvinceDelivery ? (provinceCustomerPriceEur !== undefined && provinceCustomerPriceEur !== null && String(provinceCustomerPriceEur).trim() !== "" ? String(provinceCustomerPriceEur) : shipment.provinceCustomerPriceEur) : null,
         provinceExtraPriceEur: updatedProvinceDelivery ? (provinceExtraPriceEur !== undefined && provinceExtraPriceEur !== null && String(provinceExtraPriceEur).trim() !== "" ? String(Math.max(0, Number(provinceExtraPriceEur) || 0)) : shipment.provinceExtraPriceEur ?? "0.00") : "0.00",

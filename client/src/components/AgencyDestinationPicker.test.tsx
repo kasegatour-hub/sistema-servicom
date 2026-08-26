@@ -28,6 +28,12 @@ describe("AgencyDestinationPicker", () => {
     expect(screen.getByRole("button", { name: "Shalom" })).toBeTruthy();
   });
 
+  it("no ofrece la sede Servicom como destino en Torino–Lima + provincia", () => {
+    render(<AgencyDestinationPicker route="Torino - Lima + provincia" value="" hideServicomDestination onChange={() => undefined} />);
+    expect(screen.queryByRole("button", { name: "Usar sede Servicom" })).toBeNull();
+    expect(screen.getByText("Selecciona una agencia provincial")).toBeTruthy();
+  });
+
   it("muestra y selecciona una sede oficial de Olva en el explorador", () => {
     const onChange = vi.fn();
     render(<AgencyDestinationPicker route="Lima - Torino" value="DESTINO ACTUAL" onChange={onChange} />);

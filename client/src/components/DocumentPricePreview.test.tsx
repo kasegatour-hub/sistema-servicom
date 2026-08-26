@@ -24,4 +24,11 @@ describe("DocumentPricePreview", () => {
     expect(screen.getByTestId("document-price-total").textContent).toBe("60.00 €");
     expect(screen.getByText(/Recargo por hojas: \+10.00 € \(bloque adicional de hasta 5 hojas del mismo tipo\)/)).toBeTruthy();
   });
+
+  it("incorpora los servicios definidos al total visible de actualización", () => {
+    cleanup();
+    render(<DocumentPricePreview docType="simple" sheetCount={1} serviceTotalEur={50} serviceSummary="traducción" />);
+    expect(screen.getByTestId("document-price-total").textContent).toBe("95.00 €");
+    expect(screen.getByText(/Servicios: \+50.00 € · traducción/)).toBeTruthy();
+  });
 });
