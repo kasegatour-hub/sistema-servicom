@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 const notificationMocks = vi.hoisted(() => ({
   data: { items: [] as any[], unreadCount: 0 },
@@ -41,6 +41,22 @@ describe("NotificationBell", () => {
   });
 
   afterEach(() => cleanup());
+
+  it("muestra un aviso superior con logo cuando llega una notificación nueva", async () => {
+    notificationMocks.data = { unreadCount: 0, items: [] };
+    const view = render(<NotificationBell />);
+    notificationMocks.data = {
+      unreadCount: 1,
+      items: [{ id: 9, title: "Nueva encomienda creada", message: "Orden: 21133749", isRead: 0, createdAt: new Date() }],
+    };
+    view.rerender(<NotificationBell />);
+
+    expect(await screen.findByRole("status")).toBeTruthy();
+    expect(screen.getByText("Nueva encomienda creada")).toBeTruthy();
+    expect(screen.getByText("Orden: 21133749")).toBeTruthy();
+    expect(screen.getByAltText("Servicom Internacional")).toBeTruthy();
+    await waitFor(() => expect(screen.getByText("Notificación en la aplicación abierta")).toBeTruthy());
+  });
 
   it("muestra etiquetas y estilos distintos para avisos nuevos y leídos", () => {
     render(<NotificationBell />);

@@ -1664,3 +1664,10 @@
 - [x] Mostrar «Pagado» o «No cancelado» dentro del ticket de control de entrega
 - [x] Mantener el estado consistente en impresión, descarga y variantes de recibo
 - [x] Añadir pruebas para ambos estados de pago y validar el build final
+
+## Notificaciones visibles en web y móvil
+- [x] Mostrar un aviso superior dentro de web y móvil cuando ocurra un evento mientras la aplicación esté abierta
+- [x] Incluir el logo y la identidad de la marca activa en cada aviso
+- [x] Mostrar título específico, detalle, cierre y acceso al historial de notificaciones
+- [x] Mantener sonido/feedback compatible con la interacción activa, sin notificaciones fuera de la aplicación abierta
+- [x] Añadir pruebas de integración web/móvil y validar build final

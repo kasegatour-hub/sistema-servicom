@@ -14,6 +14,11 @@ vi.mock("@/lib/trpc", () => ({
     account: { me: { useQuery: () => ({ data: accountMocks.session, isLoading: accountMocks.isLoading }) } },
     admin: { me: { useQuery: () => ({ data: adminMocks.session, isLoading: false }) } },
     shipment: { search: { useQuery: searchMock } },
+    notifications: {
+      list: { useQuery: () => ({ data: { items: [], unreadCount: 0 }, isLoading: false, refetch: vi.fn() }) },
+      markRead: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
+      markAllRead: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
+    },
   },
 }));
 

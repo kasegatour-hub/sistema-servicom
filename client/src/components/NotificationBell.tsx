@@ -10,12 +10,13 @@ function formatNotificationDate(value: Date | string | null | undefined) {
   return Number.isFinite(date.getTime()) ? date.toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" }) : "Ahora";
 }
 
-export function NotificationBell() {
+export function NotificationBell({ buttonClassName = "" }: { buttonClassName?: string }) {
   const [open, setOpen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(getNotificationSoundPreference);
+  const [activeNotice, setActiveNotice] = useState<any | null>(null);
   const knownNotificationIds = useRef(new Set<number>());
   const hasLoadedNotifications = useRef(false);
-  const notificationsQuery = trpc.notifications.list.useQuery(undefined, { refetchInterval: 30_000, retry: false });
+  const notificationsQuery = trpc.notifications.list.useQuery(undefined, { refetchInterval: 15_000, retry: false });
   const markReadMutation = trpc.notifications.markRead.useMutation({ onSuccess: () => { void notificationsQuery.refetch(); } });
   const markAllReadMutation = trpc.notifications.markAllRead.useMutation({ onSuccess: () => { void notificationsQuery.refetch(); } });
   const items = notificationsQuery.data?.items || [];
@@ -31,7 +32,11 @@ export function NotificationBell() {
     }
     const newUnreadItems = items.filter(item => !item.isRead && !knownNotificationIds.current.has(item.id));
     knownNotificationIds.current = currentIds;
-    if (soundEnabled && newUnreadItems.length > 0) void playAscendingNotificationChime();
+    if (newUnreadItems.length > 0) {
+      setActiveNotice(newUnreadItems[0]);
+      window.setTimeout(() => setActiveNotice(null), 8_000);
+      if (soundEnabled) void playAscendingNotificationChime();
+    }
   }, [items, notificationsQuery.data, soundEnabled]);
 
   const toggleSound = () => {
@@ -49,7 +54,7 @@ export function NotificationBell() {
         aria-label={`Notificaciones${unreadCount ? `, ${unreadCount} sin leer` : ""}`}
         aria-expanded={open}
         onClick={() => { void prepareNotificationChime(); setOpen(value => !value); }}
-        className="relative min-h-12 min-w-12 rounded-xl border-white/70 bg-white/10 px-3 text-white hover:bg-white/20"
+        className={`relative min-h-12 min-w-12 rounded-xl border-white/70 bg-white/10 px-3 text-white hover:bg-white/20 ${buttonClassName}`}
       >
         <Bell className="h-5 w-5" aria-hidden="true" />
         {unreadCount > 0 && <span aria-label={`${unreadCount} notificaciones sin leer`} className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-orange-500 px-1 text-[10px] font-black text-white ring-2 ring-[#0B2B5E]">{unreadCount > 99 ? "99+" : unreadCount}</span>}
@@ -69,6 +74,7 @@ export function NotificationBell() {
           {notificationsQuery.isLoading ? <p className="px-3 py-6 text-center text-sm text-slate-500">Cargando avisos…</p> : items.length === 0 ? <div className="px-3 py-8 text-center"><Bell className="mx-auto h-8 w-8 text-slate-300" /><p className="mt-2 text-sm font-semibold text-slate-600">No tienes notificaciones nuevas.</p><p className="mt-1 text-xs text-slate-500">Aquí verás las creaciones y modificaciones relevantes.</p></div> : items.map(item => <button key={item.id} type="button" aria-label={`${item.title}, ${item.isRead ? "leída" : "nueva"}`} onClick={() => { if (!item.isRead) markReadMutation.mutate({ id: item.id }); }} className={`w-full rounded-xl border p-3 text-left shadow-sm transition hover:shadow-md ${item.isRead ? "border-slate-300 bg-slate-100 hover:bg-slate-200" : "border-blue-200 bg-blue-50/90 hover:bg-blue-100"}`}><div className="flex items-start gap-3"><span className={`mt-0.5 rounded-full border p-1.5 ${item.isRead ? "border-slate-400 bg-white text-slate-700" : "border-[#0B2B5E] bg-[#0B2B5E] text-white"}`}>{item.isRead ? <Check className="h-3.5 w-3.5 stroke-[3]" /> : <Bell className="h-3.5 w-3.5" />}</span><span className="min-w-0 flex-1"><span className="flex items-center justify-between gap-2"><span className={`block text-sm font-bold ${item.isRead ? "text-slate-800" : "text-[#0B2B5E]"}`}>{item.title}</span><span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide ${item.isRead ? "border-slate-400 bg-white text-slate-700" : "border-blue-300 bg-white text-[#0B2B5E]"}`}>{item.isRead ? "Leída" : "Nueva"}</span></span><span className={`mt-1 block whitespace-pre-line text-xs leading-5 ${item.isRead ? "text-slate-700" : "text-slate-700"}`}>{item.message}</span><span className={`mt-1 block text-[11px] font-medium ${item.isRead ? "text-slate-500" : "text-slate-500"}`}>{formatNotificationDate(item.createdAt)}</span></span></div></button>)}
         </div>
       </div>}
+      {activeNotice && <div role="status" aria-live="polite" className="fixed inset-x-3 top-3 z-[100] mx-auto flex max-w-xl items-start gap-3 rounded-2xl border border-blue-200 bg-white p-3 text-slate-900 shadow-2xl ring-1 ring-[#0B2B5E]/10 sm:inset-x-auto sm:right-5 sm:left-auto sm:w-[min(92vw,30rem)]"><img src="/manus-storage/servicom_logo_final_e7ce35aa.png" alt="Servicom Internacional" className="h-12 w-12 shrink-0 rounded-xl bg-white object-contain p-1 shadow-sm ring-1 ring-blue-100" /><div className="min-w-0 flex-1"><p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-[#F28C00]">Servicom Internacional</p><p className="mt-0.5 text-sm font-extrabold text-[#0B2B5E]">{activeNotice.title}</p><p className="mt-1 whitespace-pre-line text-xs leading-5 text-slate-600">{activeNotice.message}</p><p className="mt-1 text-[10px] font-medium text-slate-400">Notificación en la aplicación abierta</p></div><Button type="button" variant="outline" size="icon" aria-label="Cerrar aviso" onClick={() => setActiveNotice(null)} className="h-9 w-9 shrink-0 border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100"><X className="h-4 w-4" /></Button></div>}
     </div>
   );
 }
