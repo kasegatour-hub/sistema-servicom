@@ -232,7 +232,8 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
     fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
     await screen.findByRole("textbox", { name: "Buscar registros" });
-    fireEvent.click(screen.getByRole("button", { name: /Documentos · Torino → Lima(?! \+ provincia)/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Documentos/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Torino → Lima(?! \+ provincia)/ }));
 
     fireEvent.click(screen.getByRole("button", { name: "Ver datos completos" }));
     const detailsDialog = screen.getByRole("dialog", { name: "Datos completos" });
@@ -257,7 +258,8 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
     fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
     await screen.findByRole("textbox", { name: "Buscar registros" });
-    fireEvent.click(screen.getByRole("button", { name: /Encomiendas · Lima → Torino/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Encomiendas/ }));
+    fireEvent.click(within(screen.getByRole("group", { name: "Rutas de encomiendas" })).getAllByRole("button", { name: /Lima → Torino/ })[0]);
 
     const card = await screen.findByRole("article", { name: "Registro 0826-0019" });
     expect(within(card).getByText("Deys Juana Eguia Huaylinos")).toBeTruthy();
@@ -910,11 +912,15 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
     fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
     fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
-    await waitFor(() => expect(screen.getByRole("button", { name: /Documentos · Lima → Torino/ })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole("button", { name: /Documentos/ })).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: /Documentos/ }));
+    expect(within(screen.getByRole("group", { name: "Rutas de documentos" })).getAllByRole("button", { name: /Lima → Torino/ })[0]).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Documentos registrados" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /Encomiendas · Torino → Lima \+ provincia/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Encomiendas/ }));
+    fireEvent.click(within(screen.getByRole("group", { name: "Rutas de encomiendas" })).getAllByRole("button", { name: /Torino → Lima \+ provincia/ })[0]);
     expect(screen.getByRole("heading", { name: "Encomiendas registradas" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /Documentos · Lima → Torino/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Documentos/ }));
+    fireEvent.click(within(screen.getByRole("group", { name: "Rutas de documentos" })).getAllByRole("button", { name: /Lima → Torino/ })[0]);
     expect(screen.getByRole("heading", { name: "Documentos registrados" })).toBeTruthy();
   });
 
@@ -944,7 +950,8 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
     fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
     await screen.findByRole("textbox", { name: "Buscar registros" });
-    fireEvent.click(screen.getByRole("button", { name: /Encomiendas · Torino → Lima(?! \+ provincia)/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Encomiendas/ }));
+    fireEvent.click(within(screen.getByRole("group", { name: "Rutas de encomiendas" })).getAllByRole("button", { name: /Torino → Lima(?! \+ provincia)/ })[0]);
     const shipmentRow = screen.getByText("63526276").closest("tr");
     expect(shipmentRow).toBeTruthy();
     fireEvent.click(within(shipmentRow as HTMLElement).getByRole("button", { name: "Actualizar" }));

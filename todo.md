@@ -1637,3 +1637,17 @@
 - [x] Corregir la visibilidad de funcionalidades, registros, marca, rutas, firma y contabilidad para Magda y Kasega.
 - [x] Mantener para Cliente únicamente las funciones permitidas, sin exponer herramientas administrativas.
 - [x] Añadir pruebas de permisos y aislamiento por entorno, validar y publicar.
+
+## Refinamiento de grupos y automatización de sedes
+- [x] Implementar selección jerárquica: mostrar rutas solo después de elegir Documento o Encomienda.
+- [x] Añadir la ruta Provincia → Lima → Torino como grupo independiente para ambos tipos.
+- [x] Automatizar la asignación de sede y origen según la ruta y la marca (Servicom, Magda, Kasega).
+- [x] Asegurar que Lima → Torino asigne automáticamente la sede de Italia sin preguntar.
+- [x] Añadir pruebas de jerarquía y automatización, validar y publicar.
+
+## Continuación: sedes automáticas por ruta y marca
+- [x] Automatizar origen y destino en Admin y Cliente según ruta, con dirección italiana específica para Servicom/Kasega y agencia provincial seleccionable
+- [x] Hacer cumplir las direcciones derivadas también en los procedimientos de servidor de creación y actualización
+- [x] Añadir regresiones para las cuatro rutas y las identidades Magda/Kasega
+- [x] Validar aislamiento y pestañas administrativas de Magda/Kasega
+- [x] Ejecutar suite, build y revisión visual final

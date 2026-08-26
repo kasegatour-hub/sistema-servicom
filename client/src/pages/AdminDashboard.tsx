@@ -52,11 +52,13 @@ import { getFuzzySearchScore } from "@shared/fuzzySearch";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "@shared/passwordPolicy";
 import { isValidInternationalPhone } from "@shared/phoneValidation";
 import { calculateAdminShipmentPricing, extractFreeformShipmentNotes, mergeShipmentNotes } from "@shared/adminPricing";
-import { KASEGA_TORINO_ADDRESS, LIMA_SERVICOM_ADDRESS, SHIPMENT_ROUTES, getShipmentRouteBucket, isProvinceShipmentRoute, isTorinoLimaRoute } from "@shared/shipmentRoutes";
+import { LIMA_SERVICOM_ADDRESS, SHIPMENT_ROUTES, getDefaultShipmentAddresses, getShipmentRouteBucket, isProvinceShipmentRoute, isTorinoLimaRoute } from "@shared/shipmentRoutes";
 import { getParcelRateEurPerKg } from "@shared/workspacePricing";
 import { useIsMobile } from "@/hooks/useMobile";
 import { RecipientChangeRequestDialog } from "@/components/RecipientChangeRequestDialog";
 
+const isKasegaAdminIdentity = (adminId?: number | null, email?: string | null) => [210001, 210002].includes(Number(adminId)) || /^(magda\.barreto\.alv@gmail\.com|kasegatour@gmail\.com)$/i.test(String(email || "").trim());
+const getAdminShipmentBrand = (adminId?: number | null, email?: string | null) => isKasegaAdminIdentity(adminId, email) ? "kasega" as const : "servicom" as const;
 type AdminWorkspace = "resumen" | "registros" | "crear" | "cupones" | "papelera" | "usuarios" | "analitica" | "carta" | "remitentes" | "transferencias" | "contabilidad" | "feedback";
 type CreateRecordTab = "documento" | "encomienda" | "transferencia";
 const createShipmentFieldLabels: Record<string, string> = { senderName: "nombre del remitente", senderLastName: "apellido del remitente", senderDni: "documento del remitente", senderPhone: "celular del remitente", recipientName: "nombre del destinatario", recipientLastName: "apellido del destinatario", recipientDni: "documento del destinatario", recipientPhone: "celular del destinatario", weightKg: "peso del envío", provinceCustomerPriceEur: "precio al cliente para provincia", provinceExtraPriceEur: "extra provincial", destinationAddress: "sede de destino", contentChecklist: "lista de cosas enviadas", limaTorinoTransferMode: "forma de traslado a Torino", deliveryPersonName: "nombre de la persona autorizada", deliveryPersonLastName: "apellido de la persona autorizada", deliveryPersonDni: "documento de la persona autorizada", deliveryPersonPhone: "celular de la persona autorizada", deliveryLocationType: "lugar de entrega", deliveryLocationAddress: "dirección de entrega" };
@@ -409,8 +411,9 @@ export default function AdminDashboard() {
   const [autoSaveStatusFeedback, setAutoSaveStatusFeedback] = useState("");
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [shipmentView, setShipmentView] = useState<'documento' | 'encomienda'>('documento');
+  const [selectedGroupType, setSelectedGroupType] = useState<'documento' | 'encomienda' | null>(null);
   const [operationalRoute, setOperationalRoute] = useState<OperationalRouteFilter>("all");
-  type ShipmentGroup = "documento_lima_torino" | "documento_torino_lima" | "documento_torino_provincia" | "encomienda_lima_torino" | "encomienda_torino_lima" | "encomienda_torino_provincia";
+  type ShipmentGroup = "documento_lima_torino" | "documento_torino_lima" | "documento_torino_provincia" | "documento_provincia_lima_torino" | "encomienda_lima_torino" | "encomienda_torino_lima" | "encomienda_torino_provincia" | "encomienda_provincia_lima_torino";
   const [shipmentGroup, setShipmentGroup] = useState<ShipmentGroup>("documento_lima_torino");
   const [currentPage, setCurrentPage] = useState(1);
   const [showUserForm, setShowUserForm] = useState(false);
@@ -538,10 +541,12 @@ export default function AdminDashboard() {
     const isDocument = shipment.shipmentType !== "encomienda";
     const groupType = shipmentGroup.startsWith("documento") ? isDocument : !isDocument;
     const groupRoute = shipmentGroup.endsWith("lima_torino")
-      ? "Lima - Torino"
+      ? SHIPMENT_ROUTES.LIMA_TORINO
       : shipmentGroup.endsWith("torino_lima")
-        ? "Torino - Lima"
-        : "Torino - Lima + provincia";
+        ? SHIPMENT_ROUTES.TORINO_LIMA
+        : shipmentGroup.endsWith("torino_provincia")
+          ? SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE
+          : SHIPMENT_ROUTES.PROVINCE_LIMA_TORINO;
     return groupType && getShipmentRouteBucket(shipment.route, shipment.isProvinceDelivery) === groupRoute;
   }), [shipments, shipmentGroup]);
   const adminRevenue = useMemo(() => summarizeRevenue(routeShipments), [routeShipments]);
@@ -734,7 +739,7 @@ export default function AdminDashboard() {
 
   const resetCreateForm = () => {
     generatedCreateNoteRef.current = "";
-    createForm.reset({ status: "En agencia", senderName: "", senderLastName: "", senderDni: "", senderDocumentType: "dni_peru", senderPhone: "", recipientName: "", recipientLastName: "", recipientDni: "", recipientDocumentType: "dni_peru", recipientPhone: "", notes: "", shipmentType: "documento", documentCount: 1, docType: "apostillado", sheetCount: 1, requiresApostilleService: false, requiresTranslationService: false, serviceManualPriceEur: "", serviceManualPriceSoles: "", weightKg: 1, manualPriceEur: "", extraPriceEur: 0, extraDiscountEur: 0, paymentStatus: "Falta cancelar", route: "Lima - Torino", originAddress: "", destinationAddress: "", isProvinceDelivery: false, provinceCustomerPriceEur: "", provinceExtraPriceEur: "", provinceOperationalCostSoles: "", provinceCarrier: "shalom", provinceSenderName: "", provinceSenderLastName: "", provinceSenderDni: "", provinceSenderPhone: "", couponCode: "", documentItems: [], contentChecklist: [], missingItems: [], deliveryMode: "agencia", limaTorinoTransferMode: undefined, deliveryPersonName: "", deliveryPersonLastName: "", deliveryPersonDni: "", deliveryPersonPhone: "", deliveryLocationType: "direccion", deliveryLocationAddress: "", deliveryLocationLatitude: null, deliveryLocationLongitude: null });
+    createForm.reset({ status: "En agencia", senderName: "", senderLastName: "", senderDni: "", senderDocumentType: "dni_peru", senderPhone: "", recipientName: "", recipientLastName: "", recipientDni: "", recipientDocumentType: "dni_peru", recipientPhone: "", notes: "", shipmentType: "documento", documentCount: 1, docType: "apostillado", sheetCount: 1, requiresApostilleService: false, requiresTranslationService: false, serviceManualPriceEur: "", serviceManualPriceSoles: "", weightKg: 1, manualPriceEur: "", extraPriceEur: 0, extraDiscountEur: 0, paymentStatus: "Falta cancelar", route: "Lima - Torino", originAddress: getDefaultShipmentAddresses("Lima - Torino", getAdminShipmentBrand(admin?.id, admin?.email)).originAddress, destinationAddress: getDefaultShipmentAddresses("Lima - Torino", getAdminShipmentBrand(admin?.id, admin?.email)).destinationAddress, isProvinceDelivery: false, provinceCustomerPriceEur: "", provinceExtraPriceEur: "", provinceOperationalCostSoles: "", provinceCarrier: "shalom", provinceSenderName: "", provinceSenderLastName: "", provinceSenderDni: "", provinceSenderPhone: "", couponCode: "", documentItems: [], contentChecklist: [], missingItems: [], deliveryMode: "agencia", limaTorinoTransferMode: undefined, deliveryPersonName: "", deliveryPersonLastName: "", deliveryPersonDni: "", deliveryPersonPhone: "", deliveryLocationType: "direccion", deliveryLocationAddress: "", deliveryLocationLatitude: null, deliveryLocationLongitude: null });
     setSenderClientQuery("");
     setRecipientClientQuery("");
     setAdditionalDocumentItems([]);
@@ -748,6 +753,11 @@ export default function AdminDashboard() {
   };
   const selectedDocType = createForm.watch("docType") || "apostillado";
   const selectedRoute = createForm.watch("route") || "Lima - Torino";
+  useEffect(() => {
+    const defaults = getDefaultShipmentAddresses(selectedRoute, getAdminShipmentBrand(admin?.id, admin?.email));
+    if (!createForm.getValues("originAddress") && defaults.originAddress) createForm.setValue("originAddress", defaults.originAddress, { shouldValidate: true });
+    if (!createForm.getValues("destinationAddress") && defaults.destinationAddress) createForm.setValue("destinationAddress", defaults.destinationAddress, { shouldValidate: true });
+  }, [selectedRoute, admin?.id, admin?.email]);
   const activeParcelRateEurPerKg = getParcelRateEurPerKg({ workspaceAdminId: admin?.id, workspaceAdminEmail: admin?.email });
   const limaTorinoEncomiendasEnabled = limaTorinoPolicy?.encomiendasEnabled !== false;
   const watchedWeightKg = Number(createForm.watch("weightKg")) || 0.1;
@@ -2404,15 +2414,16 @@ export default function AdminDashboard() {
                       const provinceRoute = isProvinceShipmentRoute(nextRoute);
                       createForm.setValue("route", nextRoute, { shouldValidate: true, shouldDirty: true });
                       createForm.setValue("isProvinceDelivery", provinceRoute, { shouldValidate: true, shouldDirty: true });
-                      const isKasegaWorkspace = [210001, 210002].includes(Number(admin?.id));
-                      const nextDestination = provinceRoute ? "" : isTorinoLimaRoute(nextRoute) ? LIMA_SERVICOM_ADDRESS : isKasegaWorkspace ? KASEGA_TORINO_ADDRESS : "";
-                      createForm.setValue("destinationAddress", nextDestination, { shouldValidate: true, shouldDirty: true });
+                      const defaults = getDefaultShipmentAddresses(nextRoute, getAdminShipmentBrand(admin?.id, admin?.email));
+                      createForm.setValue("originAddress", defaults.originAddress, { shouldValidate: true, shouldDirty: true });
+                      createForm.setValue("destinationAddress", defaults.destinationAddress, { shouldValidate: true, shouldDirty: true });
                     }}>
                       <SelectTrigger className="border-2 focus:border-primary"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value={SHIPMENT_ROUTES.LIMA_TORINO}>Lima – Torino</SelectItem>
                         <SelectItem value={SHIPMENT_ROUTES.TORINO_LIMA}>Torino – Lima</SelectItem>
                         <SelectItem value={SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE}>Torino – Lima + provincia</SelectItem>
+                        <SelectItem value={SHIPMENT_ROUTES.PROVINCE_LIMA_TORINO}>Provincia – Lima – Torino</SelectItem>
                       </SelectContent>
                     </Select>
                     <p className="mt-1 text-xs text-slate-500">Origen definido manualmente; no usa IP, GPS ni geolocalización.</p>
@@ -2907,19 +2918,26 @@ export default function AdminDashboard() {
                 <h2 className="text-xl font-semibold text-gray-900">{shipmentGroup.startsWith("documento") ? "Documentos registrados" : "Encomiendas registradas"}</h2>
                 <p className="mt-1 text-sm text-slate-600">Selecciona un grupo operativo para no mezclar rutas ni tipos de envío.</p>
               </div>
-              <div className="grid w-full gap-2 sm:grid-cols-2" role="group" aria-label="Grupos de registros por tipo y ruta">
-                {([
-                  ["documento_lima_torino", "Documentos · Lima → Torino", "bg-[#0B2B5E] text-white", "border-blue-200 bg-blue-50 text-[#0B2B5E]", "Lima - Torino"],
-                  ["documento_torino_lima", "Documentos · Torino → Lima", "bg-[#1d4ed8] text-white", "border-blue-200 bg-white text-[#1d4ed8]", "Torino - Lima"],
-                  ["documento_torino_provincia", "Documentos · Torino → Lima + provincia", "bg-[#2563eb] text-white", "border-blue-200 bg-white text-[#2563eb]", "Torino - Lima + provincia"],
-                  ["encomienda_lima_torino", "Encomiendas · Lima → Torino", "bg-[#F28C00] text-white", "border-orange-200 bg-orange-50 text-[#9A5700]", "Lima - Torino"],
-                  ["encomienda_torino_lima", "Encomiendas · Torino → Lima", "bg-[#d97706] text-white", "border-orange-200 bg-white text-[#9A5700]", "Torino - Lima"],
-                  ["encomienda_torino_provincia", "Encomiendas · Torino → Lima + provincia", "bg-[#b45309] text-white", "border-orange-200 bg-white text-[#b45309]", "Torino - Lima + provincia"],
-                ] as const).map(([value, label, activeClass, idleClass, route]) => (
-                  <Button key={value} type="button" aria-pressed={shipmentGroup === value} onClick={() => { setShipmentGroup(value); setShipmentView(value.startsWith("documento") ? "documento" : "encomienda"); }} className={`min-h-12 justify-start text-left ${shipmentGroup === value ? activeClass : `border ${idleClass}`}`}>
-                    {label}<span className="ml-auto text-xs opacity-80">({(shipments || []).filter((shipment: any) => (value.startsWith("documento") ? shipment.shipmentType !== "encomienda" : shipment.shipmentType === "encomienda") && getShipmentRouteBucket(shipment.route, shipment.isProvinceDelivery) === route).length})</span>
-                  </Button>
-                ))}
+              <div className="w-full space-y-3" aria-label="Grupos de registros por tipo y ruta">
+                <div className="grid gap-2 sm:grid-cols-2" role="group" aria-label="Tipo de registro">
+                  {([['documento', 'Documentos', 'bg-[#0B2B5E] text-white', 'border-blue-200 bg-blue-50 text-[#0B2B5E]'], ['encomienda', 'Encomiendas', 'bg-[#F28C00] text-white', 'border-orange-200 bg-orange-50 text-[#9A5700]']] as const).map(([type, label, activeClass, idleClass]) => (
+                    <Button key={type} type="button" aria-pressed={selectedGroupType === type} onClick={() => { setSelectedGroupType(type); setShipmentView(type); setShipmentGroup(`${type}_lima_torino` as ShipmentGroup); setCurrentPage(1); }} className={`min-h-12 justify-start text-left text-base font-bold ${selectedGroupType === type ? activeClass : `border ${idleClass}`}`}>
+                      {label}<span className="ml-auto text-xs font-semibold opacity-80">Seleccionar rutas</span>
+                    </Button>
+                  ))}
+                </div>
+                {selectedGroupType && <div className="rounded-xl border border-slate-200 bg-slate-50 p-3" role="group" aria-label={`Rutas de ${selectedGroupType === 'documento' ? 'documentos' : 'encomiendas'}`}>
+                  <p className="mb-2 text-sm font-semibold text-slate-700">Elige una ruta para ver sus registros:</p>
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    {([['lima_torino', 'Lima → Torino', SHIPMENT_ROUTES.LIMA_TORINO, 'bg-[#0B2B5E] text-white', 'border-blue-200 bg-white text-[#0B2B5E]'], ['torino_lima', 'Torino → Lima', SHIPMENT_ROUTES.TORINO_LIMA, 'bg-[#1d4ed8] text-white', 'border-blue-200 bg-white text-[#1d4ed8]'], ['torino_provincia', 'Torino → Lima + provincia', SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE, 'bg-[#2563eb] text-white', 'border-blue-200 bg-white text-[#2563eb]'], ['provincia_lima_torino', 'Provincia → Lima → Torino', SHIPMENT_ROUTES.PROVINCE_LIMA_TORINO, 'bg-[#475569] text-white', 'border-slate-200 bg-white text-slate-700']] as const).map(([suffix, label, route, activeClass, idleClass]) => {
+                      const value = `${selectedGroupType}_${suffix}` as ShipmentGroup;
+                      const count = (shipments || []).filter((shipment: any) => (selectedGroupType === 'documento' ? shipment.shipmentType !== 'encomienda' : shipment.shipmentType === 'encomienda') && getShipmentRouteBucket(shipment.route, shipment.isProvinceDelivery) === route).length;
+                      return <Button key={value} type="button" aria-pressed={shipmentGroup === value} onClick={() => setShipmentGroup(value)} className={`min-h-11 justify-start text-left ${shipmentGroup === value ? activeClass : `border ${idleClass}`}`}>
+                        {label}<span className="ml-auto text-xs opacity-80">({count})</span>
+                      </Button>;
+                    })}
+                  </div>
+                </div>}
               </div>
             </div>
             <div className="w-full">
@@ -3232,15 +3250,16 @@ export default function AdminDashboard() {
                         const nextRoute = String(event.target.value);
                         const provinceRoute = isProvinceShipmentRoute(nextRoute);
                         updateForm.setValue("isProvinceDelivery", provinceRoute, { shouldValidate: true, shouldDirty: true });
-                        const isKasegaWorkspace = [210001, 210002].includes(Number(admin?.id));
-                        const nextDestination = provinceRoute ? "" : isTorinoLimaRoute(nextRoute) ? LIMA_SERVICOM_ADDRESS : isKasegaWorkspace ? KASEGA_TORINO_ADDRESS : "";
-                        updateForm.setValue("destinationAddress", nextDestination, { shouldValidate: true, shouldDirty: true });
+                        const defaults = getDefaultShipmentAddresses(nextRoute, getAdminShipmentBrand(admin?.id, admin?.email));
+                        updateForm.setValue("originAddress", defaults.originAddress, { shouldValidate: true, shouldDirty: true });
+                        updateForm.setValue("destinationAddress", defaults.destinationAddress, { shouldValidate: true, shouldDirty: true });
                       } })}
                       className="w-full p-2 bg-white border-2 border-slate-200 rounded-md text-sm font-medium focus:border-primary"
                     >
                       <option value={SHIPMENT_ROUTES.LIMA_TORINO}>Lima - Torino</option>
                       <option value={SHIPMENT_ROUTES.TORINO_LIMA}>Torino - Lima</option>
                       <option value={SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE}>Torino - Lima + provincia</option>
+                      <option value={SHIPMENT_ROUTES.PROVINCE_LIMA_TORINO}>Provincia - Lima - Torino</option>
                     </select>
                   </div>
                     {!isProvinceShipmentRoute(updateForm.watch("route")) && <div className="md:col-span-2">

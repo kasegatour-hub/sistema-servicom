@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { publicProcedure, router } from "./_core/trpc";
-import { SHIPMENT_ROUTES, isProvinceShipmentRoute, isTorinoLimaRoute } from "../shared/shipmentRoutes";
+import { SHIPMENT_ROUTES, getDefaultShipmentAddresses, isProvinceShipmentRoute, isTorinoLimaRoute } from "../shared/shipmentRoutes";
 import {
   consumeVerificationCode,
   createLocalAccount,
@@ -107,7 +107,7 @@ export const clientShipmentInputSchema = z.object({
   serviceManualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
   serviceManualPriceSoles: z.union([z.string(), z.number()]).optional().nullable(),
   isIncomplete: z.literal(false).default(false),
-  route: z.enum([SHIPMENT_ROUTES.LIMA_TORINO, SHIPMENT_ROUTES.TORINO_LIMA, SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE]).default(SHIPMENT_ROUTES.LIMA_TORINO),
+  route: z.enum([SHIPMENT_ROUTES.LIMA_TORINO, SHIPMENT_ROUTES.TORINO_LIMA, SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE, SHIPMENT_ROUTES.PROVINCE_LIMA_TORINO]).default(SHIPMENT_ROUTES.LIMA_TORINO),
   destinationAddress: z.string().trim().max(1000).optional(),
 }).strict().superRefine((input, ctx) => {
   if (input.senderDni && !isIdentityDocumentValid(input.senderDni, input.senderDocumentType)) ctx.addIssue({ code: "custom", path: ["senderDni"], message: identityDocumentValidationMessage(input.senderDocumentType) });
@@ -124,6 +124,9 @@ export function buildClientShipmentPersistenceArgs(
   basePriceEur?: number,
   registeredEmail?: string | null,
 ) {
+  const brand = /^(magda\.barreto\.alv@gmail\.com|kasegatour@gmail\.com)$/i.test(String(registeredEmail || "").trim()) ? "kasega" as const : "servicom" as const;
+  const defaults = getDefaultShipmentAddresses(input.route, brand);
+  const isProvincialAgencyRoute = input.route === SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE;
   return [
     orderNumber,
     code,
@@ -144,8 +147,8 @@ export function buildClientShipmentPersistenceArgs(
     0,
     CLIENT_PAYMENT_DEFAULTS.status,
     input.route,
-    "",
-    input.destinationAddress || "",
+    defaults.originAddress,
+    isProvincialAgencyRoute ? input.destinationAddress || "" : defaults.destinationAddress,
     null,
     basePriceEur ?? null,
     0,

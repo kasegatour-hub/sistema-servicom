@@ -32,13 +32,14 @@ import { getFuzzySearchScore } from "@shared/fuzzySearch";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "@shared/passwordPolicy";
 import { isValidInternationalPhone } from "@shared/phoneValidation";
 import { NotificationBell } from "@/components/NotificationBell";
-import { SHIPMENT_ROUTES, getShipmentRouteBucket, isTorinoLimaRoute } from "@shared/shipmentRoutes";
+import { SHIPMENT_ROUTES, getDefaultShipmentAddresses, getShipmentRouteBucket, isTorinoLimaRoute } from "@shared/shipmentRoutes";
 
 const brandLogo = "/manus-storage/servicom_logo_final_e7ce35aa.png";
 
 type AccountMode = "login" | "register" | "request" | "reset";
 type ClientWorkspace = "envios" | "registrar" | "papelera" | "perfil" | "seguridad" | "resumen" | "analitica";
-type ClientShipmentRoute = typeof SHIPMENT_ROUTES.LIMA_TORINO | typeof SHIPMENT_ROUTES.TORINO_LIMA | typeof SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE;
+type ClientShipmentRoute = typeof SHIPMENT_ROUTES.LIMA_TORINO | typeof SHIPMENT_ROUTES.TORINO_LIMA | typeof SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE | typeof SHIPMENT_ROUTES.PROVINCE_LIMA_TORINO;
+const getClientShipmentBrand = (email?: string | null) => /^(magda\.barreto\.alv@gmail\.com|kasegatour@gmail\.com)$/i.test(String(email || "").trim()) ? "kasega" as const : "servicom" as const;
 const getLockoutSecondsFromMessage = (message: string) => Number(message.match(/espera\s+(\d+)\s+segundos/i)?.[1] || 0);
 
 export default function AccountPage() {
@@ -98,7 +99,7 @@ export default function AccountPage() {
   const [docType, setDocType] = useState<"simple" | "apostillado">("simple");
   const [shipmentRoute, setShipmentRoute] = useState<ClientShipmentRoute>(SHIPMENT_ROUTES.LIMA_TORINO);
   const [clientRouteFilter, setClientRouteFilter] = useState<"all" | "Lima - Torino" | "Torino - Lima">("all");
-  type ClientShipmentGroup = "all" | "documento_lima_torino" | "documento_torino_lima" | "documento_torino_provincia" | "encomienda_lima_torino" | "encomienda_torino_lima" | "encomienda_torino_provincia";
+  type ClientShipmentGroup = "all" | "documento_lima_torino" | "documento_torino_lima" | "documento_torino_provincia" | "documento_provincia_lima_torino" | "encomienda_lima_torino" | "encomienda_torino_lima" | "encomienda_torino_provincia" | "encomienda_provincia_lima_torino";
   const [clientShipmentGroup, setClientShipmentGroup] = useState<ClientShipmentGroup>("all");
   const [requiresApostilleService, setRequiresApostilleService] = useState(false);
   const [requiresTranslationService, setRequiresTranslationService] = useState(false);
@@ -203,6 +204,12 @@ export default function AccountPage() {
   };
   const { data: me, isLoading: meLoading } = trpc.account.me.useQuery();
 
+  // La sede internacional se asigna al iniciar y al cambiar de ruta; la provincia queda para el selector de agencias.
+  useEffect(() => {
+    const defaults = getDefaultShipmentAddresses(shipmentRoute, getClientShipmentBrand(me?.email));
+    setDestinationAddress(current => current || defaults.destinationAddress);
+  }, [shipmentRoute, me?.email]);
+
   // Sincronizar datos de perfil cuando la sesión local ya esté disponible.
   useEffect(() => {
     if (!me) return;
@@ -254,7 +261,7 @@ export default function AccountPage() {
     if (clientShipmentGroup === "all") return true;
     const isDocument = shipment.shipmentType !== "encomienda";
     const isExpectedType = clientShipmentGroup.startsWith("documento") ? isDocument : !isDocument;
-    const expectedRoute = clientShipmentGroup.endsWith("lima_torino") ? "Lima - Torino" : clientShipmentGroup.endsWith("torino_lima") ? "Torino - Lima" : "Torino - Lima + provincia";
+    const expectedRoute = clientShipmentGroup.endsWith("lima_torino") ? SHIPMENT_ROUTES.LIMA_TORINO : clientShipmentGroup.endsWith("torino_lima") ? SHIPMENT_ROUTES.TORINO_LIMA : clientShipmentGroup.endsWith("torino_provincia") ? SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE : SHIPMENT_ROUTES.PROVINCE_LIMA_TORINO;
     return isExpectedType && getShipmentRouteBucket(shipment.route, shipment.isProvinceDelivery) === expectedRoute;
   }), [myShipments, clientShipmentGroup]);
   const clientRevenue = useMemo(() => summarizeRevenue(routeShipments), [routeShipments]);
@@ -818,16 +825,17 @@ export default function AccountPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className={mobileShipmentStepVisible(1) ? "" : "hidden"}>
                     <Label>Ruta de envío</Label>
-                    <div className="mb-2 grid gap-2 sm:grid-cols-2" role="group" aria-label="Ruta del nuevo envío"><Button type="button" aria-pressed={shipmentRoute === SHIPMENT_ROUTES.LIMA_TORINO} onClick={() => { setShipmentRoute(SHIPMENT_ROUTES.LIMA_TORINO); setDestinationAddress(""); }} className={shipmentRoute === SHIPMENT_ROUTES.LIMA_TORINO ? "min-h-11 bg-[#0B2B5E] text-white" : "min-h-11 border border-blue-200 bg-blue-50 text-[#0B2B5E]"}>Lima → Torino</Button><Button type="button" aria-pressed={shipmentRoute === SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE} onClick={() => { setShipmentRoute(SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE); setDestinationAddress(""); }} className={shipmentRoute === SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE ? "min-h-11 bg-[#F28C00] text-white" : "min-h-11 border border-orange-200 bg-orange-50 text-[#9A5700]"}>Torino → Lima + provincia</Button></div>
+                    <div className="mb-2 grid gap-2 sm:grid-cols-2" role="group" aria-label="Ruta del nuevo envío">{([ [SHIPMENT_ROUTES.LIMA_TORINO, "Lima → Torino", "bg-[#0B2B5E]"], [SHIPMENT_ROUTES.TORINO_LIMA, "Torino → Lima", "bg-[#F28C00]"], [SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE, "Torino → Lima + provincia", "bg-[#F28C00]"], [SHIPMENT_ROUTES.PROVINCE_LIMA_TORINO, "Provincia → Lima → Torino", "bg-[#0B2B5E]"] ] as const).map(([route, label, activeColor]) => <Button key={route} type="button" aria-pressed={shipmentRoute === route} onClick={() => { setShipmentRoute(route); setDestinationAddress(getDefaultShipmentAddresses(route, getClientShipmentBrand(me?.email)).destinationAddress); }} className={shipmentRoute === route ? `min-h-11 text-white ${activeColor}` : "min-h-11 border border-slate-200 bg-white text-[#0B2B5E]"}>{label}</Button>)}</div>
                     <select
                       aria-label="Ruta de envío"
                       value={shipmentRoute}
-                      onChange={e => { setShipmentRoute(e.target.value as ClientShipmentRoute); setDestinationAddress(""); }}
+                      onChange={e => { const nextRoute = e.target.value as ClientShipmentRoute; setShipmentRoute(nextRoute); setDestinationAddress(getDefaultShipmentAddresses(nextRoute, getClientShipmentBrand(me?.email)).destinationAddress); }}
                       className="w-full mt-1 p-2 bg-white border border-slate-300 rounded-md text-sm font-medium"
                     >
                       <option value={SHIPMENT_ROUTES.LIMA_TORINO}>Lima – Torino</option>
                       <option value={SHIPMENT_ROUTES.TORINO_LIMA}>Torino – Lima</option>
                       <option value={SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE}>Torino – Lima + provincia</option>
+                      <option value={SHIPMENT_ROUTES.PROVINCE_LIMA_TORINO}>Provincia – Lima – Torino</option>
                     </select>
                     <p className="mt-1 text-[10px] text-gray-500">Selecciona la sede a la que llegará tu envío.</p>
                   </div>
@@ -949,21 +957,24 @@ export default function AccountPage() {
             )}
 
             {clientWorkspace === "envios" && <>
-              <div className="mb-3 grid grid-cols-1 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-2" role="group" aria-label="Mis envíos por tipo y ruta">
-                {([
-                  ["all", "Todos los envíos", "bg-[#0B2B5E] text-white", "border-blue-200 bg-white text-[#0B2B5E]", null],
-                  ["documento_lima_torino", "Documentos · Lima → Torino", "bg-[#0B2B5E] text-white", "border-blue-200 bg-white text-[#0B2B5E]", "Lima - Torino"],
-                  ["documento_torino_lima", "Documentos · Torino → Lima", "bg-[#2563eb] text-white", "border-blue-200 bg-white text-[#2563eb]", "Torino - Lima"],
-                  ["documento_torino_provincia", "Documentos · Torino → Lima + provincia", "bg-[#1d4ed8] text-white", "border-blue-200 bg-white text-[#1d4ed8]", "Torino - Lima + provincia"],
-                  ["encomienda_lima_torino", "Encomiendas · Lima → Torino", "bg-[#F28C00] text-white", "border-orange-200 bg-white text-[#9A5700]", "Lima - Torino"],
-                  ["encomienda_torino_lima", "Encomiendas · Torino → Lima", "bg-[#d97706] text-white", "border-orange-200 bg-white text-[#9A5700]", "Torino - Lima"],
-                  ["encomienda_torino_provincia", "Encomiendas · Torino → Lima + provincia", "bg-[#b45309] text-white", "border-orange-200 bg-white text-[#b45309]", "Torino - Lima + provincia"],
-                ] as const).map(([value, label, activeClass, idleClass]) => <Button key={value} type="button" aria-pressed={clientShipmentGroup === value} onClick={() => setClientShipmentGroup(value)} className={`min-h-11 justify-start text-left ${clientShipmentGroup === value ? activeClass : `border ${idleClass}`}`}>
-                  {label}<span className="ml-auto text-xs opacity-80">({(myShipments || []).filter((shipment: any) => {
-                    if (value === "all") return true;
-                    return (value.startsWith("documento") ? shipment.shipmentType !== "encomienda" : shipment.shipmentType === "encomienda") && getShipmentRouteBucket(shipment.route, shipment.isProvinceDelivery) === (value.endsWith("lima_torino") ? "Lima - Torino" : value.endsWith("torino_lima") ? "Torino - Lima" : "Torino - Lima + provincia");
-                  }).length})</span>
-                </Button>)}
+              <div className="mb-3 space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3" role="group" aria-label="Mis envíos por tipo y ruta">
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <Button type="button" aria-pressed={clientShipmentGroup === "all"} onClick={() => setClientShipmentGroup("all")} className={clientShipmentGroup === "all" ? "min-h-11 bg-[#0B2B5E] text-white" : "min-h-11 border border-blue-200 bg-white text-[#0B2B5E]"}>Todos los envíos<span className="ml-auto text-xs">({(myShipments || []).length})</span></Button>
+                  {([['documento', 'Documentos', 'bg-[#0B2B5E] text-white', 'border-blue-200 bg-blue-50 text-[#0B2B5E]'], ['encomienda', 'Encomiendas', 'bg-[#F28C00] text-white', 'border-orange-200 bg-orange-50 text-[#9A5700]']] as const).map(([type, label, activeClass, idleClass]) => {
+                    const selected = clientShipmentGroup.startsWith(type);
+                    return <Button key={type} type="button" aria-pressed={selected} onClick={() => setClientShipmentGroup(`${type}_lima_torino` as ClientShipmentGroup)} className={`min-h-11 justify-start text-left font-semibold ${selected ? activeClass : `border ${idleClass}`}`}>{label}<span className="ml-auto text-xs">Elegir ruta</span></Button>;
+                  })}
+                </div>
+                {(clientShipmentGroup.startsWith('documento') || clientShipmentGroup.startsWith('encomienda')) && <div className="rounded-xl border border-slate-200 bg-white p-3">
+                  <p className="mb-2 text-sm font-semibold text-slate-700">Selecciona la ruta:</p>
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                    {([['lima_torino', 'Lima → Torino', SHIPMENT_ROUTES.LIMA_TORINO], ['torino_lima', 'Torino → Lima', SHIPMENT_ROUTES.TORINO_LIMA], ['torino_provincia', 'Torino → Lima + provincia', SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE], ['provincia_lima_torino', 'Provincia → Lima → Torino', SHIPMENT_ROUTES.PROVINCE_LIMA_TORINO]] as const).map(([suffix, label, route]) => {
+                      const value = `${clientShipmentGroup.startsWith('documento') ? 'documento' : 'encomienda'}_${suffix}` as ClientShipmentGroup;
+                      const count = (myShipments || []).filter((shipment: any) => (value.startsWith('documento') ? shipment.shipmentType !== 'encomienda' : shipment.shipmentType === 'encomienda') && getShipmentRouteBucket(shipment.route, shipment.isProvinceDelivery) === route).length;
+                      return <Button key={value} type="button" aria-pressed={clientShipmentGroup === value} onClick={() => setClientShipmentGroup(value)} className={`min-h-11 justify-start text-left ${clientShipmentGroup === value ? (value.startsWith('documento') ? 'bg-[#0B2B5E] text-white' : 'bg-[#F28C00] text-white') : 'border border-slate-200 bg-white text-slate-700'}`}>{label}<span className="ml-auto text-xs">({count})</span></Button>;
+                    })}
+                  </div>
+                </div>}
               </div>
               <div className="mb-4 grid grid-cols-1 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 md:grid-cols-4">
               <div className="flex min-w-0 items-center gap-2 md:col-span-2">

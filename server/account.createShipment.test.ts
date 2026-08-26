@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildClientShipmentPersistenceArgs, clientShipmentInputSchema } from "./account.router";
+import { LIMA_SERVICOM_ADDRESS, KASEGA_TORINO_ADDRESS, SERVICOM_TORINO_ADDRESS, SHIPMENT_ROUTES } from "../shared/shipmentRoutes";
 
 describe("account.createMyShipment persistence policy", () => {
   it("uses the real client persistence contract with pending payment", () => {
@@ -26,6 +27,20 @@ describe("account.createMyShipment persistence policy", () => {
     expect(args[32]).toBe("simple");
     expect(args[33]).toBe(1);
     expect(args[34]).toBe(true);
+  });
+
+  it("aplica automáticamente las sedes por ruta y conserva la agencia provincial elegida", () => {
+    const base = { recipientName: "María", recipientLastName: "López", recipientDni: "71234567", contentChecklist: ["Documento principal"] };
+    const limaTorino = buildClientShipmentPersistenceArgs(clientShipmentInputSchema.parse({ ...base, route: SHIPMENT_ROUTES.LIMA_TORINO, destinationAddress: "sede manipulada" }), "1234567890", "DOC-2026-ABCD", "Documento", 42);
+    expect(limaTorino[19]).toBe(LIMA_SERVICOM_ADDRESS);
+    expect(limaTorino[20]).toBe(SERVICOM_TORINO_ADDRESS);
+
+    const kasega = buildClientShipmentPersistenceArgs(clientShipmentInputSchema.parse({ ...base, route: SHIPMENT_ROUTES.LIMA_TORINO, destinationAddress: "sede manipulada" }), "1234567891", "DOC-2026-ABCE", "Documento", 42, undefined, "magda.barreto.alv@gmail.com");
+    expect(kasega[20]).toBe(KASEGA_TORINO_ADDRESS);
+
+    const provincial = buildClientShipmentPersistenceArgs(clientShipmentInputSchema.parse({ ...base, route: SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE, destinationAddress: "SHALOM — Agencia Huancayo" }), "1234567892", "DOC-2026-ABCF", "Documento", 42);
+    expect(provincial[19]).toBe(SERVICOM_TORINO_ADDRESS);
+    expect(provincial[20]).toBe("SHALOM — Agencia Huancayo");
   });
 
   it("only accepts the apostille service for Torino - Lima", () => {

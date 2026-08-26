@@ -20,7 +20,7 @@ import { applyCouponDiscount, isCouponCurrentlyValid, normalizeCouponCode } from
 import { isValidInternationalPhone, normalizeInternationalPhone } from "../shared/phoneValidation";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "../shared/passwordPolicy";
 import { generateMonthlyParcelOrderNumber, generateShipmentCode, generateShipmentOrderNumber, getMonthlyParcelOrderPrefix } from "../shared/shipmentIdentifiers";
-import { SHIPMENT_ROUTES, isProvinceShipmentRoute, isTorinoLimaRoute } from "../shared/shipmentRoutes";
+import { SHIPMENT_ROUTES, getDefaultShipmentAddresses, isProvinceShipmentRoute, isTorinoLimaRoute } from "../shared/shipmentRoutes";
 import { invokeLLM } from "./_core/llm";
 import { createSignatureToken } from "./signatureTokens";
 import { storagePut } from "./storage";
@@ -29,7 +29,7 @@ const MASTER_ADMIN_EMAIL = "peruservicom@gmail.com";
 const MASTER_ADMIN_PASSWORD = "@m*M.mTt@~ADkHpvBbLm+5CD=3ao@DngYa+3Kea6U=qX%r9EJ8-1QFc#,hD3r4Dsis9:9^i-zZJ}pT#aQAcnm^+XMAhV9u3VdrZ3.";
 export const ADMIN_REAUTH_REQUIRED_MESSAGE = "Por seguridad, vuelve a escribir tu contraseña administrativa para continuar.";
 const ADMIN_PASSWORD_RESET_RESEND_SECONDS = 60;
-const ROUTE_VALUES = [SHIPMENT_ROUTES.LIMA_TORINO, SHIPMENT_ROUTES.TORINO_LIMA, SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE] as const;
+const ROUTE_VALUES = [SHIPMENT_ROUTES.LIMA_TORINO, SHIPMENT_ROUTES.TORINO_LIMA, SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE, SHIPMENT_ROUTES.PROVINCE_LIMA_TORINO] as const;
 const COUPON_SCOPE_VALUES = ["ambos", "documento", "encomienda"] as const;
 const INVITATION_SIGNATURE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const PASSWORD_REUSE_MESSAGE = "La nueva contraseña no puede ser igual a la contraseña vigente.";
@@ -820,6 +820,10 @@ export const adminRouter = router({
       const code = generateShipmentCode();
       const db = await getDb();
       const [creator] = db ? await db.select({ name: admins.name, email: admins.email }).from(admins).where(eq(admins.id, ctx.adminSession.adminId)).limit(1) : [];
+      const shipmentBrand = [210001, 210002].includes(Number(ctx.adminSession.adminId)) || /^(magda\.barreto\.alv@gmail\.com|kasegatour@gmail\.com)$/i.test(String(creator?.email || "").trim()) ? "kasega" as const : "servicom" as const;
+      const defaultAddresses = getDefaultShipmentAddresses(input.route, shipmentBrand);
+      const enforcedOriginAddress = defaultAddresses.originAddress || input.originAddress || "";
+      const enforcedDestinationAddress = input.route === SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE ? input.destinationAddress || "" : defaultAddresses.destinationAddress;
       const pricing = calculateAdminShipmentPricing({ ...input, isProvinceDelivery: effectiveProvinceDelivery, workspaceAdminId: ctx.adminSession.adminId, workspaceAdminEmail: creator?.email });
       const couponCode = normalizeCouponCode(input.couponCode);
       const coupon = couponCode ? await getDiscountCouponByCode(couponCode) : undefined;
@@ -855,8 +859,8 @@ export const adminRouter = router({
         extraPriceEur,
         input.paymentStatus,
         input.route,
-        input.originAddress,
-        input.destinationAddress,
+        enforcedOriginAddress,
+        enforcedDestinationAddress,
         coupon?.code || null,
         discount.basePriceEur,
         discount.discountPercent,
@@ -1156,6 +1160,10 @@ export const adminRouter = router({
         ? calculateAdminShipmentPricing({ shipmentType: "documento", docType: effectiveDocumentKind, sheetCount: effectiveDocumentSheetCount, manualPriceEur: input.pricingMode === "manual" ? input.manualPriceEur : null, extraPriceEur: effectiveExtraPrice, extraDiscountEur: input.extraDiscountEur ?? currentShipment.extraDiscountEur ?? 0, route: effectiveRoute, notes: freeformNotes, requiresApostilleService: effectiveRequiresApostilleService, requiresTranslationService: effectiveRequiresTranslationService, serviceManualPriceEur: input.serviceManualPriceEur ?? currentShipment.serviceManualPriceEur, serviceManualPriceSoles: input.serviceManualPriceSoles ?? currentShipment.serviceManualPriceSoles, isProvinceDelivery: effectiveProvinceDelivery, provinceCustomerPriceEur: input.provinceCustomerPriceEur ?? currentShipment.provinceCustomerPriceEur, provinceExtraPriceEur: input.provinceExtraPriceEur ?? currentShipment.provinceExtraPriceEur, provinceOperationalCostSoles: input.provinceOperationalCostSoles ?? currentShipment.provinceOperationalCostSoles, provinceCarrier: input.provinceCarrier ?? currentShipment.provinceCarrier })
         : null;
       const updatedPricing = pricing || documentPricing;
+      const currentBrand = [210001, 210002].includes(Number(ctx.adminSession.adminId)) || /^(magda\.barreto\.alv@gmail\.com|kasegatour@gmail\.com)$/i.test(String(currentShipment.registeredByEmail || "").trim()) ? "kasega" as const : "servicom" as const;
+      const updatedAddresses = getDefaultShipmentAddresses(effectiveRoute, currentBrand);
+      const enforcedUpdateOrigin = updatedAddresses.originAddress || input.originAddress || currentShipment.originAddress || "";
+      const enforcedUpdateDestination = effectiveRoute === SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE ? input.destinationAddress || currentShipment.destinationAddress || "" : updatedAddresses.destinationAddress;
       const result = await updateShipmentStatus(
         input.shipmentId,
         input.newStatus,
@@ -1176,9 +1184,9 @@ export const adminRouter = router({
         updatedPricing ? updatedPricing.manualPrice : input.manualPriceEur,
         updatedPricing ? updatedPricing.extraPriceEur : input.extraPriceEur,
         input.paymentStatus,
-        input.route,
-        input.originAddress,
-        input.destinationAddress,
+        effectiveRoute,
+        enforcedUpdateOrigin,
+        enforcedUpdateDestination,
         undefined,
         updatedPricing ? updatedPricing.totalEur : undefined,
         updatedPricing ? 0 : undefined,
