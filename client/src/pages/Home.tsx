@@ -2,10 +2,11 @@ import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Package, QrCode, AlertCircle, MapPin, Clock3, Phone, ExternalLink, Search, ShieldCheck, ArrowRight } from "lucide-react";
+import { Package, QrCode, AlertCircle, MapPin, Clock3, Phone, ExternalLink, Search, ShieldCheck, ArrowRight, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Spinner } from "@/components/ui/spinner";
 import { trpc } from "@/lib/trpc";
 import { ShipmentTimeline } from "@/components/ShipmentTimeline";
@@ -263,31 +264,36 @@ export default function Home() {
       {/* Header */}
       <header className="sticky top-0 z-40 border-b-4 border-[#F28C00] bg-[#0B2B5E] text-white shadow-xl">
         <div className="mx-auto w-[min(96vw,1560px)] px-5 sm:px-7 lg:px-10">
-          <div className="flex min-h-[96px] flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between lg:min-h-[112px] lg:py-5">
+          <div className="flex min-h-[76px] items-center justify-between gap-4 py-3 sm:min-h-[88px] sm:py-4">
             <a href="/" className="flex items-center gap-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#F28C00] focus:ring-offset-2 focus:ring-offset-[#0B2B5E]">
               <img src="/manus-storage/servicom_logo_final_e7ce35aa.png" alt="Servicom Internacional" className="h-16 w-16 rounded-xl bg-white p-1.5 object-contain shadow-md sm:h-20 sm:w-20" />
               <span>
                 <span className="block text-xl font-extrabold tracking-tight sm:text-2xl lg:text-3xl">Servicom Internacional</span>
-                <span className="mt-1 block text-sm font-semibold text-blue-100 sm:text-base">Rastreo seguro de tus envíos</span>
-                <span className="mt-1 block text-xs text-blue-200 sm:text-sm">Documentos y encomiendas · RUC 20615004708</span>
+                <span className="mt-1 hidden text-sm font-semibold text-blue-100 sm:block sm:text-base">Rastreo seguro de tus envíos</span>
+                <span className="mt-1 hidden text-xs text-blue-200 sm:block sm:text-sm">Documentos y encomiendas · RUC 20615004708</span>
               </span>
             </a>
-            <nav aria-label="Navegación principal" className="grid w-full grid-cols-2 gap-2 pb-1 sm:flex sm:w-auto sm:items-center sm:justify-end sm:gap-2">
-              <a href="#rastreo" className="flex min-h-12 items-center justify-center whitespace-nowrap rounded-xl border border-white/20 px-4 py-3 text-base font-bold leading-none text-white transition hover:bg-white/15 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-[#F28C00] focus:ring-offset-2 focus:ring-offset-[#0B2B5E] sm:min-h-14 sm:px-5">Rastrea</a>
-              <a href="#sedes" className="flex min-h-12 items-center justify-center whitespace-nowrap rounded-xl border border-white/20 px-4 py-3 text-base font-bold leading-none text-white transition hover:bg-white/15 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-[#F28C00] focus:ring-offset-2 focus:ring-offset-[#0B2B5E] sm:min-h-14 sm:px-5">Sedes</a>
-              <a href="/movil" className="flex min-h-12 items-center justify-center whitespace-nowrap rounded-xl border border-white/20 px-4 py-3 text-base font-bold leading-none text-white transition hover:bg-white/15 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-[#F28C00] focus:ring-offset-2 focus:ring-offset-[#0B2B5E] sm:min-h-14 sm:px-5">App móvil</a>
-              <a href="/cuenta" className="flex min-h-12 items-center justify-center whitespace-nowrap rounded-xl border border-white/20 px-4 py-3 text-base font-bold leading-none text-white transition hover:bg-white/15 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-[#F28C00] focus:ring-offset-2 focus:ring-offset-[#0B2B5E] sm:min-h-14 sm:px-5">Cliente</a>
-              <a href="/admin" className="flex min-h-12 items-center justify-center whitespace-nowrap rounded-xl bg-[#F28C00] px-4 py-3 text-base font-extrabold leading-none text-white shadow-md transition hover:bg-[#d97800] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#0B2B5E] sm:min-h-14 sm:px-6">Admin</a>
-            </nav>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button type="button" variant="ghost" aria-label="Abrir menú principal" className="h-12 w-12 rounded-xl border border-white/25 p-0 text-white hover:bg-white/15 hover:text-white focus:outline-none focus:ring-2 focus:ring-[#F28C00] focus:ring-offset-2 focus:ring-offset-[#0B2B5E]"><MoreVertical className="h-7 w-7" aria-hidden="true" /></Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 rounded-xl border-slate-200 p-2 shadow-xl">
+                <DropdownMenuItem asChild><a href="#rastreo" className="cursor-pointer rounded-lg px-3 py-2.5 text-base font-semibold">Rastreo</a></DropdownMenuItem>
+                <DropdownMenuItem asChild><a href="#sedes" className="cursor-pointer rounded-lg px-3 py-2.5 text-base font-semibold">Sedes</a></DropdownMenuItem>
+                <DropdownMenuItem asChild><a href="/movil" className="cursor-pointer rounded-lg px-3 py-2.5 text-base font-semibold">App móvil</a></DropdownMenuItem>
+                <DropdownMenuItem asChild><a href="/cuenta" className="cursor-pointer rounded-lg px-3 py-2.5 text-base font-semibold">Cliente</a></DropdownMenuItem>
+                <DropdownMenuItem asChild><a href="/admin" className="cursor-pointer rounded-lg px-3 py-2.5 text-base font-semibold text-[#0B2B5E]">Admin</a></DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 md:py-12 lg:px-10">
+            <main className="mx-auto max-w-7xl px-3 py-4 sm:px-6 sm:py-8 md:py-12 lg:px-10">
         {/* Search Form */}
         <section id="rastreo" className="relative scroll-mt-28 overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#d9eff9] via-[#f1f8fb] to-white p-1 shadow-[0_24px_70px_-32px_rgba(11,43,94,0.55)]">
           <div className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-[#F28C00]/15 blur-2xl" aria-hidden="true" />
-          <Card className="relative rounded-[1.75rem] border-0 bg-white/95 p-6 shadow-none sm:p-9 lg:p-12">
+              <Card className="relative rounded-[1.75rem] border-0 bg-white/95 p-4 shadow-none sm:p-9 lg:p-12">
             <div className="grid items-center gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(330px,.85fr)] lg:gap-10">
               <div className="max-w-3xl">
               <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-[#0B2B5E]/8 px-4 py-2 text-sm font-bold text-[#0B2B5E]">
@@ -297,7 +303,7 @@ export default function Home() {
               <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-[#0B2B5E] sm:text-4xl lg:text-5xl">Sigue tu envío en todo momento</h1>
               <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">Ingresa tu número de orden y código de envío. Verás el estado actual, la ruta y la sede donde podrás recogerlo.</p>
               </div>
-              <TrackingJourneyAnimation status={shipmentData?.status} />
+              <TrackingJourneyAnimation status={shipmentData?.status} className="hidden lg:block" />
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-5">
@@ -333,6 +339,7 @@ export default function Home() {
                 </Button>
               </div>
             </form>
+            <div className="mt-5 lg:hidden"><TrackingJourneyAnimation status={shipmentData?.status} /></div>
 
             <div className="mt-8 grid gap-3 border-t border-slate-200 pt-6 sm:grid-cols-3">
               <div className="flex items-center gap-3 text-sm font-semibold text-slate-600"><ShieldCheck className="h-5 w-5 shrink-0 text-[#F28C00]" /> Información clara y segura</div>

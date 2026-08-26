@@ -1551,3 +1551,8 @@
 - [x] Mantener apostilla y traducción con sus importes EUR/PEN al actualizar y reflejarlos en total, notas y recibos
 - [x] Ocultar la sede regular de Servicom al elegir Torino–Lima + provincia y mostrar solo la agencia provincial seleccionada
 - [x] Añadir pruebas, validar web/móvil y publicar
+
+## Portada limpia y menú de tres puntos
+- [x] Encapsular Rastreo, Sedes, App móvil, Cliente y Admin dentro de un menú accesible de tres puntos
+- [x] Mantener orden, código, Buscar y Escanear QR visibles en la primera pantalla móvil
+- [x] Validar la navegación responsive, las pruebas y publicar

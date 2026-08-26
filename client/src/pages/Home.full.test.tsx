@@ -51,20 +51,21 @@ describe("Home public page", () => {
     render(<Home />);
 
     expect(screen.getByRole("heading", { name: "Sigue tu envío en todo momento" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Rastrea" }).getAttribute("href")).toBe("#rastreo");
-    expect(screen.getByRole("link", { name: "Sedes" }).getAttribute("href")).toBe("#sedes");
     expect(screen.getByRole("button", { name: /Rastrear envío/ })).toBeTruthy();
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Abrir menú principal" }));
+    expect(screen.getByRole("menuitem", { name: "Rastreo" }).getAttribute("href")).toBe("#rastreo");
+    expect(screen.getByRole("menuitem", { name: "Sedes" }).getAttribute("href")).toBe("#sedes");
   });
 
   it("renders large navigation buttons with complete rounded corners", () => {
     render(<Home />);
 
-    for (const label of ["Rastrea", "Sedes", "App móvil", "Cliente", "Admin"]) {
-      const link = screen.getByRole("link", { name: label });
-      expect(link.className).toContain("min-h-12");
-      expect(link.className).toContain("rounded-xl");
-      expect(link.className).toContain("items-center");
-      expect(link.className).toContain("justify-center");
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Abrir menú principal" }));
+    for (const label of ["Rastreo", "Sedes", "App móvil", "Cliente", "Admin"]) {
+      const item = screen.getByRole("menuitem", { name: label });
+      expect(item.className).toContain("cursor-pointer");
+      expect(item.className).toContain("rounded-lg");
+      expect(item.className).toContain("font-semibold");
     }
   });
 
