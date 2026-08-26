@@ -52,7 +52,7 @@ import { getFuzzySearchScore } from "@shared/fuzzySearch";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "@shared/passwordPolicy";
 import { isValidInternationalPhone } from "@shared/phoneValidation";
 import { calculateAdminShipmentPricing, extractFreeformShipmentNotes, mergeShipmentNotes } from "@shared/adminPricing";
-import { KASEGA_TORINO_ADDRESS, LIMA_SERVICOM_ADDRESS, SHIPMENT_ROUTES, isProvinceShipmentRoute, isTorinoLimaRoute } from "@shared/shipmentRoutes";
+import { KASEGA_TORINO_ADDRESS, LIMA_SERVICOM_ADDRESS, SHIPMENT_ROUTES, getShipmentRouteBucket, isProvinceShipmentRoute, isTorinoLimaRoute } from "@shared/shipmentRoutes";
 import { getParcelRateEurPerKg } from "@shared/workspacePricing";
 import { useIsMobile } from "@/hooks/useMobile";
 import { RecipientChangeRequestDialog } from "@/components/RecipientChangeRequestDialog";
@@ -542,8 +542,7 @@ export default function AdminDashboard() {
       : shipmentGroup.endsWith("torino_lima")
         ? "Torino - Lima"
         : "Torino - Lima + provincia";
-    const legacyWithoutRoute = !shipment.route;
-    return groupType && (legacyWithoutRoute || shipment.route === groupRoute);
+    return groupType && getShipmentRouteBucket(shipment.route, shipment.isProvinceDelivery) === groupRoute;
   }), [shipments, shipmentGroup]);
   const adminRevenue = useMemo(() => summarizeRevenue(routeShipments), [routeShipments]);
 
@@ -2924,7 +2923,7 @@ export default function AdminDashboard() {
                   ["encomienda_torino_provincia", "Encomiendas · Torino → Lima + provincia", "bg-[#b45309] text-white", "border-orange-200 bg-white text-[#b45309]", "Torino - Lima + provincia"],
                 ] as const).map(([value, label, activeClass, idleClass, route]) => (
                   <Button key={value} type="button" aria-pressed={shipmentGroup === value} onClick={() => { setShipmentGroup(value); setShipmentView(value.startsWith("documento") ? "documento" : "encomienda"); }} className={`min-h-12 justify-start text-left ${shipmentGroup === value ? activeClass : `border ${idleClass}`}`}>
-                    {label}<span className="ml-auto text-xs opacity-80">({(shipments || []).filter((shipment: any) => (value.startsWith("documento") ? shipment.shipmentType !== "encomienda" : shipment.shipmentType === "encomienda") && (!shipment.route || shipment.route === route)).length})</span>
+                    {label}<span className="ml-auto text-xs opacity-80">({(shipments || []).filter((shipment: any) => (value.startsWith("documento") ? shipment.shipmentType !== "encomienda" : shipment.shipmentType === "encomienda") && getShipmentRouteBucket(shipment.route, shipment.isProvinceDelivery) === route).length})</span>
                   </Button>
                 ))}
               </div>

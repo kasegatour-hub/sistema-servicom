@@ -20,3 +20,11 @@ export function isTorinoLimaRoute(route?: string | null) {
 export function isLimaTorinoRoute(route?: string | null) {
   return route === SHIPMENT_ROUTES.LIMA_TORINO;
 }
+
+/** Devuelve el grupo exacto de ruta usado por listados y filtros. */
+export function getShipmentRouteBucket(route?: string | null, isProvinceDelivery?: boolean | null): ShipmentRoute | "unknown" {
+  if (route === SHIPMENT_ROUTES.LIMA_TORINO) return SHIPMENT_ROUTES.LIMA_TORINO;
+  if (route === SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE || isProvinceDelivery === true) return SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE;
+  if (route === SHIPMENT_ROUTES.TORINO_LIMA) return SHIPMENT_ROUTES.TORINO_LIMA;
+  return "unknown";
+}

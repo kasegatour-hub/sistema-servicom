@@ -208,7 +208,7 @@ describe("AdminDashboard Nueva Encomienda", () => {
 
   it("explica cómo buscar registros y conserva coincidencias difusas", async () => {
     mocks.shipments = [
-      { id: 51, shipmentType: "documento", senderName: "Sánchez", senderLastName: "Arias", recipientName: "Luisa", recipientLastName: "Ramos", status: "En agencia", paymentStatus: "Falta cancelar", createdAt: new Date("2026-08-17T10:00:00.000Z"), orderNumber: "6352627659", code: "DOC-SAN" },
+      { id: 51, shipmentType: "documento", senderName: "Sánchez", senderLastName: "Arias", recipientName: "Luisa", recipientLastName: "Ramos", route: "Lima - Torino", status: "En agencia", paymentStatus: "Falta cancelar", createdAt: new Date("2026-08-17T10:00:00.000Z"), orderNumber: "6352627659", code: "DOC-SAN" },
       { id: 52, shipmentType: "documento", senderName: "María", senderLastName: "Ramos", recipientName: "Ana", recipientLastName: "López", status: "En agencia", paymentStatus: "Falta cancelar", createdAt: new Date("2026-08-16T10:00:00.000Z"), orderNumber: "6352627660", code: "DOC-RAM" },
     ];
     render(<AdminDashboard />);
@@ -249,7 +249,7 @@ describe("AdminDashboard Nueva Encomienda", () => {
   });
 
   it("muestra cada registro completo en una tarjeta vertical para móvil sin depender de una tabla horizontal", async () => {
-    mocks.shipments = [{ id: 92, shipmentType: "encomienda", recipientName: "Deys Juana", recipientLastName: "Eguia Huaylinos", status: "En destino", paymentStatus: "Pagado", createdAt: new Date("2026-08-25T10:00:00.000Z"), registeredByLabel: "Magda Barretto", orderNumber: "0826-0019", code: "2CQB" }];
+    mocks.shipments = [{ id: 92, shipmentType: "encomienda", recipientName: "Deys Juana", recipientLastName: "Eguia Huaylinos", route: "Lima - Torino", status: "En destino", paymentStatus: "Pagado", createdAt: new Date("2026-08-25T10:00:00.000Z"), registeredByLabel: "Magda Barretto", orderNumber: "0826-0019", code: "2CQB" }];
     Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
     window.dispatchEvent(new Event("resize"));
     render(<AdminDashboard />);
@@ -257,7 +257,7 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
     fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
     await screen.findByRole("textbox", { name: "Buscar registros" });
-    fireEvent.click(screen.getByRole("button", { name: /Encomiendas · Torino → Lima \+ provincia/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Encomiendas · Lima → Torino/ }));
 
     const card = await screen.findByRole("article", { name: "Registro 0826-0019" });
     expect(within(card).getByText("Deys Juana Eguia Huaylinos")).toBeTruthy();
@@ -479,7 +479,7 @@ describe("AdminDashboard Nueva Encomienda", () => {
   });
 
   it("muestra ocultamiento reversible al Master Admin de su propio espacio", async () => {
-    mocks.shipments = [{ id: 42, shipmentType: "documento", recipientName: "Giselle", recipientLastName: "García", status: "En agencia", paymentStatus: "Falta cancelar", createdAt: new Date("2026-08-17T10:00:00.000Z"), orderNumber: "6352627659", code: "DOC-2026-XPF2A", events: [], hiddenFromRegistradoresAt: null }];
+    mocks.shipments = [{ id: 42, shipmentType: "documento", recipientName: "Giselle", recipientLastName: "García", route: "Lima - Torino", status: "En agencia", paymentStatus: "Falta cancelar", createdAt: new Date("2026-08-17T10:00:00.000Z"), orderNumber: "6352627659", code: "DOC-2026-XPF2A", events: [], hiddenFromRegistradoresAt: null }];
     mocks.login.mutateAsync.mockResolvedValue({ id: 1, email: "admin@servicom.pe", name: "Master", role: "superadmin" });
     render(<AdminDashboard />);
     fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
@@ -502,6 +502,7 @@ describe("AdminDashboard Nueva Encomienda", () => {
       senderLastName: "Pérez",
       recipientPhone: "+51 970188447",
       senderPhone: "+51 908722617",
+      route: "Lima - Torino",
       status: "En agencia",
       paymentStatus: "Falta cancelar",
       createdAt: new Date("2026-08-17T10:00:00.000Z"),
@@ -528,7 +529,7 @@ describe("AdminDashboard Nueva Encomienda", () => {
   });
 
   it("reintenta automáticamente una descarga PDF administrativa que falla de forma transitoria", async () => {
-    const shipment = { id: 76, shipmentType: "documento", recipientName: "Luis", recipientLastName: "Mendoza", status: "En agencia", paymentStatus: "Pagado", createdAt: new Date("2026-08-18T10:00:00.000Z"), orderNumber: "8002224585", code: "DOC-2026-RETRY", events: [] };
+    const shipment = { id: 76, shipmentType: "documento", recipientName: "Luis", recipientLastName: "Mendoza", route: "Lima - Torino", status: "En agencia", paymentStatus: "Pagado", createdAt: new Date("2026-08-18T10:00:00.000Z"), orderNumber: "8002224585", code: "DOC-2026-RETRY", events: [] };
     mocks.shipments = [shipment];
     adminReceiptDocumentMocks.download.mockRejectedValueOnce(new Error("Fallo temporal")).mockResolvedValueOnce("recibo-documento-luis-mendoza-orden-8002224585.pdf");
     render(<AdminDashboard />);
@@ -584,6 +585,7 @@ describe("AdminDashboard Nueva Encomienda", () => {
     mocks.shipments = Array.from({ length: 7 }, (_, index) => ({
       id: index + 1,
       shipmentType: "documento",
+      route: "Lima - Torino",
       recipientName: `Cliente ${index + 1}`,
       recipientLastName: "Prueba",
       recipientDni: `7000000${index}`,
@@ -658,7 +660,7 @@ describe("AdminDashboard Nueva Encomienda", () => {
   });
 
   it("shows the registration author and opens the general comments channel for an operator", async () => {
-    mocks.shipments = [{ id: 70, shipmentType: "documento", recipientName: "Giselle", recipientLastName: "García", status: "En agencia", paymentStatus: "Pagado", registeredByLabel: "Operador Servicom", createdAt: new Date("2026-08-18T10:00:00.000Z"), orderNumber: "6352627659", code: "DOC-2026-XPF2A", events: [] }];
+    mocks.shipments = [{ id: 70, shipmentType: "documento", route: "Lima - Torino", recipientName: "Giselle", recipientLastName: "García", status: "En agencia", paymentStatus: "Pagado", registeredByLabel: "Operador Servicom", createdAt: new Date("2026-08-18T10:00:00.000Z"), orderNumber: "6352627659", code: "DOC-2026-XPF2A", events: [] }];
     render(<AdminDashboard />);
     fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
     fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });

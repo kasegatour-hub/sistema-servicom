@@ -1625,3 +1625,9 @@
 - [x] Separar los seis grupos exactos: Documento/Encomienda × Lima–Torino, Torino–Lima y Torino–Lima + provincia.
 - [x] Evitar que los registros Torino–Lima sin provincia se mezclen con los de provincia en filtros, contadores y listados.
 - [x] Mantener la acción de firma y su estado dentro del grupo exacto del envío.
+
+## Verificación adicional de rutas y firma
+- [x] Reproducir en el estado publicado la separación visual de documentos y encomiendas para Torino → Lima y Torino → Lima + provincia.
+- [x] Confirmar que los seis grupos no comparten registros con ruta definida y mantienen estética responsive.
+- [x] Reproducir desde Admin y Usuario el envío de firma y mostrar enlace manual o notificación automática según corresponda.
+- [x] Añadir regresiones de esta revisión, ejecutar suite y build, y publicar el checkpoint.

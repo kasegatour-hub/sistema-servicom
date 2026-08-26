@@ -32,7 +32,7 @@ import { getFuzzySearchScore } from "@shared/fuzzySearch";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "@shared/passwordPolicy";
 import { isValidInternationalPhone } from "@shared/phoneValidation";
 import { NotificationBell } from "@/components/NotificationBell";
-import { SHIPMENT_ROUTES, isTorinoLimaRoute } from "@shared/shipmentRoutes";
+import { SHIPMENT_ROUTES, getShipmentRouteBucket, isTorinoLimaRoute } from "@shared/shipmentRoutes";
 
 const brandLogo = "/manus-storage/servicom_logo_final_e7ce35aa.png";
 
@@ -255,8 +255,7 @@ export default function AccountPage() {
     const isDocument = shipment.shipmentType !== "encomienda";
     const isExpectedType = clientShipmentGroup.startsWith("documento") ? isDocument : !isDocument;
     const expectedRoute = clientShipmentGroup.endsWith("lima_torino") ? "Lima - Torino" : clientShipmentGroup.endsWith("torino_lima") ? "Torino - Lima" : "Torino - Lima + provincia";
-    const legacyWithoutRoute = !shipment.route;
-    return isExpectedType && (legacyWithoutRoute || shipment.route === expectedRoute);
+    return isExpectedType && getShipmentRouteBucket(shipment.route, shipment.isProvinceDelivery) === expectedRoute;
   }), [myShipments, clientShipmentGroup]);
   const clientRevenue = useMemo(() => summarizeRevenue(routeShipments), [routeShipments]);
   const { data: myDeletedShipments, refetch: refetchDeletedShipments } = trpc.account.myDeletedShipments.useQuery(undefined, {
@@ -962,7 +961,7 @@ export default function AccountPage() {
                 ] as const).map(([value, label, activeClass, idleClass]) => <Button key={value} type="button" aria-pressed={clientShipmentGroup === value} onClick={() => setClientShipmentGroup(value)} className={`min-h-11 justify-start text-left ${clientShipmentGroup === value ? activeClass : `border ${idleClass}`}`}>
                   {label}<span className="ml-auto text-xs opacity-80">({(myShipments || []).filter((shipment: any) => {
                     if (value === "all") return true;
-                    return (value.startsWith("documento") ? shipment.shipmentType !== "encomienda" : shipment.shipmentType === "encomienda") && (!shipment.route || shipment.route === (value.endsWith("lima_torino") ? "Lima - Torino" : value.endsWith("torino_lima") ? "Torino - Lima" : "Torino - Lima + provincia"));
+                    return (value.startsWith("documento") ? shipment.shipmentType !== "encomienda" : shipment.shipmentType === "encomienda") && getShipmentRouteBucket(shipment.route, shipment.isProvinceDelivery) === (value.endsWith("lima_torino") ? "Lima - Torino" : value.endsWith("torino_lima") ? "Torino - Lima" : "Torino - Lima + provincia");
                   }).length})</span>
                 </Button>)}
               </div>

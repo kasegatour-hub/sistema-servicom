@@ -259,7 +259,6 @@ export const appRouter = router({
           throw new TRPCError({ code: "NOT_FOUND", message: "Envío no encontrado" });
         }
         const account = shipment.accountId ? await getLocalAccountById(shipment.accountId) : null;
-        if (shipment.accountId && !account?.email) throw new TRPCError({ code: "BAD_REQUEST", message: "No se encontró una cuenta Cliente válida para enviar la notificación automática. Puedes generar un enlace manual si los datos del remitente están completos." });
         const currentSignature = await getShipmentSignatureByShipmentId(shipment.id);
         if (currentSignature?.status === "signed") {
           return {
