@@ -157,9 +157,11 @@ import AdminDashboard from "./AdminDashboard";
 afterEach(() => {
   cleanup();
   window.history.replaceState({}, "", "/admin");
+  Object.defineProperty(window, "innerWidth", { configurable: true, value: 1024 });
 });
 
 beforeEach(() => {
+  Object.defineProperty(window, "innerWidth", { configurable: true, value: 1024 });
   Object.defineProperty(window.HTMLElement.prototype, "scrollIntoView", { configurable: true, value: vi.fn() });
   vi.clearAllMocks();
   mocks.listCoupons.data = [];
@@ -241,6 +243,27 @@ describe("AdminDashboard Nueva Encomienda", () => {
     Object.assign(navigator, { clipboard: { writeText } });
     fireEvent.click(screen.getByRole("button", { name: "Copiar / extraer datos" }));
     await waitFor(() => expect(writeText).toHaveBeenCalledWith(expect.stringContaining("Remitente: Ana Pérez")));
+  });
+
+  it("muestra cada registro completo en una tarjeta vertical para móvil sin depender de una tabla horizontal", async () => {
+    mocks.shipments = [{ id: 92, shipmentType: "encomienda", recipientName: "Deys Juana", recipientLastName: "Eguia Huaylinos", status: "En destino", paymentStatus: "Pagado", createdAt: new Date("2026-08-25T10:00:00.000Z"), registeredByLabel: "Magda Barretto", orderNumber: "0826-0019", code: "2CQB" }];
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+    window.dispatchEvent(new Event("resize"));
+    render(<AdminDashboard />);
+    fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "operador@servicom.pe" } });
+    fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
+    await screen.findByRole("textbox", { name: "Buscar registros" });
+    fireEvent.click(screen.getByRole("tab", { name: /Encomiendas/ }));
+
+    const card = await screen.findByRole("article", { name: "Registro 0826-0019" });
+    expect(within(card).getByText("Deys Juana Eguia Huaylinos")).toBeTruthy();
+    expect(within(card).getByText("0826-0019")).toBeTruthy();
+    expect(within(card).getByText("2CQB")).toBeTruthy();
+    expect(within(card).getByText("En destino")).toBeTruthy();
+    expect(within(card).getByText("Pagado")).toBeTruthy();
+    expect(within(card).getByRole("button", { name: "Ver datos completos" })).toBeTruthy();
+    expect(within(card).getByRole("button", { name: "Descargar PDF" })).toBeTruthy();
   });
 
   it("permite al Registrador escanear un control y abrir directamente la actualización del envío", async () => {

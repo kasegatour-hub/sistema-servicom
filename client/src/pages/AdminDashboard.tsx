@@ -53,6 +53,7 @@ import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "@shared/passwor
 import { isValidInternationalPhone } from "@shared/phoneValidation";
 import { calculateAdminShipmentPricing, extractFreeformShipmentNotes, mergeShipmentNotes } from "@shared/adminPricing";
 import { KASEGA_TORINO_ADDRESS, LIMA_SERVICOM_ADDRESS, SHIPMENT_ROUTES, isProvinceShipmentRoute, isTorinoLimaRoute } from "@shared/shipmentRoutes";
+import { useIsMobile } from "@/hooks/useMobile";
 
 type AdminWorkspace = "resumen" | "registros" | "crear" | "cupones" | "papelera" | "usuarios" | "analitica" | "carta" | "remitentes" | "transferencias" | "contabilidad" | "feedback";
 type CreateRecordTab = "documento" | "encomienda" | "transferencia";
@@ -367,6 +368,7 @@ function PasswordInput({ className, revealLabel = "contraseña", ...inputProps }
 }
 
 export default function AdminDashboard() {
+  const isMobile = useIsMobile();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [admin, setAdmin] = useState<any>(null);
   const mobileRegistrationMode = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("mobile") === "1";
@@ -1787,6 +1789,29 @@ export default function AdminDashboard() {
     if (currentPage > totalPages) setCurrentPage(totalPages);
   }, [currentPage, totalPages]);
 
+  const shipmentStatusBadges = (shipment: any) => <div className="flex flex-col items-start gap-1.5">
+    <span className={`rounded-full px-3 py-1 text-sm font-medium ${
+      shipment.status === 'Por entregar en agencia' ? 'bg-sky-100 text-sky-800' :
+      shipment.status === 'En agencia' ? 'bg-blue-100 text-blue-800' :
+      shipment.status === 'En tránsito' ? 'bg-yellow-100 text-yellow-800' :
+      shipment.status === 'En destino' ? 'bg-orange-100 text-orange-800' :
+      'bg-green-100 text-green-800'
+    }`}>{shipment.status}</span>
+    <span className={`rounded px-2 py-0.5 text-xs font-semibold ${getPaymentStatusUi(shipment.paymentStatus).badgeClass}`}>{getPaymentStatusUi(shipment.paymentStatus).label}</span>
+    {admin?.role === "superadmin" && shipment.hiddenFromRegistradoresAt && <span className="rounded bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-800">Oculto a Registradores</span>}
+  </div>;
+
+  const shipmentActionButtons = (shipment: any) => <>
+    <Button type="button" onClick={() => setDetailShipment(shipment)} size="sm" variant="outline" className="border-[#0B2B5E] text-[#0B2B5E] hover:bg-blue-50"><Eye className="mr-1 h-4 w-4" /> Ver datos completos</Button>
+    <Button onClick={() => openShipmentUpdate(shipment)} size="sm" variant="outline" className="border-primary text-primary hover:bg-primary/5">Actualizar</Button>
+    <Button onClick={() => handlePrintReceipt(shipment)} size="sm" variant="outline" className="border-orange-600 text-orange-600 hover:bg-orange-50"><Printer className="mr-1 h-4 w-4" /> Imprimir</Button>
+    <Button onClick={() => void downloadAdministrativePdf(shipment)} size="sm" variant="outline" className="border-[#0B2B5E] text-[#0B2B5E] hover:bg-blue-50"><Download className="mr-1 h-4 w-4" /> Descargar PDF</Button>
+    {admin?.role === "superadmin" && <Button type="button" onClick={() => void handleToggleRegistradorVisibility(shipment)} size="sm" variant="outline" className="border-violet-600 text-violet-700 hover:bg-violet-50" disabled={setShipmentRegistradorVisibilityMutation.isPending} title={shipment.hiddenFromRegistradoresAt ? "Volver a mostrar este registro a los Registradores" : "Ocultar este registro a los Registradores"}>{shipment.hiddenFromRegistradoresAt ? "Mostrar a Registradores" : "Ocultar a Registradores"}</Button>}
+    {shipment.deliveryMode === "remoto" && <Button onClick={() => sendShipmentSignatureMutation.mutate({ orderNumber: shipment.orderNumber, code: shipment.code })} size="sm" variant="outline" disabled={sendShipmentSignatureMutation.isPending} className="border-[#0B2B5E] text-[#0B2B5E] hover:bg-blue-50"><Send className="mr-1 h-4 w-4" />{sendShipmentSignatureMutation.isPending ? "Enviando…" : "Enviar firma"}</Button>}
+    <Button onClick={() => handleDeleteShipment(shipment.id)} size="sm" variant="outline" className="border-red-600 text-red-600 hover:bg-red-50" disabled={deleteMutation.isPending}>Eliminar</Button>
+    {admin?.role === "superadmin" && <Button onClick={() => setAuditShipmentId(shipment.id)} size="sm" variant="outline" className="border-slate-400 text-slate-700 hover:bg-slate-100">Historial</Button>}
+  </>;
+
   const handleAdminProfileSave = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const name = textOnly(adminProfileName).trim();
@@ -2879,7 +2904,21 @@ export default function AdminDashboard() {
               <Spinner className="w-6 h-6" />
             </div>
           ) : sortedShipments && sortedShipments.length > 0 ? (
-            <div className="overflow-x-auto rounded-lg border border-slate-200">
+            <div className="rounded-lg border border-slate-200">
+              {isMobile ? <div className="space-y-3 p-3">
+                {visibleShipments.map((shipment: any) => <article key={shipment.id} aria-label={`Registro ${shipment.orderNumber}`} className={`rounded-xl border p-4 shadow-sm ${shipment.hiddenFromRegistradoresAt ? "border-violet-200 bg-violet-50/60" : "border-slate-200 bg-white"}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Destinatario</p><h3 className="mt-1 break-words text-base font-extrabold text-slate-900">{shipment.recipientName ? `${shipment.recipientName} ${shipment.recipientLastName || ''}` : 'Destinatario no especificado'}</h3></div>
+                    <div className="shrink-0">{shipmentStatusBadges(shipment)}</div>
+                  </div>
+                  <dl className="mt-4 grid grid-cols-2 gap-3 border-y border-slate-100 py-3 text-sm">
+                    <div><dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Número de orden</dt><dd className="mt-1 break-all font-bold text-[#0B2B5E]">{shipment.orderNumber}</dd></div>
+                    <div><dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Código</dt><dd className="mt-1 break-all font-bold text-[#0B2B5E]">{shipment.code}</dd></div>
+                    <div className="col-span-2"><dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Fecha de creación</dt><dd className="mt-1 text-slate-700">{new Date(shipment.createdAt).toLocaleDateString()}<span className="mt-1 block text-xs text-slate-500"><strong>Registrado por:</strong> {shipment.registeredByLabel || "Registro anterior"}</span></dd></div>
+                  </dl>
+                  <div className="mt-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Acciones</p><div className="mt-2 grid grid-cols-2 gap-2 [&_button]:h-auto [&_button]:min-h-10 [&_button]:w-full [&_button]:whitespace-normal [&_button]:px-2 [&_button]:py-2 [&_button]:text-xs">{shipmentActionButtons(shipment)}</div></div>
+                </article>)}
+              </div> : <div className="overflow-x-auto">
               <Table className="min-w-[980px] w-full">
                 <TableHeader>
                   <TableRow>
@@ -2895,98 +2934,16 @@ export default function AdminDashboard() {
                   {visibleShipments.map((shipment: any) => (
                     <TableRow key={shipment.id} className={shipment.hiddenFromRegistradoresAt ? "bg-violet-50/60" : undefined}>
                       <TableCell className="max-w-[280px] whitespace-normal font-semibold text-slate-900">{shipment.recipientName ? `${shipment.recipientName} ${shipment.recipientLastName || ''}` : 'Destinatario no especificado'}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-1.5 items-start">
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                            shipment.status === 'Por entregar en agencia' ? 'bg-sky-100 text-sky-800' :
-                            shipment.status === 'En agencia' ? 'bg-blue-100 text-blue-800' :
-                            shipment.status === 'En tránsito' ? 'bg-yellow-100 text-yellow-800' :
-                            shipment.status === 'En destino' ? 'bg-orange-100 text-orange-800' :
-                            'bg-green-100 text-green-800'
-                          }`}>
-                            {shipment.status}
-                          </span>
-                          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${getPaymentStatusUi(shipment.paymentStatus).badgeClass}`}>
-                            {getPaymentStatusUi(shipment.paymentStatus).label}
-                          </span>
-                          {admin?.role === "superadmin" && shipment.hiddenFromRegistradoresAt && <span className="rounded bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-800">Oculto a Registradores</span>}
-                        </div>
-                      </TableCell>
+                      <TableCell>{shipmentStatusBadges(shipment)}</TableCell>
                       <TableCell className="whitespace-nowrap"><div>{new Date(shipment.createdAt).toLocaleDateString()}</div><p className="mt-1 whitespace-normal text-xs text-slate-500"><strong>Registrado por:</strong> {shipment.registeredByLabel || "Registro anterior"}</p></TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-2">
-                          <Button type="button" onClick={() => setDetailShipment(shipment)} size="sm" variant="outline" className="border-[#0B2B5E] text-[#0B2B5E] hover:bg-blue-50">
-                            <Eye className="mr-1 h-4 w-4" /> Ver datos completos
-                          </Button>
-                          <Button
-                            onClick={() => openShipmentUpdate(shipment)}
-                            size="sm"
-                            variant="outline"
-                            className="text-primary border-primary hover:bg-primary/5"
-                          >
-                            Actualizar
-                          </Button>
-                          <Button
-                            onClick={() => handlePrintReceipt(shipment)}
-                            size="sm"
-                            variant="outline"
-                            className="text-orange-600 border-orange-600 hover:bg-orange-50"
-                          >
-                            <Printer className="w-4 h-4 mr-1" />
-                            Imprimir
-                          </Button>
-                          <Button
-                            onClick={() => void downloadAdministrativePdf(shipment)}
-                            size="sm"
-                            variant="outline"
-                            className="text-[#0B2B5E] border-[#0B2B5E] hover:bg-blue-50"
-                          >
-                            <Download className="w-4 h-4 mr-1" />
-                            Descargar PDF
-                          </Button>
-                          {admin?.role === "superadmin" && (
-                            <Button
-                              type="button"
-                              onClick={() => void handleToggleRegistradorVisibility(shipment)}
-                              size="sm"
-                              variant="outline"
-                              className="border-violet-600 text-violet-700 hover:bg-violet-50"
-                              disabled={setShipmentRegistradorVisibilityMutation.isPending}
-                              title={shipment.hiddenFromRegistradoresAt ? "Volver a mostrar este registro a los Registradores" : "Ocultar este registro a los Registradores"}
-                            >
-                              {shipment.hiddenFromRegistradoresAt ? "Mostrar a Registradores" : "Ocultar a Registradores"}
-                            </Button>
-                          )}
-                          {shipment.deliveryMode === "remoto" && (
-                            <Button
-                              onClick={() => sendShipmentSignatureMutation.mutate({ orderNumber: shipment.orderNumber, code: shipment.code })}
-                              size="sm"
-                              variant="outline"
-                              disabled={sendShipmentSignatureMutation.isPending}
-                              className="border-[#0B2B5E] text-[#0B2B5E] hover:bg-blue-50"
-                            >
-                              <Send className="mr-1 h-4 w-4" />
-                              {sendShipmentSignatureMutation.isPending ? "Enviando…" : "Enviar firma"}
-                            </Button>
-                          )}
-                          <Button
-                            onClick={() => handleDeleteShipment(shipment.id)}
-                            size="sm"
-                            variant="outline"
-                            className="text-red-600 border-red-600 hover:bg-red-50"
-                            disabled={deleteMutation.isPending}
-                          >
-                            Eliminar
-                          </Button>
-                          {admin?.role === "superadmin" && <Button onClick={() => setAuditShipmentId(shipment.id)} size="sm" variant="outline" className="border-slate-400 text-slate-700 hover:bg-slate-100">Historial</Button>}
-                        </div>
-                      </TableCell>
+                      <TableCell><div className="flex flex-wrap gap-2">{shipmentActionButtons(shipment)}</div></TableCell>
                       <TableCell className="hidden xl:table-cell font-medium">{shipment.orderNumber}</TableCell>
                       <TableCell className="hidden xl:table-cell">{shipment.code}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
+              </div>}
               <div className="flex flex-col gap-3 border-t bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-slate-600">Mostrando {sortedShipments.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, sortedShipments.length)} de {sortedShipments.length} envíos</p>
                 <div className="flex items-center gap-2">

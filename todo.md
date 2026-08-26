@@ -1513,3 +1513,8 @@
 - [x] Incorporar los periodos Hoy, Semana actual, Mes y Rango personalizado en el resumen y exportaciones
 - [x] Permitir seleccionar Semana 1, 2, 3 o 4 al filtrar un mes, con límites operativos claros
 - [x] Actualizar pruebas de cálculo, interfaz, PDF/Excel, validar y publicar
+
+## Registros completos en móvil
+- [x] Sustituir la tabla horizontal de registros por tarjetas verticales completas en pantallas móviles
+- [x] Mantener visibles destinatario, estado, pago, orden, código, fecha y todas las acciones sin recorte lateral
+- [x] Añadir pruebas responsive, validar y publicar el rediseño móvil
