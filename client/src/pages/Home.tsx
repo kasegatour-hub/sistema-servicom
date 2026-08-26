@@ -279,7 +279,7 @@ export default function Home() {
                 <Button type="button" variant="ghost" aria-label="Abrir menú principal" className="h-12 w-12 rounded-xl border border-white/25 p-0 text-white hover:bg-white/15 hover:text-white focus:outline-none focus:ring-2 focus:ring-[#F28C00] focus:ring-offset-2 focus:ring-offset-[#0B2B5E]"><MoreVertical className="h-7 w-7" aria-hidden="true" /></Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 rounded-xl border-slate-200 p-2 shadow-xl">
-                <DropdownMenuItem asChild><a href="#rastreo" className="cursor-pointer rounded-lg px-3 py-2.5 text-base font-semibold">Rastreo</a></DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setShowLocations(false)} className="cursor-pointer rounded-lg px-3 py-2.5 text-base font-semibold">Rastreo</DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => setShowLocations(true)} className="cursor-pointer rounded-lg px-3 py-2.5 text-base font-semibold">Ubicación presencial</DropdownMenuItem>
                 <DropdownMenuItem asChild><a href="/movil" className="cursor-pointer rounded-lg px-3 py-2.5 text-base font-semibold">App móvil</a></DropdownMenuItem>
                 <DropdownMenuItem asChild><a href="/cuenta" className="cursor-pointer rounded-lg px-3 py-2.5 text-base font-semibold">Cliente</a></DropdownMenuItem>
@@ -291,6 +291,10 @@ export default function Home() {
       </header>
 
             <main className="mx-auto max-w-7xl px-3 py-4 sm:px-6 sm:py-8 md:py-12 lg:px-10">
+        {showLocations ? (
+          <LocationsSection />
+        ) : (
+          <>
         {/* Search Form */}
         <section id="rastreo" className="relative scroll-mt-28 overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#d9eff9] via-[#f1f8fb] to-white p-1 shadow-[0_24px_70px_-32px_rgba(11,43,94,0.55)]">
           <div className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-[#F28C00]/15 blur-2xl" aria-hidden="true" />
@@ -497,7 +501,8 @@ export default function Home() {
           </div>
         )}
 
-        {showLocations && <LocationsSection />}
+          </>
+        )}
       </main>
 
       {/* QR Scanner Modal */}
@@ -507,6 +512,8 @@ export default function Home() {
         onScan={handleQRScan}
       />
 
+      {!showLocations && (
+      <>
       {/* Footer */}
       <footer className="mt-16 bg-[#0B2B5E] py-12 text-white">
         <div className="mx-auto w-[min(96vw,1560px)] px-5 sm:px-7 lg:px-10">
@@ -537,6 +544,8 @@ export default function Home() {
           </div>
         </div>
       </footer>
+      </>
+      )}
     </div>
   );
 }

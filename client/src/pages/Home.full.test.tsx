@@ -53,7 +53,7 @@ describe("Home public page", () => {
     expect(screen.getByRole("heading", { name: "Sigue tu envío en todo momento" })).toBeTruthy();
     expect(screen.getByRole("button", { name: /Rastrear envío/ })).toBeTruthy();
     fireEvent.pointerDown(screen.getByRole("button", { name: "Abrir menú principal" }));
-    expect(screen.getByRole("menuitem", { name: "Rastreo" }).getAttribute("href")).toBe("#rastreo");
+    expect(screen.getByRole("menuitem", { name: "Rastreo" })).toBeTruthy();
     expect(screen.getByRole("menuitem", { name: "Ubicación presencial" })).toBeTruthy();
   });
 
@@ -75,6 +75,10 @@ describe("Home public page", () => {
     fireEvent.pointerDown(screen.getByRole("button", { name: "Abrir menú principal" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Ubicación presencial" }));
     expect(screen.getByRole("heading", { name: "Ubícanos" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Sigue tu envío en todo momento" })).toBeNull();
+    expect(screen.queryByLabelText("Número de orden")).toBeNull();
+    expect(screen.queryByRole("button", { name: /Rastrear envío/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Escanear QR/ })).toBeNull();
     expect(screen.getByRole("heading", { name: "Jr. de la Unión 518" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Corso Peschiera" })).toBeTruthy();
     expect(screen.getByText(/Jr\. de la Unión Nro\. 518 Int\. S101/)).toBeTruthy();
@@ -82,11 +86,11 @@ describe("Home public page", () => {
     expect(screen.getByText("Lunes a sábado, de 10:00 a. m. a 8:30 p. m.")).toBeTruthy();
     expect(screen.getByText("Lunes a sábado, de 9:00 a. m. a 8:30 p. m.")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Teléfono fijo 01 390 7269" })).toBeTruthy();
-    expect(screen.getAllByRole("link", { name: "WhatsApp +51 970 188 447" }).length).toBeGreaterThanOrEqual(2);
-    expect(screen.getAllByRole("link", { name: "WhatsApp +51 908 722 617" }).length).toBeGreaterThanOrEqual(2);
-    expect(screen.getAllByRole("link", { name: "WhatsApp Torino +39 351 278 7962" }).length).toBeGreaterThanOrEqual(2);
-    expect(screen.getAllByRole("link", { name: "WhatsApp Torino +39 350 902 5271" }).length).toBeGreaterThanOrEqual(2);
-    expect(screen.getAllByRole("link", { name: "WhatsApp Torino +39 389 766 3723" }).length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByRole("link", { name: "WhatsApp +51 970 188 447" }).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByRole("link", { name: "WhatsApp +51 908 722 617" }).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByRole("link", { name: "WhatsApp Torino +39 351 278 7962" }).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByRole("link", { name: "WhatsApp Torino +39 350 902 5271" }).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByRole("link", { name: "WhatsApp Torino +39 389 766 3723" }).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole("link", { name: /Abrir Lima en Google Maps/ })).toBeTruthy();
     expect(screen.getByRole("link", { name: /Abrir Torino en Google Maps/ })).toBeTruthy();
   });
@@ -98,6 +102,11 @@ describe("Home public page", () => {
     expect(screen.queryByRole("heading", { name: "Ubícanos" })).toBeNull();
     fireEvent.pointerDown(screen.getByRole("button", { name: "Abrir menú principal" }));
     expect(screen.getByRole("menuitem", { name: "Ubicación presencial" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("menuitem", { name: "Ubicación presencial" }));
+    expect(screen.getByRole("heading", { name: "Ubícanos" })).toBeTruthy();
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Abrir menú principal" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Rastreo" }));
+    expect(screen.getByRole("heading", { name: "Sigue tu envío en todo momento" })).toBeTruthy();
   });
 
   it("shows the persisted payment status after the client tracks a shipment", async () => {

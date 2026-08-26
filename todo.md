@@ -1567,3 +1567,9 @@
 - [x] Retirar el botón de ubicación presencial de la portada principal
 - [x] Mantener la ubicación presencial y sus datos accesibles desde el menú de tres puntos
 - [x] Actualizar pruebas, validar escritorio/móvil y publicar
+
+## Ubicación presencial como vista independiente
+- [x] Ocultar completamente rastreo, campos, acciones y animación al seleccionar Ubicación presencial
+- [x] Mostrar únicamente sedes y datos presenciales en esa vista
+- [x] Permitir volver a Rastreo desde el menú de tres puntos
+- [x] Añadir pruebas responsive, validar y publicar
