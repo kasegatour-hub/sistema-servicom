@@ -337,12 +337,6 @@ export default function Home() {
             </form>
             <div className="mt-5 lg:hidden"><TrackingJourneyAnimation status={shipmentData?.status} /></div>
 
-            <div className="mt-6 flex justify-center border-t border-slate-200 pt-5">
-              <Button type="button" variant="outline" onClick={() => setShowLocations((visible) => !visible)} aria-expanded={showLocations} aria-controls="sedes" className="min-h-12 rounded-xl border-2 border-[#0B2B5E] px-5 text-base font-extrabold text-[#0B2B5E] transition hover:bg-[#0B2B5E]/5">
-                <MapPin className="mr-2 h-5 w-5" aria-hidden="true" />
-                {showLocations ? "Ocultar ubicación presencial" : "Ver ubicación presencial y más datos"}
-              </Button>
-            </div>
           </Card>
         </section>
 

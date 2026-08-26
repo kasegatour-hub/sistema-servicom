@@ -1562,3 +1562,8 @@
 - [x] Retirar la etiqueta, texto introductorio y tarjetas informativas marcadas para quitar
 - [x] Añadir un botón para abrir Ubicación presencial y demás datos sin saturar la portada
 - [x] Añadir pruebas responsive, validar y publicar
+
+## Portada sin botón de ubicación
+- [x] Retirar el botón de ubicación presencial de la portada principal
+- [x] Mantener la ubicación presencial y sus datos accesibles desde el menú de tres puntos
+- [x] Actualizar pruebas, validar escritorio/móvil y publicar

@@ -72,7 +72,8 @@ describe("Home public page", () => {
   it("renders Ubícanos with both office cards and all visible contact details", () => {
     render(<Home />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Ver ubicación presencial y más datos" }));
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Abrir menú principal" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Ubicación presencial" }));
     expect(screen.getByRole("heading", { name: "Ubícanos" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Jr. de la Unión 518" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Corso Peschiera" })).toBeTruthy();
@@ -90,13 +91,13 @@ describe("Home public page", () => {
     expect(screen.getByRole("link", { name: /Abrir Torino en Google Maps/ })).toBeTruthy();
   });
 
-  it("opens the presencial location and additional data from its button", () => {
+  it("keeps the portada clean while retaining presencial location in the three-dot menu", () => {
     render(<Home />);
 
+    expect(screen.queryByRole("button", { name: "Ver ubicación presencial y más datos" })).toBeNull();
     expect(screen.queryByRole("heading", { name: "Ubícanos" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Ver ubicación presencial y más datos" }));
-    expect(screen.getByRole("heading", { name: "Ubícanos" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Ocultar ubicación presencial" })).toBeTruthy();
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Abrir menú principal" }));
+    expect(screen.getByRole("menuitem", { name: "Ubicación presencial" })).toBeTruthy();
   });
 
   it("shows the persisted payment status after the client tracks a shipment", async () => {
