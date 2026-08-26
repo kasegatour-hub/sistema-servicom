@@ -1660,6 +1660,7 @@ export default function AdminDashboard() {
             contentChecklist: printableChecklist,
             shipmentType: printShipment.shipmentType,
             price: printShipment,
+            paymentStatus: printShipment.paymentStatus,
             route: printShipment.route,
             limaTorinoEncomiendasEnabled,
             managementUrl,

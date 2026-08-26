@@ -1659,3 +1659,8 @@
 - [x] Diferenciar la identidad legal de Servicom frente a Kasega/Magda en la declaración y el recibo
 - [x] Añadir pruebas de página, enlace, consentimiento, seguridad, posición de firma y branding
 - [x] Ejecutar suite, build y revisión visual responsive antes de publicar
+
+## Estado de pago en ticket de control
+- [x] Mostrar «Pagado» o «No cancelado» dentro del ticket de control de entrega
+- [x] Mantener el estado consistente en impresión, descarga y variantes de recibo
+- [x] Añadir pruebas para ambos estados de pago y validar el build final

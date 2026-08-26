@@ -16,6 +16,7 @@ describe("administrative receipt ticket", () => {
       contentChecklist: ["1 partida registral", "1 documento apostillado"],
       shipmentType: "documento",
       price: { basePriceEur: 50, finalPriceEur: 37.5, discountPercent: 25, discountAmountEur: 12.5 },
+      paymentStatus: "Pagado",
       route: "Lima - Torino",
       managementUrl: "https://servicom.example/admin?order=3289150504&code=07900824&open=update",
     });
@@ -35,10 +36,27 @@ describe("administrative receipt ticket", () => {
     expect(html).toContain("1 partida registral");
     expect(html).toContain("1 documento apostillado");
     expect(html).toContain("PRECIO FINAL");
+    expect(html).toContain("ESTADO DE PAGO:");
+    expect(html).toContain(">Pagado</strong>");
     expect(html).toContain("37.50 EUR");
     expect(styles).toContain(".cut-ticket{break-inside:avoid;page-break-inside:avoid");
     expect(styles).toContain("min-height:200mm");
     expect(styles).toContain("width:46mm!important;height:46mm!important");
+  });
+
+  it("renders No cancelado in the delivery ticket when payment is pending", () => {
+    const html = buildAdminDeliveryTicketHtml({
+      order: "8844027727",
+      code: "ENC-2026-75ZRD",
+      recipient: "Luis Mendoza Castro",
+      recipientPhone: "+39 389 766 3723",
+      shipmentType: "encomienda",
+      route: "Torino - Lima",
+      paymentStatus: "Falta cancelar",
+    });
+
+    expect(html).toContain("ESTADO DE PAGO:");
+    expect(html).toContain(">No cancelado</strong>");
   });
 
   it("prints Lima as delivery destination for a Torino–Lima shipment", () => {
