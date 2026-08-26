@@ -1691,3 +1691,9 @@
 - [x] Mantener la validación de token, expiración, uso único y asociación con orden/código
 - [x] Añadir regresiones para Kasega/Magda y enlace manual sin cuenta
 - [x] Ejecutar pruebas, build y publicar la corrección urgente
+
+## Regresión Kasega/Magda en firma de envíos
+- [x] Identificar por qué el enlace 0826-0001 / 0EEX sigue mostrando el bloqueo de cuenta vinculada
+- [x] Alinear Kasega y Magda con el flujo de firma funcional de Servicom sin eliminar la validación segura
+- [x] Añadir una regresión específica por marca y por enlace con cuenta vinculada
+- [x] Ejecutar pruebas completas, build y publicar la corrección

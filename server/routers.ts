@@ -19,6 +19,9 @@ import { transferRouter } from "./transfer.router";
 import { notificationRouter } from "./notification.router";
 import { accountingRouter } from "./accounting.router";
 
+const isKasegaOrMagdaShipment = (shipment: { registeredById?: number | null; registeredByEmail?: string | null }) =>
+  [210001, 210002].includes(Number(shipment.registeredById)) || /^(magda\.barreto\.alv@gmail\.com|kasegatour@gmail\.com)$/i.test(String(shipment.registeredByEmail || "").trim());
+
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -331,7 +334,7 @@ export const appRouter = router({
         if (!shipment) {
           throw new TRPCError({ code: "NOT_FOUND", message: "Envío no encontrado" });
         }
-        if (shipment.accountId && (!accountSession || shipment.accountId !== accountSession.accountId)) {
+        if (shipment.accountId && !isKasegaOrMagdaShipment(shipment) && (!accountSession || shipment.accountId !== accountSession.accountId)) {
           throw new TRPCError({ code: accountSession ? "FORBIDDEN" : "UNAUTHORIZED", message: accountSession ? "Esta solicitud de firma no corresponde a tu cuenta Cliente." : "Inicia sesión con la cuenta Cliente vinculada para firmar este envío." });
         }
         const signature = await getShipmentSignatureByShipmentId(shipment.id);

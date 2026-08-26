@@ -40,6 +40,7 @@ function publicContext(): TrpcContext {
 }
 
 const shipment = { id: 81, accountId: 77, orderNumber: "3520992723", code: "CA06721WB", events: "[]", shipmentType: "documento", deliveryMode: "remoto" } as any;
+const isolatedShipment = { ...shipment, registeredById: 210002, registeredByEmail: "kasegatour@gmail.com" } as any;
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -119,6 +120,19 @@ describe("signature token security", () => {
       signatureStrokes: JSON.stringify([[{ x: 10, y: 20 }, { x: 80, y: 40 }]]),
     })).rejects.toMatchObject({ code: "UNAUTHORIZED" });
     expect(dbMocks.completeShipmentSignature).not.toHaveBeenCalled();
+  });
+
+  it("allows a valid Kasega link to complete without an active Client session", async () => {
+    const token = "token-kasega-123456789012";
+    dbMocks.getShipmentByOrderAndCode.mockResolvedValue(isolatedShipment);
+    dbMocks.getShipmentSignatureByShipmentId.mockResolvedValue({ shipmentId: 81, status: "pending", requestTokenHash: hashSignatureToken(token), requestTokenExpiresAt: new Date(Date.now() + 60_000) });
+    dbMocks.completeShipmentSignature.mockResolvedValue({ shipmentId: 81, status: "signed", signerName: "Magdalena Barreto", signedAt: new Date() });
+
+    const caller = appRouter.createCaller(publicContext());
+    const result = await caller.shipment.completeSignature({ orderNumber: isolatedShipment.orderNumber, code: isolatedShipment.code, token, signerName: "Magdalena Barreto", signatureStrokes: JSON.stringify([[{ x: 10, y: 20 }, { x: 80, y: 40 }]]) });
+
+    expect(result.status).toBe("signed");
+    expect(dbMocks.completeShipmentSignature).toHaveBeenCalledWith(expect.objectContaining({ shipmentId: 81, signerName: "Magdalena Barreto" }));
   });
 
   it("completes a valid signature and rejects a second signature state", async () => {
