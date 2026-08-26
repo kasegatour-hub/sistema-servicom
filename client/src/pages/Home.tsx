@@ -301,7 +301,7 @@ export default function Home() {
                 <div>
                   <label className="mb-2 block text-base font-bold text-slate-800" htmlFor="orderNumber">Número de orden</label>
                   <p className="mb-2 text-sm text-slate-500">{SHIPMENT_ORDER_HELP}</p>
-                  <Input id="orderNumber" placeholder="Ej.: 35209927" {...register("orderNumber")} className="h-14 rounded-xl border-2 border-slate-200 px-4 text-base shadow-sm focus:border-[#0B2B5E] focus:ring-4 focus:ring-[#0B2B5E]/10 sm:text-lg" />
+                  <Input id="orderNumber" placeholder="Ej.: 0826-0019 o 35209927" {...register("orderNumber")} className="h-14 rounded-xl border-2 border-slate-200 px-4 text-base shadow-sm focus:border-[#0B2B5E] focus:ring-4 focus:ring-[#0B2B5E]/10 sm:text-lg" />
                   {errors.orderNumber && <p className="mt-2 text-sm font-semibold text-red-600">{errors.orderNumber.message}</p>}
                 </div>
 

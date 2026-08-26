@@ -7,7 +7,7 @@ function buildTrackingPath(orderNumber: string, code: string): string {
   return `/?order=${encodeURIComponent(order)}&code=${encodeURIComponent(normalizedCode)}`;
 }
 import { publicProcedure, router } from "./_core/trpc";
-import { ISOLATED_WORKSPACE_ADMIN_IDS, attachShipmentAuditActorLabels, clearAdminPasswordFailures, createDiscountCoupon, createInvitationLetterAccount, createInvitationLetterRecord, createOrRefreshInvitationLetterSignatureRequest, createShipment, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAllShipments, getDeletedShipments, getDiscountCouponByCode, getInvitationLetterById, getShipmentAuditLogs, getShipmentById, getShipmentByOrderAndCode, getShipmentRoutePolicy, incrementDiscountCouponRedemption, isEncomiendaEnabledForRoute, listDeletedInvitationLetterRecords, listDiscountCoupons, listInvitationLetterRecords, listShipmentSenders, createShipmentSender, setShipmentSenderActive, moveInvitationLetterToTrash, recordInteractionEvent, recordShipmentAudit, registerAdminPasswordFailure, restoreInvitationLetterFromTrash, restoreShipment, searchClients, searchInvitationLetterPeople, setEncomiendaAvailabilityForRoute, setShipmentRegistradorVisibility, updateAdminProfile, updateAdminProfilePhoto, updateDiscountCoupon, updateShipmentStatus } from "./db";
+import { ISOLATED_WORKSPACE_ADMIN_IDS, attachShipmentAuditActorLabels, clearAdminPasswordFailures, createDiscountCoupon, createInvitationLetterAccount, createInvitationLetterRecord, createOrRefreshInvitationLetterSignatureRequest, createShipment, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAllShipments, getDeletedShipments, getDiscountCouponByCode, getInvitationLetterById, getShipmentAuditLogs, getShipmentById, getShipmentByOrderAndCode, getShipmentRoutePolicy, incrementDiscountCouponRedemption, isEncomiendaEnabledForRoute, listDeletedInvitationLetterRecords, listDiscountCoupons, listInvitationLetterRecords, listShipmentOrderNumbersByPrefix, listShipmentSenders, createShipmentSender, setShipmentSenderActive, moveInvitationLetterToTrash, recordInteractionEvent, recordShipmentAudit, registerAdminPasswordFailure, restoreInvitationLetterFromTrash, restoreShipment, searchClients, searchInvitationLetterPeople, setEncomiendaAvailabilityForRoute, setShipmentRegistradorVisibility, updateAdminProfile, updateAdminProfilePhoto, updateDiscountCoupon, updateShipmentStatus } from "./db";
 import { getRemainingLockoutSeconds, MAX_PASSWORD_FAILURES, PASSWORD_LOCKOUT_SECONDS } from "./loginProtection";
 import { generateTemporaryPassword, generateVerificationCode, hashPassword, hashVerificationCode, normalizeEmail, sendInvitationLetterSignatureEmail, sendVerificationEmail, verificationExpiry, verifyPassword } from "./localAuth";
 import { AdminSessionPayload, clearAdminSession, getAdminSession, setAdminSession } from "./adminSession";
@@ -19,7 +19,7 @@ import { calculateAdminShipmentPricing, extractFreeformShipmentNotes } from "./a
 import { applyCouponDiscount, isCouponCurrentlyValid, normalizeCouponCode } from "./couponPricing";
 import { isValidInternationalPhone, normalizeInternationalPhone } from "../shared/phoneValidation";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "../shared/passwordPolicy";
-import { generateShipmentCode, generateShipmentOrderNumber } from "../shared/shipmentIdentifiers";
+import { generateMonthlyParcelOrderNumber, generateShipmentCode, generateShipmentOrderNumber, getMonthlyParcelOrderPrefix } from "../shared/shipmentIdentifiers";
 import { SHIPMENT_ROUTES, isProvinceShipmentRoute, isTorinoLimaRoute } from "../shared/shipmentRoutes";
 import { invokeLLM } from "./_core/llm";
 import { createSignatureToken } from "./signatureTokens";
@@ -800,9 +800,18 @@ export const adminRouter = router({
           message: "Las encomiendas de Lima a Torino están desactivadas temporalmente por control de seguridad. Registra únicamente documentos o selecciona Torino - Lima.",
         });
       }
-      const orderNumber = generateShipmentOrderNumber();
-      const code = generateShipmentCode();
       const effectiveProvinceDelivery = input.isProvinceDelivery || isProvinceShipmentRoute(input.route);
+      let orderNumber = generateShipmentOrderNumber();
+      if (input.shipmentType === "encomienda") {
+        const now = new Date();
+        const reservedOrders = await listShipmentOrderNumbersByPrefix(getMonthlyParcelOrderPrefix(now));
+        try {
+          orderNumber = generateMonthlyParcelOrderNumber({ existingOrderNumbers: reservedOrders, isProvinceDelivery: effectiveProvinceDelivery, date: now });
+        } catch (error: any) {
+          throw new TRPCError({ code: "CONFLICT", message: error?.message || "No quedan correlativos disponibles para esta encomienda durante el mes actual." });
+        }
+      }
+      const code = generateShipmentCode();
       const pricing = calculateAdminShipmentPricing({ ...input, isProvinceDelivery: effectiveProvinceDelivery });
       const couponCode = normalizeCouponCode(input.couponCode);
       const coupon = couponCode ? await getDiscountCouponByCode(couponCode) : undefined;

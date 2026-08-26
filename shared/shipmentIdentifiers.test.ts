@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateShipmentCode, generateShipmentOrderNumber, isNewShipmentCode, isNewShipmentOrderNumber } from "./shipmentIdentifiers";
+import { generateMonthlyParcelOrderNumber, generateShipmentCode, generateShipmentOrderNumber, getMonthlyParcelOrderPrefix, isNewShipmentCode, isNewShipmentOrderNumber } from "./shipmentIdentifiers";
 
 describe("shipment identifiers", () => {
   it("genera órdenes nuevas de exactamente 8 dígitos", () => {
@@ -7,6 +7,22 @@ describe("shipment identifiers", () => {
     expect(generateShipmentOrderNumber(() => 0.999999)).toMatch(/^\d{8}$/);
     expect(isNewShipmentOrderNumber("35209927")).toBe(true);
     expect(isNewShipmentOrderNumber("3520992723")).toBe(false);
+  });
+
+  it("genera encomiendas mensuales MMAA-XXXX con dos dígitos de serie antes del rango operativo", () => {
+    const august2026 = new Date("2026-08-15T12:00:00.000Z");
+    expect(getMonthlyParcelOrderPrefix(august2026)).toBe("0826");
+    expect(generateMonthlyParcelOrderNumber({ existingOrderNumbers: [], isProvinceDelivery: false, date: august2026 })).toBe("0826-0001");
+    expect(generateMonthlyParcelOrderNumber({ existingOrderNumbers: ["0826-0001", "0826-0002"], isProvinceDelivery: false, date: august2026 })).toBe("0826-0003");
+    expect(isNewShipmentOrderNumber("0826-0019")).toBe(true);
+  });
+
+  it("respeta el límite final de 20 para sede y 14 para provincia, avanzando la serie sin duplicar", () => {
+    const august2026 = new Date("2026-08-15T12:00:00.000Z");
+    const normalUsed = Array.from({ length: 20 }, (_, index) => `0826-00${String(index + 1).padStart(2, "0")}`);
+    const provinceUsed = Array.from({ length: 14 }, (_, index) => `0826-00${String(index + 1).padStart(2, "0")}`);
+    expect(generateMonthlyParcelOrderNumber({ existingOrderNumbers: normalUsed, isProvinceDelivery: false, date: august2026 })).toBe("0826-0101");
+    expect(generateMonthlyParcelOrderNumber({ existingOrderNumbers: provinceUsed, isProvinceDelivery: true, date: august2026 })).toBe("0826-0101");
   });
 
   it("genera códigos nuevos con un dígito y tres letras", () => {

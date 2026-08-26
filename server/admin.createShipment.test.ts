@@ -3,11 +3,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const dbMocks = vi.hoisted(() => ({
   createShipment: vi.fn(),
   isEncomiendaEnabledForRoute: vi.fn(),
+  listShipmentOrderNumbersByPrefix: vi.fn(),
 }));
 
 vi.mock("./db", async () => {
   const actual = await vi.importActual<typeof import("./db")>("./db");
-  return { ...actual, createShipment: dbMocks.createShipment, isEncomiendaEnabledForRoute: dbMocks.isEncomiendaEnabledForRoute };
+  return { ...actual, createShipment: dbMocks.createShipment, isEncomiendaEnabledForRoute: dbMocks.isEncomiendaEnabledForRoute, listShipmentOrderNumbersByPrefix: dbMocks.listShipmentOrderNumbersByPrefix };
 });
 
 import { appRouter } from "./routers";
@@ -30,6 +31,7 @@ describe("admin.createShipment", () => {
     vi.clearAllMocks();
     dbMocks.createShipment.mockResolvedValue({ id: 101 });
     dbMocks.isEncomiendaEnabledForRoute.mockResolvedValue(true);
+    dbMocks.listShipmentOrderNumbersByPrefix.mockResolvedValue([]);
   });
 
   it("creates a document with an automatic short code and document tariff notes", async () => {
@@ -153,8 +155,10 @@ describe("admin.createShipment", () => {
     });
 
     expect(result.code).toMatch(/^\d[A-Z]{3}$/);
+    expect(result.orderNumber).toMatch(/^\d{4}-\d{4}$/);
     expect(dbMocks.createShipment).toHaveBeenCalledTimes(1);
     const args = dbMocks.createShipment.mock.calls[0];
+    expect(args[0]).toBe(result.orderNumber);
     expect(args[13]).toBe("encomienda");
     expect(args[14]).toBe(2.5);
     expect(args[15]).toBe(40);

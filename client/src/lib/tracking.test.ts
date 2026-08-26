@@ -22,6 +22,11 @@ describe("tracking QR helpers", () => {
     );
   });
 
+  it("preserves the monthly parcel order format in tracking and QR paths", () => {
+    expect(buildTrackingPath(" 0826-0019 ", " 7abc ")).toBe("/?order=0826-0019&code=7ABC");
+    expect(buildShipmentManagementPath("0826-0019", "7abc")).toBe("/admin?order=0826-0019&code=7ABC&open=update");
+  });
+
   it("builds a status-first control path that preserves only the scanned shipment identifiers", () => {
     expect(buildShipmentDeliveryStatusPath(" 858 222 4585 ", " enc-2026-jvzu4 ")).toBe(
       "/admin?order=8582224585&code=ENC-2026-JVZU4&open=status",

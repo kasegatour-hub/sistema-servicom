@@ -78,6 +78,21 @@ describe("MobileAppPage", () => {
     expect(searchMock).toHaveBeenLastCalledWith({ orderNumber: "3520992723", code: "CA06721WB" }, { enabled: true });
   });
 
+  it("acepta el formato mensual MMAA-XXXX de una encomienda sin ocultar el guion", () => {
+    accountMocks.session = { id: 7, email: "cliente@servicom.pe", reauthRequired: false };
+    render(<MobileAppPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Rastrear" }));
+    const orderInput = screen.getByLabelText("Número de orden móvil") as HTMLInputElement;
+    expect(orderInput.inputMode).toBe("text");
+    expect(screen.getByText("Encomiendas: MMAA-XXXX. También se aceptan órdenes históricas.")).toBeTruthy();
+    fireEvent.change(orderInput, { target: { value: "0826-0019" } });
+    fireEvent.change(screen.getByLabelText("Código de envío móvil"), { target: { value: "7abc" } });
+    fireEvent.click(screen.getByRole("button", { name: "Buscar envío" }));
+
+    expect(searchMock).toHaveBeenLastCalledWith({ orderNumber: "0826-0019", code: "7ABC" }, { enabled: true });
+  });
+
   it("mantiene al Cliente dentro de las tres funciones permitidas y no expone administración", () => {
     accountMocks.session = { id: 7, email: "cliente@servicom.pe", name: "Cliente", reauthRequired: false };
     render(<MobileAppPage />);

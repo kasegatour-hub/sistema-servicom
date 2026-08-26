@@ -316,6 +316,15 @@ export async function getShipmentByOrderAndCode(orderNumber: string, code: strin
   return result.length > 0 ? result[0] : undefined;
 }
 
+/** Obtiene las órdenes ya reservadas de un mes para generar una encomienda sin duplicados. */
+export async function listShipmentOrderNumbersByPrefix(prefix: string): Promise<string[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const normalizedPrefix = normalizeOrderCode(prefix);
+  const rows = await db.select({ orderNumber: shipments.orderNumber }).from(shipments).where(like(shipments.orderNumber, `${normalizedPrefix}-%`));
+  return rows.map(row => row.orderNumber);
+}
+
 export async function getShipmentById(id: number) {
   const db = await getDb();
   if (!db) {

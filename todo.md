@@ -1496,3 +1496,8 @@
 - [x] Mantener la X roja de cierre siempre visible en la cabecera de notificaciones móvil
 - [x] Evitar el solapamiento entre sonido, marcar leídas y cierre en la cabecera móvil
 - [x] Añadir prueba responsive, validar y publicar la corrección
+
+## Numeración mensual de encomiendas
+- [x] Generar órdenes de encomienda únicas en formato MMAA-XXXX, añadiendo dos dígitos antes del rango operativo final
+- [x] Aplicar el rango operativo final 01–20 para sede Lima y 01–14 para provincia, también en Lima–Torino, sin usar un rango general 1–99
+- [x] Actualizar validaciones, rastreo, QR, recibos y pruebas; validar y publicar
