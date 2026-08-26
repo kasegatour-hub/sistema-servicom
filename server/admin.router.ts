@@ -1009,7 +1009,16 @@ export const adminRouter = router({
         }
         await markRecipientChangeRequestNotified({ id: request.id, accountNotified, emailSent });
       }
-      return { requestId: request.id, signatureUrl, expiresAt: token.expiresAt, accountNotified, emailSent, requiresManualDelivery: !senderMatchesAccount };
+      return {
+        requestId: request.id,
+        signatureUrl,
+        expiresAt: token.expiresAt,
+        accountNotified,
+        emailSent,
+        requiresManualDelivery: !senderMatchesAccount,
+        deliveryMode: senderMatchesAccount ? "automatic" as const : "manual" as const,
+        accountMatched: senderMatchesAccount,
+      };
     }),
 
   listRecipientChangeRequests: adminProcedure

@@ -133,6 +133,7 @@ export const appRouter = router({
           signatureStrokes: request.signatureStrokes,
           registeredByEmail: shipment.registeredByEmail,
           registeredById: shipment.registeredById,
+          requiresAccountSession: Boolean(request.accountId),
         };
       }),
     complete: publicProcedure

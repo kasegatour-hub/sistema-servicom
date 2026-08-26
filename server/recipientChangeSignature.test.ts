@@ -111,8 +111,31 @@ describe("firma de cambio de destinatario", () => {
     const result = await caller.admin.requestRecipientChange({ shipmentId: 81, recipientName: "Luis", recipientLastName: "Torres", recipientDni: "70445566", recipientDocumentType: "dni_peru", recipientPhone: "+51999111222" });
     expect(result.accountNotified).toBe(false);
     expect(result.requiresManualDelivery).toBe(true);
+    expect(result.deliveryMode).toBe("manual");
+    expect(result.accountMatched).toBe(false);
+    expect(result.signatureUrl).toContain("cambio-destinatario");
     expect(dbMocks.notifyAccountEvent).not.toHaveBeenCalled();
     expect(mailMocks.sendRecipientChangeSignatureEmail).not.toHaveBeenCalled();
+  });
+
+  it("genera un enlace manual para un remitente sin cuenta y permite firmar sin sesión", async () => {
+    sessionMocks.getAdminSession.mockReturnValue({ adminId: 4, role: "registrador", reauthRequired: false, isWorkspaceIsolated: false });
+    dbMocks.getShipmentById.mockResolvedValue({ ...shipment, accountId: null, senderName: "Remitente", senderLastName: "Sin Cuenta", senderDni: "70445566", senderDocumentType: "dni_peru", senderPhone: "+51999111222", recipientName: "Marco", recipientLastName: "Rossi", recipientDni: "70111222", recipientDocumentType: "dni_peru", recipientPhone: "+39350111222" });
+    dbMocks.completeRecipientChangeRequest.mockResolvedValue({ status: "signed", signedAt: new Date(), signerName: "Remitente Sin Cuenta" });
+    dbMocks.getRecipientChangeRequestById.mockResolvedValue({ ...request, accountId: null, senderName: "Remitente", senderLastName: "Sin Cuenta" });
+    const caller = appRouter.createCaller(context());
+    const generated = await caller.admin.requestRecipientChange({ shipmentId: 81, recipientName: "Luis", recipientLastName: "Torres", recipientDni: "70445566", recipientDocumentType: "dni_peru", recipientPhone: "+51999111222" });
+    expect(generated.deliveryMode).toBe("manual");
+    expect(generated.requiresManualDelivery).toBe(true);
+    expect(generated.accountNotified).toBe(false);
+    expect(generated.emailSent).toBe(false);
+    expect(dbMocks.createRecipientChangeRequest).toHaveBeenCalledWith(expect.objectContaining({ accountId: null }));
+    expect(dbMocks.notifyAccountEvent).not.toHaveBeenCalled();
+    expect(mailMocks.sendRecipientChangeSignatureEmail).not.toHaveBeenCalled();
+
+    const signed = await caller.recipientChangeSignature.complete({ requestId: 44, token: validToken, signatureStrokes: JSON.stringify([[{ x: 10, y: 20 }, { x: 90, y: 60 }]]) });
+    expect(signed.status).toBe("signed");
+    expect(dbMocks.completeRecipientChangeRequest).toHaveBeenCalledWith(expect.objectContaining({ requestId: 44, signerAccountId: null, signerEmail: null }));
   });
 
   it("rechaza cualquier modificación directa del destinatario desde la actualización operativa", async () => {

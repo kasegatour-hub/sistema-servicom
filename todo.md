@@ -1586,3 +1586,16 @@
 - [x] Igualar ruta, agencia, servicios, precios, checklist, entrega, pago, notas y demás campos operativos de creación
 - [x] Persistir y validar todos los campos actualizados sin perder datos existentes
 - [x] Añadir regresiones, validar responsive y publicar
+
+## Enlace de firma para remitente sin cuenta
+- [x] Permitir crear la solicitud y declaración jurada sin cuenta vinculada
+- [x] Mostrar claramente entrega manual cuando no proceda notificación automática
+- [x] Permitir copiar y compartir el enlace seguro desde Admin/Registrador
+- [x] Añadir pruebas de seguridad, validar y publicar
+
+## Enlace de firma para remitente sin cuenta — continuación
+- [x] Permitir crear solicitudes protegidas de cambio de destinatario aunque el remitente no tenga cuenta Cliente.
+- [x] Permitir completar desde enlace público una solicitud manual sin exigir sesión, conservando validación de token, expiración y uso único.
+- [x] Mostrar al administrador la diferencia entre notificación automática y entrega manual, con copia y apertura del enlace.
+- [x] Añadir pruebas de generación manual, firma pública sin cuenta y rechazo de token/solicitud no autorizados.
+- [x] Ejecutar TypeScript, pruebas completas, build y verificación visual antes del checkpoint.
