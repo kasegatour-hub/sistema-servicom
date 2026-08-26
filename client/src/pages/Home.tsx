@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Package, QrCode, AlertCircle, MapPin, Clock3, Phone, ExternalLink, Search, ShieldCheck, ArrowRight, MoreVertical } from "lucide-react";
+import { QrCode, AlertCircle, MapPin, Clock3, Phone, ExternalLink, Search, ArrowRight, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -159,6 +159,7 @@ export function LocationsSection() {
 
 export default function Home() {
   const [shipmentData, setShipmentData] = useState<ShipmentData | null>(null);
+  const [showLocations, setShowLocations] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -279,7 +280,7 @@ export default function Home() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 rounded-xl border-slate-200 p-2 shadow-xl">
                 <DropdownMenuItem asChild><a href="#rastreo" className="cursor-pointer rounded-lg px-3 py-2.5 text-base font-semibold">Rastreo</a></DropdownMenuItem>
-                <DropdownMenuItem asChild><a href="#sedes" className="cursor-pointer rounded-lg px-3 py-2.5 text-base font-semibold">Sedes</a></DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setShowLocations(true)} className="cursor-pointer rounded-lg px-3 py-2.5 text-base font-semibold">Ubicación presencial</DropdownMenuItem>
                 <DropdownMenuItem asChild><a href="/movil" className="cursor-pointer rounded-lg px-3 py-2.5 text-base font-semibold">App móvil</a></DropdownMenuItem>
                 <DropdownMenuItem asChild><a href="/cuenta" className="cursor-pointer rounded-lg px-3 py-2.5 text-base font-semibold">Cliente</a></DropdownMenuItem>
                 <DropdownMenuItem asChild><a href="/admin" className="cursor-pointer rounded-lg px-3 py-2.5 text-base font-semibold text-[#0B2B5E]">Admin</a></DropdownMenuItem>
@@ -296,12 +297,7 @@ export default function Home() {
               <Card className="relative rounded-[1.75rem] border-0 bg-white/95 p-4 shadow-none sm:p-9 lg:p-12">
             <div className="grid items-center gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(330px,.85fr)] lg:gap-10">
               <div className="max-w-3xl">
-              <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-[#0B2B5E]/8 px-4 py-2 text-sm font-bold text-[#0B2B5E]">
-                <Search className="h-4 w-4" aria-hidden="true" />
-                Rastreo en línea
-              </div>
-              <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-[#0B2B5E] sm:text-4xl lg:text-5xl">Sigue tu envío en todo momento</h1>
-              <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">Ingresa tu número de orden y código de envío. Verás el estado actual, la ruta y la sede donde podrás recogerlo.</p>
+                <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-[#0B2B5E] sm:text-4xl lg:text-5xl">Sigue tu envío en todo momento</h1>
               </div>
               <TrackingJourneyAnimation status={shipmentData?.status} className="hidden lg:block" />
             </div>
@@ -341,10 +337,11 @@ export default function Home() {
             </form>
             <div className="mt-5 lg:hidden"><TrackingJourneyAnimation status={shipmentData?.status} /></div>
 
-            <div className="mt-8 grid gap-3 border-t border-slate-200 pt-6 sm:grid-cols-3">
-              <div className="flex items-center gap-3 text-sm font-semibold text-slate-600"><ShieldCheck className="h-5 w-5 shrink-0 text-[#F28C00]" /> Información clara y segura</div>
-              <div className="flex items-center gap-3 text-sm font-semibold text-slate-600"><Clock3 className="h-5 w-5 shrink-0 text-[#F28C00]" /> Estado actualizado</div>
-              <div className="flex items-center gap-3 text-sm font-semibold text-slate-600"><MapPin className="h-5 w-5 shrink-0 text-[#F28C00]" /> Ruta y sede de recojo</div>
+            <div className="mt-6 flex justify-center border-t border-slate-200 pt-5">
+              <Button type="button" variant="outline" onClick={() => setShowLocations((visible) => !visible)} aria-expanded={showLocations} aria-controls="sedes" className="min-h-12 rounded-xl border-2 border-[#0B2B5E] px-5 text-base font-extrabold text-[#0B2B5E] transition hover:bg-[#0B2B5E]/5">
+                <MapPin className="mr-2 h-5 w-5" aria-hidden="true" />
+                {showLocations ? "Ocultar ubicación presencial" : "Ver ubicación presencial y más datos"}
+              </Button>
             </div>
           </Card>
         </section>
@@ -506,16 +503,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* Empty State */}
-        {!shipmentData && !isSearching && (
-          <div className="mx-auto my-12 max-w-2xl rounded-3xl border border-dashed border-slate-300 bg-white/80 px-6 py-14 text-center shadow-sm md:my-16">
-            <Package className="mx-auto mb-5 h-16 w-16 text-slate-300" />
-            <p className="text-lg font-semibold text-slate-600 sm:text-xl">Ingresa los datos de tu envío para comenzar el rastreo</p>
-            <p className="mt-2 text-sm text-slate-500">También puedes escanear el QR de tu comprobante.</p>
-          </div>
-        )}
-
-        <LocationsSection />
+        {showLocations && <LocationsSection />}
       </main>
 
       {/* QR Scanner Modal */}

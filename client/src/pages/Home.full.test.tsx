@@ -54,14 +54,14 @@ describe("Home public page", () => {
     expect(screen.getByRole("button", { name: /Rastrear envío/ })).toBeTruthy();
     fireEvent.pointerDown(screen.getByRole("button", { name: "Abrir menú principal" }));
     expect(screen.getByRole("menuitem", { name: "Rastreo" }).getAttribute("href")).toBe("#rastreo");
-    expect(screen.getByRole("menuitem", { name: "Sedes" }).getAttribute("href")).toBe("#sedes");
+    expect(screen.getByRole("menuitem", { name: "Ubicación presencial" })).toBeTruthy();
   });
 
   it("renders large navigation buttons with complete rounded corners", () => {
     render(<Home />);
 
     fireEvent.pointerDown(screen.getByRole("button", { name: "Abrir menú principal" }));
-    for (const label of ["Rastreo", "Sedes", "App móvil", "Cliente", "Admin"]) {
+    for (const label of ["Rastreo", "Ubicación presencial", "App móvil", "Cliente", "Admin"]) {
       const item = screen.getByRole("menuitem", { name: label });
       expect(item.className).toContain("cursor-pointer");
       expect(item.className).toContain("rounded-lg");
@@ -72,6 +72,7 @@ describe("Home public page", () => {
   it("renders Ubícanos with both office cards and all visible contact details", () => {
     render(<Home />);
 
+    fireEvent.click(screen.getByRole("button", { name: "Ver ubicación presencial y más datos" }));
     expect(screen.getByRole("heading", { name: "Ubícanos" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Jr. de la Unión 518" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Corso Peschiera" })).toBeTruthy();
@@ -89,6 +90,15 @@ describe("Home public page", () => {
     expect(screen.getByRole("link", { name: /Abrir Torino en Google Maps/ })).toBeTruthy();
   });
 
+  it("opens the presencial location and additional data from its button", () => {
+    render(<Home />);
+
+    expect(screen.queryByRole("heading", { name: "Ubícanos" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Ver ubicación presencial y más datos" }));
+    expect(screen.getByRole("heading", { name: "Ubícanos" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Ocultar ubicación presencial" })).toBeTruthy();
+  });
+
   it("shows the persisted payment status after the client tracks a shipment", async () => {
     render(<Home />);
 
@@ -99,7 +109,7 @@ describe("Home public page", () => {
     expect(paidPrice.className).toContain("text-blue-700");
     expect(screen.getByText("Lima - Torino")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Recojo en Torino, Italia" })).toBeTruthy();
-    expect(screen.getAllByText(/Corso Peschiera, 162A, Zona Piazza Sabotino/).length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText(/Corso Peschiera, 162A, Zona Piazza Sabotino/).length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByRole("link", { name: /Abrir recibo y firmar/ })).toBeNull();
   });
 
@@ -110,7 +120,7 @@ describe("Home public page", () => {
 
     expect(screen.getByText("Torino - Lima")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Recojo en Lima, Perú" })).toBeTruthy();
-    expect(screen.getAllByText(/Jr\. de la Unión Nro\. 518 Int\. S101/).length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText(/Jr\. de la Unión Nro\. 518 Int\. S101/).length).toBeGreaterThanOrEqual(1);
   });
 
   it("limpia orden y código de la URL antes de rastrear otro envío", async () => {

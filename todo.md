@@ -1556,3 +1556,9 @@
 - [x] Encapsular Rastreo, Sedes, App móvil, Cliente y Admin dentro de un menú accesible de tres puntos
 - [x] Mantener orden, código, Buscar y Escanear QR visibles en la primera pantalla móvil
 - [x] Validar la navegación responsive, las pruebas y publicar
+
+## Portada limpia: verdes, rojos y ubicación presencial
+- [x] Mantener visibles Rastrear, Escanear QR y la animación de avión/vehículo
+- [x] Retirar la etiqueta, texto introductorio y tarjetas informativas marcadas para quitar
+- [x] Añadir un botón para abrir Ubicación presencial y demás datos sin saturar la portada
+- [x] Añadir pruebas responsive, validar y publicar
