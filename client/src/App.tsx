@@ -10,6 +10,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AccountPage from "./pages/AccountPage";
 import ReceiptPage from "./pages/ReceiptPage";
 import InvitationLetterSignaturePage from "./pages/InvitationLetterSignaturePage";
+import RecipientChangeSignaturePage from "./pages/RecipientChangeSignaturePage";
 import MobileAppPage from "./pages/MobileAppPage";
 
 function Router() {
@@ -21,6 +22,7 @@ function Router() {
       <Route path={"/cuenta"} component={AccountPage} />
       <Route path={"/recibo"} component={ReceiptPage} />
       <Route path={"/carta-firma"} component={InvitationLetterSignaturePage} />
+      <Route path={"/cambio-destinatario"} component={RecipientChangeSignaturePage} />
       <Route path={"/movil"} component={MobileAppPage} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}

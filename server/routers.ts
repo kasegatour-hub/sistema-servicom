@@ -4,7 +4,7 @@ import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
-import { completeInvitationLetterSignature, completeShipmentSignature, createOrRefreshShipmentSignatureRequest, getInvitationLetterById, getInvitationLetterSignatureByLetterId, getLocalAccountById, getShipmentByOrderAndCode, getShipmentById, getShipmentSignatureByShipmentId, listInteractionEvents, recordInteractionEvent, recordShipmentAudit } from "./db";
+import { completeInvitationLetterSignature, completeRecipientChangeRequest, completeShipmentSignature, createOrRefreshShipmentSignatureRequest, getInvitationLetterById, getInvitationLetterSignatureByLetterId, getLocalAccountById, getRecipientChangeRequestById, getShipmentByOrderAndCode, getShipmentById, getShipmentSignatureByShipmentId, listInteractionEvents, recordInteractionEvent, recordShipmentAudit } from "./db";
 import { createSignatureToken, isSignatureTokenExpired, signatureTokenMatches } from "./signatureTokens";
 import { parseSignatureStrokes } from "../shared/signature";
 import { adminRouter } from "./admin.router";
@@ -97,6 +97,67 @@ export const appRouter = router({
           signatureStrokes: input.signatureStrokes,
         });
         if (!saved) throw new TRPCError({ code: "UNAUTHORIZED", message: "La sesión de firma expiró o ya fue utilizada." });
+        return { status: "signed" as const, signedAt: saved.signedAt, signerName: saved.signerName };
+      }),
+  }),
+
+  recipientChangeSignature: router({
+    get: publicProcedure
+      .input(z.object({ requestId: z.number().int().positive(), token: z.string().min(20).max(128) }))
+      .query(async ({ input }) => {
+        const request = await getRecipientChangeRequestById(input.requestId);
+        if (!request) throw new TRPCError({ code: "NOT_FOUND", message: "La solicitud de cambio de destinatario no existe." });
+        if (!signatureTokenMatches(input.token, request.requestTokenHash) || (request.status !== "signed" && isSignatureTokenExpired(request.requestTokenExpiresAt))) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "El enlace de firma expiró o no es válido." });
+        }
+        const shipment = await getShipmentById(request.shipmentId);
+        if (!shipment) throw new TRPCError({ code: "NOT_FOUND", message: "El envío relacionado ya no está disponible." });
+        return {
+          id: request.id,
+          status: request.status,
+          route: request.route,
+          orderNumber: shipment.orderNumber,
+          code: shipment.code,
+          senderName: `${request.senderName} ${request.senderLastName || ""}`.trim(),
+          previousRecipientName: `${request.previousRecipientName || ""} ${request.previousRecipientLastName || ""}`.trim(),
+          previousRecipientDni: request.previousRecipientDni,
+          previousRecipientDocumentType: request.previousRecipientDocumentType,
+          previousRecipientPhone: request.previousRecipientPhone,
+          newRecipientName: `${request.newRecipientName} ${request.newRecipientLastName}`.trim(),
+          newRecipientDni: request.newRecipientDni,
+          newRecipientDocumentType: request.newRecipientDocumentType,
+          newRecipientPhone: request.newRecipientPhone,
+          signedAt: request.signedAt,
+          signerName: request.signerName,
+          signerEmail: request.signerEmail,
+          signatureStrokes: request.signatureStrokes,
+          registeredByEmail: shipment.registeredByEmail,
+          registeredById: shipment.registeredById,
+        };
+      }),
+    complete: publicProcedure
+      .input(z.object({ requestId: z.number().int().positive(), token: z.string().min(20).max(128), signatureStrokes: z.string().min(20).max(20000) }))
+      .mutation(async ({ input, ctx }) => {
+        const request = await getRecipientChangeRequestById(input.requestId);
+        if (!request) throw new TRPCError({ code: "NOT_FOUND", message: "La solicitud de cambio de destinatario no existe." });
+        if (request.status === "signed") throw new TRPCError({ code: "CONFLICT", message: "El cambio de destinatario ya fue firmado y aplicado." });
+        if (request.status !== "pending") throw new TRPCError({ code: "CONFLICT", message: "La solicitud de cambio ya no está disponible para firma." });
+        if (isSignatureTokenExpired(request.requestTokenExpiresAt) || !signatureTokenMatches(input.token, request.requestTokenHash)) throw new TRPCError({ code: "UNAUTHORIZED", message: "El enlace de firma expiró o no es válido." });
+        try { parseSignatureStrokes(input.signatureStrokes); } catch (error: any) { throw new TRPCError({ code: "BAD_REQUEST", message: error.message || "La firma no es válida." }); }
+        const accountSession = getAccountSession(ctx.req);
+        let signerName = `${request.senderName} ${request.senderLastName || ""}`.trim();
+        let signerEmail: string | null = null;
+        let signerAccountId: number | null = null;
+        if (request.accountId) {
+          if (!accountSession || accountSession.accountId !== request.accountId) throw new TRPCError({ code: "UNAUTHORIZED", message: "Inicia sesión con la cuenta Cliente del remitente para firmar esta solicitud." });
+          const account = await getLocalAccountById(request.accountId);
+          if (!account) throw new TRPCError({ code: "NOT_FOUND", message: "La cuenta Cliente vinculada ya no está disponible." });
+          signerName = `${account.name || ""} ${account.lastName || ""}`.trim() || signerName;
+          signerEmail = account.email;
+          signerAccountId = account.id;
+        }
+        const saved = await completeRecipientChangeRequest({ requestId: request.id, tokenHash: request.requestTokenHash, signerName, signerEmail, signerAccountId, consentTextVersion: "servicom-recipient-change-v1", consentAcceptedAt: new Date(), signatureStrokes: input.signatureStrokes });
+        if (!saved) throw new TRPCError({ code: "UNAUTHORIZED", message: "La sesión de firma expiró, ya fue usada o el cambio no se pudo aplicar." });
         return { status: "signed" as const, signedAt: saved.signedAt, signerName: saved.signerName };
       }),
   }),

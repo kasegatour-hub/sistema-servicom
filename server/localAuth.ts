@@ -102,6 +102,18 @@ export async function sendShipmentSignatureEmail(input: { email: string; signerN
   });
 }
 
+export async function sendRecipientChangeSignatureEmail(input: { email: string; signerName: string; signatureUrl: string; orderNumber: string }): Promise<void> {
+  const from = process.env.SMTP_FROM?.trim() || "peruservicom@gmail.com";
+  const transporter = getSmtpTransport();
+  await transporter.sendMail({
+    from,
+    to: input.email,
+    subject: `Firma pendiente — Cambio de destinatario | Orden ${input.orderNumber}`,
+    text: `Hola ${input.signerName}. Se solicitó cambiar el destinatario de tu envío (Orden ${input.orderNumber}). Revisa la declaración y firma solo si confirmas el cambio: ${input.signatureUrl}`,
+    html: `<p>Hola <strong>${input.signerName}</strong>.</p><p>Se solicitó un <strong>cambio de destinatario</strong> para tu envío, Orden <strong>${input.orderNumber}</strong>.</p><p><a href="${input.signatureUrl}">Revisar y firmar la declaración</a></p><p>Si no reconoces esta solicitud, no firmes y comunícate con la agencia.</p>`,
+  });
+}
+
 export async function sendVerificationSms(phone: string, code: string): Promise<void> {
   const accountSid = process.env.TWILIO_ACCOUNT_SID?.trim();
   const authToken = process.env.TWILIO_AUTH_TOKEN?.trim();

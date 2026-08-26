@@ -295,6 +295,53 @@ export const shipmentSignatures = mysqlTable("shipment_signatures", {
 export type ShipmentSignature = typeof shipmentSignatures.$inferSelect;
 export type InsertShipmentSignature = typeof shipmentSignatures.$inferInsert;
 
+/** Solicitud protegida de cambio de destinatario; solo la firma válida aplica la modificación al envío. */
+export const recipientChangeRequests = mysqlTable("recipient_change_requests", {
+  id: int("id").autoincrement().primaryKey(),
+  shipmentId: int("shipmentId").notNull(),
+  accountId: int("accountId"),
+  requestedByAdminId: int("requestedByAdminId").notNull(),
+  requestedByLabel: varchar("requestedByLabel", { length: 255 }).notNull(),
+  requestTokenHash: varchar("requestTokenHash", { length: 128 }).notNull().unique(),
+  requestTokenExpiresAt: timestamp("requestTokenExpiresAt").notNull(),
+  status: mysqlEnum("status", ["pending", "signed", "cancelled", "expired"]).default("pending").notNull(),
+  senderName: varchar("senderName", { length: 255 }).notNull(),
+  senderLastName: varchar("senderLastName", { length: 255 }),
+  senderDni: varchar("senderDni", { length: 20 }),
+  senderDocumentType: mysqlEnum("senderDocumentType", ["dni_peru", "pasaporte", "carta_identita_italia"]).default("dni_peru").notNull(),
+  previousRecipientName: varchar("previousRecipientName", { length: 255 }),
+  previousRecipientLastName: varchar("previousRecipientLastName", { length: 255 }),
+  previousRecipientDni: varchar("previousRecipientDni", { length: 20 }),
+  previousRecipientDocumentType: mysqlEnum("previousRecipientDocumentType", ["dni_peru", "pasaporte", "carta_identita_italia"]).default("dni_peru").notNull(),
+  previousRecipientPhone: varchar("previousRecipientPhone", { length: 32 }),
+  newRecipientName: varchar("newRecipientName", { length: 255 }).notNull(),
+  newRecipientLastName: varchar("newRecipientLastName", { length: 255 }).notNull(),
+  newRecipientDni: varchar("newRecipientDni", { length: 20 }).notNull(),
+  newRecipientDocumentType: mysqlEnum("newRecipientDocumentType", ["dni_peru", "pasaporte", "carta_identita_italia"]).default("dni_peru").notNull(),
+  newRecipientPhone: varchar("newRecipientPhone", { length: 32 }).notNull(),
+  route: varchar("route", { length: 100 }).notNull(),
+  declarationVersion: varchar("declarationVersion", { length: 64 }).notNull().default("recipient-change-v1"),
+  notificationSentAt: timestamp("notificationSentAt"),
+  emailSentAt: timestamp("emailSentAt"),
+  signerName: varchar("signerName", { length: 255 }),
+  signerEmail: varchar("signerEmail", { length: 320 }),
+  signerAccountId: int("signerAccountId"),
+  consentTextVersion: varchar("consentTextVersion", { length: 64 }),
+  consentAcceptedAt: timestamp("consentAcceptedAt"),
+  evidenceHash: varchar("evidenceHash", { length: 128 }),
+  signatureStrokes: longtext("signatureStrokes"),
+  signedAt: timestamp("signedAt"),
+  appliedAt: timestamp("appliedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => ({
+  shipmentIdx: index("recipient_change_requests_shipment_idx").on(table.shipmentId, table.createdAt),
+  accountIdx: index("recipient_change_requests_account_idx").on(table.accountId, table.createdAt),
+  statusIdx: index("recipient_change_requests_status_idx").on(table.status, table.requestTokenExpiresAt),
+}));
+export type RecipientChangeRequest = typeof recipientChangeRequests.$inferSelect;
+export type InsertRecipientChangeRequest = typeof recipientChangeRequests.$inferInsert;
+
 export const shipments = mysqlTable("shipments", {
   id: int("id").autoincrement().primaryKey(),
   accountId: int("accountId"), // Propietario del envío (opcional para mantener compatibilidad con envíos públicos o de admin)

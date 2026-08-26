@@ -7,9 +7,9 @@ function buildTrackingPath(orderNumber: string, code: string): string {
   return `/?order=${encodeURIComponent(order)}&code=${encodeURIComponent(normalizedCode)}`;
 }
 import { publicProcedure, router } from "./_core/trpc";
-import { ISOLATED_WORKSPACE_ADMIN_IDS, attachShipmentAuditActorLabels, clearAdminPasswordFailures, createDiscountCoupon, createInvitationLetterAccount, createInvitationLetterRecord, createOrRefreshInvitationLetterSignatureRequest, createShipment, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAllShipments, getDeletedShipments, getDiscountCouponByCode, getInvitationLetterById, getShipmentAuditLogs, getShipmentById, getShipmentByOrderAndCode, getShipmentRoutePolicy, incrementDiscountCouponRedemption, isEncomiendaEnabledForRoute, listDeletedInvitationLetterRecords, listDiscountCoupons, listInvitationLetterRecords, listShipmentOrderNumbersByPrefix, listShipmentSenders, createShipmentSender, setShipmentSenderActive, moveInvitationLetterToTrash, recordInteractionEvent, recordShipmentAudit, registerAdminPasswordFailure, restoreInvitationLetterFromTrash, restoreShipment, searchClients, searchInvitationLetterPeople, setEncomiendaAvailabilityForRoute, setShipmentRegistradorVisibility, updateAdminProfile, updateAdminProfilePhoto, updateDiscountCoupon, updateShipmentStatus } from "./db";
+import { ISOLATED_WORKSPACE_ADMIN_IDS, attachShipmentAuditActorLabels, clearAdminPasswordFailures, createDiscountCoupon, createInvitationLetterAccount, createInvitationLetterRecord, createOrRefreshInvitationLetterSignatureRequest, createRecipientChangeRequest, createShipment, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAllShipments, getDeletedShipments, getDiscountCouponByCode, getInvitationLetterById, getLocalAccountById, getShipmentAuditLogs, getShipmentById, getShipmentByOrderAndCode, getShipmentRoutePolicy, incrementDiscountCouponRedemption, isEncomiendaEnabledForRoute, listDeletedInvitationLetterRecords, listDiscountCoupons, listInvitationLetterRecords, listRecipientChangeRequestsForShipment, listShipmentOrderNumbersByPrefix, listShipmentSenders, createShipmentSender, markRecipientChangeRequestNotified, setShipmentSenderActive, moveInvitationLetterToTrash, notifyAccountEvent, recordInteractionEvent, recordShipmentAudit, registerAdminPasswordFailure, restoreInvitationLetterFromTrash, restoreShipment, searchClients, searchInvitationLetterPeople, setEncomiendaAvailabilityForRoute, setShipmentRegistradorVisibility, shipmentSenderMatchesAccount, updateAdminProfile, updateAdminProfilePhoto, updateDiscountCoupon, updateShipmentStatus } from "./db";
 import { getRemainingLockoutSeconds, MAX_PASSWORD_FAILURES, PASSWORD_LOCKOUT_SECONDS } from "./loginProtection";
-import { generateTemporaryPassword, generateVerificationCode, hashPassword, hashVerificationCode, normalizeEmail, sendInvitationLetterSignatureEmail, sendVerificationEmail, verificationExpiry, verifyPassword } from "./localAuth";
+import { generateTemporaryPassword, generateVerificationCode, hashPassword, hashVerificationCode, normalizeEmail, sendInvitationLetterSignatureEmail, sendRecipientChangeSignatureEmail, sendVerificationEmail, verificationExpiry, verifyPassword } from "./localAuth";
 import { AdminSessionPayload, clearAdminSession, getAdminSession, setAdminSession } from "./adminSession";
 import { admins, shipments } from "../drizzle/schema";
 import { consumeAdminPasswordResetCode, createAdminPasswordResetCode, getActiveAdminPasswordResetCode, getDb, incrementAdminPasswordResetAttempts, updateAdminPassword } from "./db";
@@ -39,6 +39,9 @@ async function matchesStoredAdminPassword(password: string, storedPassword: stri
 const optionalInternationalPhoneSchema = z.string().trim().optional()
   .transform(value => value ? normalizeInternationalPhone(value) : value)
   .refine(value => !value || isValidInternationalPhone(value), "Completa el teléfono con su código de país y los dígitos requeridos.");
+const normalizeRecipientText = (value: unknown) => String(value ?? "").trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").toUpperCase();
+const normalizeRecipientDocument = (value: unknown) => normalizeRecipientText(value).replace(/[^A-Z0-9]/g, "");
+const normalizeRecipientPhone = (value: unknown) => String(value ?? "").trim().replace(/[^+\d]/g, "");
 const securePasswordSchema = z.string().refine(isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE);
 type AdminProfilePhoto = { key: string; url: string; name: string; mimeType: string; sizeBytes: number; createdAt: string };
 function parseAdminProfilePhotos(metadata: string | null | undefined): AdminProfilePhoto[] {
@@ -184,6 +187,10 @@ function getRequestOrigin(req: { protocol?: string; headers?: Record<string, unk
 
 function getInvitationSignatureUrl(origin: string, letterId: number, token: string) {
   return `${origin}/carta-firma?letter=${letterId}&token=${encodeURIComponent(token)}`;
+}
+
+function getRecipientChangeSignatureUrl(origin: string, requestId: number, token: string) {
+  return `${origin}/cambio-destinatario?solicitud=${requestId}&token=${encodeURIComponent(token)}`;
 }
 
 const adminProcedure = publicProcedure.use(async ({ ctx, next }) => {
@@ -944,6 +951,76 @@ export const adminRouter = router({
       return { success: true, photo: metadata };
     }),
 
+  requestRecipientChange: adminProcedure
+    .input(z.object({
+      shipmentId: z.number().int().positive(),
+      recipientName: personNameSchema,
+      recipientLastName: personNameSchema,
+      recipientDni: optionalIdentityDocumentNumberSchema,
+      recipientDocumentType: identityDocumentTypeSchema,
+      recipientPhone: optionalInternationalPhoneSchema,
+    }).superRefine((input, context) => {
+      if (!isIdentityDocumentValid(input.recipientDni, input.recipientDocumentType)) context.addIssue({ code: "custom", path: ["recipientDni"], message: identityDocumentValidationMessage(input.recipientDocumentType) });
+      if (!input.recipientPhone?.trim()) context.addIssue({ code: "custom", path: ["recipientPhone"], message: "Indica el celular del nuevo destinatario." });
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const shipment = await getShipmentById(input.shipmentId);
+      if (!shipment || !belongsToAdminWorkspace(shipment, ctx.adminSession.adminId, ctx.adminWorkspaceIsolated)) throw new TRPCError({ code: "NOT_FOUND", message: "Envío no encontrado." });
+      if (ctx.adminSession.role !== "superadmin" && shipment.hiddenFromRegistradoresAt) throw new TRPCError({ code: "NOT_FOUND", message: "Envío no encontrado." });
+      const sameRecipient = [
+        normalizeRecipientText(shipment.recipientName) === normalizeRecipientText(input.recipientName),
+        normalizeRecipientText(shipment.recipientLastName) === normalizeRecipientText(input.recipientLastName),
+        normalizeRecipientDocument(shipment.recipientDni) === normalizeRecipientDocument(input.recipientDni),
+        shipment.recipientDocumentType === input.recipientDocumentType,
+        normalizeRecipientPhone(shipment.recipientPhone) === normalizeRecipientPhone(input.recipientPhone),
+      ].every(Boolean);
+      if (sameRecipient) throw new TRPCError({ code: "BAD_REQUEST", message: "El nuevo destinatario es igual al actual; no es necesario solicitar una firma." });
+      const account = shipment.accountId ? await getLocalAccountById(shipment.accountId) : undefined;
+      const senderMatchesAccount = Boolean(account && shipmentSenderMatchesAccount(shipment, account));
+      const token = createSignatureToken();
+      token.expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      const db = await getDb();
+      const [actor] = db ? await db.select({ name: admins.name, email: admins.email }).from(admins).where(eq(admins.id, ctx.adminSession.adminId)).limit(1) : [];
+      const actorLabel = actor?.name?.trim() || actor?.email || `Administrador #${ctx.adminSession.adminId}`;
+      const request = await createRecipientChangeRequest({
+        shipment,
+        accountId: senderMatchesAccount ? account!.id : null,
+        requestedByAdminId: ctx.adminSession.adminId,
+        requestedByLabel: actorLabel,
+        tokenHash: token.tokenHash,
+        expiresAt: token.expiresAt,
+        newRecipientName: input.recipientName,
+        newRecipientLastName: input.recipientLastName,
+        newRecipientDni: input.recipientDni || "",
+        newRecipientDocumentType: input.recipientDocumentType,
+        newRecipientPhone: input.recipientPhone || "",
+      });
+      if (!request) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No se pudo crear la solicitud de cambio de destinatario." });
+      const signatureUrl = getRecipientChangeSignatureUrl(getRequestOrigin(ctx.req), request.id, token.token);
+      let accountNotified = false;
+      let emailSent = false;
+      if (senderMatchesAccount && account) {
+        await notifyAccountEvent({ accountId: account.id, title: "Firma requerida: cambio de destinatario", message: `Revisa y firma la solicitud para la Orden ${shipment.orderNumber}.`, kind: "recipient_change_signature", actor: { actorType: "admin", actorId: ctx.adminSession.adminId, actorLabel }, details: signatureUrl });
+        accountNotified = true;
+        try {
+          await sendRecipientChangeSignatureEmail({ email: account.email, signerName: `${account.name || ""} ${account.lastName || ""}`.trim() || "Cliente", signatureUrl, orderNumber: shipment.orderNumber });
+          emailSent = true;
+        } catch (error) {
+          console.error("[RecipientChange] Signature email delivery failed", error);
+        }
+        await markRecipientChangeRequestNotified({ id: request.id, accountNotified, emailSent });
+      }
+      return { requestId: request.id, signatureUrl, expiresAt: token.expiresAt, accountNotified, emailSent, requiresManualDelivery: !senderMatchesAccount };
+    }),
+
+  listRecipientChangeRequests: adminProcedure
+    .input(z.object({ shipmentId: z.number().int().positive() }))
+    .query(async ({ input, ctx }) => {
+      const shipment = await getShipmentById(input.shipmentId);
+      if (!shipment || !belongsToAdminWorkspace(shipment, ctx.adminSession.adminId, ctx.adminWorkspaceIsolated)) throw new TRPCError({ code: "NOT_FOUND", message: "Envío no encontrado." });
+      return listRecipientChangeRequestsForShipment(input.shipmentId);
+    }),
+
   updateStatus: adminProcedure
     .input(z.object({
       shipmentId: z.number(),
@@ -1004,6 +1081,16 @@ export const adminRouter = router({
       if (!currentShipment) throw new TRPCError({ code: "NOT_FOUND", message: "Envío no encontrado o eliminado." });
       if (!belongsToAdminWorkspace(currentShipment, ctx.adminSession.adminId, ctx.adminWorkspaceIsolated)) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Envío no encontrado o eliminado." });
+      }
+      const hasDirectRecipientChange = (
+        (input.recipientName !== undefined && normalizeRecipientText(input.recipientName) !== normalizeRecipientText(currentShipment.recipientName))
+        || (input.recipientLastName !== undefined && normalizeRecipientText(input.recipientLastName) !== normalizeRecipientText(currentShipment.recipientLastName))
+        || (input.recipientDni !== undefined && normalizeRecipientDocument(input.recipientDni) !== normalizeRecipientDocument(currentShipment.recipientDni))
+        || (input.recipientDocumentType !== undefined && input.recipientDocumentType !== currentShipment.recipientDocumentType)
+        || (input.recipientPhone !== undefined && normalizeRecipientPhone(input.recipientPhone) !== normalizeRecipientPhone(currentShipment.recipientPhone))
+      );
+      if (hasDirectRecipientChange) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "El destinatario está protegido. Genera una solicitud de cambio y espera la firma electrónica del cliente." });
       }
       if (ctx.adminSession.role !== "superadmin" && currentShipment.hiddenFromRegistradoresAt) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Envío no encontrado." });

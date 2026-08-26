@@ -12,7 +12,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import { Lock, LogOut, Plus, RefreshCw, Download, Printer, RotateCcw, Search, Trash2, MessageSquare, Calculator, Eye, EyeOff, Send, QrCode, ImagePlus, UserRound, X } from "lucide-react";
+import { Lock, LogOut, Plus, RefreshCw, Download, Printer, RotateCcw, Search, Trash2, MessageSquare, Calculator, Eye, EyeOff, Send, QrCode, ImagePlus, UserRound, X, FileSignature } from "lucide-react";
 import QRCode from "qrcode";
 import { buildShipmentManagementUrl, buildTrackingUrl, normalizeTrackingValue, TRACKING_QR_OPTIONS } from "@/lib/tracking";
 import { PhoneInput } from "@/components/PhoneInput";
@@ -55,6 +55,7 @@ import { calculateAdminShipmentPricing, extractFreeformShipmentNotes, mergeShipm
 import { KASEGA_TORINO_ADDRESS, LIMA_SERVICOM_ADDRESS, SHIPMENT_ROUTES, isProvinceShipmentRoute, isTorinoLimaRoute } from "@shared/shipmentRoutes";
 import { getParcelRateEurPerKg } from "@shared/workspacePricing";
 import { useIsMobile } from "@/hooks/useMobile";
+import { RecipientChangeRequestDialog } from "@/components/RecipientChangeRequestDialog";
 
 type AdminWorkspace = "resumen" | "registros" | "crear" | "cupones" | "papelera" | "usuarios" | "analitica" | "carta" | "remitentes" | "transferencias" | "contabilidad" | "feedback";
 type CreateRecordTab = "documento" | "encomienda" | "transferencia";
@@ -431,6 +432,7 @@ export default function AdminDashboard() {
   const [calculatorResult, setCalculatorResult] = useState("");
   const [auditShipmentId, setAuditShipmentId] = useState<number | null>(null);
   const [detailShipment, setDetailShipment] = useState<any>(null);
+  const [recipientChangeShipment, setRecipientChangeShipment] = useState<any>(null);
   const [detailCopied, setDetailCopied] = useState(false);
   const [adminAuthMode, setAdminAuthMode] = useState<"login" | "request" | "reset">("login");
   const [adminRecoveryEmail, setAdminRecoveryEmail] = useState("");
@@ -1810,6 +1812,7 @@ export default function AdminDashboard() {
   const shipmentActionButtons = (shipment: any) => <>
     <Button type="button" onClick={() => setDetailShipment(shipment)} size="sm" variant="outline" className="border-[#0B2B5E] text-[#0B2B5E] hover:bg-blue-50"><Eye className="mr-1 h-4 w-4" /> Ver datos completos</Button>
     <Button onClick={() => openShipmentUpdate(shipment)} size="sm" variant="outline" className="border-primary text-primary hover:bg-primary/5">Actualizar</Button>
+    <Button type="button" onClick={() => setRecipientChangeShipment(shipment)} size="sm" variant="outline" className="border-amber-600 text-amber-700 hover:bg-amber-50"><FileSignature className="mr-1 h-4 w-4" />Cambiar destinatario</Button>
     <Button onClick={() => handlePrintReceipt(shipment)} size="sm" variant="outline" className="border-orange-600 text-orange-600 hover:bg-orange-50"><Printer className="mr-1 h-4 w-4" /> Imprimir</Button>
     <Button onClick={() => void downloadAdministrativePdf(shipment)} size="sm" variant="outline" className="border-[#0B2B5E] text-[#0B2B5E] hover:bg-blue-50"><Download className="mr-1 h-4 w-4" /> Descargar PDF</Button>
     {admin?.role === "superadmin" && <Button type="button" onClick={() => void handleToggleRegistradorVisibility(shipment)} size="sm" variant="outline" className="border-violet-600 text-violet-700 hover:bg-violet-50" disabled={setShipmentRegistradorVisibilityMutation.isPending} title={shipment.hiddenFromRegistradoresAt ? "Volver a mostrar este registro a los Registradores" : "Ocultar este registro a los Registradores"}>{shipment.hiddenFromRegistradoresAt ? "Mostrar a Registradores" : "Ocultar a Registradores"}</Button>}
@@ -3010,6 +3013,8 @@ export default function AdminDashboard() {
             </Card>
           </div>
         )}
+
+        <RecipientChangeRequestDialog shipment={recipientChangeShipment} onClose={() => setRecipientChangeShipment(null)} />
 
         {deliveryStatusShipment && (
           <div className="fixed inset-0 z-60 flex items-center justify-center bg-slate-950/55 p-4" role="dialog" aria-modal="true" aria-labelledby="delivery-status-title">

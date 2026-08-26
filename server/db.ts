@@ -1,7 +1,7 @@
 import { and, asc, count, desc, eq, gt, gte, inArray, isNotNull, isNull, like, lt, ne, notInArray, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { createHash } from "node:crypto";
-import { InsertUser, users, shipments, shipmentSignatures, shipmentAuditLogs, shipmentFeedback, platformFeedback, interactionEvents, admins, localAccounts, verificationCodes, adminPasswordResetCodes, clients, discountCoupons, shipmentRoutePolicies, invitationLetters, invitationLetterSignatures, transfers, notifications, operatingExpenses, type Notification } from "../drizzle/schema";
+import { InsertUser, users, shipments, shipmentSignatures, recipientChangeRequests, shipmentAuditLogs, shipmentFeedback, platformFeedback, interactionEvents, admins, localAccounts, verificationCodes, adminPasswordResetCodes, clients, discountCoupons, shipmentRoutePolicies, invitationLetters, invitationLetterSignatures, transfers, notifications, operatingExpenses, type Notification } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { buildShipmentClientDirectoryRecords, type ClientDirectoryRecord, type ShipmentClientDirectoryInput } from "./clientDirectory";
 import { rankFuzzyMatches } from "../shared/fuzzySearch";
@@ -194,7 +194,7 @@ export async function notifyAccountEvent(input: {
   accountId: number;
   title: string;
   message: string;
-  kind: "account_created" | "account_updated";
+  kind: "account_created" | "account_updated" | "recipient_change_signature";
   actor: NotificationActor;
   details?: string;
 }) {
@@ -339,6 +339,110 @@ export async function getShipmentById(id: number) {
     .limit(1);
 
   return result.length > 0 ? result[0] : undefined;
+}
+
+export function shipmentSenderMatchesAccount(shipment: { senderName?: string | null; senderLastName?: string | null; senderDni?: string | null; senderDocumentType?: string | null }, account: { name?: string | null; lastName?: string | null; dni?: string | null; documentType?: string | null }) {
+  const normalize = (value: string | null | undefined) => String(value || "").trim().toUpperCase();
+  return Boolean(
+    normalize(shipment.senderName) && normalize(shipment.senderLastName) && normalize(shipment.senderDni)
+    && normalize(shipment.senderName) === normalize(account.name)
+    && normalize(shipment.senderLastName) === normalize(account.lastName)
+    && normalize(shipment.senderDni) === normalize(account.dni)
+    && normalize(shipment.senderDocumentType) === normalize(account.documentType),
+  );
+}
+
+export async function createRecipientChangeRequest(input: {
+  shipment: typeof shipments.$inferSelect;
+  accountId?: number | null;
+  requestedByAdminId: number;
+  requestedByLabel: string;
+  tokenHash: string;
+  expiresAt: Date;
+  newRecipientName: string;
+  newRecipientLastName: string;
+  newRecipientDni: string;
+  newRecipientDocumentType: "dni_peru" | "pasaporte" | "carta_identita_italia";
+  newRecipientPhone: string;
+}) {
+  const db = await getDb();
+  if (!db) return undefined;
+  await db.insert(recipientChangeRequests).values({
+    shipmentId: input.shipment.id,
+    accountId: input.accountId ?? null,
+    requestedByAdminId: input.requestedByAdminId,
+    requestedByLabel: input.requestedByLabel,
+    requestTokenHash: input.tokenHash,
+    requestTokenExpiresAt: input.expiresAt,
+    status: "pending",
+    senderName: input.shipment.senderName || "No indicado",
+    senderLastName: input.shipment.senderLastName || null,
+    senderDni: input.shipment.senderDni || null,
+    senderDocumentType: input.shipment.senderDocumentType || "dni_peru",
+    previousRecipientName: input.shipment.recipientName || null,
+    previousRecipientLastName: input.shipment.recipientLastName || null,
+    previousRecipientDni: input.shipment.recipientDni || null,
+    previousRecipientDocumentType: input.shipment.recipientDocumentType || "dni_peru",
+    previousRecipientPhone: input.shipment.recipientPhone || null,
+    newRecipientName: input.newRecipientName,
+    newRecipientLastName: input.newRecipientLastName,
+    newRecipientDni: input.newRecipientDni,
+    newRecipientDocumentType: input.newRecipientDocumentType,
+    newRecipientPhone: input.newRecipientPhone,
+    route: input.shipment.route || "Lima - Torino",
+  });
+  const rows = await db.select().from(recipientChangeRequests).where(eq(recipientChangeRequests.requestTokenHash, input.tokenHash)).limit(1);
+  const request = rows[0];
+  if (request) await recordShipmentAudit({ shipmentId: input.shipment.id, action: "updated", actor: { actorType: "admin", actorId: input.requestedByAdminId, actorLabel: input.requestedByLabel }, metadata: { recipientChangeRequestId: request.id, status: "pending", proposedRecipient: `${input.newRecipientName} ${input.newRecipientLastName}` }, snapshot: request });
+  return request;
+}
+
+export async function getRecipientChangeRequestById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const rows = await db.select().from(recipientChangeRequests).where(eq(recipientChangeRequests.id, id)).limit(1);
+  return rows[0];
+}
+
+export async function getRecipientChangeRequestByTokenHash(tokenHash: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const rows = await db.select().from(recipientChangeRequests).where(eq(recipientChangeRequests.requestTokenHash, tokenHash)).limit(1);
+  return rows[0];
+}
+
+export async function listRecipientChangeRequestsForShipment(shipmentId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(recipientChangeRequests).where(eq(recipientChangeRequests.shipmentId, shipmentId)).orderBy(desc(recipientChangeRequests.createdAt));
+}
+
+export async function markRecipientChangeRequestNotified(input: { id: number; emailSent?: boolean; accountNotified?: boolean }) {
+  const db = await getDb();
+  if (!db) return;
+  const now = new Date();
+  await db.update(recipientChangeRequests).set({
+    notificationSentAt: input.accountNotified ? now : undefined,
+    emailSentAt: input.emailSent ? now : undefined,
+    updatedAt: now,
+  }).where(eq(recipientChangeRequests.id, input.id));
+}
+
+export async function completeRecipientChangeRequest(input: { requestId: number; tokenHash: string; signerName: string; signerEmail?: string | null; signerAccountId?: number | null; consentTextVersion: string; consentAcceptedAt: Date; signatureStrokes: string }) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const now = new Date();
+  const rows = await db.select().from(recipientChangeRequests).where(and(eq(recipientChangeRequests.id, input.requestId), eq(recipientChangeRequests.requestTokenHash, input.tokenHash), eq(recipientChangeRequests.status, "pending"), gt(recipientChangeRequests.requestTokenExpiresAt, now))).limit(1);
+  const request = rows[0];
+  if (!request) return undefined;
+  const shipment = await getShipmentById(request.shipmentId);
+  if (!shipment) return undefined;
+  const evidenceHash = createHash("sha256").update(JSON.stringify({ requestId: request.id, shipmentId: request.shipmentId, signerName: input.signerName, signerEmail: input.signerEmail || null, signerAccountId: input.signerAccountId || null, consentTextVersion: input.consentTextVersion, consentAcceptedAt: input.consentAcceptedAt.toISOString(), signatureStrokes: input.signatureStrokes })).digest("hex");
+  await db.update(recipientChangeRequests).set({ status: "signed", signerName: input.signerName, signerEmail: input.signerEmail || null, signerAccountId: input.signerAccountId || null, consentTextVersion: input.consentTextVersion, consentAcceptedAt: input.consentAcceptedAt, evidenceHash, signatureStrokes: input.signatureStrokes, signedAt: now, appliedAt: now, updatedAt: now }).where(and(eq(recipientChangeRequests.id, request.id), eq(recipientChangeRequests.status, "pending")));
+  await db.update(shipments).set({ recipientName: request.newRecipientName, recipientLastName: request.newRecipientLastName, recipientDni: request.newRecipientDni, recipientDocumentType: request.newRecipientDocumentType, recipientPhone: request.newRecipientPhone, updatedAt: now }).where(eq(shipments.id, shipment.id));
+  const saved = await getRecipientChangeRequestById(request.id);
+  await recordShipmentAudit({ shipmentId: shipment.id, action: "updated", actor: { actorType: input.signerAccountId ? "account" : "public", actorId: input.signerAccountId || null, actorLabel: input.signerName }, metadata: { recipientChangeRequestId: request.id, evidenceHash, recipientChangedFrom: `${request.previousRecipientName || ""} ${request.previousRecipientLastName || ""}`.trim(), recipientChangedTo: `${request.newRecipientName} ${request.newRecipientLastName}` }, snapshot: saved });
+  return saved;
 }
 
 export async function getShipmentSignatureByShipmentId(shipmentId: number) {

@@ -1529,3 +1529,12 @@
 - [x] Separar Contabilidad de Admin y Usuario por Lima–Torino y Torino–Lima, manteniendo al Cliente sin acceso
 - [x] Incluir la ruta seleccionada en los detalles, PDF y Excel contables
 - [x] Añadir pruebas, validar y publicar
+
+## Solicitud firmada de cambio de destinatario
+- [x] Crear solicitudes protegidas de cambio de destinatario, sin modificar el envío hasta completar la firma del cliente
+- [x] Verificar remitente, correo y cuenta Cliente antes de permitir el aviso y enlace de firma
+- [x] Notificar a la cuenta y al correo del Cliente cuando corresponda, con enlace seguro de firma
+- [x] Generar declaración jurada descargable para Lima–Torino y Torino–Lima con marca Servicom o Kasega Tour
+- [x] Añadir interfaz para Admin/Usuario y Cliente, pruebas de seguridad, validación y publicación
+- [x] Actualizar los mocks del panel administrativo para cubrir la mutación de solicitud de cambio de destinatario
+- [x] Verificar y resolver el estado de carga del enlace público inválido de cambio de destinatario
