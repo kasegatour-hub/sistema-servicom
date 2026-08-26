@@ -4,7 +4,7 @@ import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
-import { completeInvitationLetterSignature, completeRecipientChangeRequest, completeShipmentSignature, createOrRefreshShipmentSignatureRequest, getInvitationLetterById, getInvitationLetterSignatureByLetterId, getLocalAccountById, getRecipientChangeRequestById, getShipmentByOrderAndCode, getShipmentById, getShipmentSignatureByShipmentId, listInteractionEvents, recordInteractionEvent, recordShipmentAudit } from "./db";
+import { completeInvitationLetterSignature, completeRecipientChangeRequest, completeShipmentSignature, createOrRefreshShipmentSignatureRequest, getInvitationLetterById, getInvitationLetterSignatureByLetterId, getLocalAccountById, getRecipientChangeRequestById, getShipmentByOrderAndCode, getShipmentById, getShipmentSignatureByShipmentId, listInteractionEvents, notifyShipmentEvent, recordInteractionEvent, recordShipmentAudit } from "./db";
 import { createSignatureToken, isSignatureTokenExpired, signatureTokenMatches } from "./signatureTokens";
 import { parseSignatureStrokes } from "../shared/signature";
 import { adminRouter } from "./admin.router";
@@ -159,6 +159,29 @@ export const appRouter = router({
         }
         const saved = await completeRecipientChangeRequest({ requestId: request.id, tokenHash: request.requestTokenHash, signerName, signerEmail, signerAccountId, consentTextVersion: "servicom-recipient-change-v1", consentAcceptedAt: new Date(), signatureStrokes: input.signatureStrokes });
         if (!saved) throw new TRPCError({ code: "UNAUTHORIZED", message: "La sesión de firma expiró, ya fue usada o el cambio no se pudo aplicar." });
+        const signedShipment = await getShipmentById(request.shipmentId);
+        if (signedShipment) {
+          await recordShipmentAudit({ shipmentId: signedShipment.id, action: "signature_completed", actor: { actorType: signerAccountId ? "account" : "public", actorId: signerAccountId, actorLabel: saved.signerName }, metadata: { recipientChangeRequestId: request.id, signerEmail, recipientChangedTo: `${request.newRecipientName} ${request.newRecipientLastName}`.trim() } });
+          await notifyShipmentEvent({
+            shipmentId: signedShipment.id,
+            orderNumber: signedShipment.orderNumber,
+            code: signedShipment.code,
+            shipmentType: signedShipment.shipmentType,
+            senderName: signedShipment.senderName,
+            senderLastName: signedShipment.senderLastName,
+            senderDni: signedShipment.senderDni,
+            senderPhone: signedShipment.senderPhone,
+            recipientName: request.newRecipientName,
+            recipientLastName: request.newRecipientLastName,
+            accountId: null,
+            registeredByType: signedShipment.registeredByType,
+            registeredById: signedShipment.registeredById,
+            action: "signature_completed",
+            actor: { actorType: signerAccountId ? "account" : "public", actorId: signerAccountId, actorLabel: saved.signerName },
+            details: `Firmado electrónicamente por ${saved.signerName}. El cambio de destinatario fue aplicado.`,
+            notifyAccount: false,
+          });
+        }
         return { status: "signed" as const, signedAt: saved.signedAt, signerName: saved.signerName };
       }),
   }),
@@ -235,9 +258,6 @@ export const appRouter = router({
         if (!shipment) {
           throw new TRPCError({ code: "NOT_FOUND", message: "Envío no encontrado" });
         }
-        if (shipment.deliveryMode !== "remoto") {
-          throw new TRPCError({ code: "FORBIDDEN", message: "Este envío se entrega en agencia y no requiere firma remota." });
-        }
         if (!shipment.accountId) throw new TRPCError({ code: "BAD_REQUEST", message: "El cliente debe tener una cuenta creada antes de enviar una solicitud de firma." });
         const account = await getLocalAccountById(shipment.accountId);
         if (!account?.email) throw new TRPCError({ code: "BAD_REQUEST", message: "No se encontró una cuenta Cliente válida para enviar la notificación de firma." });
@@ -257,7 +277,7 @@ export const appRouter = router({
           tokenHash: token.tokenHash,
           expiresAt: token.expiresAt,
         });
-        await recordShipmentAudit({ shipmentId: shipment.id, action: "signature_requested", actor: { actorType: "admin", actorId: adminSession.adminId, actorLabel: adminSession.role }, metadata: { deliveryMode: shipment.deliveryMode, consentTextVersion: "servicom-remoto-v1", accountId: shipment.accountId } });
+        await recordShipmentAudit({ shipmentId: shipment.id, action: "signature_requested", actor: { actorType: "admin", actorId: adminSession.adminId, actorLabel: adminSession.role }, metadata: { deliveryMode: shipment.deliveryMode, consentTextVersion: "servicom-envio-v2", accountId: shipment.accountId } });
         await recordInteractionEvent({ actorType: "admin", actorId: adminSession.adminId, eventName: "signature_started", surface: "admin", metadata: { shipmentType: shipment.shipmentType, deliveryMode: shipment.deliveryMode } });
         if (!saved) {
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No se pudo preparar la firma" });
@@ -265,6 +285,25 @@ export const appRouter = router({
         const origin = `${ctx.req.protocol || "https"}://${ctx.req.get?.("host") || ctx.req.headers.host || "localhost"}`;
         const signatureUrl = `${origin}/recibo?order=${encodeURIComponent(shipment.orderNumber)}&code=${encodeURIComponent(shipment.code)}&signature=${encodeURIComponent(token.token)}`;
         await sendShipmentSignatureEmail({ email: account.email, signerName: `${account.name || shipment.senderName || "Cliente"} ${account.lastName || shipment.senderLastName || ""}`.trim(), signatureUrl });
+        await notifyShipmentEvent({
+          shipmentId: shipment.id,
+          orderNumber: shipment.orderNumber,
+          code: shipment.code,
+          shipmentType: shipment.shipmentType,
+          senderName: shipment.senderName,
+          senderLastName: shipment.senderLastName,
+          senderDni: shipment.senderDni,
+          senderPhone: shipment.senderPhone,
+          recipientName: shipment.recipientName,
+          recipientLastName: shipment.recipientLastName,
+          accountId: shipment.accountId,
+          registeredByType: shipment.registeredByType,
+          registeredById: shipment.registeredById,
+          action: "signature_requested",
+          actor: { actorType: "admin", actorId: adminSession.adminId, actorLabel: adminSession.role },
+          details: `Enlace creado para que firme electrónicamente ${account.name || shipment.senderName || "el remitente"} ${account.lastName || shipment.senderLastName || ""}`.trim(),
+          notifyAccount: true,
+        });
         return {
           status: "pending" as const,
           signatureUrl,
@@ -290,9 +329,6 @@ export const appRouter = router({
         if (!shipment) {
           throw new TRPCError({ code: "NOT_FOUND", message: "Envío no encontrado" });
         }
-        if (shipment.deliveryMode !== "remoto") {
-          throw new TRPCError({ code: "FORBIDDEN", message: "Este envío se entrega en agencia y no admite firma remota." });
-        }
         if (!shipment.accountId || shipment.accountId !== accountSession.accountId) throw new TRPCError({ code: "FORBIDDEN", message: "Esta solicitud de firma no corresponde a tu cuenta Cliente." });
         const signature = await getShipmentSignatureByShipmentId(shipment.id);
         if (!signature || signature.status === "signed") {
@@ -314,13 +350,33 @@ export const appRouter = router({
           signerDni: input.signerDni?.trim() || null,
           signerEmail: input.signerEmail?.trim() || null,
           signerPhone: input.signerPhone?.trim() || null,
-          consentTextVersion: "servicom-remoto-v1",
+          consentTextVersion: "servicom-envio-v2",
           consentAcceptedAt: new Date(),
           signatureStrokes: input.signatureStrokes,
         });
         if (!saved) {
           throw new TRPCError({ code: "UNAUTHORIZED", message: "La sesión de firma expiró o ya fue utilizada" });
         }
+        await recordShipmentAudit({ shipmentId: shipment.id, action: "signature_completed", actor: { actorType: "account", actorId: accountSession.accountId, actorLabel: saved.signerName }, metadata: { deliveryMode: shipment.deliveryMode, consentTextVersion: "servicom-envio-v2", signerEmail: saved.signerEmail } });
+        await notifyShipmentEvent({
+          shipmentId: shipment.id,
+          orderNumber: shipment.orderNumber,
+          code: shipment.code,
+          shipmentType: shipment.shipmentType,
+          senderName: shipment.senderName,
+          senderLastName: shipment.senderLastName,
+          senderDni: shipment.senderDni,
+          senderPhone: shipment.senderPhone,
+          recipientName: shipment.recipientName,
+          recipientLastName: shipment.recipientLastName,
+          accountId: shipment.accountId,
+          registeredByType: shipment.registeredByType,
+          registeredById: shipment.registeredById,
+          action: "signature_completed",
+          actor: { actorType: "account", actorId: accountSession.accountId, actorLabel: saved.signerName },
+          details: `Firmado electrónicamente por ${saved.signerName}.`,
+          notifyAccount: true,
+        });
         await recordInteractionEvent({ actorType: "anonymous", eventName: "signature_completed", surface: "receipt", metadata: { shipmentType: shipment.shipmentType, deliveryMode: shipment.deliveryMode } });
         return {
           status: "signed" as const,

@@ -1599,3 +1599,10 @@
 - [x] Mostrar al administrador la diferencia entre notificación automática y entrega manual, con copia y apertura del enlace.
 - [x] Añadir pruebas de generación manual, firma pública sin cuenta y rechazo de token/solicitud no autorizados.
 - [x] Ejecutar TypeScript, pruebas completas, build y verificación visual antes del checkpoint.
+
+## Notificaciones precisas y trazabilidad por evento
+- [x] Auditar las fuentes de notificaciones, auditoría y visibilidad de firma electrónica.
+- [x] Crear títulos y mensajes específicos para creación de documento, creación de encomienda, alta de cliente, cambios de DNI, teléfono, remitente, destinatario y estado.
+- [x] Registrar y notificar la creación del enlace de firma indicando el remitente, y la firma completada indicando que el cambio fue aplicado.
+- [x] Restaurar la acción «Para firmar electrónicamente» al final del envío cuando exista una solicitud válida pendiente y el rol tenga permiso.
+- [x] Añadir pruebas de payload, texto, aislamiento por rol y trazabilidad completa; validar TypeScript, suite, build y UI.

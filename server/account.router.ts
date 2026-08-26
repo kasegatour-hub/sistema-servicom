@@ -215,7 +215,7 @@ export const accountRouter = router({
       }
 
 await upsertClient({ ownerAdminId: null, name: input.name, lastName: input.lastName, dni: input.dni, documentType: input.documentType, phone, email });
-      await notifyAccountEvent({ accountId: account.id, title: "Nuevo cliente registrado", message: "Tu cuenta Cliente fue creada correctamente.", kind: "account_created", actor: { actorType: "account", actorId: account.id, actorLabel: `${input.name} ${input.lastName}`.trim() }, details: "Ya puedes registrar y rastrear tus envíos desde la plataforma." });
+      await notifyAccountEvent({ accountId: account.id, title: "Nuevo cliente registrado", message: `Nuevo cliente creado: ${input.name} ${input.lastName}.`, kind: "account_created", actor: { actorType: "account", actorId: account.id, actorLabel: `${input.name} ${input.lastName}`.trim() }, details: `Documento: ${input.documentType} ${input.dni}. Teléfono: ${phone || "No indicado"}. Correo: ${email}.` });
       setAccountSession(ctx.req, ctx.res, account.id, false);
 return {
 success: true,
@@ -336,7 +336,8 @@ reauthRequired: session.reauthRequired,
         previousAccount?.phone !== phone ? "celular" : null,
         previousAccount?.biography !== input.biography ? "biografía" : null,
       ].filter((field): field is string => Boolean(field));
-      await notifyAccountEvent({ accountId: account.id, title: "Datos del cliente actualizados", message: "Se actualizaron tus datos personales.", kind: "account_updated", actor: { actorType: "account", actorId: account.id, actorLabel: `${input.name} ${input.lastName}`.trim() }, details: changedFields.length ? `Campos modificados: ${changedFields.join(", ")}.` : "No se detectaron cambios adicionales." });
+      const updateTitle = changedFields.length ? `Cliente actualizado: ${changedFields.join(", ")}` : "Cliente actualizado";
+      await notifyAccountEvent({ accountId: account.id, title: updateTitle, message: changedFields.length ? `Se actualizaron: ${changedFields.join(", ")}.` : "Se revisó el perfil del cliente sin cambios adicionales.", kind: "account_updated", actor: { actorType: "account", actorId: account.id, actorLabel: `${input.name} ${input.lastName}`.trim() }, details: `Nombre: ${input.name} ${input.lastName}. Documento: ${input.documentType} ${input.dni}. Teléfono: ${phone || "No indicado"}.` });
       return { success: true, account };
     }),
 

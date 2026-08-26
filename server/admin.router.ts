@@ -7,7 +7,7 @@ function buildTrackingPath(orderNumber: string, code: string): string {
   return `/?order=${encodeURIComponent(order)}&code=${encodeURIComponent(normalizedCode)}`;
 }
 import { publicProcedure, router } from "./_core/trpc";
-import { ISOLATED_WORKSPACE_ADMIN_IDS, attachShipmentAuditActorLabels, clearAdminPasswordFailures, createDiscountCoupon, createInvitationLetterAccount, createInvitationLetterRecord, createOrRefreshInvitationLetterSignatureRequest, createRecipientChangeRequest, createShipment, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAllShipments, getDeletedShipments, getDiscountCouponByCode, getInvitationLetterById, getLocalAccountById, getShipmentAuditLogs, getShipmentById, getShipmentByOrderAndCode, getShipmentRoutePolicy, incrementDiscountCouponRedemption, isEncomiendaEnabledForRoute, listDeletedInvitationLetterRecords, listDiscountCoupons, listInvitationLetterRecords, listRecipientChangeRequestsForShipment, listShipmentOrderNumbersByPrefix, listShipmentSenders, createShipmentSender, markRecipientChangeRequestNotified, setShipmentSenderActive, moveInvitationLetterToTrash, notifyAccountEvent, recordInteractionEvent, recordShipmentAudit, registerAdminPasswordFailure, restoreInvitationLetterFromTrash, restoreShipment, searchClients, searchInvitationLetterPeople, setEncomiendaAvailabilityForRoute, setShipmentRegistradorVisibility, shipmentSenderMatchesAccount, updateAdminProfile, updateAdminProfilePhoto, updateDiscountCoupon, updateShipmentStatus } from "./db";
+import { ISOLATED_WORKSPACE_ADMIN_IDS, attachShipmentAuditActorLabels, clearAdminPasswordFailures, createDiscountCoupon, createInvitationLetterAccount, createInvitationLetterRecord, createOrRefreshInvitationLetterSignatureRequest, createRecipientChangeRequest, createShipment, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAllShipments, getDeletedShipments, getDiscountCouponByCode, getInvitationLetterById, getLocalAccountById, getShipmentAuditLogs, getShipmentById, getShipmentByOrderAndCode, getShipmentRoutePolicy, incrementDiscountCouponRedemption, isEncomiendaEnabledForRoute, listDeletedInvitationLetterRecords, listDiscountCoupons, listInvitationLetterRecords, listRecipientChangeRequestsForShipment, listShipmentOrderNumbersByPrefix, listShipmentSenders, createShipmentSender, markRecipientChangeRequestNotified, setShipmentSenderActive, moveInvitationLetterToTrash, notifyAccountEvent, notifyShipmentEvent, recordInteractionEvent, recordShipmentAudit, registerAdminPasswordFailure, restoreInvitationLetterFromTrash, restoreShipment, searchClients, searchInvitationLetterPeople, setEncomiendaAvailabilityForRoute, setShipmentRegistradorVisibility, shipmentSenderMatchesAccount, updateAdminProfile, updateAdminProfilePhoto, updateDiscountCoupon, updateShipmentStatus } from "./db";
 import { getRemainingLockoutSeconds, MAX_PASSWORD_FAILURES, PASSWORD_LOCKOUT_SECONDS } from "./loginProtection";
 import { generateTemporaryPassword, generateVerificationCode, hashPassword, hashVerificationCode, normalizeEmail, sendInvitationLetterSignatureEmail, sendRecipientChangeSignatureEmail, sendVerificationEmail, verificationExpiry, verifyPassword } from "./localAuth";
 import { AdminSessionPayload, clearAdminSession, getAdminSession, setAdminSession } from "./adminSession";
@@ -996,10 +996,30 @@ export const adminRouter = router({
       });
       if (!request) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No se pudo crear la solicitud de cambio de destinatario." });
       const signatureUrl = getRecipientChangeSignatureUrl(getRequestOrigin(ctx.req), request.id, token.token);
+      await recordShipmentAudit({ shipmentId: shipment.id, action: "signature_requested", actor: { actorType: "admin", actorId: ctx.adminSession.adminId, actorLabel }, metadata: { recipientChangeRequestId: request.id, deliveryMode: senderMatchesAccount ? "automatic" : "manual", accountId: senderMatchesAccount ? account!.id : null, signatureUrl } });
+      await notifyShipmentEvent({
+        shipmentId: shipment.id,
+        orderNumber: shipment.orderNumber,
+        code: shipment.code,
+        shipmentType: shipment.shipmentType,
+        senderName: shipment.senderName,
+        senderLastName: shipment.senderLastName,
+        senderDni: shipment.senderDni,
+        senderPhone: shipment.senderPhone,
+        recipientName: shipment.recipientName,
+        recipientLastName: shipment.recipientLastName,
+        accountId: null,
+        registeredByType: shipment.registeredByType,
+        registeredById: shipment.registeredById,
+        action: "signature_requested",
+        actor: { actorType: "admin", actorId: ctx.adminSession.adminId, actorLabel },
+        details: `Enlace creado para firmar para ${shipment.senderName || "el remitente"} ${shipment.senderLastName || ""}`.trim(),
+        notifyAccount: false,
+      });
       let accountNotified = false;
       let emailSent = false;
       if (senderMatchesAccount && account) {
-        await notifyAccountEvent({ accountId: account.id, title: "Firma requerida: cambio de destinatario", message: `Revisa y firma la solicitud para la Orden ${shipment.orderNumber}.`, kind: "recipient_change_signature", actor: { actorType: "admin", actorId: ctx.adminSession.adminId, actorLabel }, details: signatureUrl });
+        await notifyAccountEvent({ accountId: account.id, title: "Enlace creado para firmar", message: `Se creó un enlace para que ${account.name || shipment.senderName || "el remitente"} ${account.lastName || shipment.senderLastName || ""}`.trim() + ` firme el cambio de destinatario de la Orden ${shipment.orderNumber}.`, kind: "recipient_change_signature", actor: { actorType: "admin", actorId: ctx.adminSession.adminId, actorLabel }, details: `Enlace: ${signatureUrl}` });
         accountNotified = true;
         try {
           await sendRecipientChangeSignatureEmail({ email: account.email, signerName: `${account.name || ""} ${account.lastName || ""}`.trim() || "Cliente", signatureUrl, orderNumber: shipment.orderNumber });

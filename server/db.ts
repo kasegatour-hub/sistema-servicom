@@ -61,31 +61,92 @@ async function getNotificationActorDisplay(actor: NotificationActor): Promise<No
   return { label: accountName || account?.email?.trim() || fallbackLabel, role: "Cliente" };
 }
 
+const SHIPMENT_CHANGE_LABELS: Record<string, string> = {
+  senderName: "remitente",
+  senderLastName: "remitente",
+  senderDni: "DNI del remitente",
+  senderDocumentType: "documento del remitente",
+  senderPhone: "teléfono del remitente",
+  recipientName: "destinatario",
+  recipientLastName: "destinatario",
+  recipientDni: "DNI del destinatario",
+  recipientDocumentType: "documento del destinatario",
+  recipientPhone: "teléfono del destinatario",
+  status: "estado del envío",
+  paymentStatus: "estado de pago",
+  destinationAddress: "sede o destino",
+  provinceCarrier: "agencia provincial",
+  route: "ruta",
+  shipmentType: "tipo de envío",
+  weightKg: "peso",
+  notes: "notas",
+  finalPriceEur: "precio",
+  basePriceEur: "precio base",
+  manualPriceEur: "precio manual",
+  requiresApostilleService: "apostilla",
+  requiresTranslationService: "traducción",
+};
+
+export function getShipmentNotificationTitle(input: {
+  shipmentType: "documento" | "encomienda";
+  action: "created" | "updated" | "deleted" | "restored" | "signature_requested" | "signature_completed";
+  changedFields?: string[];
+}) {
+  const noun = input.shipmentType === "documento" ? "documento" : "encomienda";
+  const capitalizedNoun = noun.charAt(0).toUpperCase() + noun.slice(1);
+  const updatedNoun = input.shipmentType === "documento" ? "Documento actualizado" : "Encomienda actualizada";
+  if (input.action === "created") return input.shipmentType === "documento" ? "Nuevo documento creado" : "Nueva encomienda creada";
+  if (input.action === "deleted") return `${capitalizedNoun} enviado a papelera`;
+  if (input.action === "restored") return `${capitalizedNoun} restaurado`;
+  if (input.action === "signature_requested") return "Enlace creado para firmar";
+  if (input.action === "signature_completed") return "Firma completada";
+  const labels = Array.from(new Set((input.changedFields || []).map(field => SHIPMENT_CHANGE_LABELS[field] || field).filter(Boolean)));
+  return labels.length ? `${updatedNoun}: ${labels.join(", ")}` : updatedNoun;
+}
+
+export function getShipmentChangedFields(previous: Record<string, unknown> | null | undefined, next: Record<string, unknown> | null | undefined) {
+  if (!previous || !next) return [];
+  return Object.keys(SHIPMENT_CHANGE_LABELS).filter(key => String(previous[key] ?? "") !== String(next[key] ?? ""));
+}
+
 export function buildShipmentNotificationMessage(input: {
   shipmentType: "documento" | "encomienda";
   orderNumber: string;
   code: string;
+  senderName?: string | null;
+  senderLastName?: string | null;
+  senderDni?: string | null;
+  senderPhone?: string | null;
   recipientName?: string | null;
   recipientLastName?: string | null;
-  action: "created" | "updated" | "deleted" | "restored";
+  action: "created" | "updated" | "deleted" | "restored" | "signature_requested" | "signature_completed";
   actor: NotificationActorDisplay;
   previousStatus?: string | null;
   currentStatus?: string | null;
+  changedFields?: string[];
   details?: string | null;
 }) {
   const shipmentLabel = input.shipmentType === "documento" ? "Documento" : "Encomienda";
+  const sender = [input.senderName, input.senderLastName].filter(Boolean).join(" ").trim() || "No registrado";
   const recipient = [input.recipientName, input.recipientLastName].filter(Boolean).join(" ").trim() || "No registrado";
-  const actionText = { created: "Creación registrada", updated: "Actualización registrada", deleted: "Envío movido a papelera", restored: "Envío restaurado" }[input.action];
-  const statusLine = input.action === "updated" && input.previousStatus && input.currentStatus
+  const actionText = getShipmentNotificationTitle(input);
+  const statusLine = input.action === "updated" && input.previousStatus && input.currentStatus && input.previousStatus !== input.currentStatus
     ? `Estado: ${input.previousStatus} → ${input.currentStatus}`
     : input.currentStatus ? `Estado: ${input.currentStatus}` : null;
+  const changedLine = input.action === "updated" && input.changedFields?.length
+    ? `Campos actualizados: ${Array.from(new Set(input.changedFields.map(field => SHIPMENT_CHANGE_LABELS[field] || field))).join(", ")}`
+    : null;
   return [
     actionText,
     `Envío: ${shipmentLabel}`,
     `Orden: ${input.orderNumber}`,
     `Código: ${input.code}`,
+    `Remitente / cliente: ${sender}`,
+    input.senderDni ? `Documento del remitente: ${input.senderDni}` : null,
+    input.senderPhone ? `Teléfono del remitente: ${input.senderPhone}` : null,
     `Destinatario: ${recipient}`,
     `${input.actor.role}: ${input.actor.label}`,
+    changedLine,
     statusLine,
     input.details?.trim() ? `Detalle: ${input.details.trim()}` : null,
   ].filter(Boolean).join("\n");
@@ -144,32 +205,41 @@ export async function notifyShipmentEvent(input: {
   orderNumber: string;
   code: string;
   shipmentType: "documento" | "encomienda";
+  senderName?: string | null;
+  senderLastName?: string | null;
+  senderDni?: string | null;
+  senderPhone?: string | null;
   recipientName?: string | null;
   recipientLastName?: string | null;
   accountId?: number | null;
   registeredByType?: string | null;
   registeredById?: number | null;
-  action: "created" | "updated" | "deleted" | "restored";
+  action: "created" | "updated" | "deleted" | "restored" | "signature_requested" | "signature_completed";
   actor: NotificationActor;
   details?: string;
   previousStatus?: string | null;
   currentStatus?: string | null;
+  changedFields?: string[];
   notifyAccount?: boolean;
 }) {
   const scopedAdminId = input.registeredByType === "admin" ? input.registeredById : null;
   const adminIds = await activeAdminIds({ scopedAdminId });
-  const actionText = { created: "Nuevo envío creado", updated: "Envío actualizado", deleted: "Envío enviado a la papelera", restored: "Envío restaurado" }[input.action];
   const actorDisplay = await getNotificationActorDisplay(input.actor);
   const message = buildShipmentNotificationMessage({
     shipmentType: input.shipmentType,
     orderNumber: input.orderNumber,
     code: input.code,
+    senderName: input.senderName,
+    senderLastName: input.senderLastName,
+    senderDni: input.senderDni,
+    senderPhone: input.senderPhone,
     recipientName: input.recipientName,
     recipientLastName: input.recipientLastName,
     action: input.action,
     actor: actorDisplay,
     previousStatus: input.previousStatus,
     currentStatus: input.currentStatus,
+    changedFields: input.changedFields,
     details: input.details,
   });
   const recipients = new Map<string, { type: NotificationRecipientType; id: number }>();
@@ -179,7 +249,7 @@ export async function notifyShipmentEvent(input: {
     recipientType: recipient.type,
     recipientId: recipient.id,
     kind: `shipment_${input.action}`,
-    title: actionText,
+    title: getShipmentNotificationTitle(input),
     message,
     entityType: "shipment",
     entityId: input.shipmentId,
@@ -1700,7 +1770,7 @@ export async function createShipment(
   if (insertedId > 0) {
     const createdShipment = await getShipmentRecordById(insertedId);
     await recordShipmentAudit({ shipmentId: insertedId, action: "created", actor, snapshot: createdShipment });
-    await notifyShipmentEvent({ shipmentId: insertedId, orderNumber: normalizedOrder, code: normalizedCode, shipmentType: normalizedShipmentType, recipientName, recipientLastName, accountId: accountId ?? null, registeredByType: registeredBy?.type ?? (accountId ? "account" : "system"), registeredById: registeredBy?.id ?? accountId ?? null, action: "created", actor, currentStatus: status, details: "Revisa el estado y los datos del registro desde tu panel.", notifyAccount: Boolean(accountId) });
+    await notifyShipmentEvent({ shipmentId: insertedId, orderNumber: normalizedOrder, code: normalizedCode, shipmentType: normalizedShipmentType, senderName, senderLastName, senderDni, senderPhone, recipientName, recipientLastName, accountId: accountId ?? null, registeredByType: registeredBy?.type ?? (accountId ? "account" : "system"), registeredById: registeredBy?.id ?? accountId ?? null, action: "created", actor, currentStatus: status, details: `Documento del remitente: ${senderDni || "No indicado"}. Teléfono: ${senderPhone || "No indicado"}. Revisa el estado y los datos del registro desde tu panel.`, notifyAccount: Boolean(accountId) });
   }
 
   return result;
@@ -1857,7 +1927,8 @@ export async function updateShipmentStatus(
       .where(eq(shipments.id, id));
 
     const updatedShipment = await getShipmentRecordById(id);
-    await notifyShipmentEvent({ shipmentId: id, orderNumber: shipment.orderNumber, code: shipment.code, shipmentType: updatedShipmentType, recipientName: updatedShipment?.recipientName ?? shipment.recipientName, recipientLastName: updatedShipment?.recipientLastName ?? shipment.recipientLastName, accountId: shipment.accountId, registeredByType: shipment.registeredByType, registeredById: shipment.registeredById, action: "updated", actor: changeActor || { actorType: "system", actorLabel: "Sistema" }, previousStatus: shipment.status, currentStatus: newStatus, details: description || undefined, notifyAccount: Boolean(shipment.accountId) });
+    const changedFields = getShipmentChangedFields(shipment as Record<string, unknown>, updatedShipment as Record<string, unknown> | undefined);
+    await notifyShipmentEvent({ shipmentId: id, orderNumber: shipment.orderNumber, code: shipment.code, shipmentType: updatedShipmentType, senderName: updatedShipment?.senderName ?? shipment.senderName, senderLastName: updatedShipment?.senderLastName ?? shipment.senderLastName, senderDni: updatedShipment?.senderDni ?? shipment.senderDni, senderPhone: updatedShipment?.senderPhone ?? shipment.senderPhone, recipientName: updatedShipment?.recipientName ?? shipment.recipientName, recipientLastName: updatedShipment?.recipientLastName ?? shipment.recipientLastName, accountId: shipment.accountId, registeredByType: shipment.registeredByType, registeredById: shipment.registeredById, action: "updated", actor: changeActor || { actorType: "system", actorLabel: "Sistema" }, previousStatus: shipment.status, currentStatus: newStatus, changedFields, details: description || undefined, notifyAccount: Boolean(shipment.accountId) });
     console.log("[Database] Shipment updated successfully:", { id, newStatus, eventsLength: events.length });
     return result;
   } catch (error) {
@@ -1891,7 +1962,7 @@ export async function deleteShipment(id: number, actor: ShipmentAuditActor = { a
       updatedAt: new Date(),
     }).where(eq(shipments.id, id));
     await recordShipmentAudit({ shipmentId: id, action: "deleted", actor, reason, snapshot: shipment });
-    await notifyShipmentEvent({ shipmentId: id, orderNumber: shipment.orderNumber, code: shipment.code, shipmentType: shipment.shipmentType, recipientName: shipment.recipientName, recipientLastName: shipment.recipientLastName, accountId: shipment.accountId, registeredByType: shipment.registeredByType, registeredById: shipment.registeredById, action: "deleted", actor, currentStatus: shipment.status, details: reason, notifyAccount: Boolean(shipment.accountId) });
+    await notifyShipmentEvent({ shipmentId: id, orderNumber: shipment.orderNumber, code: shipment.code, shipmentType: shipment.shipmentType, senderName: shipment.senderName, senderLastName: shipment.senderLastName, senderDni: shipment.senderDni, senderPhone: shipment.senderPhone, recipientName: shipment.recipientName, recipientLastName: shipment.recipientLastName, accountId: shipment.accountId, registeredByType: shipment.registeredByType, registeredById: shipment.registeredById, action: "deleted", actor, currentStatus: shipment.status, details: reason, notifyAccount: Boolean(shipment.accountId) });
     return true;
   } catch (error) {
     console.error("[Database] Error moving shipment to trash:", error);
@@ -1912,7 +1983,7 @@ export async function restoreShipment(id: number, actor: ShipmentAuditActor = { 
     updatedAt: new Date(),
   }).where(eq(shipments.id, id));
   await recordShipmentAudit({ shipmentId: id, action: "restored", actor, snapshot: shipment });
-  await notifyShipmentEvent({ shipmentId: id, orderNumber: shipment.orderNumber, code: shipment.code, shipmentType: shipment.shipmentType, recipientName: shipment.recipientName, recipientLastName: shipment.recipientLastName, accountId: shipment.accountId, registeredByType: shipment.registeredByType, registeredById: shipment.registeredById, action: "restored", actor, currentStatus: shipment.status, details: "El registro vuelve a estar disponible para su seguimiento.", notifyAccount: Boolean(shipment.accountId) });
+  await notifyShipmentEvent({ shipmentId: id, orderNumber: shipment.orderNumber, code: shipment.code, shipmentType: shipment.shipmentType, senderName: shipment.senderName, senderLastName: shipment.senderLastName, senderDni: shipment.senderDni, senderPhone: shipment.senderPhone, recipientName: shipment.recipientName, recipientLastName: shipment.recipientLastName, accountId: shipment.accountId, registeredByType: shipment.registeredByType, registeredById: shipment.registeredById, action: "restored", actor, currentStatus: shipment.status, details: "El registro vuelve a estar disponible para su seguimiento.", notifyAccount: Boolean(shipment.accountId) });
   return true;
 }
 
@@ -1936,7 +2007,7 @@ export async function setShipmentRegistradorVisibility(id: number, hidden: boole
     snapshot: shipment,
     metadata: { hiddenFromRegistradores: hidden },
   });
-  await notifyShipmentEvent({ shipmentId: id, orderNumber: shipment.orderNumber, code: shipment.code, shipmentType: shipment.shipmentType, recipientName: shipment.recipientName, recipientLastName: shipment.recipientLastName, accountId: shipment.accountId, registeredByType: shipment.registeredByType, registeredById: shipment.registeredById, action: "updated", actor, previousStatus: shipment.status, currentStatus: shipment.status, details: hidden ? `Envío ocultado para Registradores.${reason ? ` Motivo: ${reason.trim()}` : ""}` : "Envío visible nuevamente para Registradores.", notifyAccount: false });
+  await notifyShipmentEvent({ shipmentId: id, orderNumber: shipment.orderNumber, code: shipment.code, shipmentType: shipment.shipmentType, senderName: shipment.senderName, senderLastName: shipment.senderLastName, senderDni: shipment.senderDni, senderPhone: shipment.senderPhone, recipientName: shipment.recipientName, recipientLastName: shipment.recipientLastName, accountId: shipment.accountId, registeredByType: shipment.registeredByType, registeredById: shipment.registeredById, action: "updated", actor, previousStatus: shipment.status, currentStatus: shipment.status, changedFields: [hidden ? "visibilidad" : "visibilidad"], details: hidden ? `Envío ocultado para Registradores.${reason ? ` Motivo: ${reason.trim()}` : ""}` : "Envío visible nuevamente para Registradores.", notifyAccount: false });
   return true;
 }
 

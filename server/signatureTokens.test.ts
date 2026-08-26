@@ -86,6 +86,20 @@ describe("signature token security", () => {
     expect(authMocks.sendShipmentSignatureEmail).toHaveBeenCalledWith(expect.objectContaining({ email: "cliente@example.com" }));
   });
 
+  it("allows an agency delivery to start electronic signing for its linked Client account", async () => {
+    authMocks.getAdminSession.mockReturnValue({ adminId: 4, role: "registrador", reauthRequired: false });
+    dbMocks.getShipmentByOrderAndCode.mockResolvedValue({ ...shipment, deliveryMode: "agencia" });
+    dbMocks.getShipmentSignatureByShipmentId.mockResolvedValue(undefined);
+    dbMocks.getLocalAccountById.mockResolvedValue({ id: 77, email: "cliente@example.com", name: "Ana", lastName: "Pérez" });
+    dbMocks.createOrRefreshShipmentSignatureRequest.mockResolvedValue({ shipmentId: 81, status: "pending" });
+
+    const caller = appRouter.createCaller(publicContext());
+    const result = await caller.shipment.requestSignature({ orderNumber: shipment.orderNumber, code: shipment.code });
+
+    expect(result.status).toBe("pending");
+    expect(authMocks.sendShipmentSignatureEmail).toHaveBeenCalledWith(expect.objectContaining({ email: "cliente@example.com" }));
+  });
+
   it("rejects an invalid token before writing a signature", async () => {
     dbMocks.getShipmentByOrderAndCode.mockResolvedValue(shipment);
     dbMocks.getShipmentSignatureByShipmentId.mockResolvedValue({
