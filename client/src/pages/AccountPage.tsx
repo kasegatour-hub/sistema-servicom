@@ -97,6 +97,7 @@ export default function AccountPage() {
   const [documentCount, setDocumentCount] = useState(1);
   const [docType, setDocType] = useState<"simple" | "apostillado">("simple");
   const [shipmentRoute, setShipmentRoute] = useState<ClientShipmentRoute>(SHIPMENT_ROUTES.LIMA_TORINO);
+  const [clientRouteFilter, setClientRouteFilter] = useState<"all" | "Lima - Torino" | "Torino - Lima">("all");
   const [requiresApostilleService, setRequiresApostilleService] = useState(false);
   const [requiresTranslationService, setRequiresTranslationService] = useState(false);
   const [destinationAddress, setDestinationAddress] = useState("");
@@ -246,7 +247,8 @@ export default function AccountPage() {
     setRecipientLookupOpen(false);
     setIdentityErrors(previous => ({ ...previous, recipientName: "", recipientLastName: "" }));
   };
-  const clientRevenue = useMemo(() => summarizeRevenue(myShipments), [myShipments]);
+  const routeShipments = useMemo(() => (myShipments || []).filter(shipment => clientRouteFilter === "all" ? true : clientRouteFilter === "Torino - Lima" ? isTorinoLimaRoute(shipment.route) : shipment.route === "Lima - Torino"), [myShipments, clientRouteFilter]);
+  const clientRevenue = useMemo(() => summarizeRevenue(routeShipments), [routeShipments]);
   const { data: myDeletedShipments, refetch: refetchDeletedShipments } = trpc.account.myDeletedShipments.useQuery(undefined, {
     enabled: !!me && !me.reauthRequired,
   });
@@ -255,7 +257,7 @@ export default function AccountPage() {
   const filteredClientShipments = useMemo(() => {
     const query = clientSearchTerm.trim();
     const relevanceByShipmentId = new Map<number, number>();
-    return [...(myShipments || [])].filter((shipment: any) => {
+    return [...routeShipments].filter((shipment: any) => {
       const relevance = getFuzzySearchScore(query, [shipment.orderNumber, shipment.code, shipment.recipientName, shipment.recipientLastName, shipment.recipientDni].filter(Boolean).join(" "));
       relevanceByShipmentId.set(shipment.id, relevance);
       const textMatches = !query || relevance > 0;
@@ -263,7 +265,7 @@ export default function AccountPage() {
       const statusMatches = clientStatusFilter === "all" || shipment.status === clientStatusFilter;
       return textMatches && paymentMatches && statusMatches;
     }).sort((left: any, right: any) => (query ? (relevanceByShipmentId.get(right.id) || 0) - (relevanceByShipmentId.get(left.id) || 0) : 0) || new Date(right.createdAt || 0).getTime() - new Date(left.createdAt || 0).getTime());
-  }, [myShipments, clientSearchTerm, clientPaymentFilter, clientStatusFilter]);
+  }, [routeShipments, clientSearchTerm, clientPaymentFilter, clientStatusFilter]);
   const clientPagination = paginateItems(filteredClientShipments, clientCurrentPage, clientPageSize);
   const filteredClientTrash = useMemo(() => {
     const query = clientTrashSearchTerm.trim();
@@ -745,7 +747,7 @@ export default function AccountPage() {
 
           <Card className={`border-0 p-6 shadow-md ${clientWorkspace === "resumen" ? "" : "hidden"}`}>
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <div><h2 className="text-lg font-bold text-[#0B2B5E]">Resumen de pagos</h2><p className="mt-1 text-xs text-slate-500">Solo se contabilizan tus envíos marcados como pagados.</p></div>
+              <div><h2 className="text-lg font-bold text-[#0B2B5E]">Resumen de pagos</h2><p className="mt-1 text-xs text-slate-500">Solo se contabilizan tus envíos marcados como pagados. Ruta: <strong>{clientRouteFilter === "all" ? "Todas las rutas" : clientRouteFilter === "Lima - Torino" ? "Lima–Torino" : "Torino–Lima + provincia"}</strong>.</p></div><div className="flex w-full gap-2" role="group" aria-label="Ruta del resumen del Cliente"><Button type="button" aria-pressed={clientRouteFilter === "Lima - Torino"} onClick={() => setClientRouteFilter("Lima - Torino")} className={clientRouteFilter === "Lima - Torino" ? "min-h-11 bg-[#0B2B5E] text-white" : "min-h-11 border border-blue-200 bg-blue-50 text-[#0B2B5E]"}>Lima → Torino</Button><Button type="button" aria-pressed={clientRouteFilter === "Torino - Lima"} onClick={() => setClientRouteFilter("Torino - Lima")} className={clientRouteFilter === "Torino - Lima" ? "min-h-11 bg-[#F28C00] text-white" : "min-h-11 border border-orange-200 bg-orange-50 text-[#9A5700]"}>Torino → Lima + provincia</Button></div>
               <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-right"><p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Pagado confirmado</p><p className="text-2xl font-extrabold text-emerald-800">{clientRevenue.confirmedEur.toLocaleString("es-PE", { style: "currency", currency: "EUR" })}</p></div>
             </div>
             <details className="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3"><summary className="cursor-pointer text-sm font-semibold text-[#0B2B5E]">Ver detalle de mis pagos</summary><div className="mt-3 grid grid-cols-2 gap-3 text-sm md:grid-cols-4"><div><span className="block text-xs text-slate-500">Envíos pagados</span><strong>{clientRevenue.paidCount}</strong></div><div><span className="block text-xs text-slate-500">Pendiente</span><strong>{clientRevenue.pendingEur.toLocaleString("es-PE", { style: "currency", currency: "EUR" })}</strong></div><div><span className="block text-xs text-slate-500">Registros pendientes</span><strong>{clientRevenue.pendingCount}</strong></div><div><span className="block text-xs text-slate-500">Total de envíos</span><strong>{clientRevenue.totalCount}</strong></div></div></details>
@@ -755,7 +757,7 @@ export default function AccountPage() {
             <Card className="border-0 p-6 shadow-md">
               <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-bold text-[#0B2B5E]">Analítica de interacción y tendencias</h2><p className="mt-1 text-xs text-slate-500">Esta área se abre solo cuando deseas revisar la operación. No analiza nombres, documentos, teléfonos ni notas.</p></div>{myInsights && <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-bold text-[#0B2B5E]">Puntaje {myInsights.engagementScore}/100</span>}</div>
               {myInsights && <><div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4"><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Interacciones</p><strong>{myInsights.totalEvents}</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Sesiones</p><strong>{myInsights.uniqueSessions}</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Continuidad</p><strong>{Math.round(myInsights.completionRate * 100)}%</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Actividad atípica</p><strong>{myInsights.anomalyScore}/100</strong></div></div><ul className="mt-4 space-y-1 text-sm text-slate-700">{myInsights.insights.map((insight: string) => <li key={insight}>• {insight}</li>)}</ul></>}
-              <div className="mt-6"><ShipmentTrendCharts shipments={myShipments} /></div>
+              <div className="mt-6"><ShipmentTrendCharts shipments={routeShipments} /></div>
             </Card>
           )}
 
@@ -807,6 +809,7 @@ export default function AccountPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className={mobileShipmentStepVisible(1) ? "" : "hidden"}>
                     <Label>Ruta de envío</Label>
+                    <div className="mb-2 grid gap-2 sm:grid-cols-2" role="group" aria-label="Ruta del nuevo envío"><Button type="button" aria-pressed={shipmentRoute === SHIPMENT_ROUTES.LIMA_TORINO} onClick={() => { setShipmentRoute(SHIPMENT_ROUTES.LIMA_TORINO); setDestinationAddress(""); }} className={shipmentRoute === SHIPMENT_ROUTES.LIMA_TORINO ? "min-h-11 bg-[#0B2B5E] text-white" : "min-h-11 border border-blue-200 bg-blue-50 text-[#0B2B5E]"}>Lima → Torino</Button><Button type="button" aria-pressed={shipmentRoute === SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE} onClick={() => { setShipmentRoute(SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE); setDestinationAddress(""); }} className={shipmentRoute === SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE ? "min-h-11 bg-[#F28C00] text-white" : "min-h-11 border border-orange-200 bg-orange-50 text-[#9A5700]"}>Torino → Lima + provincia</Button></div>
                     <select
                       aria-label="Ruta de envío"
                       value={shipmentRoute}

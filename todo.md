@@ -1573,3 +1573,10 @@
 - [x] Mostrar únicamente sedes y datos presenciales en esa vista
 - [x] Permitir volver a Rastreo desde el menú de tres puntos
 - [x] Añadir pruebas responsive, validar y publicar
+
+## Separación de rutas en registro, Contabilidad y Resumen
+- [x] Crear dos botones independientes para Lima → Torino y Torino → Lima + provincia en encomiendas y documentos
+- [x] Mantener cada ruta aislada en los formularios, registros y filtros de resumen
+- [x] Separar Contabilidad por ruta en ingresos, egresos, utilidad, detalle y exportaciones
+- [x] Añadir pruebas de regresión, validar responsive y publicar
+- [x] Ajustar la regresión del panel administrativo para que sus pruebas y registros de ruta mantengan una selección inicial coherente

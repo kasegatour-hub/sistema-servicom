@@ -60,7 +60,10 @@ describe("AccountingWorkspace", () => {
 
     expect(screen.getByRole("heading", { name: "Ingresos, egresos y utilidad" })).toBeTruthy();
     expect(screen.getByLabelText("Ruta contable")).toBeTruthy();
-    expect(screen.getAllByText("Todas las rutas").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "Lima → Torino" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("button", { name: "Torino → Lima + provincia" }).getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(screen.getByRole("button", { name: "Torino → Lima + provincia" }));
+    expect(accountingMocks.summary.data.routeLabel).toBe("Todas las rutas");
     expect(screen.getByLabelText("Semana del mes")).toBeTruthy();
     expect(screen.getByText("Utilidad neta EUR")).toBeTruthy();
     expect(screen.getByText("Encomiendas del periodo")).toBeTruthy();

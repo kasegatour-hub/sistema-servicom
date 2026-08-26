@@ -372,6 +372,14 @@ function PasswordInput({ className, revealLabel = "contraseña", ...inputProps }
   return <div className="relative"><Input {...inputProps} type={isVisible ? "text" : "password"} className={`${className || ""} pr-11`} /><button type="button" aria-label={actionLabel} aria-pressed={isVisible} title={actionLabel} onClick={() => setIsVisible(value => !value)} className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-500 transition hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"><>{isVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</></button></div>;
 }
 
+type OperationalRouteFilter = "all" | "Lima - Torino" | "Torino - Lima";
+
+function matchesOperationalRoute(route: string | null | undefined, filter: OperationalRouteFilter) {
+  // Los registros históricos sin ruta se mantienen visibles para no ocultar información; los nuevos siempre guardan una ruta explícita.
+  if (filter === "all" || !route) return true;
+  return filter === "Torino - Lima" ? isTorinoLimaRoute(route) : route === "Lima - Torino";
+}
+
 export default function AdminDashboard() {
   const isMobile = useIsMobile();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -391,6 +399,7 @@ export default function AdminDashboard() {
   const [autoSaveStatusFeedback, setAutoSaveStatusFeedback] = useState("");
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [shipmentView, setShipmentView] = useState<'documento' | 'encomienda'>('documento');
+  const [operationalRoute, setOperationalRoute] = useState<OperationalRouteFilter>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [showUserForm, setShowUserForm] = useState(false);
   const [showCouponForm, setShowCouponForm] = useState(false);
@@ -512,7 +521,8 @@ export default function AdminDashboard() {
   const visibleCoupons = orderedCoupons.slice((couponCurrentPage - 1) * couponPageSize, couponCurrentPage * couponPageSize);
   const couponFirstItem = orderedCoupons.length === 0 ? 0 : (couponCurrentPage - 1) * couponPageSize + 1;
   const couponLastItem = Math.min(couponCurrentPage * couponPageSize, orderedCoupons.length);
-  const adminRevenue = useMemo(() => summarizeRevenue(shipments), [shipments]);
+  const routeShipments = useMemo(() => (shipments ?? []).filter(shipment => matchesOperationalRoute(shipment.route, operationalRoute)), [shipments, operationalRoute]);
+  const adminRevenue = useMemo(() => summarizeRevenue(routeShipments), [routeShipments]);
 
   const filteredDeletedShipments = useMemo(() => {
     const query = deletedSearchTerm.trim().toLowerCase();
@@ -1136,6 +1146,15 @@ export default function AdminDashboard() {
     } catch (error: any) {
       toast.error(error.message || "No se pudo actualizar la visibilidad operativa del envío.");
     }
+  };
+
+  const chooseOperationalCreateRoute = (route: OperationalRouteFilter) => {
+    const nextRoute = route === "Lima - Torino" ? SHIPMENT_ROUTES.LIMA_TORINO : SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE;
+    const provinceRoute = isProvinceShipmentRoute(nextRoute);
+    createForm.setValue("route", nextRoute, { shouldValidate: true, shouldDirty: true });
+    createForm.setValue("isProvinceDelivery", provinceRoute, { shouldValidate: true, shouldDirty: true });
+    createForm.setValue("destinationAddress", provinceRoute ? "" : LIMA_SERVICOM_ADDRESS, { shouldValidate: true, shouldDirty: true });
+    setOperationalRoute(route);
   };
 
   const openCreateForm = (shipmentType: "documento" | "encomienda") => {
@@ -1778,8 +1797,8 @@ export default function AdminDashboard() {
   const [searchTerm, setSearchTerm] = useState('');
 
   const sortedShipments = useMemo(() => {
-    if (!shipments) return [];
-    let list = [...shipments].filter((shipment) => shipmentView === 'documento'
+    if (!routeShipments) return [];
+    let list = [...routeShipments].filter((shipment) => shipmentView === 'documento'
       ? shipment.shipmentType !== 'encomienda'
       : shipment.shipmentType === 'encomienda');
     const searchQuery = searchTerm.trim();
@@ -1802,11 +1821,11 @@ export default function AdminDashboard() {
       const dateB = new Date(b.createdAt).getTime();
       return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
     });
-  }, [shipments, shipmentView, sortOrder, searchTerm, paymentFilter, logisticsFilter]);
+  }, [routeShipments, shipmentView, sortOrder, searchTerm, paymentFilter, logisticsFilter]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, shipmentView, sortOrder, paymentFilter, logisticsFilter]);
+  }, [searchTerm, shipmentView, operationalRoute, sortOrder, paymentFilter, logisticsFilter]);
 
   const pagination = paginateItems(sortedShipments, currentPage, pageSize);
   const totalPages = pagination.totalPages;
@@ -2183,7 +2202,7 @@ export default function AdminDashboard() {
           <details className="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3"><summary className="cursor-pointer text-sm font-semibold text-[#0B2B5E]">Ver desglose de ingresos</summary><div className="mt-3 grid grid-cols-2 gap-3 text-sm md:grid-cols-6"><div><span className="block text-xs text-slate-500">Envíos pagados</span><strong>{adminRevenue.paidCount}</strong></div><div><span className="block text-xs text-slate-500">Pagados sin precio</span><strong>{adminRevenue.unpricedPaidCount}</strong></div><div><span className="block text-xs text-slate-500">Pendiente</span><strong>{adminRevenue.pendingEur.toLocaleString("es-PE", { style: "currency", currency: "EUR" })}</strong></div><div><span className="block text-xs text-slate-500">Documentos pagados</span><strong>{adminRevenue.documentsEur.toLocaleString("es-PE", { style: "currency", currency: "EUR" })}</strong></div><div><span className="block text-xs text-slate-500">Encomiendas pagadas</span><strong>{adminRevenue.parcelsEur.toLocaleString("es-PE", { style: "currency", currency: "EUR" })}</strong></div><div><span className="block text-xs text-slate-500">Provincia</span><strong>{adminRevenue.provinceShipmentCount}</strong></div><div><span className="block text-xs text-slate-500">Costo operativo provincia</span><strong>S/ {adminRevenue.provinceOperationalCostSoles.toFixed(2)}</strong></div><div><span className="block text-xs text-slate-500">Registros pendientes</span><strong>{adminRevenue.pendingCount}</strong></div></div></details>
         </Card>
 
-        {adminWorkspace === "analitica" && <Card className="mb-8 border-0 p-6 shadow-lg"><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-semibold text-gray-900">Analítica de interacción y tendencias</h2><p className="mt-1 text-sm text-slate-500">Esta área se abre solo al revisar la operación. No inspecciona nombres, documentos, teléfonos ni notas.</p></div>{adminInsights && <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-bold text-[#0B2B5E]">Puntaje {adminInsights.engagementScore}/100</span>}</div>{adminInsights && <><div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4"><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Interacciones</p><strong>{adminInsights.totalEvents}</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Sesiones</p><strong>{adminInsights.uniqueSessions}</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Continuidad</p><strong>{Math.round(adminInsights.completionRate * 100)}%</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Anomalía</p><strong>{adminInsights.anomalyScore}/100</strong></div></div><ul className="mt-4 space-y-1 text-sm text-slate-700">{adminInsights.insights.map((insight: string) => <li key={insight}>• {insight}</li>)}</ul></>}<div className="mt-6"><ShipmentTrendCharts shipments={shipments} /></div></Card>}
+        {adminWorkspace === "analitica" && <Card className="mb-8 border-0 p-6 shadow-lg"><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-semibold text-gray-900">Analítica de interacción y tendencias</h2><p className="mt-1 text-sm text-slate-500">Esta área se abre solo al revisar la operación. No inspecciona nombres, documentos, teléfonos ni notas.</p></div>{adminInsights && <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-bold text-[#0B2B5E]">Puntaje {adminInsights.engagementScore}/100</span>}</div>{adminInsights && <><div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4"><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Interacciones</p><strong>{adminInsights.totalEvents}</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Sesiones</p><strong>{adminInsights.uniqueSessions}</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Continuidad</p><strong>{Math.round(adminInsights.completionRate * 100)}%</strong></div><div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Anomalía</p><strong>{adminInsights.anomalyScore}/100</strong></div></div><ul className="mt-4 space-y-1 text-sm text-slate-700">{adminInsights.insights.map((insight: string) => <li key={insight}>• {insight}</li>)}</ul></>}<div className="mt-6"><ShipmentTrendCharts shipments={routeShipments} /></div></Card>}
 
         {adminWorkspace === "contabilidad" && <AccountingWorkspace />}
 
@@ -2328,7 +2347,8 @@ export default function AdminDashboard() {
             </details>
           )}
 
-          {createRecordTab !== "transferencia" && showCreateForm && (
+          {createRecordTab !== "transferencia" && showCreateForm && (<>
+            <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-3" role="group" aria-label="Ruta del nuevo documento o encomienda"><p className="mb-2 text-sm font-extrabold text-[#0B2B5E]">Ruta del nuevo documento o encomienda</p><div className="grid gap-2 sm:grid-cols-2"><Button type="button" aria-pressed={operationalRoute === "Lima - Torino"} onClick={() => chooseOperationalCreateRoute("Lima - Torino")} className={operationalRoute === "Lima - Torino" ? "min-h-12 bg-[#0B2B5E] text-white" : "min-h-12 border border-blue-200 bg-blue-50 text-[#0B2B5E]"}>Lima → Torino</Button><Button type="button" aria-pressed={operationalRoute === "Torino - Lima"} onClick={() => chooseOperationalCreateRoute("Torino - Lima")} className={operationalRoute === "Torino - Lima" ? "min-h-12 bg-[#F28C00] text-white" : "min-h-12 border border-orange-200 bg-orange-50 text-[#9A5700]"}>Torino → Lima + provincia</Button></div><p className="mt-2 text-xs text-slate-600">La ruta elegida se aplica a documentos y encomiendas y determina el registro contable.</p></div>
             <form onSubmit={createForm.handleSubmit(handleCreateShipment, handleCreateShipmentInvalid)} className={`space-y-4 rounded-2xl border-2 p-4 shadow-sm ${createFormTone.shell}`}>
                 {createShipmentValidationError && <div role="status" aria-live="assertive" className="sticky top-2 z-10 rounded-xl border-2 border-rose-300 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-800 shadow-sm"><strong className="block text-base">Revisa este dato antes de continuar</strong><span>{createShipmentValidationError}</span></div>}
               {/* Tarifa y estado del registro; el tipo ya lo define el botón de entrada */}
@@ -2748,7 +2768,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
             </form>
-          )}
+          </>)}
         </Card>
 
         {adminWorkspace === "usuarios" && admin?.role === "superadmin" && (
@@ -2849,6 +2869,10 @@ export default function AdminDashboard() {
           <div className="flex flex-col gap-5 mb-6">
             <div className="flex flex-wrap items-center gap-3">
               <h2 className="text-xl font-semibold text-gray-900">{shipmentView === 'documento' ? 'Documentos Registrados' : 'Encomiendas Registradas'}</h2>
+              <div className="flex flex-wrap gap-2" role="group" aria-label="Ruta de registros">
+                <Button type="button" aria-pressed={operationalRoute === "Lima - Torino"} onClick={() => setOperationalRoute("Lima - Torino")} className={operationalRoute === "Lima - Torino" ? "bg-[#0B2B5E] text-white" : "border border-blue-200 bg-blue-50 text-[#0B2B5E]"}>Lima → Torino</Button>
+                <Button type="button" aria-pressed={operationalRoute === "Torino - Lima"} onClick={() => setOperationalRoute("Torino - Lima")} className={operationalRoute === "Torino - Lima" ? "bg-[#F28C00] text-white" : "border border-orange-200 bg-orange-50 text-[#9A5700]"}>Torino → Lima + provincia</Button>
+              </div>
               <div className="flex items-center gap-1 rounded-lg bg-slate-100 p-1" role="tablist" aria-label="Tipo de envío">
                 <button
                   type="button"
