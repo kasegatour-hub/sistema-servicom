@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateOperatingStatement, getAccountingPeriodLabel } from "./operatingAccounting";
+import { calculateOperatingStatement, getAccountingPeriodLabel, resolveAccountingPeriod } from "./operatingAccounting";
 
 describe("operating accounting", () => {
   const shipments = [
@@ -36,5 +36,29 @@ describe("operating accounting", () => {
   it("identifica el periodo anual sin mezclar meses fuera del año", () => {
     expect(getAccountingPeriodLabel({ year: 2026, month: 8 })).toContain("2026");
     expect(calculateOperatingStatement({ shipments, expenses, period: { year: 2026 } }).shipmentCount).toBe(3);
+  });
+
+  it("resuelve hoy y una semana calendario con límites de inicio y fin excluyente", () => {
+    const today = resolveAccountingPeriod({ mode: "today" }, new Date("2026-08-12T18:00:00.000Z"));
+    const week = resolveAccountingPeriod({ mode: "week", weekDate: "2026-08-12T12:00:00.000Z" });
+    expect(today.startsAt.toISOString()).toBe("2026-08-12T00:00:00.000Z");
+    expect(today.endsAt.toISOString()).toBe("2026-08-13T00:00:00.000Z");
+    expect(week.startsAt.toISOString()).toBe("2026-08-10T00:00:00.000Z");
+    expect(week.endsAt.toISOString()).toBe("2026-08-17T00:00:00.000Z");
+  });
+
+  it("divide un mes en cuatro semanas operativas y deja el saldo al tramo cuatro", () => {
+    const first = resolveAccountingPeriod({ mode: "month", year: 2026, month: 8, weekOfMonth: 1 });
+    const fourth = resolveAccountingPeriod({ mode: "month", year: 2026, month: 8, weekOfMonth: 4 });
+    expect(first.startsAt.toISOString()).toBe("2026-08-01T00:00:00.000Z");
+    expect(first.endsAt.toISOString()).toBe("2026-08-08T00:00:00.000Z");
+    expect(fourth.startsAt.toISOString()).toBe("2026-08-22T00:00:00.000Z");
+    expect(fourth.endsAt.toISOString()).toBe("2026-09-01T00:00:00.000Z");
+  });
+
+  it("usa un rango inclusivo y corrige un rango ingresado en orden inverso", () => {
+    const range = resolveAccountingPeriod({ mode: "range", from: "2026-08-12T12:00:00.000Z", to: "2026-08-10T12:00:00.000Z" });
+    expect(range.startsAt.toISOString()).toBe("2026-08-12T00:00:00.000Z");
+    expect(range.endsAt.toISOString()).toBe("2026-08-13T00:00:00.000Z");
   });
 });

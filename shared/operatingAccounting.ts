@@ -28,24 +28,103 @@ export type AccountingExpense = {
   createdByLabel?: string | null;
 };
 
-export type AccountingPeriod = { year: number; month?: number | null };
+export type AccountingPeriodMode = "today" | "week" | "month" | "range" | "year";
+
+export type AccountingPeriodInput = {
+  mode?: AccountingPeriodMode;
+  year?: number | null;
+  month?: number | null;
+  /** Semana operativa de un mes: 1=1–7, 2=8–14, 3=15–21, 4=22–fin de mes. */
+  weekOfMonth?: 1 | 2 | 3 | 4 | null;
+  /** Fecha incluida dentro de la semana solicitada. */
+  weekDate?: Date | string | null;
+  from?: Date | string | null;
+  to?: Date | string | null;
+};
+
+export type ResolvedAccountingPeriod = {
+  mode: AccountingPeriodMode;
+  startsAt: Date;
+  endsAt: Date;
+  label: string;
+  year: number;
+  month: number | null;
+  weekOfMonth: 1 | 2 | 3 | 4 | null;
+};
 
 const positiveMoney = (value: string | number | null | undefined) => {
   const parsed = Number(value ?? 0);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 };
 
-const dateInPeriod = (value: Date | string, period: AccountingPeriod) => {
+const isValidDate = (value: Date) => Number.isFinite(value.getTime());
+
+const utcStartOfDay = (value: Date | string) => {
   const date = new Date(value);
-  if (!Number.isFinite(date.getTime()) || date.getUTCFullYear() !== period.year) return false;
-  return period.month == null || date.getUTCMonth() + 1 === period.month;
+  if (!isValidDate(date)) return null;
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+};
+
+const addUtcDays = (date: Date, days: number) => new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + days));
+
+const formatDate = (value: Date, locale = "es-PE") => new Intl.DateTimeFormat(locale, { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }).format(value);
+
+export function resolveAccountingPeriod(input: AccountingPeriodInput, now = new Date(), locale = "es-PE"): ResolvedAccountingPeriod {
+  const current = utcStartOfDay(now) || new Date();
+  const mode = input.mode ?? (input.month != null ? "month" : "year");
+  const requestedYear = Number(input.year ?? current.getUTCFullYear());
+  const requestedMonth = Number(input.month ?? current.getUTCMonth() + 1);
+  const validYear = Number.isInteger(requestedYear) ? requestedYear : current.getUTCFullYear();
+  const validMonth = requestedMonth >= 1 && requestedMonth <= 12 ? requestedMonth : current.getUTCMonth() + 1;
+
+  if (mode === "today") {
+    return { mode, startsAt: current, endsAt: addUtcDays(current, 1), label: `Hoy · ${formatDate(current, locale)}`, year: current.getUTCFullYear(), month: current.getUTCMonth() + 1, weekOfMonth: null };
+  }
+
+  if (mode === "week") {
+    const selected = utcStartOfDay(input.weekDate || current) || current;
+    const mondayOffset = (selected.getUTCDay() + 6) % 7;
+    const startsAt = addUtcDays(selected, -mondayOffset);
+    const endsAt = addUtcDays(startsAt, 7);
+    return { mode, startsAt, endsAt, label: `Semana del ${formatDate(startsAt, locale)} al ${formatDate(addUtcDays(endsAt, -1), locale)}`, year: selected.getUTCFullYear(), month: selected.getUTCMonth() + 1, weekOfMonth: null };
+  }
+
+  if (mode === "range") {
+    const startsAt = utcStartOfDay(input.from || current) || current;
+    const lastDay = utcStartOfDay(input.to || startsAt) || startsAt;
+    const endsAt = addUtcDays(lastDay < startsAt ? startsAt : lastDay, 1);
+    return { mode, startsAt, endsAt, label: `Del ${formatDate(startsAt, locale)} al ${formatDate(addUtcDays(endsAt, -1), locale)}`, year: startsAt.getUTCFullYear(), month: null, weekOfMonth: null };
+  }
+
+  if (mode === "month") {
+    const monthStart = new Date(Date.UTC(validYear, validMonth - 1, 1));
+    const requestedWeek = input.weekOfMonth ?? null;
+    if (requestedWeek) {
+      const startsAt = addUtcDays(monthStart, (requestedWeek - 1) * 7);
+      const monthEnd = new Date(Date.UTC(validYear, validMonth, 1));
+      const endsAt = requestedWeek === 4 || addUtcDays(startsAt, 7) > monthEnd ? monthEnd : addUtcDays(startsAt, 7);
+      const monthLabel = new Intl.DateTimeFormat(locale, { month: "long", year: "numeric", timeZone: "UTC" }).format(monthStart);
+      return { mode, startsAt, endsAt, label: `${monthLabel} · Semana ${requestedWeek} (${startsAt.getUTCDate()}–${addUtcDays(endsAt, -1).getUTCDate()})`, year: validYear, month: validMonth, weekOfMonth: requestedWeek };
+    }
+    const endsAt = new Date(Date.UTC(validYear, validMonth, 1));
+    const label = new Intl.DateTimeFormat(locale, { month: "long", year: "numeric", timeZone: "UTC" }).format(monthStart);
+    return { mode, startsAt: monthStart, endsAt, label, year: validYear, month: validMonth, weekOfMonth: null };
+  }
+
+  const startsAt = new Date(Date.UTC(validYear, 0, 1));
+  const endsAt = new Date(Date.UTC(validYear + 1, 0, 1));
+  return { mode: "year", startsAt, endsAt, label: `Año ${validYear}`, year: validYear, month: null, weekOfMonth: null };
+}
+
+const dateInPeriod = (value: Date | string, period: ResolvedAccountingPeriod) => {
+  const date = new Date(value);
+  return isValidDate(date) && date >= period.startsAt && date < period.endsAt;
 };
 
 const rounded = (value: number) => Math.round(value * 100) / 100;
 
-export function getAccountingPeriodLabel(period: AccountingPeriod, locale = "es-PE") {
-  if (period.month == null) return `Año ${period.year}`;
-  return new Intl.DateTimeFormat(locale, { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(Date.UTC(period.year, period.month - 1, 1)));
+export function getAccountingPeriodLabel(period: AccountingPeriodInput, locale = "es-PE") {
+  return resolveAccountingPeriod(period, new Date(), locale).label;
 }
 
 /**
@@ -55,11 +134,12 @@ export function getAccountingPeriodLabel(period: AccountingPeriod, locale = "es-
 export function calculateOperatingStatement(input: {
   shipments: AccountingShipment[];
   expenses: AccountingExpense[];
-  period: AccountingPeriod;
+  period: AccountingPeriodInput | ResolvedAccountingPeriod;
   penPerEur?: number | null;
 }) {
-  const shipments = input.shipments.filter(shipment => dateInPeriod(shipment.createdAt, input.period));
-  const expenses = input.expenses.filter(expense => dateInPeriod(expense.expenseDate, input.period));
+  const period = "startsAt" in input.period ? input.period : resolveAccountingPeriod(input.period);
+  const shipments = input.shipments.filter(shipment => dateInPeriod(shipment.createdAt, period));
+  const expenses = input.expenses.filter(expense => dateInPeriod(expense.expenseDate, period));
   const paidShipments = shipments.filter(shipment => shipment.paymentStatus === "Pagado");
   const parcelRows = shipments.filter(shipment => shipment.shipmentType === "encomienda");
   const revenueEur = paidShipments.reduce((total, shipment) => total + positiveMoney(shipment.finalPriceEur ?? shipment.basePriceEur), 0);
@@ -74,7 +154,8 @@ export function calculateOperatingStatement(input: {
   const netEur = penPerEur ? revenueEur - expenseEur : revenueEur - manualExpenseEur;
 
   return {
-    periodLabel: getAccountingPeriodLabel(input.period),
+    periodLabel: period.label,
+    period,
     shipments,
     parcelRows,
     expenses,

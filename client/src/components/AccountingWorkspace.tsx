@@ -13,16 +13,33 @@ const currency = (value: number, code: "EUR" | "PEN") => new Intl.NumberFormat("
 const dateValue = (date = new Date()) => new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
 const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 const categoryLabels: Record<string, string> = { transporte: "Transporte", agencia_provincial: "Agencia provincial", embalaje: "Embalaje", operativo: "Operativo", otro: "Otro" };
+const periodModeLabels = { today: "Hoy", week: "Semana", month: "Mes", range: "Rango de fechas", year: "Año" } as const;
+type PeriodMode = keyof typeof periodModeLabels;
 
 export function AccountingWorkspace() {
   const currentYear = new Date().getFullYear();
+  const today = dateValue();
+  const [periodMode, setPeriodMode] = useState<PeriodMode>("month");
   const [year, setYear] = useState(currentYear);
   const [month, setMonth] = useState<string>(String(new Date().getMonth() + 1));
+  const [weekOfMonth, setWeekOfMonth] = useState<string>("all");
+  const [weekDate, setWeekDate] = useState(today);
+  const [rangeFrom, setRangeFrom] = useState(today);
+  const [rangeTo, setRangeTo] = useState(today);
   const [penPerEur, setPenPerEur] = useState("");
   const [expense, setExpense] = useState({ shipmentId: "none", category: "operativo", amount: "", currency: "EUR" as "EUR" | "PEN", description: "", expenseDate: dateValue() });
   const [exporting, setExporting] = useState<"pdf" | "excel" | null>(null);
   const utils = trpc.useUtils();
-  const queryInput = useMemo(() => ({ year, month: month === "all" ? null : Number(month), penPerEur: penPerEur.trim() ? Number(penPerEur) : null }), [year, month, penPerEur]);
+  const queryInput = useMemo(() => ({
+    mode: periodMode,
+    year: periodMode === "month" || periodMode === "year" ? year : undefined,
+    month: periodMode === "month" ? Number(month) : null,
+    weekOfMonth: periodMode === "month" && weekOfMonth !== "all" ? Number(weekOfMonth) as 1 | 2 | 3 | 4 : null,
+    weekDate: periodMode === "week" ? new Date(`${weekDate}T12:00:00`) : null,
+    from: periodMode === "range" ? new Date(`${rangeFrom}T12:00:00`) : null,
+    to: periodMode === "range" ? new Date(`${rangeTo}T12:00:00`) : null,
+    penPerEur: penPerEur.trim() ? Number(penPerEur) : null,
+  }), [periodMode, year, month, weekOfMonth, weekDate, rangeFrom, rangeTo, penPerEur]);
   const summary = trpc.accounting.summary.useQuery(queryInput);
   const addExpense = trpc.accounting.createExpense.useMutation({
     onSuccess: async () => {
@@ -52,9 +69,13 @@ export function AccountingWorkspace() {
           <div className="flex flex-wrap gap-2"><Button type="button" variant="outline" onClick={() => void exportReport("excel")} disabled={!data || exporting !== null} className="border-white/50 bg-white/10 text-white hover:bg-white/20"><FileSpreadsheet className="mr-2 h-4 w-4" />{exporting === "excel" ? "Preparando…" : "Excel"}</Button><Button type="button" variant="outline" onClick={() => void exportReport("pdf")} disabled={!data || exporting !== null} className="border-white/50 bg-white/10 text-white hover:bg-white/20"><FileText className="mr-2 h-4 w-4" />{exporting === "pdf" ? "Preparando…" : "PDF"}</Button></div>
         </div>
       </div>
-      <div className="grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-4">
-        <div><Label htmlFor="accounting-year">Año</Label><Select value={String(year)} onValueChange={value => setYear(Number(value))}><SelectTrigger id="accounting-year" className="mt-1 h-11 bg-white"><SelectValue /></SelectTrigger><SelectContent>{years.map(value => <SelectItem key={value} value={String(value)}>{value}</SelectItem>)}</SelectContent></Select></div>
-        <div><Label htmlFor="accounting-month">Periodo</Label><Select value={month} onValueChange={setMonth}><SelectTrigger id="accounting-month" className="mt-1 h-11 bg-white"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todo el año</SelectItem>{months.map((label, index) => <SelectItem key={label} value={String(index + 1)}>{label}</SelectItem>)}</SelectContent></Select></div>
+      <div className="grid gap-3 p-5 sm:grid-cols-2 xl:grid-cols-4">
+        <div><Label htmlFor="accounting-period-mode">Ver envíos de</Label><Select value={periodMode} onValueChange={value => setPeriodMode(value as PeriodMode)}><SelectTrigger id="accounting-period-mode" className="mt-1 h-11 bg-white"><SelectValue /></SelectTrigger><SelectContent>{Object.entries(periodModeLabels).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></div>
+        {(periodMode === "month" || periodMode === "year") && <div><Label htmlFor="accounting-year">Año</Label><Select value={String(year)} onValueChange={value => setYear(Number(value))}><SelectTrigger id="accounting-year" className="mt-1 h-11 bg-white"><SelectValue /></SelectTrigger><SelectContent>{years.map(value => <SelectItem key={value} value={String(value)}>{value}</SelectItem>)}</SelectContent></Select></div>}
+        {periodMode === "month" && <div><Label htmlFor="accounting-month">Mes</Label><Select value={month} onValueChange={value => { setMonth(value); setWeekOfMonth("all"); }}><SelectTrigger id="accounting-month" className="mt-1 h-11 bg-white"><SelectValue /></SelectTrigger><SelectContent>{months.map((label, index) => <SelectItem key={label} value={String(index + 1)}>{label}</SelectItem>)}</SelectContent></Select></div>}
+        {periodMode === "month" && <div><Label htmlFor="accounting-week-of-month">Semana del mes</Label><Select value={weekOfMonth} onValueChange={setWeekOfMonth}><SelectTrigger id="accounting-week-of-month" className="mt-1 h-11 bg-white"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todo el mes</SelectItem><SelectItem value="1">Semana 1 · días 1–7</SelectItem><SelectItem value="2">Semana 2 · días 8–14</SelectItem><SelectItem value="3">Semana 3 · días 15–21</SelectItem><SelectItem value="4">Semana 4 · días 22–fin</SelectItem></SelectContent></Select></div>}
+        {periodMode === "week" && <div><Label htmlFor="accounting-week-date">Fecha dentro de la semana</Label><Input id="accounting-week-date" type="date" value={weekDate} onChange={event => setWeekDate(event.target.value)} className="mt-1 h-11" /></div>}
+        {periodMode === "range" && <><div><Label htmlFor="accounting-range-from">Desde</Label><Input id="accounting-range-from" type="date" value={rangeFrom} onChange={event => setRangeFrom(event.target.value)} className="mt-1 h-11" /></div><div><Label htmlFor="accounting-range-to">Hasta</Label><Input id="accounting-range-to" type="date" min={rangeFrom} value={rangeTo} onChange={event => setRangeTo(event.target.value)} className="mt-1 h-11" /></div></>}
         <div><Label htmlFor="accounting-rate">Tipo de cambio (PEN por EUR)</Label><Input id="accounting-rate" value={penPerEur} onChange={event => setPenPerEur(event.target.value.replace(/[^0-9.,]/g, "").replace(",", "."))} inputMode="decimal" placeholder="Opcional, ej. 4.10" className="mt-1 h-11" /><p className="mt-1 text-xs text-slate-500">Solo se usa para consolidar costos PEN.</p></div>
         <div className="flex items-end"><Button type="button" variant="outline" onClick={() => void summary.refetch()} className="h-11 w-full border-[#0B2B5E] text-[#0B2B5E]"><RefreshCw className={`mr-2 h-4 w-4 ${summary.isFetching ? "animate-spin" : ""}`} />Actualizar</Button></div>
       </div>

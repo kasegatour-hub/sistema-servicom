@@ -1508,3 +1508,8 @@
 - [x] Añadir filtro de periodo, detalle de encomiendas y registro de gastos por proceso de envío
 - [x] Generar descargas PDF y Excel con el estado de resultados simplificado y la relación de encomiendas del periodo
 - [x] Añadir pruebas de permisos, cálculos, exportaciones, validación y publicación
+
+## Filtros de periodo contable
+- [x] Incorporar los periodos Hoy, Semana actual, Mes y Rango personalizado en el resumen y exportaciones
+- [x] Permitir seleccionar Semana 1, 2, 3 o 4 al filtrar un mes, con límites operativos claros
+- [x] Actualizar pruebas de cálculo, interfaz, PDF/Excel, validar y publicar

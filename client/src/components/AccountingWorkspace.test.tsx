@@ -58,8 +58,13 @@ describe("AccountingWorkspace", () => {
     render(<AccountingWorkspace />);
 
     expect(screen.getByRole("heading", { name: "Ingresos, egresos y utilidad" })).toBeTruthy();
+    expect(screen.getByLabelText("Semana del mes")).toBeTruthy();
     expect(screen.getByText("Utilidad neta EUR")).toBeTruthy();
     expect(screen.getByText("Encomiendas del periodo")).toBeTruthy();
+    fireEvent.click(screen.getByRole("combobox", { name: "Ver envíos de" }));
+    fireEvent.click(screen.getByText("Rango de fechas"));
+    expect(screen.getByLabelText("Desde")).toBeTruthy();
+    expect(screen.getByLabelText("Hasta")).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Monto"), { target: { value: "15.50" } });
     fireEvent.change(screen.getByLabelText("Descripción"), { target: { value: "Despacho de encomienda" } });
     fireEvent.click(screen.getByRole("button", { name: "Guardar gasto" }));

@@ -51,6 +51,15 @@ describe("accounting router", () => {
     expect(dbMocks.getAllShipments).toHaveBeenCalledWith(undefined, expect.objectContaining({ excludeHiddenForRegistradores: true, excludeIsolatedWorkspaces: true }));
   });
 
+  it("acepta un rango personalizado e informa el límite exacto al consultar gastos", async () => {
+    const caller = appRouter.createCaller(createAdminContext("registrador"));
+    const result = await caller.accounting.summary({ mode: "range", from: new Date("2026-08-03T12:00:00.000Z"), to: new Date("2026-08-05T12:00:00.000Z") });
+
+    expect(result.period.mode).toBe("range");
+    expect(result.periodLabel).toContain("03");
+    expect(dbMocks.listOperatingExpenses).toHaveBeenCalledWith(expect.objectContaining({ startsAt: new Date("2026-08-03T00:00:00.000Z"), endsAt: new Date("2026-08-06T00:00:00.000Z") }));
+  });
+
   it("rechaza consultas sin sesión administrativa", async () => {
     const caller = appRouter.createCaller({ user: null, req: { headers: {} }, res: {} } as TrpcContext);
     await expect(caller.accounting.summary({ year: 2026, month: 8 })).rejects.toMatchObject({ code: "UNAUTHORIZED" });

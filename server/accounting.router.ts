@@ -3,22 +3,21 @@ import { z } from "zod";
 import { publicProcedure, router } from "./_core/trpc";
 import { getAdminSession } from "./adminSession";
 import { createOperatingExpense, getAdminById, getAdminWorkspaceContext, getAllShipments, listOperatingExpenses, recordInteractionEvent } from "./db";
-import { calculateOperatingStatement } from "../shared/operatingAccounting";
+import { calculateOperatingStatement, resolveAccountingPeriod } from "../shared/operatingAccounting";
 
 const CATEGORY_VALUES = ["transporte", "agencia_provincial", "embalaje", "operativo", "otro"] as const;
 const CURRENCY_VALUES = ["EUR", "PEN"] as const;
 
 const periodSchema = z.object({
-  year: z.number().int().min(2020).max(2100),
+  mode: z.enum(["today", "week", "month", "range", "year"]).optional(),
+  year: z.number().int().min(2020).max(2100).optional(),
   month: z.number().int().min(1).max(12).nullable().optional(),
+  weekOfMonth: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]).nullable().optional(),
+  weekDate: z.coerce.date().nullable().optional(),
+  from: z.coerce.date().nullable().optional(),
+  to: z.coerce.date().nullable().optional(),
   penPerEur: z.number().positive().max(100).nullable().optional(),
 });
-
-function getPeriodBounds(year: number, month?: number | null) {
-  const startsAt = month == null ? new Date(Date.UTC(year, 0, 1)) : new Date(Date.UTC(year, month - 1, 1));
-  const endsAt = month == null ? new Date(Date.UTC(year + 1, 0, 1)) : new Date(Date.UTC(year, month, 1));
-  return { startsAt, endsAt };
-}
 
 async function getAccountingScope(req: Parameters<typeof getAdminSession>[0]) {
   const adminSession = getAdminSession(req);
@@ -36,14 +35,14 @@ async function getAccountingScope(req: Parameters<typeof getAdminSession>[0]) {
 export const accountingRouter = router({
   summary: publicProcedure.input(periodSchema).query(async ({ input, ctx }) => {
     const scope = await getAccountingScope(ctx.req);
-    const bounds = getPeriodBounds(input.year, input.month);
+    const period = resolveAccountingPeriod(input);
     const [shipments, expenses] = await Promise.all([
       getAllShipments(undefined, scope.shipmentOptions),
-      listOperatingExpenses({ workspaceKey: scope.workspace.key, ...bounds }),
+      listOperatingExpenses({ workspaceKey: scope.workspace.key, startsAt: period.startsAt, endsAt: period.endsAt }),
     ]);
-    const statement = calculateOperatingStatement({ shipments, expenses, period: { year: input.year, month: input.month }, penPerEur: input.penPerEur });
-    const monthly = input.month == null
-      ? Array.from({ length: 12 }, (_, index) => calculateOperatingStatement({ shipments, expenses, period: { year: input.year, month: index + 1 }, penPerEur: input.penPerEur }))
+    const statement = calculateOperatingStatement({ shipments, expenses, period, penPerEur: input.penPerEur });
+    const monthly = period.mode === "year"
+      ? Array.from({ length: 12 }, (_, index) => calculateOperatingStatement({ shipments, expenses, period: { mode: "month", year: period.year, month: index + 1 }, penPerEur: input.penPerEur }))
       : [];
     return { workspace: scope.workspace, ...statement, monthly };
   }),
