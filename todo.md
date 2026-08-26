@@ -1580,3 +1580,9 @@
 - [x] Separar Contabilidad por ruta en ingresos, egresos, utilidad, detalle y exportaciones
 - [x] Añadir pruebas de regresión, validar responsive y publicar
 - [x] Ajustar la regresión del panel administrativo para que sus pruebas y registros de ruta mantengan una selección inicial coherente
+
+## Modal de actualización completo como creación
+- [x] Añadir cómo se trasladará el documento a Torino y sus datos asociados
+- [x] Igualar ruta, agencia, servicios, precios, checklist, entrega, pago, notas y demás campos operativos de creación
+- [x] Persistir y validar todos los campos actualizados sin perder datos existentes
+- [x] Añadir regresiones, validar responsive y publicar

@@ -991,6 +991,9 @@ describe("AdminDashboard Nueva Encomienda", () => {
     expect(shipmentRow).toBeTruthy();
     fireEvent.click(within(shipmentRow as HTMLElement).getByRole("button", { name: "Actualizar" }));
 
+    expect(await screen.findByRole("heading", { name: "¿Cómo se trasladará el documento a Torino?" })).toBeTruthy();
+    expect(screen.getByText("DHL recoge el documento")).toBeTruthy();
+    expect(screen.getByText("Entregar a una persona")).toBeTruthy();
     const recipientType = await screen.findByLabelText("Documento del destinatario - tipo de identificación") as HTMLSelectElement;
     const recipientNumber = screen.getByLabelText("Documento del destinatario - número de identificación") as HTMLInputElement;
     expect(recipientType.value).toBe("carta_identita_italia");

@@ -330,6 +330,16 @@ const updateStatusSchema = z.object({
   extraPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
   extraDiscountEur: z.union([z.string(), z.number()]).optional().nullable(),
   deliveryMode: z.enum(["agencia", "remoto"]).optional(),
+  limaTorinoTransferMode: z.enum(["dhl_recogida", "persona_autorizada"]).optional().nullable(),
+  deliveryPersonName: z.string().trim().max(255).optional(),
+  deliveryPersonLastName: z.string().trim().max(255).optional(),
+  deliveryPersonDni: z.string().trim().max(20).optional(),
+  deliveryPersonPhone: z.string().trim().max(32).optional(),
+  deliveryLocationType: z.enum(["direccion", "aeropuerto_jorge_chavez"]).optional().nullable(),
+  deliveryLocationAddress: z.string().trim().max(1000).optional().nullable(),
+  deliveryLocationLatitude: z.number().optional().nullable(),
+  deliveryLocationLongitude: z.number().optional().nullable(),
+  missingItems: z.array(z.string().trim().min(1).max(160)).optional(),
   pricingMode: z.enum(["estandar", "manual"]).optional(),
   isProvinceDelivery: z.boolean().optional(),
   provinceCustomerPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
@@ -964,7 +974,17 @@ export default function AdminDashboard() {
       extraPriceEur: Number(shipment.extraPriceEur || 0),
       extraDiscountEur: Number(shipment.extraDiscountEur || 0),
       deliveryMode: shipment.deliveryMode || "agencia",
-      pricingMode: "estandar",
+      limaTorinoTransferMode: shipment.limaTorinoTransferMode || null,
+      deliveryPersonName: shipment.deliveryPersonName || "",
+      deliveryPersonLastName: shipment.deliveryPersonLastName || "",
+      deliveryPersonDni: shipment.deliveryPersonDni || "",
+      deliveryPersonPhone: shipment.deliveryPersonPhone || "",
+      deliveryLocationType: shipment.limaTorinoTransferMode ? (shipment.deliveryLocationType || "direccion") : undefined,
+      deliveryLocationAddress: shipment.deliveryLocationAddress || "",
+      deliveryLocationLatitude: shipment.deliveryLocationLatitude ?? null,
+      deliveryLocationLongitude: shipment.deliveryLocationLongitude ?? null,
+      missingItems: Array.isArray(shipment.missingItems) ? shipment.missingItems : [],
+      pricingMode: shipment.manualPriceEur != null ? "manual" : "estandar",
       isProvinceDelivery: Boolean(shipment.isProvinceDelivery),
       provinceCustomerPriceEur: shipment.provinceCustomerPriceEur || "",
       provinceExtraPriceEur: shipment.provinceExtraPriceEur || "",
@@ -3281,6 +3301,7 @@ export default function AdminDashboard() {
                       {Boolean(updateForm.watch("requiresApostilleService")) && <div className="sm:col-span-2 grid gap-3 rounded-xl border border-slate-200 bg-white p-3 sm:grid-cols-2"><label className="text-sm font-medium text-slate-700">Precio manual de apostilla (EUR, opcional)<Input type="number" min="0" step="0.01" placeholder="40.00" {...updateForm.register("serviceManualPriceEur")} className="mt-1" /></label><label className="text-sm font-medium text-slate-700">Precio manual de apostilla (S/, opcional)<Input type="number" min="0" step="0.01" placeholder="160.00" {...updateForm.register("serviceManualPriceSoles")} className="mt-1" /></label></div>}
                     </div>}
                   </>}
+                  {updateForm.watch("shipmentType") === "documento" && updateForm.watch("route") === SHIPMENT_ROUTES.LIMA_TORINO && <div className="md:col-span-2"><LimaTorinoTransferPanel value={{ mode: updateForm.watch("limaTorinoTransferMode") || undefined, personName: updateForm.watch("deliveryPersonName") || "", personLastName: updateForm.watch("deliveryPersonLastName") || "", personDni: updateForm.watch("deliveryPersonDni") || "", personPhone: updateForm.watch("deliveryPersonPhone") || "", locationType: updateForm.watch("deliveryLocationType") || undefined, locationAddress: updateForm.watch("deliveryLocationAddress") || "", latitude: updateForm.watch("deliveryLocationLatitude") ?? null, longitude: updateForm.watch("deliveryLocationLongitude") ?? null }} onChange={(next) => { updateForm.setValue("limaTorinoTransferMode", next.mode, { shouldDirty: true, shouldValidate: true }); updateForm.setValue("deliveryPersonName", next.personName || "", { shouldDirty: true }); updateForm.setValue("deliveryPersonLastName", next.personLastName || "", { shouldDirty: true }); updateForm.setValue("deliveryPersonDni", next.personDni || "", { shouldDirty: true }); updateForm.setValue("deliveryPersonPhone", next.personPhone || "", { shouldDirty: true }); updateForm.setValue("deliveryLocationType", next.locationType, { shouldDirty: true }); updateForm.setValue("deliveryLocationAddress", next.locationAddress || "", { shouldDirty: true }); updateForm.setValue("deliveryLocationLatitude", next.latitude ?? null, { shouldDirty: true }); updateForm.setValue("deliveryLocationLongitude", next.longitude ?? null, { shouldDirty: true }); }} /></div>}
                   {isProvinceShipmentRoute(updateForm.watch("route")) && (
                     <div className="md:col-span-2 rounded-xl border border-orange-200 bg-orange-50 p-4">
                       <div className="text-sm font-semibold text-[#0B2B5E]">
@@ -3318,6 +3339,11 @@ export default function AdminDashboard() {
                   {updateForm.watch("shipmentType") === "encomienda" && <div className="md:col-span-2 rounded-xl border-2 border-blue-200 bg-blue-50 p-4" aria-live="polite"><p className="text-xs font-bold uppercase tracking-wide text-[#0B2B5E]">Precio actualizado</p><p className="mt-1 text-3xl font-extrabold tabular-nums text-[#0B2B5E]">{updateVisibleParcelTotal.toFixed(2)} EUR</p><p className="mt-1 text-sm text-slate-700">Se recalcula con el peso, la tarifa, el extra provincial y la agencia seleccionada.</p></div>}
                 </div>
 
+                <div className="border-t pt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="update-missing-items">Checklist de elementos faltantes</label>
+                  <Textarea id="update-missing-items" value={(updateForm.watch("missingItems") || []).join("\n")} onChange={(event) => updateForm.setValue("missingItems", event.target.value.split(/\n|,/).map(item => item.trim()).filter(Boolean), { shouldDirty: true, shouldValidate: true })} placeholder="Un elemento por línea" className="border-2 focus:border-primary" rows={3} />
+                  <p className="mt-1 text-xs text-slate-500">Puedes corregir esta lista igual que al crear el envío.</p>
+                </div>
                 <div className="border-t pt-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Notas</label>
                   <Textarea
