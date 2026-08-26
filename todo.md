@@ -1671,3 +1671,9 @@
 - [x] Mostrar título específico, detalle, cierre y acceso al historial de notificaciones
 - [x] Mantener sonido/feedback compatible con la interacción activa, sin notificaciones fuera de la aplicación abierta
 - [x] Añadir pruebas de integración web/móvil y validar build final
+
+## Acciones de cartas de invitación
+- [x] Mostrar siempre «Firmar ahora» y «Enviar» en cartas pendientes de firma para Admin y Usuario autorizados
+- [x] Mantener ocultas o deshabilitadas las acciones cuando la carta ya esté firmada, con estado explicado
+- [x] Añadir pruebas de visibilidad, envío y apertura del flujo de firma en escritorio y móvil
+- [x] Ejecutar validación completa y publicar la corrección
