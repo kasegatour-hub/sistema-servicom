@@ -11,6 +11,7 @@ import AccountPage from "./pages/AccountPage";
 import ReceiptPage from "./pages/ReceiptPage";
 import InvitationLetterSignaturePage from "./pages/InvitationLetterSignaturePage";
 import RecipientChangeSignaturePage from "./pages/RecipientChangeSignaturePage";
+import ShipmentSignaturePage from "./pages/ShipmentSignaturePage";
 import MobileAppPage from "./pages/MobileAppPage";
 
 function Router() {
@@ -23,6 +24,7 @@ function Router() {
       <Route path={"/recibo"} component={ReceiptPage} />
       <Route path={"/carta-firma"} component={InvitationLetterSignaturePage} />
       <Route path={"/cambio-destinatario"} component={RecipientChangeSignaturePage} />
+      <Route path={"/envio-firma"} component={ShipmentSignaturePage} />
       <Route path={"/movil"} component={MobileAppPage} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}

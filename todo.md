@@ -1651,3 +1651,11 @@
 - [x] Añadir regresiones para las cuatro rutas y las identidades Magda/Kasega
 - [x] Validar aislamiento y pestañas administrativas de Magda/Kasega
 - [x] Ejecutar suite, build y revisión visual final
+
+## Corrección de firma de documentos y encomiendas
+- [x] Crear una página pública de firma de envíos equivalente al flujo de Carta de invitación
+- [x] Abrir la firma desde un enlace dedicado y permitir firmar también en enlaces manuales sin cuenta cuando corresponda
+- [x] Mostrar la declaración jurada con la firma del cliente en el recuadro derecho indicado, antes y después de firmar
+- [x] Diferenciar la identidad legal de Servicom frente a Kasega/Magda en la declaración y el recibo
+- [x] Añadir pruebas de página, enlace, consentimiento, seguridad, posición de firma y branding
+- [x] Ejecutar suite, build y revisión visual responsive antes de publicar

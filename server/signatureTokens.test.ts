@@ -81,7 +81,8 @@ describe("signature token security", () => {
     const result = await caller.shipment.requestSignature({ orderNumber: shipment.orderNumber, code: shipment.code });
 
     expect(result.status).toBe("pending");
-    expect(result.signatureUrl).toContain("signature=");
+    expect(result.signatureUrl).toContain("/envio-firma?");
+    expect(result.signatureUrl).toContain("token=");
     expect(dbMocks.createOrRefreshShipmentSignatureRequest).toHaveBeenCalledWith(expect.objectContaining({ shipmentId: 81 }));
     expect(authMocks.sendShipmentSignatureEmail).toHaveBeenCalledWith(expect.objectContaining({ email: "cliente@example.com" }));
   });

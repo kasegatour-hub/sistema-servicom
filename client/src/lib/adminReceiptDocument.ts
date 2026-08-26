@@ -142,6 +142,7 @@ export async function downloadAdminReceiptPdf(input: AdminReceiptDocumentInput, 
   const shipmentLabel = shipment.shipmentType === "encomienda" ? "ENCOMIENDA" : "DOCUMENTO";
   const apostilleRows: Array<[string, string]> = shipment.requiresApostilleService === true || Number(shipment.requiresApostilleService) === 1 ? [["Servicio solicitado", "Documentos para apostillar"]] : [];
   const filename = `${buildReceiptDownloadFilename({ recipientName: shipment.recipientName, recipientLastName: shipment.recipientLastName, recipientDisplayName: recipient, orderNumber: order, shipmentType: shipment.shipmentType })}.pdf`;
+  const shipmentSignature = input.signature || shipment.signature;
   const [trackingQr, deliveryQr] = await Promise.all([
     QRCode.toDataURL(buildTrackingUrl(order, code, input.origin), { ...TRACKING_QR_OPTIONS, width: 220, margin: 1, color: { dark: "#0B2B5E", light: "#ffffff" } }),
     QRCode.toDataURL(buildShipmentDeliveryStatusUrl(order, code, input.origin), { ...TRACKING_QR_OPTIONS, width: 180, margin: 1, color: { dark: "#0B2B5E", light: "#ffffff" } }),
@@ -256,7 +257,7 @@ export async function downloadAdminReceiptPdf(input: AdminReceiptDocumentInput, 
   const declaration = [
     `Yo, ${sender}, identificado(a) con documento N° ${shipment.senderDni || "No especificado"}, declaro bajo juramento que el envío amparado bajo la Orden N° ${order} (Código: ${code}) contiene única y estrictamente documentación lícita.`,
     "Garantizo que el envío no contiene sustancias ilícitas, dinero no declarado ni materiales prohibidos por la legislación aplicable y los convenios aduaneros internacionales vigentes.",
-    `Eximo expresa y legalmente de responsabilidad a Servicom Internacional. Autorizo la revisión física y el escaneo del envío por la agencia y autoridades competentes.`,
+    `Eximo expresa y legalmente de responsabilidad a ${branding.companyName}. Autorizo la revisión física y el escaneo del envío por la agencia y autoridades competentes.`,
     `Suscrito en ${route.originPrintLabel}, el ${new Date().toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" })}.`,
   ];
   pdf.setFont("helvetica", "normal");
@@ -272,7 +273,21 @@ export async function downloadAdminReceiptPdf(input: AdminReceiptDocumentInput, 
   pdf.line(right - 70, y, right, y);
   pdf.setFontSize(8.5);
   pdf.text("Firma del remitente", left + 35, y + 6, { align: "center" });
-  pdf.text("Firma y sello de agencia", right - 35, y + 6, { align: "center" });
+  if (shipmentSignature?.status === "signed") {
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(11, 43, 94);
+    pdf.text("FIRMA ELECTRÓNICA DEL CLIENTE", right - 35, y - 8, { align: "center" });
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(7.5);
+    pdf.text(`Firmado por: ${String(shipmentSignature.signerName || sender)}`, right - 35, y + 2, { align: "center" });
+  } else {
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(11, 43, 94);
+    pdf.text("FIRMA ELECTRÓNICA DEL CLIENTE", right - 35, y + 6, { align: "center" });
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(7.5);
+    pdf.text("Pendiente de firma remota", right - 35, y + 12, { align: "center" });
+  }
   if (options?.printWindow) {
     const printWindow = options.printWindow;
     printWindow.location.href = String(pdf.output("bloburl"));
