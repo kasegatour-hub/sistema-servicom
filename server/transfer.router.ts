@@ -81,14 +81,14 @@ export const transferRouter = router({
     const transferFee = calculateTransferFee(input.amountSent, commissionPercent);
     let exchangeRate = input.exchangeRate;
     let exchangeRateSource = input.exchangeRateSource;
-    if (input.currency === "PEN" && input.destinationCurrency === "EUR" && input.exchangeRateSource === "argenper") {
+    if (input.currency !== input.destinationCurrency && input.exchangeRateSource === "argenper") {
       try {
         exchangeRate = (await getArgenperEuroQuote()).adjustedPenPerEur;
       } catch (error) {
         throw new TRPCError({ code: "BAD_GATEWAY", message: "No se pudo confirmar la cotización de Argemper. Selecciona tipo de cambio manual e ingresa el valor acordado.", cause: error });
       }
     }
-    if (input.currency === "EUR" && input.destinationCurrency === "EUR" && input.exchangeRateSource === "paridad") exchangeRate = 1;
+    if (input.currency === input.destinationCurrency && input.exchangeRateSource === "paridad") exchangeRate = 1;
     if (input.exchangeRateSource === "manual") exchangeRateSource = "manual";
     const amountReceived = calculateTransferAmount(input.amountSent, transferFee, exchangeRate, input.currency, input.destinationCurrency);
     const offices = resolveTransferOffices(input.route, session.isWorkspaceIsolated);

@@ -46,6 +46,13 @@ describe("TransferWorkspace", () => {
     quoteState.error = null;
   });
 
+  it("muestra soles como moneda recibida cuando se selecciona una conversión EUR a PEN", () => {
+    const view = render(<TransferWorkspace initialForm={{ currency: "EUR", destinationCurrency: "PEN", amountSent: "100", exchangeRate: "4.15", exchangeRateSource: "manual" }} />);
+    const content = within(view.container);
+    expect(content.getByLabelText("Moneda que recibe")).toBeTruthy();
+    expect(content.getByText("415.00 PEN")).toBeTruthy();
+  });
+
   it("usa identidad verde y divide el registro móvil de transferencias en pasos", () => {
     const { container } = render(<TransferWorkspace mobileRegistrationMode />);
     const view = within(container);

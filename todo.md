@@ -1538,3 +1538,10 @@
 - [x] Añadir interfaz para Admin/Usuario y Cliente, pruebas de seguridad, validación y publicación
 - [x] Actualizar los mocks del panel administrativo para cubrir la mutación de solicitud de cambio de destinatario
 - [x] Verificar y resolver el estado de carga del enlace público inválido de cambio de destinatario
+
+## Corrección de moneda, tarifa Kasega y animación de rastreo
+- [x] Corregir la conversión y presentación de importes en soles cuando se seleccione PEN
+- [x] Propagar la tarifa de 13 EUR/kg de Magdalena y Kasega Tour a precios, totales, recibos y actualizaciones, no solo a notas
+- [x] Añadir una animación accesible de avión y vehículo rumbo a destino en la pantalla de rastreo
+- [x] Añadir pruebas de regresión y validar en web/móvil
+- [x] Publicar la corrección

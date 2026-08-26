@@ -819,7 +819,9 @@ export const adminRouter = router({
         }
       }
       const code = generateShipmentCode();
-      const pricing = calculateAdminShipmentPricing({ ...input, isProvinceDelivery: effectiveProvinceDelivery, workspaceAdminId: ctx.adminSession.adminId });
+      const db = await getDb();
+      const [creator] = db ? await db.select({ name: admins.name, email: admins.email }).from(admins).where(eq(admins.id, ctx.adminSession.adminId)).limit(1) : [];
+      const pricing = calculateAdminShipmentPricing({ ...input, isProvinceDelivery: effectiveProvinceDelivery, workspaceAdminId: ctx.adminSession.adminId, workspaceAdminEmail: creator?.email });
       const couponCode = normalizeCouponCode(input.couponCode);
       const coupon = couponCode ? await getDiscountCouponByCode(couponCode) : undefined;
       if (couponCode && !coupon) {
@@ -834,9 +836,6 @@ export const adminRouter = router({
       const discount = applyCouponDiscount(pricing.totalEur, coupon);
       const calculatedNotes = `${pricing.notes}${coupon ? ` Cupón ${coupon.code}: descuento del ${discount.discountPercent}% (-${discount.discountAmountEur.toFixed(2)} EUR). Total final: ${discount.finalPriceEur.toFixed(2)} EUR.` : ""}`;
       const { shipmentType, weightKg, manualPrice, extraPriceEur } = pricing;
-      const db = await getDb();
-      const [creator] = db ? await db.select({ name: admins.name, email: admins.email }).from(admins).where(eq(admins.id, ctx.adminSession.adminId)).limit(1) : [];
-
       const result = await createShipment(
         orderNumber,
         code,
@@ -1118,7 +1117,7 @@ export const adminRouter = router({
       const effectiveDocumentSheetCount = input.sheetCount ?? currentShipment.documentSheetCount ?? 1;
       const effectiveExtraPrice = input.extraPriceEur ?? currentShipment.extraPriceEur ?? 0;
       const freeformNotes = extractFreeformShipmentNotes(input.notes);
-      const pricing = isParcel ? calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: effectiveWeight, manualPriceEur: input.pricingMode === "manual" ? input.manualPriceEur : null, extraPriceEur: effectiveExtraPrice, extraDiscountEur: input.extraDiscountEur ?? currentShipment.extraDiscountEur ?? 0, route: effectiveRoute, notes: freeformNotes, isProvinceDelivery: effectiveProvinceDelivery, provinceCustomerPriceEur: input.provinceCustomerPriceEur ?? currentShipment.provinceCustomerPriceEur, provinceExtraPriceEur: input.provinceExtraPriceEur ?? currentShipment.provinceExtraPriceEur, provinceOperationalCostSoles: input.provinceOperationalCostSoles ?? currentShipment.provinceOperationalCostSoles, provinceCarrier: input.provinceCarrier ?? currentShipment.provinceCarrier, workspaceAdminId: ctx.adminSession.adminId }) : null;
+      const pricing = isParcel ? calculateAdminShipmentPricing({ shipmentType: "encomienda", weightKg: effectiveWeight, manualPriceEur: input.pricingMode === "manual" ? input.manualPriceEur : null, extraPriceEur: effectiveExtraPrice, extraDiscountEur: input.extraDiscountEur ?? currentShipment.extraDiscountEur ?? 0, route: effectiveRoute, notes: freeformNotes, isProvinceDelivery: effectiveProvinceDelivery, provinceCustomerPriceEur: input.provinceCustomerPriceEur ?? currentShipment.provinceCustomerPriceEur, provinceExtraPriceEur: input.provinceExtraPriceEur ?? currentShipment.provinceExtraPriceEur, provinceOperationalCostSoles: input.provinceOperationalCostSoles ?? currentShipment.provinceOperationalCostSoles, provinceCarrier: input.provinceCarrier ?? currentShipment.provinceCarrier, workspaceAdminId: ctx.adminSession.adminId, workspaceAdminEmail: currentShipment.registeredByEmail }) : null;
       const documentPricing = !isParcel
         ? calculateAdminShipmentPricing({ shipmentType: "documento", docType: effectiveDocumentKind, sheetCount: effectiveDocumentSheetCount, manualPriceEur: input.pricingMode === "manual" ? input.manualPriceEur : null, extraPriceEur: effectiveExtraPrice, extraDiscountEur: input.extraDiscountEur ?? currentShipment.extraDiscountEur ?? 0, route: effectiveRoute, notes: freeformNotes, requiresApostilleService: input.requiresApostilleService ?? Boolean(currentShipment.requiresApostilleService), requiresTranslationService: input.requiresTranslationService ?? Boolean(currentShipment.requiresTranslationService), isProvinceDelivery: effectiveProvinceDelivery, provinceCustomerPriceEur: input.provinceCustomerPriceEur ?? currentShipment.provinceCustomerPriceEur, provinceExtraPriceEur: input.provinceExtraPriceEur ?? currentShipment.provinceExtraPriceEur, provinceOperationalCostSoles: input.provinceOperationalCostSoles ?? currentShipment.provinceOperationalCostSoles, provinceCarrier: input.provinceCarrier ?? currentShipment.provinceCarrier })
         : null;

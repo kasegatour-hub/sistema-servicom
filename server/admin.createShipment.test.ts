@@ -4,11 +4,12 @@ const dbMocks = vi.hoisted(() => ({
   createShipment: vi.fn(),
   isEncomiendaEnabledForRoute: vi.fn(),
   listShipmentOrderNumbersByPrefix: vi.fn(),
+  getDb: vi.fn(),
 }));
 
 vi.mock("./db", async () => {
   const actual = await vi.importActual<typeof import("./db")>("./db");
-  return { ...actual, createShipment: dbMocks.createShipment, isEncomiendaEnabledForRoute: dbMocks.isEncomiendaEnabledForRoute, listShipmentOrderNumbersByPrefix: dbMocks.listShipmentOrderNumbersByPrefix };
+  return { ...actual, createShipment: dbMocks.createShipment, isEncomiendaEnabledForRoute: dbMocks.isEncomiendaEnabledForRoute, listShipmentOrderNumbersByPrefix: dbMocks.listShipmentOrderNumbersByPrefix, getDb: dbMocks.getDb };
 });
 
 import { appRouter } from "./routers";
@@ -32,6 +33,7 @@ describe("admin.createShipment", () => {
     dbMocks.createShipment.mockResolvedValue({ id: 101 });
     dbMocks.isEncomiendaEnabledForRoute.mockResolvedValue(true);
     dbMocks.listShipmentOrderNumbersByPrefix.mockResolvedValue([]);
+    dbMocks.getDb.mockResolvedValue(undefined);
   });
 
   it("creates a document with an automatic short code and document tariff notes", async () => {
@@ -164,6 +166,20 @@ describe("admin.createShipment", () => {
     expect(args[15]).toBe(40);
     expect(args[16]).toBe(0);
     expect(args[11]).toContain("Encomienda (2.5 kg, tarifa manual): 40.00 EUR");
+  });
+
+  it("persists 13 EUR/kg when the administrative workspace is identified by Kasega email", async () => {
+    dbMocks.getDb.mockResolvedValue({ select: () => ({ from: () => ({ where: () => ({ limit: async () => [{ name: "Magdalena", email: "magda.barreto.alv@gmail.com" }] }) }) }) });
+    const caller = appRouter.createCaller(createAdminContext());
+    const result = await caller.admin.createShipment({
+      status: "En agencia", senderName: "Ana", senderLastName: "Pérez", recipientName: "Marco", recipientLastName: "Rossi",
+      shipmentType: "encomienda", weightKg: 2, paymentStatus: "Falta cancelar", route: "Lima - Torino", contentChecklist: ["Paquete sellado"],
+    });
+    const args = dbMocks.createShipment.mock.calls[0];
+    expect(result.finalPriceEur).toBe(26);
+    expect(args[22]).toBe(26);
+    expect(args[25]).toBe(26);
+    expect(args[11]).toContain("2 kg @ 13 EUR/kg");
   });
 
   it("blocks Lima–Torino encomiendas when the Master Admin has disabled that route", async () => {

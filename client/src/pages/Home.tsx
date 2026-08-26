@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { trpc } from "@/lib/trpc";
 import { ShipmentTimeline } from "@/components/ShipmentTimeline";
+import { TrackingJourneyAnimation } from "@/components/TrackingJourneyAnimation";
 import { QRScanner } from "@/components/QRScanner";
 import QRCode from "qrcode";
 import { buildTrackingPath, buildTrackingUrl, TRACKING_QR_OPTIONS, normalizeTrackingValue } from "@/lib/tracking";
@@ -287,13 +288,16 @@ export default function Home() {
         <section id="rastreo" className="relative scroll-mt-28 overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#d9eff9] via-[#f1f8fb] to-white p-1 shadow-[0_24px_70px_-32px_rgba(11,43,94,0.55)]">
           <div className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-[#F28C00]/15 blur-2xl" aria-hidden="true" />
           <Card className="relative rounded-[1.75rem] border-0 bg-white/95 p-6 shadow-none sm:p-9 lg:p-12">
-            <div className="max-w-3xl">
+            <div className="grid items-center gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(330px,.85fr)] lg:gap-10">
+              <div className="max-w-3xl">
               <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-[#0B2B5E]/8 px-4 py-2 text-sm font-bold text-[#0B2B5E]">
                 <Search className="h-4 w-4" aria-hidden="true" />
                 Rastreo en línea
               </div>
               <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-[#0B2B5E] sm:text-4xl lg:text-5xl">Sigue tu envío en todo momento</h1>
               <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">Ingresa tu número de orden y código de envío. Verás el estado actual, la ruta y la sede donde podrás recogerlo.</p>
+              </div>
+              <TrackingJourneyAnimation status={shipmentData?.status} />
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-5">

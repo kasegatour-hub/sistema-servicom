@@ -15,4 +15,9 @@ describe("reglas de comisión de transferencias", () => {
     expect(calculateTransferFee(402, commission)).toBe(8.04);
     expect(calculateTransferAmount(402, 8.04, 4.02, "PEN", "EUR")).toBeCloseTo(98, 2);
   });
+
+  it("convierte EUR a PEN y conserva el importe neto cuando ambas monedas son soles", () => {
+    expect(calculateTransferAmount(100, 0, 4.15, "EUR", "PEN")).toBeCloseTo(415, 2);
+    expect(calculateTransferAmount(100, 3, 1, "PEN", "PEN")).toBe(97);
+  });
 });

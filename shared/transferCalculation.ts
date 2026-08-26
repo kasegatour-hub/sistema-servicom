@@ -13,6 +13,8 @@ export function calculateTransferFee(amountSent: number, commissionPercent: numb
 
 export function calculateTransferAmount(amountSent: number, transferFee: number, exchangeRate: number, sourceCurrency: TransferCurrency, destinationCurrency: TransferCurrency) {
   const netAmount = Math.max(0, amountSent - transferFee);
+  if (sourceCurrency === destinationCurrency) return netAmount;
   if (sourceCurrency === "PEN" && destinationCurrency === "EUR") return exchangeRate > 0 ? netAmount / exchangeRate : 0;
-  return netAmount * Math.max(0, exchangeRate);
+  if (sourceCurrency === "EUR" && destinationCurrency === "PEN") return netAmount * Math.max(0, exchangeRate);
+  return netAmount;
 }
