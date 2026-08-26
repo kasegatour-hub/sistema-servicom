@@ -232,6 +232,7 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
     fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
     await screen.findByRole("textbox", { name: "Buscar registros" });
+    fireEvent.click(screen.getByRole("button", { name: /Documentos · Torino → Lima(?! \+ provincia)/ }));
 
     fireEvent.click(screen.getByRole("button", { name: "Ver datos completos" }));
     const detailsDialog = screen.getByRole("dialog", { name: "Datos completos" });
@@ -256,7 +257,7 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
     fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
     await screen.findByRole("textbox", { name: "Buscar registros" });
-    fireEvent.click(screen.getByRole("tab", { name: /Encomiendas/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Encomiendas · Torino → Lima \+ provincia/ }));
 
     const card = await screen.findByRole("article", { name: "Registro 0826-0019" });
     expect(within(card).getByText("Deys Juana Eguia Huaylinos")).toBeTruthy();
@@ -907,12 +908,12 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
     fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
     fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
-    await waitFor(() => expect(screen.getByRole("tab", { name: /Documentos/ })).toBeTruthy());
-    expect(screen.getByRole("heading", { name: "Documentos Registrados" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("tab", { name: /Encomiendas/ }));
-    expect(screen.getByRole("heading", { name: "Encomiendas Registradas" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("tab", { name: /Documentos/ }));
-    expect(screen.getByRole("heading", { name: "Documentos Registrados" })).toBeTruthy();
+    await waitFor(() => expect(screen.getByRole("button", { name: /Documentos · Lima → Torino/ })).toBeTruthy());
+    expect(screen.getByRole("heading", { name: "Documentos registrados" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Encomiendas · Torino → Lima \+ provincia/ }));
+    expect(screen.getByRole("heading", { name: "Encomiendas registradas" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Documentos · Lima → Torino/ }));
+    expect(screen.getByRole("heading", { name: "Documentos registrados" })).toBeTruthy();
   });
 
   it("sincroniza la nota de una encomienda cuando cambia el peso y la tarifa vigente", async () => {
@@ -941,7 +942,7 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
     fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
     await screen.findByRole("textbox", { name: "Buscar registros" });
-    fireEvent.click(screen.getByRole("tab", { name: /Encomiendas/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Encomiendas · Torino → Lima(?! \+ provincia)/ }));
     const shipmentRow = screen.getByText("63526276").closest("tr");
     expect(shipmentRow).toBeTruthy();
     fireEvent.click(within(shipmentRow as HTMLElement).getByRole("button", { name: "Actualizar" }));

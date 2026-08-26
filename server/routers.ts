@@ -258,9 +258,8 @@ export const appRouter = router({
         if (!shipment) {
           throw new TRPCError({ code: "NOT_FOUND", message: "Envío no encontrado" });
         }
-        if (!shipment.accountId) throw new TRPCError({ code: "BAD_REQUEST", message: "El cliente debe tener una cuenta creada antes de enviar una solicitud de firma." });
-        const account = await getLocalAccountById(shipment.accountId);
-        if (!account?.email) throw new TRPCError({ code: "BAD_REQUEST", message: "No se encontró una cuenta Cliente válida para enviar la notificación de firma." });
+        const account = shipment.accountId ? await getLocalAccountById(shipment.accountId) : null;
+        if (shipment.accountId && !account?.email) throw new TRPCError({ code: "BAD_REQUEST", message: "No se encontró una cuenta Cliente válida para enviar la notificación automática. Puedes generar un enlace manual si los datos del remitente están completos." });
         const currentSignature = await getShipmentSignatureByShipmentId(shipment.id);
         if (currentSignature?.status === "signed") {
           return {
@@ -284,7 +283,10 @@ export const appRouter = router({
         }
         const origin = `${ctx.req.protocol || "https"}://${ctx.req.get?.("host") || ctx.req.headers.host || "localhost"}`;
         const signatureUrl = `${origin}/recibo?order=${encodeURIComponent(shipment.orderNumber)}&code=${encodeURIComponent(shipment.code)}&signature=${encodeURIComponent(token.token)}`;
-        await sendShipmentSignatureEmail({ email: account.email, signerName: `${account.name || shipment.senderName || "Cliente"} ${account.lastName || shipment.senderLastName || ""}`.trim(), signatureUrl });
+        if (account?.email) {
+          await sendShipmentSignatureEmail({ email: account.email, signerName: `${account.name || shipment.senderName || "Cliente"} ${account.lastName || shipment.senderLastName || ""}`.trim(), signatureUrl });
+        }
+        const signerLabel = `${account?.name || shipment.senderName || "el remitente"} ${account?.lastName || shipment.senderLastName || ""}`.trim();
         await notifyShipmentEvent({
           shipmentId: shipment.id,
           orderNumber: shipment.orderNumber,
@@ -301,13 +303,15 @@ export const appRouter = router({
           registeredById: shipment.registeredById,
           action: "signature_requested",
           actor: { actorType: "admin", actorId: adminSession.adminId, actorLabel: adminSession.role },
-          details: `Enlace creado para que firme electrónicamente ${account.name || shipment.senderName || "el remitente"} ${account.lastName || shipment.senderLastName || ""}`.trim(),
-          notifyAccount: true,
+          details: `${account?.email ? "Notificación automática enviada" : "Enlace manual creado para compartir"}. Firma electrónica para ${signerLabel}. Enlace: ${signatureUrl}`,
+          notifyAccount: Boolean(account?.id),
         });
         return {
           status: "pending" as const,
           signatureUrl,
           expiresAt: token.expiresAt,
+          deliveryMode: account?.email ? "automatic" as const : "manual" as const,
+          signerName: signerLabel,
         };
       }),
 
@@ -324,12 +328,13 @@ export const appRouter = router({
       }))
       .mutation(async ({ input, ctx }) => {
         const accountSession = getAccountSession(ctx.req);
-        if (!accountSession) throw new TRPCError({ code: "UNAUTHORIZED", message: "Inicia sesión con tu cuenta Cliente para firmar el envío." });
         const shipment = await getShipmentByOrderAndCode(input.orderNumber, input.code);
         if (!shipment) {
           throw new TRPCError({ code: "NOT_FOUND", message: "Envío no encontrado" });
         }
-        if (!shipment.accountId || shipment.accountId !== accountSession.accountId) throw new TRPCError({ code: "FORBIDDEN", message: "Esta solicitud de firma no corresponde a tu cuenta Cliente." });
+        if (shipment.accountId && (!accountSession || shipment.accountId !== accountSession.accountId)) {
+          throw new TRPCError({ code: accountSession ? "FORBIDDEN" : "UNAUTHORIZED", message: accountSession ? "Esta solicitud de firma no corresponde a tu cuenta Cliente." : "Inicia sesión con la cuenta Cliente vinculada para firmar este envío." });
+        }
         const signature = await getShipmentSignatureByShipmentId(shipment.id);
         if (!signature || signature.status === "signed") {
           throw new TRPCError({ code: "CONFLICT", message: signature?.status === "signed" ? "Este envío ya tiene una firma electrónica" : "Solicita una nueva sesión de firma" });
@@ -357,7 +362,7 @@ export const appRouter = router({
         if (!saved) {
           throw new TRPCError({ code: "UNAUTHORIZED", message: "La sesión de firma expiró o ya fue utilizada" });
         }
-        await recordShipmentAudit({ shipmentId: shipment.id, action: "signature_completed", actor: { actorType: "account", actorId: accountSession.accountId, actorLabel: saved.signerName }, metadata: { deliveryMode: shipment.deliveryMode, consentTextVersion: "servicom-envio-v2", signerEmail: saved.signerEmail } });
+        await recordShipmentAudit({ shipmentId: shipment.id, action: "signature_completed", actor: { actorType: accountSession ? "account" : "public", actorId: accountSession?.accountId, actorLabel: saved.signerName }, metadata: { deliveryMode: shipment.deliveryMode, consentTextVersion: "servicom-envio-v2", signerEmail: saved.signerEmail } });
         await notifyShipmentEvent({
           shipmentId: shipment.id,
           orderNumber: shipment.orderNumber,
@@ -373,11 +378,11 @@ export const appRouter = router({
           registeredByType: shipment.registeredByType,
           registeredById: shipment.registeredById,
           action: "signature_completed",
-          actor: { actorType: "account", actorId: accountSession.accountId, actorLabel: saved.signerName },
-          details: `Firmado electrónicamente por ${saved.signerName}.`,
-          notifyAccount: true,
+          actor: { actorType: accountSession ? "account" : "public", actorId: accountSession?.accountId, actorLabel: saved.signerName },
+          details: `Firmado electrónicamente por ${saved.signerName}. ${accountSession ? "Firma vinculada a la cuenta Cliente." : "Firma realizada mediante enlace manual."}`,
+          notifyAccount: Boolean(accountSession),
         });
-        await recordInteractionEvent({ actorType: "anonymous", eventName: "signature_completed", surface: "receipt", metadata: { shipmentType: shipment.shipmentType, deliveryMode: shipment.deliveryMode } });
+        await recordInteractionEvent({ actorType: accountSession ? "account" : "anonymous", actorId: accountSession?.accountId, eventName: "signature_completed", surface: "receipt", metadata: { shipmentType: shipment.shipmentType, deliveryMode: shipment.deliveryMode } });
         return {
           status: "signed" as const,
           signedAt: saved.signedAt,

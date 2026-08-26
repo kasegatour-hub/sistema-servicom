@@ -98,6 +98,8 @@ export default function AccountPage() {
   const [docType, setDocType] = useState<"simple" | "apostillado">("simple");
   const [shipmentRoute, setShipmentRoute] = useState<ClientShipmentRoute>(SHIPMENT_ROUTES.LIMA_TORINO);
   const [clientRouteFilter, setClientRouteFilter] = useState<"all" | "Lima - Torino" | "Torino - Lima">("all");
+  type ClientShipmentGroup = "all" | "documento_lima_torino" | "documento_torino_lima" | "documento_torino_provincia" | "encomienda_lima_torino" | "encomienda_torino_lima" | "encomienda_torino_provincia";
+  const [clientShipmentGroup, setClientShipmentGroup] = useState<ClientShipmentGroup>("all");
   const [requiresApostilleService, setRequiresApostilleService] = useState(false);
   const [requiresTranslationService, setRequiresTranslationService] = useState(false);
   const [destinationAddress, setDestinationAddress] = useState("");
@@ -248,6 +250,14 @@ export default function AccountPage() {
     setIdentityErrors(previous => ({ ...previous, recipientName: "", recipientLastName: "" }));
   };
   const routeShipments = useMemo(() => (myShipments || []).filter(shipment => clientRouteFilter === "all" ? true : clientRouteFilter === "Torino - Lima" ? isTorinoLimaRoute(shipment.route) : shipment.route === "Lima - Torino"), [myShipments, clientRouteFilter]);
+  const clientGroupShipments = useMemo(() => (myShipments || []).filter((shipment: any) => {
+    if (clientShipmentGroup === "all") return true;
+    const isDocument = shipment.shipmentType !== "encomienda";
+    const isExpectedType = clientShipmentGroup.startsWith("documento") ? isDocument : !isDocument;
+    const expectedRoute = clientShipmentGroup.endsWith("lima_torino") ? "Lima - Torino" : clientShipmentGroup.endsWith("torino_lima") ? "Torino - Lima" : "Torino - Lima + provincia";
+    const legacyWithoutRoute = !shipment.route;
+    return isExpectedType && (legacyWithoutRoute || shipment.route === expectedRoute);
+  }), [myShipments, clientShipmentGroup]);
   const clientRevenue = useMemo(() => summarizeRevenue(routeShipments), [routeShipments]);
   const { data: myDeletedShipments, refetch: refetchDeletedShipments } = trpc.account.myDeletedShipments.useQuery(undefined, {
     enabled: !!me && !me.reauthRequired,
@@ -257,7 +267,7 @@ export default function AccountPage() {
   const filteredClientShipments = useMemo(() => {
     const query = clientSearchTerm.trim();
     const relevanceByShipmentId = new Map<number, number>();
-    return [...routeShipments].filter((shipment: any) => {
+    return [...clientGroupShipments].filter((shipment: any) => {
       const relevance = getFuzzySearchScore(query, [shipment.orderNumber, shipment.code, shipment.recipientName, shipment.recipientLastName, shipment.recipientDni].filter(Boolean).join(" "));
       relevanceByShipmentId.set(shipment.id, relevance);
       const textMatches = !query || relevance > 0;
@@ -265,7 +275,7 @@ export default function AccountPage() {
       const statusMatches = clientStatusFilter === "all" || shipment.status === clientStatusFilter;
       return textMatches && paymentMatches && statusMatches;
     }).sort((left: any, right: any) => (query ? (relevanceByShipmentId.get(right.id) || 0) - (relevanceByShipmentId.get(left.id) || 0) : 0) || new Date(right.createdAt || 0).getTime() - new Date(left.createdAt || 0).getTime());
-  }, [routeShipments, clientSearchTerm, clientPaymentFilter, clientStatusFilter]);
+  }, [clientGroupShipments, clientSearchTerm, clientPaymentFilter, clientStatusFilter]);
   const clientPagination = paginateItems(filteredClientShipments, clientCurrentPage, clientPageSize);
   const filteredClientTrash = useMemo(() => {
     const query = clientTrashSearchTerm.trim();
@@ -278,7 +288,7 @@ export default function AccountPage() {
   }, [myDeletedShipments, clientTrashSearchTerm, clientTrashPaymentFilter, clientTrashStatusFilter]);
   const clientTrashPagination = paginateItems(filteredClientTrash, clientTrashCurrentPage, clientPageSize);
 
-  useEffect(() => setClientCurrentPage(1), [clientSearchTerm, clientPaymentFilter, clientStatusFilter]);
+  useEffect(() => setClientCurrentPage(1), [clientSearchTerm, clientShipmentGroup, clientPaymentFilter, clientStatusFilter]);
   useEffect(() => setClientCurrentPage(page => Math.min(page, clientPagination.totalPages)), [clientPagination.totalPages]);
   useEffect(() => setClientTrashCurrentPage(1), [clientTrashSearchTerm, clientTrashPaymentFilter, clientTrashStatusFilter]);
   useEffect(() => setClientTrashCurrentPage(page => Math.min(page, clientTrashPagination.totalPages)), [clientTrashPagination.totalPages]);
@@ -939,7 +949,24 @@ export default function AccountPage() {
               </form>
             )}
 
-            {clientWorkspace === "envios" && <div className="mb-4 grid grid-cols-1 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 md:grid-cols-4">
+            {clientWorkspace === "envios" && <>
+              <div className="mb-3 grid grid-cols-1 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-2" role="group" aria-label="Mis envíos por tipo y ruta">
+                {([
+                  ["all", "Todos los envíos", "bg-[#0B2B5E] text-white", "border-blue-200 bg-white text-[#0B2B5E]", null],
+                  ["documento_lima_torino", "Documentos · Lima → Torino", "bg-[#0B2B5E] text-white", "border-blue-200 bg-white text-[#0B2B5E]", "Lima - Torino"],
+                  ["documento_torino_lima", "Documentos · Torino → Lima", "bg-[#2563eb] text-white", "border-blue-200 bg-white text-[#2563eb]", "Torino - Lima"],
+                  ["documento_torino_provincia", "Documentos · Torino → Lima + provincia", "bg-[#1d4ed8] text-white", "border-blue-200 bg-white text-[#1d4ed8]", "Torino - Lima + provincia"],
+                  ["encomienda_lima_torino", "Encomiendas · Lima → Torino", "bg-[#F28C00] text-white", "border-orange-200 bg-white text-[#9A5700]", "Lima - Torino"],
+                  ["encomienda_torino_lima", "Encomiendas · Torino → Lima", "bg-[#d97706] text-white", "border-orange-200 bg-white text-[#9A5700]", "Torino - Lima"],
+                  ["encomienda_torino_provincia", "Encomiendas · Torino → Lima + provincia", "bg-[#b45309] text-white", "border-orange-200 bg-white text-[#b45309]", "Torino - Lima + provincia"],
+                ] as const).map(([value, label, activeClass, idleClass]) => <Button key={value} type="button" aria-pressed={clientShipmentGroup === value} onClick={() => setClientShipmentGroup(value)} className={`min-h-11 justify-start text-left ${clientShipmentGroup === value ? activeClass : `border ${idleClass}`}`}>
+                  {label}<span className="ml-auto text-xs opacity-80">({(myShipments || []).filter((shipment: any) => {
+                    if (value === "all") return true;
+                    return (value.startsWith("documento") ? shipment.shipmentType !== "encomienda" : shipment.shipmentType === "encomienda") && (!shipment.route || shipment.route === (value.endsWith("lima_torino") ? "Lima - Torino" : value.endsWith("torino_lima") ? "Torino - Lima" : "Torino - Lima + provincia"));
+                  }).length})</span>
+                </Button>)}
+              </div>
+              <div className="mb-4 grid grid-cols-1 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 md:grid-cols-4">
               <div className="flex min-w-0 items-center gap-2 md:col-span-2">
                 <div className="relative min-w-0 flex-1">
                   <Search className="pointer-events-none absolute left-4 top-1/2 h-6 w-6 -translate-y-1/2 text-[#0B2B5E] stroke-[2.5]" aria-hidden="true" />
@@ -949,7 +976,8 @@ export default function AccountPage() {
               </div>
               <select aria-label="Filtro de pago de mis envíos" value={clientPaymentFilter} onChange={(event) => setClientPaymentFilter(event.target.value as "all" | "paid" | "unpaid")} className="h-10 rounded-md border border-slate-300 bg-white px-2 text-sm"><option value="all">Todos los pagos</option><option value="paid">Pagados</option><option value="unpaid">No pagados</option></select>
               <select aria-label="Filtro de estado de mis envíos" value={clientStatusFilter} onChange={(event) => setClientStatusFilter(event.target.value)} className="h-10 rounded-md border border-slate-300 bg-white px-2 text-sm"><option value="all">Todos los estados</option><option value="Por entregar en agencia">Por entregar en agencia</option><option value="En agencia">En agencia</option><option value="En tránsito">En tránsito</option><option value="En destino">En destino</option></select>
-            </div>}
+              </div>
+            </>}
 
             {clientWorkspace === "envios" && (!myShipments || myShipments.length === 0 ? (
               <div className="text-center py-12 text-slate-500">

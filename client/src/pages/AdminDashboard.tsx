@@ -410,6 +410,8 @@ export default function AdminDashboard() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [shipmentView, setShipmentView] = useState<'documento' | 'encomienda'>('documento');
   const [operationalRoute, setOperationalRoute] = useState<OperationalRouteFilter>("all");
+  type ShipmentGroup = "documento_lima_torino" | "documento_torino_lima" | "documento_torino_provincia" | "encomienda_lima_torino" | "encomienda_torino_lima" | "encomienda_torino_provincia";
+  const [shipmentGroup, setShipmentGroup] = useState<ShipmentGroup>("documento_lima_torino");
   const [currentPage, setCurrentPage] = useState(1);
   const [showUserForm, setShowUserForm] = useState(false);
   const [showCouponForm, setShowCouponForm] = useState(false);
@@ -532,6 +534,17 @@ export default function AdminDashboard() {
   const couponFirstItem = orderedCoupons.length === 0 ? 0 : (couponCurrentPage - 1) * couponPageSize + 1;
   const couponLastItem = Math.min(couponCurrentPage * couponPageSize, orderedCoupons.length);
   const routeShipments = useMemo(() => (shipments ?? []).filter(shipment => matchesOperationalRoute(shipment.route, operationalRoute)), [shipments, operationalRoute]);
+  const groupedShipments = useMemo(() => (shipments ?? []).filter((shipment: any) => {
+    const isDocument = shipment.shipmentType !== "encomienda";
+    const groupType = shipmentGroup.startsWith("documento") ? isDocument : !isDocument;
+    const groupRoute = shipmentGroup.endsWith("lima_torino")
+      ? "Lima - Torino"
+      : shipmentGroup.endsWith("torino_lima")
+        ? "Torino - Lima"
+        : "Torino - Lima + provincia";
+    const legacyWithoutRoute = !shipment.route;
+    return groupType && (legacyWithoutRoute || shipment.route === groupRoute);
+  }), [shipments, shipmentGroup]);
   const adminRevenue = useMemo(() => summarizeRevenue(routeShipments), [routeShipments]);
 
   const filteredDeletedShipments = useMemo(() => {
@@ -588,7 +601,18 @@ export default function AdminDashboard() {
   const uploadShipmentPhotoMutation = trpc.admin.uploadShipmentPhoto.useMutation();
   const updateMutation = trpc.admin.updateStatus.useMutation();
   const sendShipmentSignatureMutation = trpc.shipment.requestSignature.useMutation({
-    onSuccess: result => toast.success(result.status === "signed" ? "El envío ya cuenta con una firma electrónica." : `Solicitud de firma enviada al Cliente. Vence el ${new Date(result.expiresAt).toLocaleString("es-PE")}.`),
+    onSuccess: async result => {
+      if (result.status === "signed") {
+        toast.success("El envío ya cuenta con una firma electrónica.");
+        return;
+      }
+      if (result.deliveryMode === "manual" && result.signatureUrl) {
+        try { await navigator.clipboard?.writeText(result.signatureUrl); } catch { /* La copia queda disponible en el enlace que devuelve el servidor. */ }
+        toast.success(`Enlace manual creado y copiado para ${result.signerName || "el remitente"}. Vence el ${new Date(result.expiresAt).toLocaleString("es-PE")}.`);
+      } else {
+        toast.success(`Solicitud de firma enviada al Cliente. Vence el ${new Date(result.expiresAt).toLocaleString("es-PE")}.`);
+      }
+    },
     onError: error => toast.error(error.message),
   });
   const deleteMutation = trpc.admin.deleteShipment.useMutation();
@@ -1818,9 +1842,7 @@ export default function AdminDashboard() {
 
   const sortedShipments = useMemo(() => {
     if (!routeShipments) return [];
-    let list = [...routeShipments].filter((shipment) => shipmentView === 'documento'
-      ? shipment.shipmentType !== 'encomienda'
-      : shipment.shipmentType === 'encomienda');
+    let list = [...groupedShipments];
     const searchQuery = searchTerm.trim();
     const relevanceByShipmentId = new Map<number, number>();
     if (searchQuery) list = list.filter((shipment: any) => {
@@ -1841,11 +1863,11 @@ export default function AdminDashboard() {
       const dateB = new Date(b.createdAt).getTime();
       return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
     });
-  }, [routeShipments, shipmentView, sortOrder, searchTerm, paymentFilter, logisticsFilter]);
+  }, [groupedShipments, sortOrder, searchTerm, paymentFilter, logisticsFilter]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, shipmentView, operationalRoute, sortOrder, paymentFilter, logisticsFilter]);
+  }, [searchTerm, shipmentGroup, sortOrder, paymentFilter, logisticsFilter]);
 
   const pagination = paginateItems(sortedShipments, currentPage, pageSize);
   const totalPages = pagination.totalPages;
@@ -1874,7 +1896,7 @@ export default function AdminDashboard() {
     <Button onClick={() => handlePrintReceipt(shipment)} size="sm" variant="outline" className="border-orange-600 text-orange-600 hover:bg-orange-50"><Printer className="mr-1 h-4 w-4" /> Imprimir</Button>
     <Button onClick={() => void downloadAdministrativePdf(shipment)} size="sm" variant="outline" className="border-[#0B2B5E] text-[#0B2B5E] hover:bg-blue-50"><Download className="mr-1 h-4 w-4" /> Descargar PDF</Button>
     {admin?.role === "superadmin" && <Button type="button" onClick={() => void handleToggleRegistradorVisibility(shipment)} size="sm" variant="outline" className="border-violet-600 text-violet-700 hover:bg-violet-50" disabled={setShipmentRegistradorVisibilityMutation.isPending} title={shipment.hiddenFromRegistradoresAt ? "Volver a mostrar este registro a los Registradores" : "Ocultar este registro a los Registradores"}>{shipment.hiddenFromRegistradoresAt ? "Mostrar a Registradores" : "Ocultar a Registradores"}</Button>}
-    {shipment.accountId && <Button onClick={() => sendShipmentSignatureMutation.mutate({ orderNumber: shipment.orderNumber, code: shipment.code })} size="sm" variant="outline" disabled={sendShipmentSignatureMutation.isPending} className="border-[#0B2B5E] text-[#0B2B5E] hover:bg-blue-50"><FileSignature className="mr-1 h-4 w-4" />{sendShipmentSignatureMutation.isPending ? "Preparando…" : "Para firmar electrónicamente"}</Button>}
+    <Button onClick={() => sendShipmentSignatureMutation.mutate({ orderNumber: shipment.orderNumber, code: shipment.code })} size="sm" variant="outline" disabled={sendShipmentSignatureMutation.isPending} className="border-[#0B2B5E] text-[#0B2B5E] hover:bg-blue-50"><FileSignature className="mr-1 h-4 w-4" />{sendShipmentSignatureMutation.isPending ? "Preparando…" : "Para firmar electrónicamente"}</Button>
     <Button onClick={() => handleDeleteShipment(shipment.id)} size="sm" variant="outline" className="border-red-600 text-red-600 hover:bg-red-50" disabled={deleteMutation.isPending}>Eliminar</Button>
     {admin?.role === "superadmin" && <Button onClick={() => setAuditShipmentId(shipment.id)} size="sm" variant="outline" className="border-slate-400 text-slate-700 hover:bg-slate-100">Historial</Button>}
   </>;
@@ -2888,30 +2910,23 @@ export default function AdminDashboard() {
         <Card className={`border-0 p-6 shadow-lg ${adminWorkspace === "registros" ? "" : "hidden"}`}>
           <div className="flex flex-col gap-5 mb-6">
             <div className="flex flex-wrap items-center gap-3">
-              <h2 className="text-xl font-semibold text-gray-900">{shipmentView === 'documento' ? 'Documentos Registrados' : 'Encomiendas Registradas'}</h2>
-              <div className="flex flex-wrap gap-2" role="group" aria-label="Ruta de registros">
-                <Button type="button" aria-pressed={operationalRoute === "Lima - Torino"} onClick={() => setOperationalRoute("Lima - Torino")} className={operationalRoute === "Lima - Torino" ? "bg-[#0B2B5E] text-white" : "border border-blue-200 bg-blue-50 text-[#0B2B5E]"}>Lima → Torino</Button>
-                <Button type="button" aria-pressed={operationalRoute === "Torino - Lima"} onClick={() => setOperationalRoute("Torino - Lima")} className={operationalRoute === "Torino - Lima" ? "bg-[#F28C00] text-white" : "border border-orange-200 bg-orange-50 text-[#9A5700]"}>Torino → Lima + provincia</Button>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-xl font-semibold text-gray-900">{shipmentGroup.startsWith("documento") ? "Documentos registrados" : "Encomiendas registradas"}</h2>
+                <p className="mt-1 text-sm text-slate-600">Selecciona un grupo operativo para no mezclar rutas ni tipos de envío.</p>
               </div>
-              <div className="flex items-center gap-1 rounded-lg bg-slate-100 p-1" role="tablist" aria-label="Tipo de envío">
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={shipmentView === 'documento'}
-                  onClick={() => setShipmentView('documento')}
-                  className={`rounded-md px-3 py-1.5 text-sm font-semibold transition ${shipmentView === 'documento' ? 'bg-white text-[#0B2B5E] shadow-sm' : 'text-slate-500 hover:text-[#0B2B5E]'}`}
-                >
-                  Documentos <span className="ml-1 text-xs">({(shipments || []).filter((shipment: any) => shipment.shipmentType !== 'encomienda').length})</span>
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={shipmentView === 'encomienda'}
-                  onClick={() => setShipmentView('encomienda')}
-                  className={`rounded-md px-3 py-1.5 text-sm font-semibold transition ${shipmentView === 'encomienda' ? 'bg-white text-[#0B2B5E] shadow-sm' : 'text-slate-500 hover:text-[#0B2B5E]'}`}
-                >
-                  Encomiendas <span className="ml-1 text-xs">({(shipments || []).filter((shipment: any) => shipment.shipmentType === 'encomienda').length})</span>
-                </button>
+              <div className="grid w-full gap-2 sm:grid-cols-2" role="group" aria-label="Grupos de registros por tipo y ruta">
+                {([
+                  ["documento_lima_torino", "Documentos · Lima → Torino", "bg-[#0B2B5E] text-white", "border-blue-200 bg-blue-50 text-[#0B2B5E]", "Lima - Torino"],
+                  ["documento_torino_lima", "Documentos · Torino → Lima", "bg-[#1d4ed8] text-white", "border-blue-200 bg-white text-[#1d4ed8]", "Torino - Lima"],
+                  ["documento_torino_provincia", "Documentos · Torino → Lima + provincia", "bg-[#2563eb] text-white", "border-blue-200 bg-white text-[#2563eb]", "Torino - Lima + provincia"],
+                  ["encomienda_lima_torino", "Encomiendas · Lima → Torino", "bg-[#F28C00] text-white", "border-orange-200 bg-orange-50 text-[#9A5700]", "Lima - Torino"],
+                  ["encomienda_torino_lima", "Encomiendas · Torino → Lima", "bg-[#d97706] text-white", "border-orange-200 bg-white text-[#9A5700]", "Torino - Lima"],
+                  ["encomienda_torino_provincia", "Encomiendas · Torino → Lima + provincia", "bg-[#b45309] text-white", "border-orange-200 bg-white text-[#b45309]", "Torino - Lima + provincia"],
+                ] as const).map(([value, label, activeClass, idleClass, route]) => (
+                  <Button key={value} type="button" aria-pressed={shipmentGroup === value} onClick={() => { setShipmentGroup(value); setShipmentView(value.startsWith("documento") ? "documento" : "encomienda"); }} className={`min-h-12 justify-start text-left ${shipmentGroup === value ? activeClass : `border ${idleClass}`}`}>
+                    {label}<span className="ml-auto text-xs opacity-80">({(shipments || []).filter((shipment: any) => (value.startsWith("documento") ? shipment.shipmentType !== "encomienda" : shipment.shipmentType === "encomienda") && (!shipment.route || shipment.route === route)).length})</span>
+                  </Button>
+                ))}
               </div>
             </div>
             <div className="w-full">

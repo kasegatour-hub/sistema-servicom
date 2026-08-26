@@ -1608,15 +1608,20 @@
 - [x] Añadir pruebas de payload, texto, aislamiento por rol y trazabilidad completa; validar TypeScript, suite, build y UI.
 
 ## Separación operativa por ruta y firma Admin/Usuario
-- [ ] Separar Documentos Lima → Torino de Documentos Torino → Lima + provincia.
-- [ ] Separar Encomiendas Lima → Torino de Encomiendas Torino → Lima + provincia.
-- [ ] Reemplazar el selector mezclado de ruta y tipo por una estructura de cuatro grupos clara, responsive y usable.
-- [ ] Permitir enviar para firma desde Admin y Usuario con una cuenta Cliente válida y mostrar errores accionables cuando falten condiciones.
-- [ ] Mantener visible el estado de firma pendiente/completada en el grupo y registro correspondientes.
-- [ ] Añadir pruebas, validar TypeScript, suite, build y responsive antes del checkpoint.
+- [x] Separar Documentos Lima → Torino de Documentos Torino → Lima + provincia.
+- [x] Separar Encomiendas Lima → Torino de Encomiendas Torino → Lima + provincia.
+- [x] Reemplazar el selector mezclado de ruta y tipo por una estructura de cuatro grupos clara, responsive y usable.
+- [x] Permitir enviar para firma desde Admin y Usuario con una cuenta Cliente válida y mostrar errores accionables cuando falten condiciones.
+- [x] Mantener visible el estado de firma pendiente/completada en el grupo y registro correspondientes.
+- [x] Añadir pruebas, validar TypeScript, suite, build y responsive antes del checkpoint.
 
 ## Numeración unificada para documentos y encomiendas
 - [x] Hacer que los documentos nuevos utilicen el mismo formato y secuencia de orden que las encomiendas.
 - [x] Mantener rangos por ruta y modalidad, unicidad mensual y compatibilidad con órdenes históricas.
 - [x] Validar generación, actualización, rastreo, QR, recibos, filtros y exportaciones con el nuevo formato.
 - [x] Añadir pruebas de regresión, validar TypeScript, suite, build y publicar.
+
+## Separación exacta de Torino–Lima y Torino–Lima + provincia
+- [x] Separar los seis grupos exactos: Documento/Encomienda × Lima–Torino, Torino–Lima y Torino–Lima + provincia.
+- [x] Evitar que los registros Torino–Lima sin provincia se mezclen con los de provincia en filtros, contadores y listados.
+- [x] Mantener la acción de firma y su estado dentro del grupo exacto del envío.
