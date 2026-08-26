@@ -1501,3 +1501,10 @@
 - [x] Generar órdenes de encomienda únicas en formato MMAA-XXXX, añadiendo dos dígitos antes del rango operativo final
 - [x] Aplicar el rango operativo final 01–20 para sede Lima y 01–14 para provincia, también en Lima–Torino, sin usar un rango general 1–99
 - [x] Actualizar validaciones, rastreo, QR, recibos y pruebas; validar y publicar
+
+## Contabilidad operativa y reportes
+- [x] Crear libro contable simplificado para Admin y Usuario con ingresos, egresos provinciales y gastos manuales
+- [x] Calcular utilidad por mes y año, respetando los espacios administrativos aislados
+- [x] Añadir filtro de periodo, detalle de encomiendas y registro de gastos por proceso de envío
+- [x] Generar descargas PDF y Excel con el estado de resultados simplificado y la relación de encomiendas del periodo
+- [x] Añadir pruebas de permisos, cálculos, exportaciones, validación y publicación

@@ -468,3 +468,26 @@ export const interactionEvents = mysqlTable("interaction_events", {
 }));
 export type InteractionEvent = typeof interactionEvents.$inferSelect;
 export type InsertInteractionEvent = typeof interactionEvents.$inferInsert;
+
+/** Gastos operativos manuales que complementan los costos provinciales guardados en cada envío. */
+export const operatingExpenses = mysqlTable("operating_expenses", {
+  id: int("id").autoincrement().primaryKey(),
+  workspaceKey: varchar("workspaceKey", { length: 96 }).notNull().default("servicom"),
+  workspaceLabel: varchar("workspaceLabel", { length: 180 }).notNull().default("Servicom Internacional"),
+  shipmentId: int("shipmentId"),
+  category: mysqlEnum("category", ["transporte", "agencia_provincial", "embalaje", "operativo", "otro"]).notNull().default("operativo"),
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  currency: mysqlEnum("currency", ["EUR", "PEN"]).notNull().default("EUR"),
+  description: varchar("description", { length: 500 }).notNull(),
+  expenseDate: timestamp("expenseDate").notNull(),
+  createdByAdminId: int("createdByAdminId").notNull(),
+  createdByLabel: varchar("createdByLabel", { length: 255 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => ({
+  workspacePeriodIdx: index("operating_expenses_workspace_period_idx").on(table.workspaceKey, table.expenseDate),
+  shipmentIdx: index("operating_expenses_shipment_idx").on(table.shipmentId),
+  creatorIdx: index("operating_expenses_creator_idx").on(table.createdByAdminId, table.createdAt),
+}));
+export type OperatingExpense = typeof operatingExpenses.$inferSelect;
+export type InsertOperatingExpense = typeof operatingExpenses.$inferInsert;

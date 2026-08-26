@@ -351,6 +351,13 @@
       "when": 1787675944286,
       "tag": "0049_giant_firebrand",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "5",
+      "when": 1787704088753,
+      "tag": "0050_living_lester",
+      "breakpoints": true
     }
   ]
 }

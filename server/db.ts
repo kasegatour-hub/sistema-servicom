@@ -1,7 +1,7 @@
-import { and, asc, count, desc, eq, gt, gte, inArray, isNotNull, isNull, like, ne, notInArray, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, gte, inArray, isNotNull, isNull, like, lt, ne, notInArray, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { createHash } from "node:crypto";
-import { InsertUser, users, shipments, shipmentSignatures, shipmentAuditLogs, shipmentFeedback, platformFeedback, interactionEvents, admins, localAccounts, verificationCodes, adminPasswordResetCodes, clients, discountCoupons, shipmentRoutePolicies, invitationLetters, invitationLetterSignatures, transfers, notifications, type Notification } from "../drizzle/schema";
+import { InsertUser, users, shipments, shipmentSignatures, shipmentAuditLogs, shipmentFeedback, platformFeedback, interactionEvents, admins, localAccounts, verificationCodes, adminPasswordResetCodes, clients, discountCoupons, shipmentRoutePolicies, invitationLetters, invitationLetterSignatures, transfers, notifications, operatingExpenses, type Notification } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { buildShipmentClientDirectoryRecords, type ClientDirectoryRecord, type ShipmentClientDirectoryInput } from "./clientDirectory";
 import { rankFuzzyMatches } from "../shared/fuzzySearch";
@@ -1361,6 +1361,50 @@ export async function getAllShipments(shipmentType?: "documento" | "encomienda",
     if (isolatedWorkspaceFilter) conditions.push(isolatedWorkspaceFilter);
   }
   return await db.select().from(shipments).where(and(...conditions));
+}
+
+export type OperatingExpenseInput = {
+  workspaceKey: string;
+  workspaceLabel: string;
+  shipmentId?: number | null;
+  category: "transporte" | "agencia_provincial" | "embalaje" | "operativo" | "otro";
+  amount: number;
+  currency: "EUR" | "PEN";
+  description: string;
+  expenseDate: Date;
+  createdByAdminId: number;
+  createdByLabel: string;
+};
+
+export async function createOperatingExpense(input: OperatingExpenseInput) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.insert(operatingExpenses).values({
+    workspaceKey: input.workspaceKey,
+    workspaceLabel: input.workspaceLabel,
+    shipmentId: input.shipmentId ?? null,
+    category: input.category,
+    amount: String(input.amount),
+    currency: input.currency,
+    description: input.description.trim(),
+    expenseDate: input.expenseDate,
+    createdByAdminId: input.createdByAdminId,
+    createdByLabel: input.createdByLabel,
+  });
+  const id = Number((result as { insertId?: number }).insertId);
+  if (!id) return undefined;
+  const [expense] = await db.select().from(operatingExpenses).where(eq(operatingExpenses.id, id)).limit(1);
+  return expense;
+}
+
+export async function listOperatingExpenses(input: { workspaceKey: string; startsAt: Date; endsAt: Date }) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(operatingExpenses).where(and(
+    eq(operatingExpenses.workspaceKey, input.workspaceKey),
+    gte(operatingExpenses.expenseDate, input.startsAt),
+    lt(operatingExpenses.expenseDate, input.endsAt),
+  )).orderBy(desc(operatingExpenses.expenseDate), desc(operatingExpenses.id));
 }
 
 export async function getDeletedShipments(shipmentType?: "documento" | "encomienda", ownerAdminId?: number, excludeIsolatedWorkspaces = false) {
