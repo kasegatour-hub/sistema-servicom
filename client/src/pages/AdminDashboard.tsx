@@ -861,12 +861,6 @@ export default function AdminDashboard() {
     }
   }, [currentAdminSession, loadingAdminSession]);
 
-  useEffect(() => {
-    if (admin?.role !== "superadmin" && adminWorkspace === "feedback") {
-      setAdminWorkspace("registros");
-    }
-  }, [admin?.role, adminWorkspace]);
-
   const updateForm = useForm<UpdateStatusForm>({
     resolver: zodResolver(updateStatusSchema),
     defaultValues: {

@@ -1631,3 +1631,9 @@
 - [x] Confirmar que los seis grupos no comparten registros con ruta definida y mantienen estética responsive.
 - [x] Reproducir desde Admin y Usuario el envío de firma y mostrar enlace manual o notificación automática según corresponda.
 - [x] Añadir regresiones de esta revisión, ejecutar suite y build, y publicar el checkpoint.
+
+## Disponibilidad por entorno y rol
+- [x] Verificar que Admin y Usuario tengan todas las funcionalidades operativas en Servicom, Magda y Kasega.
+- [x] Corregir la visibilidad de funcionalidades, registros, marca, rutas, firma y contabilidad para Magda y Kasega.
+- [x] Mantener para Cliente únicamente las funciones permitidas, sin exponer herramientas administrativas.
+- [x] Añadir pruebas de permisos y aislamiento por entorno, validar y publicar.

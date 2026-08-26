@@ -1517,7 +1517,7 @@ export async function setEncomiendaAvailabilityForRoute(route: string, encomiend
 
 export const ISOLATED_WORKSPACE_ADMIN_IDS = [210001, 210002] as const;
 
-export async function getAllShipments(shipmentType?: "documento" | "encomienda", options?: { excludeHiddenForRegistradores?: boolean; ownerAdminId?: number; excludeIsolatedWorkspaces?: boolean }) {
+export async function getAllShipments(shipmentType?: "documento" | "encomienda", options?: { excludeHiddenForRegistradores?: boolean; ownerAdminId?: number; ownerAdminEmail?: string; excludeIsolatedWorkspaces?: boolean }) {
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot get shipments: database not available");
@@ -1528,8 +1528,10 @@ export async function getAllShipments(shipmentType?: "documento" | "encomienda",
   if (shipmentType) conditions.push(eq(shipments.shipmentType, shipmentType));
   if (options?.excludeHiddenForRegistradores) conditions.push(isNull(shipments.hiddenFromRegistradoresAt));
   if (options?.ownerAdminId !== undefined) {
+    const ownerConditions = [eq(shipments.registeredById, options.ownerAdminId)];
+    if (options.ownerAdminEmail?.trim()) ownerConditions.push(eq(shipments.registeredByEmail, options.ownerAdminEmail.trim().toLowerCase()));
     conditions.push(eq(shipments.registeredByType, "admin"));
-    conditions.push(eq(shipments.registeredById, options.ownerAdminId));
+    conditions.push(or(...ownerConditions)!);
   } else if (options?.excludeIsolatedWorkspaces) {
     const isolatedWorkspaceFilter = or(ne(shipments.registeredByType, "admin"), isNull(shipments.registeredById), notInArray(shipments.registeredById, [...ISOLATED_WORKSPACE_ADMIN_IDS]));
     if (isolatedWorkspaceFilter) conditions.push(isolatedWorkspaceFilter);

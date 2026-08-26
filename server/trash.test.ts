@@ -121,6 +121,6 @@ describe("shipment trash and restoration", () => {
 
     const isolatedMaster = appRouter.createCaller(adminContext("superadmin", 210001, true));
     await isolatedMaster.admin.getAllShipments();
-    expect(dbMocks.getAllShipments).toHaveBeenLastCalledWith(undefined, { excludeHiddenForRegistradores: false, ownerAdminId: 210001, excludeIsolatedWorkspaces: false });
+    expect(dbMocks.getAllShipments).toHaveBeenLastCalledWith(undefined, { excludeHiddenForRegistradores: false, ownerAdminId: 210001, ownerAdminEmail: "magda.barreto.alv@gmail.com", excludeIsolatedWorkspaces: false });
   });
 });
