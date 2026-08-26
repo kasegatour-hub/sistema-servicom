@@ -46,6 +46,7 @@ const mocks = vi.hoisted(() => ({
   refetchCoupons: vi.fn(),
   shipments: [] as any[],
   deletedShipments: [] as any[],
+  shipmentAudit: [] as any[],
   deliveryShipment: { data: null as any, isLoading: false, error: null as any },
   shipmentSenders: [
     { id: 71, name: "Marco", lastName: "Polo", dni: "70123456", phone: "+51 970 188 447", isActive: true },
@@ -88,7 +89,7 @@ vi.mock("@/lib/trpc", () => ({
       getAllShipments: { useQuery: () => ({ data: mocks.shipments, isLoading: false, refetch: mocks.refetchShipments }) },
       getShipmentForDeliveryUpdate: { useQuery: () => mocks.deliveryShipment },
       listDeletedShipments: { useQuery: () => ({ data: mocks.deletedShipments, isLoading: false, refetch: vi.fn() }) },
-      shipmentAudit: { useQuery: () => ({ data: [], isFetching: false }) },
+      shipmentAudit: { useQuery: () => ({ data: mocks.shipmentAudit, isFetching: false }) },
       listAdmins: { useQuery: () => ({ data: [], isLoading: false, refetch: mocks.refetchAdminUsers }) },
       listCoupons: { useQuery: () => ({ data: mocks.listCoupons.data, isLoading: false, refetch: mocks.refetchCoupons }) },
       getLimaTorinoEncomiendaPolicy: { useQuery: () => ({ data: mocks.limaTorinoPolicy.data, isLoading: false, refetch: mocks.limaTorinoPolicy.refetch }) },
@@ -478,6 +479,23 @@ describe("AdminDashboard Nueva Encomienda", () => {
     expect(screen.getByText("Aplica a")).toBeTruthy();
     expect(screen.getByText("Válido desde")).toBeTruthy();
     expect(screen.getByText("Válido hasta")).toBeTruthy();
+  });
+
+  it("abre el historial en una ventana, muestra cinco eventos y permite avanzar y cerrar", async () => {
+    mocks.adminSession = { id: 4, email: "admin@servicom.pe", name: "Master", role: "superadmin", reauthRequired: false };
+    mocks.shipments = [{ id: 42, shipmentType: "documento", recipientName: "Giselle", recipientLastName: "García", route: "Lima - Torino", status: "En agencia", paymentStatus: "Falta cancelar", createdAt: new Date("2026-08-17T10:00:00.000Z"), orderNumber: "6352627659", code: "DOC-2026-XPF2A", events: [], hiddenFromRegistradoresAt: null }];
+    mocks.shipmentAudit = Array.from({ length: 6 }, (_, index) => ({ id: index + 1, action: "updated", actorDisplayName: "Master", createdAt: new Date(2026, 7, 26, 12, index) }));
+    render(<AdminDashboard />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Historial" })).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "Historial" }));
+    expect(screen.getByRole("dialog", { name: "Historial de cambios del envío" })).toBeTruthy();
+    expect(screen.getByText("Mostrando 1–5 de 6")).toBeTruthy();
+    expect(screen.getByText("Página 1 de 2")).toBeTruthy();
+    fireEvent.click(within(screen.getByRole("dialog", { name: "Historial de cambios del envío" })).getByRole("button", { name: "Siguiente" }));
+    expect(screen.getByText("Mostrando 6–6 de 6")).toBeTruthy();
+    expect(screen.getByText("Página 2 de 2")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Cerrar historial" }));
+    expect(screen.queryByRole("dialog", { name: "Historial de cambios del envío" })).toBeNull();
   });
 
   it("muestra ocultamiento reversible al Master Admin de su propio espacio", async () => {

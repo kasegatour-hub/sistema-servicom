@@ -1677,3 +1677,11 @@
 - [x] Mantener ocultas o deshabilitadas las acciones cuando la carta ya esté firmada, con estado explicado
 - [x] Añadir pruebas de visibilidad, envío y apertura del flujo de firma en escritorio y móvil
 - [x] Ejecutar validación completa y publicar la corrección
+
+## Historial del envío en ventana
+- [x] Abrir el historial de cambios en una ventana modal independiente al pulsar «Historial»
+- [x] Añadir una X visible para cerrar la ventana y volver al detalle del envío
+- [x] Ordenar los eventos del más reciente al más antiguo
+- [x] Paginar el historial en grupos de cinco registros
+- [x] Añadir pruebas de apertura, cierre, orden, paginación y permisos
+- [x] Ejecutar suite, build y revisión responsive antes de publicar
