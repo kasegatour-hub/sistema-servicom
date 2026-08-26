@@ -15,11 +15,13 @@ const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", 
 const categoryLabels: Record<string, string> = { transporte: "Transporte", agencia_provincial: "Agencia provincial", embalaje: "Embalaje", operativo: "Operativo", otro: "Otro" };
 const periodModeLabels = { today: "Hoy", week: "Semana", month: "Mes", range: "Rango de fechas", year: "Año" } as const;
 type PeriodMode = keyof typeof periodModeLabels;
+const routeFilterLabels = { all: "Todas las rutas", "Lima - Torino": "Lima–Torino", "Torino - Lima": "Torino–Lima" } as const;
 
 export function AccountingWorkspace() {
   const currentYear = new Date().getFullYear();
   const today = dateValue();
   const [periodMode, setPeriodMode] = useState<PeriodMode>("month");
+  const [routeFilter, setRouteFilter] = useState<keyof typeof routeFilterLabels>("all");
   const [year, setYear] = useState(currentYear);
   const [month, setMonth] = useState<string>(String(new Date().getMonth() + 1));
   const [weekOfMonth, setWeekOfMonth] = useState<string>("all");
@@ -38,8 +40,9 @@ export function AccountingWorkspace() {
     weekDate: periodMode === "week" ? new Date(`${weekDate}T12:00:00`) : null,
     from: periodMode === "range" ? new Date(`${rangeFrom}T12:00:00`) : null,
     to: periodMode === "range" ? new Date(`${rangeTo}T12:00:00`) : null,
+    routeFilter,
     penPerEur: penPerEur.trim() ? Number(penPerEur) : null,
-  }), [periodMode, year, month, weekOfMonth, weekDate, rangeFrom, rangeTo, penPerEur]);
+  }), [periodMode, year, month, weekOfMonth, weekDate, rangeFrom, rangeTo, routeFilter, penPerEur]);
   const summary = trpc.accounting.summary.useQuery(queryInput);
   const addExpense = trpc.accounting.createExpense.useMutation({
     onSuccess: async () => {
@@ -71,6 +74,7 @@ export function AccountingWorkspace() {
       </div>
       <div className="grid gap-3 p-5 sm:grid-cols-2 xl:grid-cols-4">
         <div><Label htmlFor="accounting-period-mode">Ver envíos de</Label><Select value={periodMode} onValueChange={value => setPeriodMode(value as PeriodMode)}><SelectTrigger id="accounting-period-mode" className="mt-1 h-11 bg-white"><SelectValue /></SelectTrigger><SelectContent>{Object.entries(periodModeLabels).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></div>
+        <div><Label htmlFor="accounting-route-filter">Ruta contable</Label><Select value={routeFilter} onValueChange={value => setRouteFilter(value as keyof typeof routeFilterLabels)}><SelectTrigger id="accounting-route-filter" className="mt-1 h-11 bg-white"><SelectValue /></SelectTrigger><SelectContent>{Object.entries(routeFilterLabels).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></div>
         {(periodMode === "month" || periodMode === "year") && <div><Label htmlFor="accounting-year">Año</Label><Select value={String(year)} onValueChange={value => setYear(Number(value))}><SelectTrigger id="accounting-year" className="mt-1 h-11 bg-white"><SelectValue /></SelectTrigger><SelectContent>{years.map(value => <SelectItem key={value} value={String(value)}>{value}</SelectItem>)}</SelectContent></Select></div>}
         {periodMode === "month" && <div><Label htmlFor="accounting-month">Mes</Label><Select value={month} onValueChange={value => { setMonth(value); setWeekOfMonth("all"); }}><SelectTrigger id="accounting-month" className="mt-1 h-11 bg-white"><SelectValue /></SelectTrigger><SelectContent>{months.map((label, index) => <SelectItem key={label} value={String(index + 1)}>{label}</SelectItem>)}</SelectContent></Select></div>}
         {periodMode === "month" && <div><Label htmlFor="accounting-week-of-month">Semana del mes</Label><Select value={weekOfMonth} onValueChange={setWeekOfMonth}><SelectTrigger id="accounting-week-of-month" className="mt-1 h-11 bg-white"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todo el mes</SelectItem><SelectItem value="1">Semana 1 · días 1–7</SelectItem><SelectItem value="2">Semana 2 · días 8–14</SelectItem><SelectItem value="3">Semana 3 · días 15–21</SelectItem><SelectItem value="4">Semana 4 · días 22–fin</SelectItem></SelectContent></Select></div>}
@@ -89,7 +93,7 @@ export function AccountingWorkspace() {
         <Card className="border-blue-100 bg-blue-50 p-5"><p className="text-xs font-bold uppercase tracking-wide text-[#0B2B5E]">{data.isNetEurConsolidated ? "Utilidad neta" : "Utilidad EUR parcial"}</p><p className="mt-2 text-3xl font-extrabold text-[#0B2B5E]">{currency(data.netEur, "EUR")}</p><p className="mt-2 text-sm text-slate-700">{data.isNetEurConsolidated ? `Incluye ${currency(data.expensePenConvertedEur || 0, "EUR")} convertidos desde PEN.` : "Ingresa tipo de cambio para descontar costos PEN."}</p></Card>
       </div>
 
-      <Card className="p-5 shadow-sm"><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="flex items-center gap-2 text-lg font-extrabold text-[#0B2B5E]"><WalletCards className="h-5 w-5 text-[#F28C00]" /> Estado de resultados simplificado</h3><p className="mt-1 text-sm text-slate-600">{data.workspace.label} · {data.periodLabel}</p></div><span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-bold text-slate-700">{data.shipmentCount} envíos · {data.parcelCount} encomiendas</span></div>
+      <Card className="p-5 shadow-sm"><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="flex items-center gap-2 text-lg font-extrabold text-[#0B2B5E]"><WalletCards className="h-5 w-5 text-[#F28C00]" /> Estado de resultados simplificado</h3><p className="mt-1 text-sm text-slate-600">{data.workspace.label} · {data.periodLabel} · <strong>{data.routeLabel}</strong></p></div><span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-bold text-slate-700">{data.shipmentCount} envíos · {data.parcelCount} encomiendas</span></div>
         <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[540px] text-sm"><tbody className="divide-y divide-slate-100"><tr><td className="py-3 font-semibold text-slate-700">Ingresos cobrados</td><td className="py-3 text-right font-bold text-emerald-700">{currency(data.revenueEur, "EUR")}</td></tr><tr><td className="py-3 text-slate-700">Gastos manuales EUR</td><td className="py-3 text-right font-semibold text-rose-700">− {currency(data.manualExpenseEur, "EUR")}</td></tr><tr><td className="py-3 text-slate-700">Costos provinciales PEN</td><td className="py-3 text-right font-semibold text-amber-700">{currency(data.provinceCostPen, "PEN")}</td></tr><tr><td className="py-3 text-slate-700">Gastos manuales PEN</td><td className="py-3 text-right font-semibold text-amber-700">{currency(data.manualExpensePen, "PEN")}</td></tr>{data.penPerEur && <tr><td className="py-3 text-slate-700">Costos PEN convertidos a {data.penPerEur} PEN/EUR</td><td className="py-3 text-right font-semibold text-rose-700">− {currency(data.expensePenConvertedEur || 0, "EUR")}</td></tr>}<tr className="bg-blue-50"><td className="rounded-l-lg px-3 py-4 font-extrabold text-[#0B2B5E]">{data.isNetEurConsolidated ? "Utilidad neta EUR" : "Utilidad EUR antes de costos PEN"}</td><td className="rounded-r-lg px-3 py-4 text-right text-lg font-extrabold text-[#0B2B5E]">{currency(data.netEur, "EUR")}</td></tr></tbody></table></div>
       </Card>
 
@@ -111,7 +115,7 @@ export function AccountingWorkspace() {
         <Card className="p-5 shadow-sm"><h3 className="text-lg font-extrabold text-[#0B2B5E]">Gastos manuales</h3><p className="mt-1 text-sm text-slate-600">Cada gasto queda asociado a tu espacio operativo.</p><div className="mt-4 max-h-80 overflow-auto"><table className="w-full min-w-[530px] text-sm"><thead className="sticky top-0 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500"><tr><th className="p-2">Fecha</th><th className="p-2">Detalle</th><th className="p-2">Categoría</th><th className="p-2 text-right">Monto</th></tr></thead><tbody>{data.expenses.map(item => <tr key={item.id} className="border-t border-slate-100"><td className="p-2">{new Date(item.expenseDate).toLocaleDateString("es-PE")}</td><td className="p-2">{item.description}</td><td className="p-2">{categoryLabels[item.category] || item.category}</td><td className="p-2 text-right font-semibold">{currency(Number(item.amount), item.currency)}</td></tr>)}</tbody></table>{!data.expenses.length && <p className="p-5 text-center text-sm text-slate-500">No hay gastos manuales en este periodo.</p>}</div></Card>
       </div>
 
-      {data.monthly.length > 0 && <Card className="p-5 shadow-sm"><h3 className="text-lg font-extrabold text-[#0B2B5E]">Resumen por meses de {year}</h3><div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{data.monthly.map(item => <div key={item.periodLabel} className="rounded-xl border border-slate-200 bg-slate-50 p-4"><p className="font-bold capitalize text-[#0B2B5E]">{item.periodLabel}</p><p className="mt-2 text-sm text-slate-600">Ingresos: <strong>{currency(item.revenueEur, "EUR")}</strong></p><p className="text-sm text-slate-600">Egresos PEN: <strong>{currency(item.expensePen, "PEN")}</strong></p><p className="mt-2 text-base font-extrabold text-[#0B2B5E]">Utilidad: {currency(item.netEur, "EUR")}</p></div>)}</div></Card>}
+      {data.monthly.length > 0 && <Card className="p-5 shadow-sm"><h3 className="text-lg font-extrabold text-[#0B2B5E]">Resumen por meses de {year} · {data.routeLabel}</h3><div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{data.monthly.map(item => <div key={item.periodLabel} className="rounded-xl border border-slate-200 bg-slate-50 p-4"><p className="font-bold capitalize text-[#0B2B5E]">{item.periodLabel}</p><p className="mt-2 text-sm text-slate-600">Ingresos: <strong>{currency(item.revenueEur, "EUR")}</strong></p><p className="text-sm text-slate-600">Egresos PEN: <strong>{currency(item.expensePen, "PEN")}</strong></p><p className="mt-2 text-base font-extrabold text-[#0B2B5E]">Utilidad: {currency(item.netEur, "EUR")}</p></div>)}</div></Card>}
     </>}
   </section>;
 }

@@ -36,6 +36,7 @@ describe("AccountingWorkspace", () => {
     accountingMocks.summary.data = {
       workspace: { label: "Servicom Internacional" },
       periodLabel: "agosto de 2026",
+      routeLabel: "Todas las rutas",
       revenueEur: 120,
       manualExpenseEur: 10,
       provinceCostPen: 20,
@@ -58,6 +59,8 @@ describe("AccountingWorkspace", () => {
     render(<AccountingWorkspace />);
 
     expect(screen.getByRole("heading", { name: "Ingresos, egresos y utilidad" })).toBeTruthy();
+    expect(screen.getByLabelText("Ruta contable")).toBeTruthy();
+    expect(screen.getAllByText("Todas las rutas").length).toBeGreaterThan(0);
     expect(screen.getByLabelText("Semana del mes")).toBeTruthy();
     expect(screen.getByText("Utilidad neta EUR")).toBeTruthy();
     expect(screen.getByText("Encomiendas del periodo")).toBeTruthy();

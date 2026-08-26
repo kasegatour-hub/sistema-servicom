@@ -61,4 +61,21 @@ describe("operating accounting", () => {
     expect(range.startsAt.toISOString()).toBe("2026-08-12T00:00:00.000Z");
     expect(range.endsAt.toISOString()).toBe("2026-08-13T00:00:00.000Z");
   });
+
+  it("separa Lima–Torino y Torino–Lima, incluyendo solo gastos vinculados a la ruta elegida", () => {
+    const routedShipments = [
+      { id: 11, orderNumber: "0826-0001", code: "1ABC", shipmentType: "encomienda", paymentStatus: "Pagado", finalPriceEur: "100", route: "Lima - Torino", createdAt: new Date("2026-08-04T12:00:00.000Z") },
+      { id: 12, orderNumber: "0826-0002", code: "2ABC", shipmentType: "encomienda", paymentStatus: "Pagado", finalPriceEur: "140", route: "Torino - Lima + provincia", provinceOperationalCostSoles: "20", createdAt: new Date("2026-08-05T12:00:00.000Z") },
+    ];
+    const routedExpenses = [
+      { id: 11, shipmentId: 11, category: "operativo", amount: "8", currency: "EUR" as const, description: "Lima Torino", expenseDate: new Date("2026-08-06T12:00:00.000Z") },
+      { id: 12, shipmentId: 12, category: "operativo", amount: "12", currency: "EUR" as const, description: "Torino Lima", expenseDate: new Date("2026-08-06T12:00:00.000Z") },
+      { id: 13, category: "operativo", amount: "5", currency: "EUR" as const, description: "General", expenseDate: new Date("2026-08-06T12:00:00.000Z") },
+    ];
+    const limaTorino = calculateOperatingStatement({ shipments: routedShipments, expenses: routedExpenses, period: { year: 2026, month: 8 }, routeFilter: "Lima - Torino" });
+    const torinoLima = calculateOperatingStatement({ shipments: routedShipments, expenses: routedExpenses, period: { year: 2026, month: 8 }, routeFilter: "Torino - Lima" });
+
+    expect(limaTorino).toMatchObject({ routeLabel: "Lima–Torino", revenueEur: 100, manualExpenseEur: 8, netEur: 92, provinceCostPen: 0 });
+    expect(torinoLima).toMatchObject({ routeLabel: "Torino–Lima", revenueEur: 140, manualExpenseEur: 12, netEur: 128, provinceCostPen: 20 });
+  });
 });

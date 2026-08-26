@@ -31,14 +31,14 @@ export function NotificationBell() {
     }
     const newUnreadItems = items.filter(item => !item.isRead && !knownNotificationIds.current.has(item.id));
     knownNotificationIds.current = currentIds;
-    if (soundEnabled && newUnreadItems.length > 0) playAscendingNotificationChime();
+    if (soundEnabled && newUnreadItems.length > 0) void playAscendingNotificationChime();
   }, [items, notificationsQuery.data, soundEnabled]);
 
   const toggleSound = () => {
     const next = !soundEnabled;
     setSoundEnabled(next);
     setNotificationSoundPreference(next);
-    if (next) playAscendingNotificationChime();
+    if (next) void playAscendingNotificationChime();
   };
 
   return (
@@ -48,7 +48,7 @@ export function NotificationBell() {
         variant="outline"
         aria-label={`Notificaciones${unreadCount ? `, ${unreadCount} sin leer` : ""}`}
         aria-expanded={open}
-        onClick={() => { prepareNotificationChime(); setOpen(value => !value); }}
+        onClick={() => { void prepareNotificationChime(); setOpen(value => !value); }}
         className="relative min-h-12 min-w-12 rounded-xl border-white/70 bg-white/10 px-3 text-white hover:bg-white/20"
       >
         <Bell className="h-5 w-5" aria-hidden="true" />

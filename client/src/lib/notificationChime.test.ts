@@ -24,10 +24,11 @@ describe("sonido de notificaciones", () => {
     expect(getNotificationSoundPreference()).toBe(false);
   });
 
-  it("programa dos notas ascendentes cuando el navegador permite audio", () => {
+  it("desbloquea el audio y programa tres notas ascendentes claramente audibles", async () => {
     const oscillators: Array<{ frequency: { setValueAtTime: ReturnType<typeof vi.fn> }; start: ReturnType<typeof vi.fn>; stop: ReturnType<typeof vi.fn> }> = [];
     class FakeAudioContext {
       currentTime = 0;
+      state: AudioContextState = "suspended";
       destination = {} as AudioDestinationNode;
       createOscillator() {
         const oscillator = { type: "sine", frequency: { setValueAtTime: vi.fn() }, connect: vi.fn(), start: vi.fn(), stop: vi.fn() };
@@ -35,13 +36,15 @@ describe("sonido de notificaciones", () => {
         return oscillator as unknown as OscillatorNode;
       }
       createGain() { return { gain: { setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() }, connect: vi.fn() } as unknown as GainNode; }
+      resume = vi.fn(async () => { this.state = "running"; });
       close = vi.fn().mockResolvedValue(undefined);
     }
     installWindow(FakeAudioContext);
 
-    expect(playAscendingNotificationChime()).toBe(true);
-    expect(oscillators).toHaveLength(2);
-    expect(oscillators[0].frequency.setValueAtTime).toHaveBeenCalledWith(659.25, expect.any(Number));
-    expect(oscillators[1].frequency.setValueAtTime).toHaveBeenCalledWith(880, expect.any(Number));
+    await expect(playAscendingNotificationChime()).resolves.toBe(true);
+    expect(oscillators).toHaveLength(3);
+    expect(oscillators[0].frequency.setValueAtTime).toHaveBeenCalledWith(523.25, expect.any(Number));
+    expect(oscillators[1].frequency.setValueAtTime).toHaveBeenCalledWith(659.25, expect.any(Number));
+    expect(oscillators[2].frequency.setValueAtTime).toHaveBeenCalledWith(783.99, expect.any(Number));
   });
 });

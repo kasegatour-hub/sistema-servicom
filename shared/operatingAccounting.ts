@@ -1,3 +1,5 @@
+import { isTorinoLimaRoute } from "./shipmentRoutes";
+
 export type AccountingCurrency = "EUR" | "PEN";
 
 export type AccountingShipment = {
@@ -29,6 +31,8 @@ export type AccountingExpense = {
 };
 
 export type AccountingPeriodMode = "today" | "week" | "month" | "range" | "year";
+export type AccountingRouteFilter = "all" | "Lima - Torino" | "Torino - Lima";
+export const ACCOUNTING_ROUTE_FILTERS: AccountingRouteFilter[] = ["all", "Lima - Torino", "Torino - Lima"];
 
 export type AccountingPeriodInput = {
   mode?: AccountingPeriodMode;
@@ -127,6 +131,18 @@ export function getAccountingPeriodLabel(period: AccountingPeriodInput, locale =
   return resolveAccountingPeriod(period, new Date(), locale).label;
 }
 
+export function getAccountingRouteLabel(routeFilter: AccountingRouteFilter | undefined) {
+  if (routeFilter === "Lima - Torino") return "Lima–Torino";
+  if (routeFilter === "Torino - Lima") return "Torino–Lima";
+  return "Todas las rutas";
+}
+
+function matchesAccountingRoute(shipment: AccountingShipment, routeFilter: AccountingRouteFilter) {
+  if (routeFilter === "all") return true;
+  if (routeFilter === "Torino - Lima") return isTorinoLimaRoute(shipment.route);
+  return shipment.route === "Lima - Torino";
+}
+
 /**
  * No convierte monedas automáticamente. Si se proporciona `penPerEur`, los egresos PEN
  * se convierten de manera explícita para obtener la utilidad neta en EUR.
@@ -135,11 +151,14 @@ export function calculateOperatingStatement(input: {
   shipments: AccountingShipment[];
   expenses: AccountingExpense[];
   period: AccountingPeriodInput | ResolvedAccountingPeriod;
+  routeFilter?: AccountingRouteFilter;
   penPerEur?: number | null;
 }) {
   const period = "startsAt" in input.period ? input.period : resolveAccountingPeriod(input.period);
-  const shipments = input.shipments.filter(shipment => dateInPeriod(shipment.createdAt, period));
-  const expenses = input.expenses.filter(expense => dateInPeriod(expense.expenseDate, period));
+  const routeFilter = input.routeFilter || "all";
+  const shipments = input.shipments.filter(shipment => dateInPeriod(shipment.createdAt, period) && matchesAccountingRoute(shipment, routeFilter));
+  const shipmentIds = new Set(shipments.map(shipment => shipment.id));
+  const expenses = input.expenses.filter(expense => dateInPeriod(expense.expenseDate, period) && (routeFilter === "all" || (expense.shipmentId != null && shipmentIds.has(expense.shipmentId))));
   const paidShipments = shipments.filter(shipment => shipment.paymentStatus === "Pagado");
   const parcelRows = shipments.filter(shipment => shipment.shipmentType === "encomienda");
   const revenueEur = paidShipments.reduce((total, shipment) => total + positiveMoney(shipment.finalPriceEur ?? shipment.basePriceEur), 0);
@@ -156,6 +175,8 @@ export function calculateOperatingStatement(input: {
   return {
     periodLabel: period.label,
     period,
+    routeFilter,
+    routeLabel: getAccountingRouteLabel(routeFilter),
     shipments,
     parcelRows,
     expenses,

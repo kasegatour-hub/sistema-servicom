@@ -1,5 +1,6 @@
 type AccountingReportData = {
   periodLabel: string;
+  routeLabel: string;
   workspace: { label: string };
   revenueEur: number;
   manualExpenseEur: number;
@@ -56,6 +57,7 @@ export async function downloadAccountingExcel(report: AccountingReportData) {
     ["Estado de resultados simplificado"],
     ["Espacio", report.workspace.label],
     ["Periodo", report.periodLabel],
+    ["Ruta", report.routeLabel],
     ["Envíos registrados", report.shipmentCount],
     ["Encomiendas", report.parcelCount],
     ["Envíos pagados", report.paidShipmentCount],
@@ -134,7 +136,7 @@ export async function downloadAccountingPdf(report: AccountingReportData) {
 
   line("SERVICOM INTERNACIONAL", { bold: true, size: 16, color: [11, 43, 94] });
   line("Estado de resultados simplificado", { bold: true, size: 13, color: [11, 43, 94] });
-  line(`Espacio: ${report.workspace.label} · Periodo: ${report.periodLabel}`);
+  line(`Espacio: ${report.workspace.label} · Periodo: ${report.periodLabel} · Ruta: ${report.routeLabel}`);
   line(`Envíos registrados: ${report.shipmentCount} · Encomiendas: ${report.parcelCount} · Envíos cobrados: ${report.paidShipmentCount}`);
   rule();
   statementRows(report).forEach(([label, value]) => line(`${label}: ${value}`, { bold: label.includes("Utilidad") }));

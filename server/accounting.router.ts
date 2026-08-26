@@ -16,6 +16,7 @@ const periodSchema = z.object({
   weekDate: z.coerce.date().nullable().optional(),
   from: z.coerce.date().nullable().optional(),
   to: z.coerce.date().nullable().optional(),
+  routeFilter: z.enum(["all", "Lima - Torino", "Torino - Lima"]).default("all"),
   penPerEur: z.number().positive().max(100).nullable().optional(),
 });
 
@@ -40,9 +41,9 @@ export const accountingRouter = router({
       getAllShipments(undefined, scope.shipmentOptions),
       listOperatingExpenses({ workspaceKey: scope.workspace.key, startsAt: period.startsAt, endsAt: period.endsAt }),
     ]);
-    const statement = calculateOperatingStatement({ shipments, expenses, period, penPerEur: input.penPerEur });
+    const statement = calculateOperatingStatement({ shipments, expenses, period, routeFilter: input.routeFilter, penPerEur: input.penPerEur });
     const monthly = period.mode === "year"
-      ? Array.from({ length: 12 }, (_, index) => calculateOperatingStatement({ shipments, expenses, period: { mode: "month", year: period.year, month: index + 1 }, penPerEur: input.penPerEur }))
+      ? Array.from({ length: 12 }, (_, index) => calculateOperatingStatement({ shipments, expenses, period: { mode: "month", year: period.year, month: index + 1 }, routeFilter: input.routeFilter, penPerEur: input.penPerEur }))
       : [];
     return { workspace: scope.workspace, ...statement, monthly };
   }),

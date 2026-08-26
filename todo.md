@@ -1523,3 +1523,9 @@
 - [x] Aplicar 13 EUR/kg solo a encomiendas de Magdalena y kasegatour@gmail.com
 - [x] Mantener 15 EUR/kg para Servicom y los demás entornos, incluso en notas, edición y recibos
 - [x] Añadir pruebas de aislamiento tarifario, validar y publicar
+
+## Avisos sonoros y contabilidad por ruta
+- [x] Reforzar el sonido de nuevas notificaciones con un aviso audible, configurable y activado tras interacción del usuario
+- [x] Separar Contabilidad de Admin y Usuario por Lima–Torino y Torino–Lima, manteniendo al Cliente sin acceso
+- [x] Incluir la ruta seleccionada en los detalles, PDF y Excel contables
+- [x] Añadir pruebas, validar y publicar

@@ -60,6 +60,18 @@ describe("accounting router", () => {
     expect(dbMocks.listOperatingExpenses).toHaveBeenCalledWith(expect.objectContaining({ startsAt: new Date("2026-08-03T00:00:00.000Z"), endsAt: new Date("2026-08-06T00:00:00.000Z") }));
   });
 
+  it("separa el resumen Torino–Lima del resto de rutas", async () => {
+    dbMocks.getAllShipments.mockResolvedValue([
+      { id: 33, orderNumber: "0826-0001", code: "1ABC", shipmentType: "encomienda", paymentStatus: "Pagado", finalPriceEur: "100", route: "Lima - Torino", createdAt: new Date("2026-08-05T12:00:00.000Z") },
+      { id: 34, orderNumber: "0826-0002", code: "2ABC", shipmentType: "encomienda", paymentStatus: "Pagado", finalPriceEur: "150", route: "Torino - Lima + provincia", createdAt: new Date("2026-08-05T12:00:00.000Z") },
+    ]);
+    dbMocks.listOperatingExpenses.mockResolvedValue([{ id: 2, shipmentId: 34, category: "operativo", amount: "10", currency: "EUR", description: "Ruta Torino", expenseDate: new Date("2026-08-05T12:00:00.000Z") }]);
+    const caller = appRouter.createCaller(createAdminContext("registrador"));
+    const result = await caller.accounting.summary({ year: 2026, month: 8, routeFilter: "Torino - Lima" });
+
+    expect(result).toMatchObject({ routeLabel: "Torino–Lima", shipmentCount: 1, revenueEur: 150, manualExpenseEur: 10, netEur: 140 });
+  });
+
   it("rechaza consultas sin sesión administrativa", async () => {
     const caller = appRouter.createCaller({ user: null, req: { headers: {} }, res: {} } as TrpcContext);
     await expect(caller.accounting.summary({ year: 2026, month: 8 })).rejects.toMatchObject({ code: "UNAUTHORIZED" });

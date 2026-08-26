@@ -21,33 +21,37 @@ export function setNotificationSoundPreference(enabled: boolean) {
   window.localStorage.setItem(NOTIFICATION_SOUND_STORAGE_KEY, String(enabled));
 }
 
-export function prepareNotificationChime() {
+export async function prepareNotificationChime() {
   const context = getAudioContext();
   if (!context) return false;
-  if (context.state === "suspended") void context.resume();
-  return true;
+  try {
+    if (context.state === "suspended") await context.resume();
+    return context.state !== "suspended";
+  } catch {
+    return false;
+  }
 }
 
-export function playAscendingNotificationChime() {
+export async function playAscendingNotificationChime() {
   const context = getAudioContext();
   if (!context) return false;
 
   try {
-    if (context.state === "suspended") void context.resume();
-    const start = context.currentTime + 0.01;
-    [659.25, 880].forEach((frequency, index) => {
+    if (!await prepareNotificationChime()) return false;
+    const start = context.currentTime + 0.02;
+    [523.25, 659.25, 783.99].forEach((frequency, index) => {
       const oscillator = context.createOscillator();
       const gain = context.createGain();
-      const noteStart = start + index * 0.11;
-      oscillator.type = "sine";
+      const noteStart = start + index * 0.14;
+      oscillator.type = "triangle";
       oscillator.frequency.setValueAtTime(frequency, noteStart);
       gain.gain.setValueAtTime(0.0001, noteStart);
-      gain.gain.exponentialRampToValueAtTime(0.045, noteStart + 0.018);
-      gain.gain.exponentialRampToValueAtTime(0.0001, noteStart + 0.105);
+      gain.gain.exponentialRampToValueAtTime(0.1, noteStart + 0.018);
+      gain.gain.exponentialRampToValueAtTime(0.0001, noteStart + 0.135);
       oscillator.connect(gain);
       gain.connect(context.destination);
       oscillator.start(noteStart);
-      oscillator.stop(noteStart + 0.11);
+      oscillator.stop(noteStart + 0.14);
     });
     return true;
   } catch {
