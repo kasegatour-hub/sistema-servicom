@@ -854,10 +854,10 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.change(documentLastNames[0], { target: { value: "Pérez" } });
     fireEvent.change(screen.getByLabelText("Documento de remitente - número de identificación"), { target: { value: "70445566" } });
     const senderPhoneInput = document.getElementById("admin-sender-phone") as HTMLInputElement;
-    fireEvent.change(senderPhoneInput, { target: { value: "97018844" } });
+    fireEvent.change(senderPhoneInput, { target: { value: "97221353" } });
     await waitFor(() => expect(senderPhoneInput.getAttribute("aria-invalid")).toBe("true"));
     const validationStartedAt = Date.now();
-    fireEvent.change(senderPhoneInput, { target: { value: "970188447" } });
+    fireEvent.change(senderPhoneInput, { target: { value: "972213535" } });
     await waitFor(() => expect(senderPhoneInput.getAttribute("aria-invalid")).toBe("false"));
     expect(Date.now() - validationStartedAt).toBeLessThan(1000);
     expect(screen.queryByText(/Corrige el celular del remitente/i)).toBeNull();

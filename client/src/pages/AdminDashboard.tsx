@@ -756,6 +756,15 @@ export default function AdminDashboard() {
       deliveryLocationLongitude: null,
     },
   });
+  const handleCreatePhoneChange = (field: "senderPhone" | "recipientPhone", value: string) => {
+    createForm.setValue(field, value, { shouldDirty: true, shouldValidate: true });
+    if (value.trim() && isValidInternationalPhone(value)) {
+      createForm.clearErrors(field);
+      setCreateShipmentValidationError(current => /celular (del remitente|del destinatario|de entrega)/i.test(current) ? "" : current);
+    }
+  };
+  const createSenderPhone = String(createForm.watch("senderPhone") || "");
+  const createRecipientPhone = String(createForm.watch("recipientPhone") || "");
   const selectedShipmentType = createForm.watch("shipmentType") || "documento";
 
   const resetCreateForm = () => {
@@ -876,7 +885,7 @@ export default function AdminDashboard() {
     const documentType = (client.documentType || "dni_peru") as IdentityDocumentType;
     createForm.setValue(`${prefix}DocumentType`, documentType, { shouldDirty: true });
     createForm.setValue(`${prefix}Dni`, normalizeIdentityDocument(client.dni || "", documentType), { shouldDirty: true });
-    createForm.setValue(`${prefix}Phone`, client.phone || "", { shouldDirty: true });
+    handleCreatePhoneChange(prefix === "sender" ? "senderPhone" : "recipientPhone", client.phone || "");
     if (prefix === "sender") setSenderClientQuery(`${client.name} ${client.lastName}`);
     else setRecipientClientQuery(`${client.name} ${client.lastName}`);
   };
@@ -1331,14 +1340,6 @@ export default function AdminDashboard() {
     focusCreateShipmentField(first.field);
     return false;
   };
-  const handleCreatePhoneChange = (field: "senderPhone" | "recipientPhone", value: string) => {
-    createForm.setValue(field, value, { shouldDirty: true, shouldValidate: true });
-    if (isValidInternationalPhone(value)) {
-      createForm.clearErrors(field);
-      setCreateShipmentValidationError(current => /celular (del remitente|del destinatario|de entrega)/i.test(current) ? "" : current);
-    }
-  };
-
   const handleCreateShipment = async (data: any) => {
     try {
       if (!validateRequiredAdminShipmentFields(data)) return;
@@ -1414,10 +1415,13 @@ export default function AdminDashboard() {
       const friendlyMessage = phoneFriendlyMessage || (isManualPriceError
         ? "Falta indicar el precio final del envío. Completa el campo «Precio manual en EUR» y vuelve a intentarlo."
         : "No se pudo crear el envío. Revisa los campos señalados y vuelve a intentarlo.");
-      if (phoneField) {
+      if (phoneField && !phoneIsValid) {
         createForm.setError(phoneField as any, { type: "server", message: phoneFriendlyMessage });
         setCreateShipmentValidationError(friendlyMessage);
         focusCreateShipmentField(phoneField);
+      } else if (phoneField) {
+        createForm.clearErrors(phoneField as any);
+        setCreateShipmentValidationError(friendlyMessage);
       } else if (serverField) {
         const fieldMessage = `Este campo es obligatorio o necesita corrección: ${createShipmentFieldLabels[serverField] || serverField}.`;
         createForm.setError(serverField as keyof CreateShipmentForm, { type: "server", message: fieldMessage });
@@ -2711,12 +2715,12 @@ export default function AdminDashboard() {
                     <label htmlFor="admin-sender-phone" className="block text-sm font-medium text-gray-700 mb-2">Teléfono <span className="text-rose-600" aria-hidden="true">*</span></label>
                     <PhoneInput
                       id="admin-sender-phone"
-                      value={createForm.watch("senderPhone") || ""}
+                      value={createSenderPhone}
                       onChange={(val) => handleCreatePhoneChange("senderPhone", val)}
                       placeholder="970 188 447"
                       required={!isYeslyExceptionForm}
                     />
-                    {createForm.formState.errors.senderPhone?.message && <p role="alert" className="mt-1 text-xs font-semibold text-red-600">{String(createForm.formState.errors.senderPhone.message)}</p>}
+                    {createForm.formState.errors.senderPhone?.message && (!createSenderPhone.trim() || !isValidInternationalPhone(createSenderPhone)) && <p role="alert" className="mt-1 text-xs font-semibold text-red-600">{String(createForm.formState.errors.senderPhone.message)}</p>}
                   </div>
                 </div>
               </div>
@@ -2770,12 +2774,12 @@ export default function AdminDashboard() {
                     <label htmlFor="admin-recipient-phone" className="block text-sm font-medium text-gray-700 mb-2">Teléfono <span className="text-rose-600" aria-hidden="true">*</span></label>
                     <PhoneInput
                       id="admin-recipient-phone"
-                      value={createForm.watch("recipientPhone") || ""}
+                      value={createRecipientPhone}
                       onChange={(val) => handleCreatePhoneChange("recipientPhone", val)}
                       placeholder="908 722 617"
                       required={!isYeslyExceptionForm}
                     />
-                    {createForm.formState.errors.recipientPhone?.message && <p role="alert" className="mt-1 text-xs font-semibold text-red-600">{String(createForm.formState.errors.recipientPhone.message)}</p>}
+                    {createForm.formState.errors.recipientPhone?.message && (!createRecipientPhone.trim() || !isValidInternationalPhone(createRecipientPhone)) && <p role="alert" className="mt-1 text-xs font-semibold text-red-600">{String(createForm.formState.errors.recipientPhone.message)}</p>}
                   </div>
                 </div>
               </div>

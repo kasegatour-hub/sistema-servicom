@@ -1851,3 +1851,8 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Asegurar que un celular peruano válido con +51 se acepte en un máximo de 1 segundo
 - [x] Eliminar inmediatamente el mensaje rojo al completar los 9 dígitos válidos
 - [x] Añadir prueba de rendimiento y regresión de guardado del cliente
+
+## Verificación definitiva de aceptación de celular
+- [x] Reproducir el flujo completo con Perú +51 y 972 213 535 en el formulario Admin
+- [x] Eliminar cualquier error del formulario que persista tras un teléfono válido
+- [x] Validar el caso real en interfaz, servidor y dominio publicado antes de cerrar la incidencia
