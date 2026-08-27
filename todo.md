@@ -1713,3 +1713,11 @@
 - [x] Permitir firma en pantalla cuando no haya impresora y conservar evidencia antes/después
 - [x] Integrar la recepción específica de transferencias sin mezclarla con documentos o encomiendas
 - [x] Añadir pruebas, migración segura, validación responsive y build final
+
+## Reutilización de espacios de estante
+- [x] Liberar el correlativo de una orden cuando el documento o encomienda pase a Entregado
+- [x] Reutilizar el primer correlativo libre del mismo mes, año, ruta y rango, como el 02 de 0826-0002
+- [x] Mantener intactas las órdenes históricas y evitar duplicados entre envíos activos
+- [x] Aplicar la lógica tanto a documentos como a encomiendas y conservar el código único
+- [x] Añadir pruebas de transición a Entregado, reutilización, rutas y concurrencia
+- [x] Ejecutar suite, build y publicar la corrección

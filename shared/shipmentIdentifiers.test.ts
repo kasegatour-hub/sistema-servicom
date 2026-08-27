@@ -25,6 +25,12 @@ describe("shipment identifiers", () => {
     expect(generateMonthlyParcelOrderNumber({ existingOrderNumbers: provinceUsed, isProvinceDelivery: true, date: august2026 })).toBe("0826-0101");
   });
 
+  it("reutiliza el primer espacio libre después de una entrega", () => {
+    const august2026 = new Date("2026-08-15T12:00:00.000Z");
+    expect(generateMonthlyParcelOrderNumber({ existingOrderNumbers: ["0826-0001", "0826-0003"], isProvinceDelivery: false, date: august2026 })).toBe("0826-0002");
+    expect(generateMonthlyParcelOrderNumber({ existingOrderNumbers: ["0826-0001", "0826-0002"], isProvinceDelivery: false, date: august2026 })).toBe("0826-0003");
+  });
+
   it("usa la misma secuencia mensual para documentos y encomiendas", () => {
     const august2026 = new Date("2026-08-15T12:00:00.000Z");
     const firstDocument = generateMonthlyParcelOrderNumber({ existingOrderNumbers: [], isProvinceDelivery: false, date: august2026 });

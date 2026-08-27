@@ -391,7 +391,7 @@ export async function listShipmentOrderNumbersByPrefix(prefix: string): Promise<
   const db = await getDb();
   if (!db) return [];
   const normalizedPrefix = normalizeOrderCode(prefix);
-  const rows = await db.select({ orderNumber: shipments.orderNumber }).from(shipments).where(like(shipments.orderNumber, `${normalizedPrefix}-%`));
+  const rows = await db.select({ orderNumber: shipments.orderNumber }).from(shipments).where(and(like(shipments.orderNumber, `${normalizedPrefix}-%`), ne(shipments.status, "Entregado")));
   return rows.map(row => row.orderNumber);
 }
 
