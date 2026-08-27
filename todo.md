@@ -1841,3 +1841,8 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Reproducir el mensaje rojo con +51 y 999 008 125 en el formulario Admin
 - [x] Corregir la validación en tiempo real y limpiar el error cuando el número ya sea válido
 - [x] Verificar que remitente y destinatario permitan guardar con teléfonos peruanos válidos
+
+## Limpieza de alerta telefónica persistente
+- [x] Eliminar el mensaje rojo obsoleto cuando el teléfono peruano ya tenga 9 dígitos válidos
+- [x] Sincronizar el error de PhoneInput y el error del formulario Admin al escribir o corregir el número
+- [x] Añadir una regresión visual con el caso 999 008 125 y validar la versión publicada
