@@ -92,3 +92,24 @@ describe("admin.login", () => {
     await expect(caller.admin.createAdmin({ email: "elevacion@servicom.pe", password: "NuevaClave#2026", name: "Operador Valido", role: "superadmin" as never })).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 });
+
+
+describe("Super Master Admin", () => {
+  it("identifies only admin id 1 with the superadmin role", async () => {
+    const { isSuperMasterAdminSession } = await import("./admin.router");
+    expect(isSuperMasterAdminSession({ adminId: 1, role: "superadmin" })).toBe(true);
+    expect(isSuperMasterAdminSession({ adminId: 9, role: "superadmin" })).toBe(false);
+    expect(isSuperMasterAdminSession({ adminId: 1, role: "registrador" })).toBe(false);
+  });
+
+  it("does not expose shipment records without an explicit search", async () => {
+    const { appRouter } = await import("./routers");
+    const caller = appRouter.createCaller({
+      user: null,
+      req: { protocol: "https", headers: { cookie: `servicom_admin_session=${encodeURIComponent(createAdminSession(1, "superadmin"))}` } } as TrpcContext["req"],
+      res: { cookie: () => {}, clearCookie: () => {} } as TrpcContext["res"],
+    });
+    await expect(caller.admin.getAllShipments()).resolves.toEqual([]);
+  });
+});
+

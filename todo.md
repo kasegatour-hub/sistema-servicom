@@ -1721,3 +1721,22 @@
 - [x] Aplicar la lógica tanto a documentos como a encomiendas y conservar el código único
 - [x] Añadir pruebas de transición a Entregado, reutilización, rutas y concurrencia
 - [x] Ejecutar suite, build y publicar la corrección
+
+## Entornos independientes y Super Master Admin
+- [ ] Separar la reserva y reutilización de correlativos por entorno Lima y Torino, además de mes, año, ruta y rango
+- [ ] Permitir el mismo correlativo en Lima y Torino sin duplicados dentro del propio entorno
+- [ ] Crear el rol Super Master Admin de Servicom Perú sin listado automático de envíos
+- [ ] Permitir que ese rol recupere envíos únicamente mediante orden, código, nombre u otros filtros válidos
+- [ ] Restringir el escáner QR exclusivamente al Super Master Admin y abrir el envío encontrado
+- [ ] Mantener acciones completas solo después de recuperar un registro y auditar el acceso
+- [ ] Añadir pruebas de aislamiento, permisos, QR y concurrencia
+- [ ] Ejecutar suite, build y publicar la funcionalidad
+
+## Super Master Admin y partición operativa — continuación
+- [x] Ocultar los envíos del Super Master por defecto y habilitar recuperación bajo demanda por orden, código, nombres, documentos o teléfonos.
+- [x] Permitir al Super Master recuperar envíos de cualquier entorno sin exponer listados completos ni romper el aislamiento de Magda/Kasega para otras cuentas.
+- [x] Restringir el escáner QR administrativo de control exclusivamente al Super Master Admin.
+- [x] Mantener la actualización por QR protegida en servidor y permitir al Super Master abrir envíos globales por orden y código.
+- [x] Corregir el tipado de la partición Lima/Torino en las reservas mensuales de órdenes.
+- [x] Añadir regresiones de rol, ocultamiento bajo demanda y visibilidad exclusiva del escáner QR.
+- [x] Ejecutar TypeScript, suite completa y build de producción: 104 archivos, 444 pruebas aprobadas y build correcto.

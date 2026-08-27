@@ -20,7 +20,7 @@ import { applyCouponDiscount, isCouponCurrentlyValid, normalizeCouponCode } from
 import { isValidInternationalPhone, normalizeInternationalPhone } from "../shared/phoneValidation";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "../shared/passwordPolicy";
 import { generateMonthlyParcelOrderNumber, generateShipmentCode, generateShipmentOrderNumber, getMonthlyParcelOrderPrefix } from "../shared/shipmentIdentifiers";
-import { SHIPMENT_ROUTES, getDefaultShipmentAddresses, isProvinceShipmentRoute, isTorinoLimaRoute } from "../shared/shipmentRoutes";
+import { SHIPMENT_ROUTES, getDefaultShipmentAddresses, getShipmentOperationalEnvironment, isProvinceShipmentRoute, isTorinoLimaRoute } from "../shared/shipmentRoutes";
 import { invokeLLM } from "./_core/llm";
 import { createSignatureToken } from "./signatureTokens";
 import { storagePut } from "./storage";
@@ -218,6 +218,10 @@ const masterAdminProcedure = adminProcedure.use(({ ctx, next }) => {
   }
   return next({ ctx });
 });
+
+export function isSuperMasterAdminSession(session: { adminId: number; role: string }) {
+  return session.adminId === 1 && session.role === "superadmin";
+}
 
 function belongsToAdminWorkspace(shipment: { registeredByType: string; registeredById: number | null }, adminId: number, isWorkspaceIsolated: boolean) {
   if (isWorkspaceIsolated) return shipment.registeredByType === "admin" && shipment.registeredById === adminId;
@@ -507,10 +511,16 @@ export const adminRouter = router({
     }),
 
   getAllShipments: adminProcedure
-    .input(z.object({ shipmentType: z.enum(["documento", "encomienda"]).optional() }).optional())
+    .input(z.object({ shipmentType: z.enum(["documento", "encomienda"]).optional(), search: z.string().trim().max(160).optional() }).optional())
     .query(async ({ input, ctx }) => {
+      const isSuperMaster = isSuperMasterAdminSession(ctx.adminSession);
+      if (isSuperMaster && !input?.search) return [];
       const workspaceAdmin = ctx.adminWorkspaceIsolated ? await getAdminById(ctx.adminSession.adminId) : null;
-      const shipments = await getAllShipments(input?.shipmentType, { excludeHiddenForRegistradores: ctx.adminSession.role !== "superadmin", ownerAdminId: isolatedOwnerAdminId(ctx.adminSession.adminId, ctx.adminWorkspaceIsolated), ...(workspaceAdmin?.email ? { ownerAdminEmail: workspaceAdmin.email } : {}), excludeIsolatedWorkspaces: !ctx.adminWorkspaceIsolated });
+      let shipments = await getAllShipments(input?.shipmentType, { excludeHiddenForRegistradores: !isSuperMaster && ctx.adminSession.role !== "superadmin", ownerAdminId: isSuperMaster ? undefined : isolatedOwnerAdminId(ctx.adminSession.adminId, ctx.adminWorkspaceIsolated), ...(workspaceAdmin?.email && !isSuperMaster ? { ownerAdminEmail: workspaceAdmin.email } : {}), excludeIsolatedWorkspaces: !ctx.adminWorkspaceIsolated && !isSuperMaster });
+      if (isSuperMaster && input?.search) {
+        const query = input.search.toLowerCase();
+        shipments = shipments.filter(shipment => [shipment.orderNumber, shipment.code, shipment.senderName, shipment.senderLastName, shipment.recipientName, shipment.recipientLastName, shipment.senderDni, shipment.recipientDni, shipment.senderPhone, shipment.recipientPhone].filter(Boolean).join(" ").toLowerCase().includes(query));
+      }
       return shipments.map(s => ({
         ...s,
         events: JSON.parse(s.events),
@@ -521,7 +531,8 @@ export const adminRouter = router({
     .input(z.object({ orderNumber: z.string().trim().min(1).max(64), code: z.string().trim().min(1).max(64) }))
     .query(async ({ input, ctx }) => {
       const shipment = await getShipmentByOrderAndCode(input.orderNumber, input.code);
-      if (!shipment || !belongsToAdminWorkspace(shipment, ctx.adminSession.adminId, ctx.adminWorkspaceIsolated) || (ctx.adminSession.role !== "superadmin" && shipment.hiddenFromRegistradoresAt)) {
+      const isSuperMaster = isSuperMasterAdminSession(ctx.adminSession);
+      if (!shipment || (!isSuperMaster && !belongsToAdminWorkspace(shipment, ctx.adminSession.adminId, ctx.adminWorkspaceIsolated)) || (!isSuperMaster && ctx.adminSession.role !== "superadmin" && shipment.hiddenFromRegistradoresAt)) {
         throw new TRPCError({ code: "NOT_FOUND", message: "No se encontró un envío activo disponible para el código escaneado." });
       }
       return { ...shipment, events: JSON.parse(shipment.events) };
@@ -830,7 +841,8 @@ export const adminRouter = router({
       const effectiveProvinceDelivery = input.isProvinceDelivery || isProvinceShipmentRoute(input.route);
       const now = new Date();
       let orderNumber: string;
-      const reservedOrders = await listShipmentOrderNumbersByPrefix(getMonthlyParcelOrderPrefix(now));
+      const operationalEnvironment = getShipmentOperationalEnvironment(input.route);
+      const reservedOrders = await listShipmentOrderNumbersByPrefix(getMonthlyParcelOrderPrefix(now), operationalEnvironment === "unknown" ? undefined : operationalEnvironment);
       try {
         orderNumber = generateMonthlyParcelOrderNumber({ existingOrderNumbers: reservedOrders, isProvinceDelivery: effectiveProvinceDelivery, date: now });
       } catch (error: any) {

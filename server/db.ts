@@ -7,7 +7,7 @@ import { buildShipmentClientDirectoryRecords, type ClientDirectoryRecord, type S
 import { rankFuzzyMatches } from "../shared/fuzzySearch";
 import { searchInvitationPeople, type InvitationPersonSeed } from "../shared/invitationPeople";
 import { getFailureUpdate } from "./loginProtection";
-import { isProvinceShipmentRoute, isTorinoLimaRoute } from "../shared/shipmentRoutes";
+import { getShipmentOperationalEnvironment, isProvinceShipmentRoute, isTorinoLimaRoute, type ShipmentOperationalEnvironment } from "../shared/shipmentRoutes";
 
 // Normalizar números de orden y códigos: remover espacios y convertir a mayúsculas
 function normalizeOrderCode(value: string): string {
@@ -387,12 +387,13 @@ export async function getShipmentByOrderAndCode(orderNumber: string, code: strin
 }
 
 /** Obtiene las órdenes ya reservadas de un mes para generar una encomienda sin duplicados. */
-export async function listShipmentOrderNumbersByPrefix(prefix: string): Promise<string[]> {
+export async function listShipmentOrderNumbersByPrefix(prefix: string, operationalEnvironment?: ShipmentOperationalEnvironment): Promise<string[]> {
   const db = await getDb();
   if (!db) return [];
   const normalizedPrefix = normalizeOrderCode(prefix);
-  const rows = await db.select({ orderNumber: shipments.orderNumber }).from(shipments).where(and(like(shipments.orderNumber, `${normalizedPrefix}-%`), ne(shipments.status, "Entregado")));
-  return rows.map(row => row.orderNumber);
+  const rows = await db.select({ orderNumber: shipments.orderNumber, route: shipments.route }).from(shipments).where(and(like(shipments.orderNumber, `${normalizedPrefix}-%`), ne(shipments.status, "Entregado")));
+  if (!operationalEnvironment) return rows.map(row => row.orderNumber);
+  return rows.filter(row => getShipmentOperationalEnvironment(row.route) === operationalEnvironment).map(row => row.orderNumber);
 }
 
 export async function getShipmentById(id: number) {

@@ -41,6 +41,14 @@ export function isTorinoLimaRoute(route?: string | null) {
   return route === SHIPMENT_ROUTES.TORINO_LIMA || route === SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE;
 }
 
+export type ShipmentOperationalEnvironment = "lima" | "torino";
+
+export function getShipmentOperationalEnvironment(route?: string | null): ShipmentOperationalEnvironment | "unknown" {
+  if (route === SHIPMENT_ROUTES.TORINO_LIMA || route === SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE) return "torino";
+  if (route === SHIPMENT_ROUTES.LIMA_TORINO || route === SHIPMENT_ROUTES.PROVINCE_LIMA_TORINO) return "lima";
+  return "unknown";
+}
+
 export function isProvinceLimaTorinoRoute(route?: string | null) {
   return route === SHIPMENT_ROUTES.PROVINCE_LIMA_TORINO;
 }

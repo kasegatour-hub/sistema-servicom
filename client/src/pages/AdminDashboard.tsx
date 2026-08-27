@@ -438,6 +438,7 @@ export default function AdminDashboard() {
   const [reauthPassword, setReauthPassword] = useState("");
   const [reauthLockSeconds, setReauthLockSeconds] = useState(0);
   const [loginLockSeconds, setLoginLockSeconds] = useState(0);
+  const [superMasterSearch, setSuperMasterSearch] = useState("");
   const [printShipment, setPrintShipment] = useState<any>(null);
   const [deliveryReceiptShipment, setDeliveryReceiptShipment] = useState<any>(null);
   const [receiptDownloadFormat, setReceiptDownloadFormat] = useState<ReceiptDownloadFormat>("pdf");
@@ -503,9 +504,10 @@ export default function AdminDashboard() {
 
   // Queries
   const { data: currentAdminSession, isLoading: loadingAdminSession, refetch: refetchAdminSession } = trpc.admin.me.useQuery();
+  const isSuperMasterAdmin = (admin ?? currentAdminSession)?.id === 1 && (admin ?? currentAdminSession)?.role === "superadmin";
   const { data: coupons = [], refetch: refetchCoupons } = trpc.admin.listCoupons.useQuery(undefined, { enabled: isLoggedIn && !admin?.reauthRequired });
   const { data: limaTorinoPolicy, refetch: refetchLimaTorinoPolicy } = trpc.admin.getLimaTorinoEncomiendaPolicy.useQuery(undefined, { enabled: isLoggedIn && !admin?.reauthRequired });
-  const { data: shipments, isLoading: loadingShipments, refetch: refetchShipments } = trpc.admin.getAllShipments.useQuery(undefined, { enabled: isLoggedIn && !admin?.reauthRequired });
+  const { data: shipments, isLoading: loadingShipments, refetch: refetchShipments } = trpc.admin.getAllShipments.useQuery(isSuperMasterAdmin ? { search: superMasterSearch.trim() || undefined } : undefined, { enabled: isLoggedIn && !admin?.reauthRequired && (!isSuperMasterAdmin || Boolean(superMasterSearch.trim())) });
   const deliveryShipmentQuery = trpc.admin.getShipmentForDeliveryUpdate.useQuery(
     deliveryQrTarget || { orderNumber: "", code: "" },
     { enabled: isLoggedIn && !admin?.reauthRequired && Boolean(deliveryQrTarget) },
@@ -2115,9 +2117,9 @@ export default function AdminDashboard() {
           </div>
           <div className="grid w-full min-w-0 grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:justify-end sm:gap-3">
             <a href="/" className="flex min-h-12 min-w-0 items-center justify-center rounded-xl border border-white/70 px-3 py-2 text-center text-sm font-semibold text-white transition hover:bg-white/20">Inicio</a>
-            <Button type="button" onClick={() => setDeliveryScannerOpen(true)} variant="outline" className="min-h-12 min-w-0 whitespace-normal rounded-xl border-white bg-white px-3 text-center text-xs font-bold leading-4 text-primary hover:bg-blue-50 sm:text-sm" aria-label="Escanear QR de control para actualizar un envío">
+            {isSuperMasterAdmin && <Button type="button" onClick={() => setDeliveryScannerOpen(true)} variant="outline" className="min-h-12 min-w-0 whitespace-normal rounded-xl border-white bg-white px-3 text-center text-xs font-bold leading-4 text-primary hover:bg-blue-50 sm:text-sm" aria-label="Escanear QR de control para actualizar un envío">
               <QrCode className="mr-1.5 h-4 w-4 shrink-0" /> <span>Escanear QR de control</span>
-            </Button>
+            </Button>}
             <Button type="button" onClick={() => setShowGeneralFeedback(true)} variant="outline" className="min-h-12 min-w-0 whitespace-normal rounded-xl border-white px-3 text-center text-xs font-bold leading-4 text-white hover:bg-white/20 sm:text-sm"><MessageSquare className="mr-1.5 h-4 w-4 shrink-0" /> <span>Comentarios</span></Button>
             <NotificationBell />
             <button
@@ -2949,7 +2951,8 @@ export default function AdminDashboard() {
               </div>
             </div>
             <div className="w-full">
-              <label htmlFor="admin-shipment-search" className="mb-2 block text-sm font-semibold text-[#0B2B5E]">Buscar en registros</label>
+              {isSuperMasterAdmin && <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"><strong>Modo Super Master:</strong> los envíos permanecen ocultos hasta que busques por orden, código, nombre, DNI o teléfono.</div>}
+              <label htmlFor="admin-shipment-search" className="mb-2 block text-sm font-semibold text-[#0B2B5E]">{isSuperMasterAdmin ? "Recuperar envío bajo demanda" : "Buscar en registros"}</label>
               <div className="relative w-full">
                 <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" aria-hidden="true" />
                 <Input
@@ -2957,13 +2960,13 @@ export default function AdminDashboard() {
                   aria-label="Buscar registros"
                   aria-describedby="admin-shipment-search-help"
                   placeholder="Escribe orden, código, DNI, nombre o apellido"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  value={isSuperMasterAdmin ? superMasterSearch : searchTerm}
+                  onChange={(e) => isSuperMasterAdmin ? setSuperMasterSearch(e.target.value) : setSearchTerm(e.target.value)}
                   className="h-14 w-full bg-white pl-11 pr-4 text-base shadow-sm ring-1 ring-slate-200 focus-visible:ring-2 focus-visible:ring-[#0B2B5E]"
                 />
               </div>
               <div className="mt-2 flex justify-end">
-                <Button type="button" variant="outline" size="sm" onClick={() => setSearchTerm("")} disabled={!searchTerm} className="min-h-10 border-[#0B2B5E]/30 text-[#0B2B5E]">
+                <Button type="button" variant="outline" size="sm" onClick={() => isSuperMasterAdmin ? setSuperMasterSearch("") : setSearchTerm("")} disabled={isSuperMasterAdmin ? !superMasterSearch : !searchTerm} className="min-h-10 border-[#0B2B5E]/30 text-[#0B2B5E]">
                   <RotateCcw className="mr-2 h-4 w-4" /> Limpiar búsqueda
                 </Button>
               </div>

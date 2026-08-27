@@ -272,26 +272,18 @@ describe("AdminDashboard Nueva Encomienda", () => {
     expect(within(card).getByRole("button", { name: "Descargar PDF" })).toBeTruthy();
   });
 
-  it("permite al Registrador escanear un control y abrir directamente la actualización del envío", async () => {
-    const shipment = { id: 87, shipmentType: "documento", senderName: "Mirian", senderLastName: "Astete", recipientName: "Miguel", recipientLastName: "Díaz", status: "En destino", paymentStatus: "Pagado", createdAt: new Date("2026-08-20T10:00:00.000Z"), orderNumber: "3289150504", code: "07900824", events: [] };
-    mocks.deliveryShipment = { data: shipment, isLoading: false, error: null };
+  it("oculta el escáner QR de control para un Registrador", async () => {
     render(<AdminDashboard />);
     fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "operador@servicom.pe" } });
     fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
     fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
 
-    const scanButton = await screen.findByRole("button", { name: "Escanear QR de control para actualizar un envío" });
-    fireEvent.click(scanButton);
-    expect(screen.getByRole("dialog", { name: "Lector QR administrativo" })).toBeTruthy();
-    qrScannerMocks.onScan?.("https://servicom.test/admin?order=3289150504&code=07900824&open=status");
-
-    await waitFor(() => expect(screen.getByRole("heading", { name: "Actualizar Estado de Documento" })).toBeTruthy());
-    expect(window.location.pathname).toBe("/admin");
-    expect(window.location.search).toBe("");
+    await screen.findByRole("textbox", { name: "Buscar registros" });
+    expect(screen.queryByRole("button", { name: "Escanear QR de control para actualizar un envío" })).toBeNull();
   });
 
-  it("mantiene el acceso de escaneo QR disponible para el Master Admin", async () => {
-    mocks.login.mutateAsync.mockResolvedValue({ id: 2, email: "master@servicom.pe", name: "Master", role: "superadmin" });
+  it("mantiene el acceso de escaneo QR disponible solo para el Super Master Admin", async () => {
+    mocks.login.mutateAsync.mockResolvedValue({ id: 1, email: "peruservicom@gmail.com", name: "Super Master", role: "superadmin" });
     render(<AdminDashboard />);
     fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "master@servicom.pe" } });
     fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });

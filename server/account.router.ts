@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { publicProcedure, router } from "./_core/trpc";
-import { SHIPMENT_ROUTES, getDefaultShipmentAddresses, isProvinceShipmentRoute, isTorinoLimaRoute } from "../shared/shipmentRoutes";
+import { SHIPMENT_ROUTES, getDefaultShipmentAddresses, getShipmentOperationalEnvironment, isProvinceShipmentRoute, isTorinoLimaRoute } from "../shared/shipmentRoutes";
 import {
   consumeVerificationCode,
   createLocalAccount,
@@ -417,7 +417,8 @@ reauthRequired: session.reauthRequired,
       const session = await requireFreshAccountSession(ctx.req, "registrar un envío");
       const account = await getLocalAccountById(session.accountId);
       const now = new Date();
-      const reservedOrders = await listShipmentOrderNumbersByPrefix(getMonthlyParcelOrderPrefix(now));
+      const operationalEnvironment = getShipmentOperationalEnvironment(input.route);
+      const reservedOrders = await listShipmentOrderNumbersByPrefix(getMonthlyParcelOrderPrefix(now), operationalEnvironment === "unknown" ? undefined : operationalEnvironment);
       let orderNumber: string;
       try {
         orderNumber = generateMonthlyParcelOrderNumber({

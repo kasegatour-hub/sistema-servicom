@@ -116,8 +116,8 @@ describe("shipment trash and restoration", () => {
     expect(dbMocks.getAllShipments).toHaveBeenLastCalledWith(undefined, { excludeHiddenForRegistradores: true, ownerAdminId: undefined, excludeIsolatedWorkspaces: true });
 
     const master = appRouter.createCaller(adminContext("superadmin", 1));
-    await master.admin.getAllShipments();
-    expect(dbMocks.getAllShipments).toHaveBeenLastCalledWith(undefined, { excludeHiddenForRegistradores: false, ownerAdminId: undefined, excludeIsolatedWorkspaces: true });
+    await expect(master.admin.getAllShipments()).resolves.toEqual([]);
+    expect(dbMocks.getAllShipments).toHaveBeenCalledTimes(1);
 
     const isolatedMaster = appRouter.createCaller(adminContext("superadmin", 210001, true));
     await isolatedMaster.admin.getAllShipments();
