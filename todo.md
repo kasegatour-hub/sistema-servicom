@@ -1826,3 +1826,8 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Añadir descarga directa del comprobante en cada envío con estado Entregado
 - [x] Ocultar la opción Admin de la app móvil cuando la sesión corresponde a un Cliente
 - [x] Añadir regresiones de descarga y permisos de navegación, y validar build responsive
+
+## Corrección de teléfono peruano
+- [x] Aceptar teléfonos de Perú con +51 y exactamente 9 dígitos aunque se visualicen separados por espacios
+- [x] Mantener la validación dinámica para Italia y otros países
+- [x] Añadir pruebas de normalización, feedback y creación del remitente

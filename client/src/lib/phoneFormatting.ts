@@ -41,7 +41,11 @@ export function splitPhoneNumber(value?: string | null): PhoneParts {
   const compact = String(value ?? "").trim().replace(/[^\d+]/g, "");
   const international = compact.startsWith("00") ? `+${compact.slice(2)}` : compact;
   const country = sortedCodes.find(({ code }) => international.startsWith(code) || international.startsWith(code.replace("+", "")));
-  if (!country) return { countryCode: "", localNumber: international.replace(/^\+/, "") };
+  if (!country) {
+    const localDigits = international.replace(/^\+/, "");
+    if (/^9\d{8}$/.test(localDigits)) return { countryCode: "+51", localNumber: localDigits };
+    return { countryCode: "", localNumber: localDigits };
+  }
   const compactCode = country.code.replace("+", "");
   const localNumber = international.startsWith(country.code)
     ? international.slice(country.code.length)

@@ -44,7 +44,11 @@ export function normalizeInternationalPhone(value?: string | null) {
 
 export function splitInternationalPhone(value?: string | null) {
   const normalized = String(value ?? "").trim().replace(/[\s()-]/g, "");
-  const international = normalized.startsWith("00") ? `+${normalized.slice(2)}` : normalized;
+  const international = normalized.startsWith("00")
+    ? `+${normalized.slice(2)}`
+    : /^9\d{8}$/.test(normalized)
+      ? `+51${normalized}`
+      : normalized;
   const rule = sortedRules.find(candidate => international.startsWith(candidate.countryCode));
   return {
     countryCode: rule?.countryCode || "",

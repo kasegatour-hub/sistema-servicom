@@ -16,4 +16,9 @@ describe("country-aware phone validation", () => {
     expect(normalized).toBe("+51 970 188 447");
     expect(isValidInternationalPhone(normalized)).toBe(true);
   });
+
+  it("accepts a Peruvian number when the country selector stores +51 separately", () => {
+    expect(isValidInternationalPhone("972 213 535")).toBe(true);
+    expect(getPhoneValidationError("972 213 535")).toBeNull();
+  });
 });

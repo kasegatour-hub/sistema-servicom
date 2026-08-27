@@ -22,7 +22,7 @@ describe("phone formatting", () => {
     expect(formatPhoneNumber("+51 970188447")).toBe("+51 970 188 447");
   });
 
-  it("does not fabricate a country code for a local-only number", () => {
-    expect(formatPhoneNumber("970188447")).toBe("970 188 447");
+  it("normalizes a local Peruvian number with the default country code", () => {
+    expect(formatPhoneNumber("970188447")).toBe("+51 970 188 447");
   });
 });
