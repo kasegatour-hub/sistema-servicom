@@ -129,6 +129,15 @@ describe("MobileAppPage", () => {
     expect(screen.getByRole("link", { name: "Cambiar contraseña" }).getAttribute("href")).toBe("/cuenta?mobile=1&workspace=seguridad");
   });
 
+  it("oculta Admin de la cabecera del Cliente aunque exista una sesión administrativa secundaria", () => {
+    accountMocks.session = { id: 7, email: "cliente@servicom.pe", name: "Cliente", reauthRequired: false };
+    adminMocks.session = { id: 9, email: "admin@servicom.pe", role: "registrador", reauthRequired: false };
+    render(<MobileAppPage />);
+
+    expect(screen.queryByRole("link", { name: "Acceso administrativo" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Inicio", current: "page" })).toBeTruthy();
+  });
+
   it("muestra la sesión administrativa y su perfil amplio en la app móvil", () => {
     adminMocks.session = { id: 9, email: "admin@servicom.pe", name: "Master", role: "superadmin", reauthRequired: false, profilePhoto: { url: "https://cdn.example/admin.jpg", name: "admin.jpg" }, profilePhotos: [{ url: "https://cdn.example/admin.jpg", name: "admin.jpg" }] };
     render(<MobileAppPage />);

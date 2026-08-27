@@ -1821,3 +1821,8 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Añadir un distintivo visual destacado para el estado «Entregado» en la vista del Cliente
 - [x] Mostrar la fecha y hora exactas de entrega cuando el envío esté entregado
 - [x] Añadir pruebas y validar la presentación responsive de ambas mejoras
+
+## Descarga de entregados y navegación Cliente móvil
+- [x] Añadir descarga directa del comprobante en cada envío con estado Entregado
+- [x] Ocultar la opción Admin de la app móvil cuando la sesión corresponde a un Cliente
+- [x] Añadir regresiones de descarga y permisos de navegación, y validar build responsive

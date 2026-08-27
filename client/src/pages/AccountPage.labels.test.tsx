@@ -4,12 +4,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 const mutation = vi.hoisted(() => () => ({ mutate: vi.fn(), isPending: false }));
+const receiptMocks = vi.hoisted(() => ({ download: vi.fn().mockResolvedValue("comprobante-entregado.pdf"), print: vi.fn() }));
 const accountMocks = vi.hoisted(() => ({ shipments: [] as any[], deletedShipments: [] as any[], session: { email: "cliente@example.com", name: "Ana", lastName: "López", dni: "71234567", phone: "+51 970188447", reauthRequired: false } as any }));
 const notificationMocks = vi.hoisted(() => ({ data: { items: [] as any[], unreadCount: 0 }, refetch: vi.fn() }));
 
+vi.mock("@/lib/userReceipt", () => ({ downloadShipmentReceipt: receiptMocks.download, printUserShipmentReceipt: receiptMocks.print }));
+
 vi.mock("@/lib/trpc", () => ({
   trpc: {
-    useUtils: () => ({ account: { me: { invalidate: vi.fn() } } }),
+    useUtils: () => ({ account: { me: { invalidate: vi.fn() } }, shipment: { search: { fetch: vi.fn(async (input: any) => accountMocks.shipments.find((shipment: any) => String(shipment.orderNumber) === String(input.orderNumber) && String(shipment.code) === String(input.code)) || null) } } }),
     account: {
       me: { useQuery: () => ({ data: accountMocks.session, isLoading: false }) },
       myShipments: { useQuery: () => ({ data: accountMocks.shipments, refetch: vi.fn() }) },
@@ -104,7 +107,7 @@ describe("AccountPage client labels", () => {
     expect(screen.getByRole("group", { name: "Mis envíos por tipo y ruta" }).className).toContain("w-full");
   });
 
-  it("incluye Entregado en el filtro del Cliente y muestra solo los envíos entregados", () => {
+  it("incluye Entregado en el filtro del Cliente y muestra solo los envíos entregados", async () => {
     accountMocks.shipments = [
       { id: 1, orderNumber: "3520992723", code: "DOC-ENT", recipientName: "Lucía", recipientLastName: "Sánchez", recipientDni: "71234567", recipientPhone: "+51 970188447", status: "Entregado", paymentStatus: "Pagado", registeredByLabel: "Cliente", createdAt: new Date("2026-08-17T10:00:00.000Z"), events: [{ stage: "En agencia", date: "2026-08-16T09:00:00.000Z" }, { stage: "Entregado", date: "2026-08-17T10:00:00.000Z" }] },
       { id: 2, orderNumber: "3520992724", code: "DOC-TRA", recipientName: "María", recipientLastName: "Ramos", recipientDni: "71234568", recipientPhone: "+51 970188447", status: "En tránsito", paymentStatus: "Pagado", registeredByLabel: "Cliente", createdAt: new Date("2026-08-16T10:00:00.000Z") },
@@ -120,6 +123,10 @@ describe("AccountPage client labels", () => {
     expect(screen.getByTestId("delivered-status-badge")).toBeTruthy();
     expect(screen.getByText("Entregado el:")).toBeTruthy();
     expect(document.querySelector("time")?.getAttribute("dateTime")).toBe("2026-08-17T10:00:00.000Z");
+    expect(screen.getByRole("button", { name: "Descargar comprobante de entrega de 3520992723" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Descargar comprobante de entrega de 3520992724" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Descargar comprobante de entrega de 3520992723" }));
+    await waitFor(() => expect(receiptMocks.download).toHaveBeenCalledWith(expect.objectContaining({ orderNumber: "3520992723", status: "Entregado" }), "pdf"));
   });
 
   it("explica la búsqueda de envíos y acepta coincidencias difusas del destinatario", () => {

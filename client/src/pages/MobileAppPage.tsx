@@ -52,7 +52,7 @@ export default function MobileAppPage() {
   const isAdminViewer = Boolean(!me && adminSession && !adminSession.reauthRequired && (adminSession.role === "superadmin" || adminSession.role === "registrador"));
   const viewer = me || (isAdminViewer ? adminSession : null);
   const viewerProfilePhoto = me?.profilePhotos?.at(-1) || adminSession?.profilePhoto || null;
-  const canAccessAdmin = Boolean(me && adminSession && (adminSession.role === "superadmin" || adminSession.role === "registrador"));
+  const canAccessAdmin = Boolean(isAdminViewer && (adminSession?.role === "superadmin" || adminSession?.role === "registrador"));
   const shipmentQuery = trpc.shipment.search.useQuery(tracking || { orderNumber: "", code: "" }, { enabled: Boolean(viewer && !viewer.reauthRequired && tracking?.orderNumber && tracking?.code) });
   const shipment = shipmentQuery.data;
   const route = useMemo(() => shipment ? getRoutePresentation(shipment.route, shipment.destinationAddress) : null, [shipment]);

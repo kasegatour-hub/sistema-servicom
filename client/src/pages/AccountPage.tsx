@@ -213,6 +213,15 @@ export default function AccountPage() {
       toast.error(error instanceof Error ? error.message : "No se pudo descargar el comprobante. Inténtalo nuevamente.");
     }
   };
+  const handleDirectDownloadReceipt = async (shipment: any) => {
+    try {
+      const freshShipment = await utils.shipment.search.fetch({ orderNumber: String(shipment.orderNumber), code: String(shipment.code) });
+      const filename = await downloadShipmentReceipt(freshShipment || shipment, "pdf");
+      toast.success(`Comprobante descargado: ${filename}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo descargar el comprobante. Inténtalo nuevamente.");
+    }
+  };
   const { data: me, isLoading: meLoading } = trpc.account.me.useQuery();
 
   // La sede internacional se asigna al iniciar y al cambiar de ruta; la provincia queda para el selector de agencias.
@@ -1046,6 +1055,7 @@ export default function AccountPage() {
                         <Button size="sm" className="bg-[#0B2B5E] text-white hover:bg-[#123d78]"><Search className="mr-2 h-3.5 w-3.5" /> Rastrear envío</Button>
                       </Link>
                       <Button size="sm" variant="outline" onClick={() => setReceiptShipment(shipment)} className="border-[#F28C00] text-[#0B2B5E] hover:bg-orange-50"><Download className="mr-2 h-3.5 w-3.5" /> Ver recibo</Button>
+                      {shipment.status === "Entregado" && <Button size="sm" type="button" variant="outline" aria-label={`Descargar comprobante de entrega de ${shipment.orderNumber}`} onClick={() => void handleDirectDownloadReceipt(shipment)} className="border-emerald-300 bg-emerald-50 font-bold text-emerald-800 hover:bg-emerald-100"><Download className="mr-2 h-3.5 w-3.5" /> Descargar comprobante</Button>}
                       <Button size="sm" variant="outline" disabled={deleteMyShipmentMutation.isPending} onClick={() => { if (window.confirm("El envío se moverá a la papelera y podrás restaurarlo.")) deleteMyShipmentMutation.mutate({ shipmentId: shipment.id }); }} className="border-red-200 text-red-700 hover:bg-red-50"><Trash2 className="mr-2 h-3.5 w-3.5" /> Eliminar</Button>
                     </div>
                   </div>
