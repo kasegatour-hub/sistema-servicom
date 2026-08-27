@@ -1,4 +1,4 @@
-import { mysqlTable, mysqlEnum, int, varchar, text, timestamp, longtext, decimal, index } from "drizzle-orm/mysql-core";
+import { mysqlTable, mysqlEnum, int, varchar, text, timestamp, longtext, decimal, index, uniqueIndex } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -374,7 +374,7 @@ export type InsertRecipientChangeRequest = typeof recipientChangeRequests.$infer
 export const shipments = mysqlTable("shipments", {
   id: int("id").autoincrement().primaryKey(),
   accountId: int("accountId"), // Propietario del envío (opcional para mantener compatibilidad con envíos públicos o de admin)
-  orderNumber: varchar("orderNumber", { length: 64 }).notNull().unique(),
+  orderNumber: varchar("orderNumber", { length: 64 }).notNull(),
   code: varchar("code", { length: 64 }).notNull(),
   status: mysqlEnum("status", ["Por entregar en agencia", "En agencia", "En tránsito", "En destino", "Entregado"]).notNull(),
   events: longtext("events").notNull(), // JSON string with array of events
@@ -458,7 +458,10 @@ export const shipments = mysqlTable("shipments", {
   
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+}, table => ({
+  /** La orden se puede reutilizar entre entornos; la pareja orden + código mantiene el rastreo inequívoco. */
+  trackingIdentifierUnique: uniqueIndex("shipments_order_code_unique").on(table.orderNumber, table.code),
+}));
 
 export type Shipment = typeof shipments.$inferSelect;
 export type InsertShipment = typeof shipments.$inferInsert;

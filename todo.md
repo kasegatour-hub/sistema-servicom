@@ -1861,3 +1861,8 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Eliminar la exigencia incorrecta de precio manual cuando existe una tarifa automática
 - [x] Mantener el precio manual como reemplazo voluntario del cálculo automático
 - [x] Añadir regresiones de documento apostillado y encomienda con tarifa automática
+
+## Error de creación administrativa
+- [x] Identificar la columna requerida que provoca el fallo SQL al crear un documento
+- [x] Completar correctamente los datos de persistencia del envío administrativo
+- [x] Añadir regresión de inserción y validar una creación con tarifa automática
