@@ -89,8 +89,9 @@ describe("MobileAppPage", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Rastrear" }));
     const orderInput = screen.getByLabelText("Número de orden móvil") as HTMLInputElement;
-    expect(orderInput.inputMode).toBe("text");
+    expect(orderInput.inputMode).toBe("numeric");
     expect(screen.getByText("Encomiendas: MMAA-XXXX. También se aceptan órdenes históricas.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Limpiar" })).toBeTruthy();
     fireEvent.change(orderInput, { target: { value: "0826-0019" } });
     fireEvent.change(screen.getByLabelText("Código de envío móvil"), { target: { value: "7abc" } });
     fireEvent.click(screen.getByRole("button", { name: "Buscar envío" }));

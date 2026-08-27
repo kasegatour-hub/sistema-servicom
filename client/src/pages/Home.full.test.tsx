@@ -38,7 +38,7 @@ vi.mock("@/components/ShipmentTimeline", () => ({
   ShipmentTimeline: () => null,
 }));
 
-import Home, { getTrackingCodeError, getTrackingOrderError } from "./Home";
+import Home, { formatTrackingOrderInput, getTrackingCodeError, getTrackingOrderError } from "./Home";
 
 afterEach(() => {
   cleanup();
@@ -47,6 +47,12 @@ afterEach(() => {
 });
 
 describe("Home public page", () => {
+  it("formats the new order number while typing without changing legacy lengths", () => {
+    expect(formatTrackingOrderInput("0826")).toBe("0826");
+    expect(formatTrackingOrderInput("08260019")).toBe("0826-0019");
+    expect(formatTrackingOrderInput("0826-0019")).toBe("0826-0019");
+    expect(formatTrackingOrderInput("3520992723")).toBe("3520992723");
+  });
   it("renders the prominent tracking hierarchy and public navigation", () => {
     render(<Home />);
 
@@ -57,6 +63,7 @@ describe("Home public page", () => {
     expect(screen.getByLabelText("Código de envío")).toBeTruthy();
     expect(screen.queryByText("Información de Contacto")).toBeNull();
     expect(screen.getByRole("button", { name: /Rastrear envío/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Limpiar" })).toBeTruthy();
     fireEvent.pointerDown(screen.getByRole("button", { name: "Abrir menú principal" }));
     expect(screen.getByRole("menuitem", { name: "Rastreo" })).toBeTruthy();
     expect(screen.getByRole("menuitem", { name: "Ubicación presencial" })).toBeTruthy();

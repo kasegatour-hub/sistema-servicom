@@ -1779,3 +1779,21 @@
 - [x] Reservar el tratamiento azul para la opción y vista de «Ubícanos».
 - [x] Mantener los mensajes de error rojos únicamente cuando falte o sea inválido algún dato.
 - [x] Actualizar pruebas y validar la composición responsive antes de publicar.
+
+## Cliente y rastreo simplificado
+- [ ] Ocultar completamente la opción Encomiendas para el rol Cliente, manteniéndola para Usuario y Admin autorizados.
+- [ ] Aplicar el ocultamiento también en la aplicación móvil del Cliente y conservar Documentos como opción disponible.
+- [ ] Formatear automáticamente el número de orden con guion mientras se escribe, sin impedir correcciones manuales.
+- [ ] Usar teclado numérico en móvil para el campo de orden y mantener código alfanumérico.
+- [ ] Añadir botón visible «Limpiar» para borrar orden, código, errores, resultados y parámetros de URL.
+- [ ] Añadir pruebas de permisos, formato automático, limpieza y responsive; validar y publicar.
+
+## Simplificación del rastreo y experiencia Cliente
+- [x] Ocultar la opción Encomiendas en la vista de Cliente, manteniéndola en el panel administrativo
+- [x] Formatear automáticamente el número de orden como MMAA-XXXX mientras se escribe
+- [x] Activar teclado numérico para el número de orden en móvil
+- [x] Añadir botón Limpiar para reiniciar orden, código, resultados, errores y parámetros de URL
+- [x] Añadir regresiones de pruebas para formato, teclado numérico y botón Limpiar
+- [x] Validar suite completa, TypeScript y build de producción
+
+Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Registrador permanecen en AdminDashboard.

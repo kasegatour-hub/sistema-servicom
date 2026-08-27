@@ -960,7 +960,7 @@ export default function AccountPage() {
               <div className="mb-3 space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3" role="group" aria-label="Mis envíos por tipo y ruta">
                 <div className="grid gap-2 sm:grid-cols-3">
                   <Button type="button" aria-pressed={clientShipmentGroup === "all"} onClick={() => setClientShipmentGroup("all")} className={clientShipmentGroup === "all" ? "min-h-11 bg-[#0B2B5E] text-white" : "min-h-11 border border-blue-200 bg-white text-[#0B2B5E]"}>Todos los envíos<span className="ml-auto text-xs">({(myShipments || []).length})</span></Button>
-                  {([['documento', 'Documentos', 'bg-[#0B2B5E] text-white', 'border-blue-200 bg-blue-50 text-[#0B2B5E]'], ['encomienda', 'Encomiendas', 'bg-[#F28C00] text-white', 'border-orange-200 bg-orange-50 text-[#9A5700]']] as const).map(([type, label, activeClass, idleClass]) => {
+                  {([['documento', 'Documentos', 'bg-[#0B2B5E] text-white', 'border-blue-200 bg-blue-50 text-[#0B2B5E]']] as const).map(([type, label, activeClass, idleClass]) => {
                     const selected = clientShipmentGroup.startsWith(type);
                     return <Button key={type} type="button" aria-pressed={selected} onClick={() => setClientShipmentGroup(`${type}_lima_torino` as ClientShipmentGroup)} className={`min-h-11 justify-start text-left font-semibold ${selected ? activeClass : `border ${idleClass}`}`}>{label}<span className="ml-auto text-xs">Elegir ruta</span></Button>;
                   })}

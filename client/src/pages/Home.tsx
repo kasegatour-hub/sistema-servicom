@@ -18,6 +18,16 @@ import { formatPhoneNumber } from "@/lib/phoneFormatting";
 import { getRoutePresentation } from "@/lib/routeDetails";
 import { SHIPMENT_CODE_EXAMPLE } from "@/../../shared/shipmentIdentifiers";
 
+export function formatTrackingOrderInput(value: string): string {
+  const compact = value.toUpperCase().replace(/\s/g, "");
+  if (/^\d{0,8}$/.test(compact)) {
+    const digits = compact.replace(/-/g, "");
+    if (digits.length <= 4) return digits;
+    return `${digits.slice(0, 4)}-${digits.slice(4, 8)}`;
+  }
+  return compact;
+}
+
 export function getTrackingOrderError(value: string): string | null {
   const normalized = value.trim().toUpperCase();
   if (!normalized) return "Escribe tu número de orden.";
@@ -217,6 +227,7 @@ export default function Home() {
     handleSubmit,
     formState: { errors },
     reset,
+    setValue,
   } = useForm<SearchFormData>({
     resolver: zodResolver(searchSchema),
   });
@@ -256,6 +267,17 @@ export default function Home() {
       setQrCodeUrl(null);
     }
   }, [searchQueryError]);
+
+  const handleClearTracking = () => {
+    reset({ orderNumber: "", code: "" });
+    setValue("orderNumber", "");
+    setValue("code", "");
+    setSearchParams(null);
+    setShipmentData(null);
+    setQrCodeUrl(null);
+    setSearchError(null);
+    window.history.replaceState({}, "", window.location.pathname);
+  };
 
   const onSubmit = (data: SearchFormData) => {
     // Normalizar: remover espacios y convertir a mayúsculas
@@ -333,7 +355,7 @@ export default function Home() {
               <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
                 <div>
                   <label className="mb-2 block text-base font-bold text-slate-800" htmlFor="orderNumber">Número de orden</label>
-                  <Input id="orderNumber" aria-invalid={Boolean(errors.orderNumber)} aria-describedby={errors.orderNumber ? "orderNumber-error" : undefined} placeholder="Ej.: 0826-0019 o 35209927" {...register("orderNumber")} className={`h-14 rounded-xl border-2 px-4 text-base shadow-sm focus:border-[#0B2B5E] focus:ring-4 focus:ring-[#0B2B5E]/10 sm:text-lg ${errors.orderNumber ? "border-red-600 bg-red-50/40" : "border-slate-200"}`} />
+                  <Input id="orderNumber" inputMode="numeric" autoComplete="off" aria-invalid={Boolean(errors.orderNumber)} aria-describedby={errors.orderNumber ? "orderNumber-error" : undefined} placeholder="Ej.: 0826-0019" {...register("orderNumber", { onChange: (event) => setValue("orderNumber", formatTrackingOrderInput(event.target.value), { shouldValidate: false }) })} className={`h-14 rounded-xl border-2 px-4 text-base shadow-sm focus:border-[#0B2B5E] focus:ring-4 focus:ring-[#0B2B5E]/10 sm:text-lg ${errors.orderNumber ? "border-red-600 bg-red-50/40" : "border-slate-200"}`} />
                   {errors.orderNumber && <p id="orderNumber-error" className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-bold leading-6 text-red-700" role="alert">{errors.orderNumber.message}</p>}
                 </div>
 
@@ -360,6 +382,9 @@ export default function Home() {
                 </Button>
                 <Button type="button" variant="outline" onClick={() => setScannerOpen(true)} className="min-h-14 rounded-xl border-2 border-[#F28C00] bg-white px-6 text-base font-extrabold text-[#A85F00] transition hover:bg-orange-50 sm:text-lg">
                   <QrCode className="mr-2 h-5 w-5" /> <span>Escanear QR</span>
+                </Button>
+                <Button type="button" variant="outline" onClick={handleClearTracking} className="min-h-14 rounded-xl border-2 border-slate-300 bg-white px-6 text-base font-extrabold text-slate-700 transition hover:bg-slate-50 sm:text-lg">
+                  Limpiar
                 </Button>
               </div>
             </form>
