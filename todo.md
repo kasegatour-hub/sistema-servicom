@@ -1742,12 +1742,12 @@
 - [x] Ejecutar TypeScript, suite completa y build de producción: 104 archivos, 444 pruebas aprobadas y build correcto.
 
 ## Validación estricta y excepción controlada — YESLY VENTO
-- [ ] Impedir que cualquier usuario o administrador registre una persona solo con nombre o apellido; exigir todos los datos obligatorios definidos para una encomienda Torino → Lima.
-- [ ] Diseñar una excepción explícita, limitada y auditable para registrar la encomienda de YESLY VENTO con los datos abreviados proporcionados por el usuario.
-- [ ] Persistir la excepción sin relajar las validaciones generales ni permitir que el cliente común registre envíos incompletos.
-- [ ] Añadir feedback visible y pruebas backend/UI para los campos obligatorios y la excepción autorizada.
-- [ ] Verificar y publicar el registro de la encomienda Torino → Lima únicamente después de confirmar los datos mínimos faltantes o la autorización de la excepción.
-- [ ] Registrar la aclaración: YESLY (correo yeslyvr1997@gmail.com) es quien realiza el registro; el destinatario excepcional será la cadena de códigos en mayúsculas.
+- [x] Impedir que cualquier usuario o administrador registre una persona solo con nombre o apellido; exigir todos los datos obligatorios definidos para una encomienda Torino → Lima.
+- [x] Diseñar una excepción explícita, limitada y auditable para registrar la encomienda de YESLY VENTO con los datos abreviados proporcionados por el usuario.
+- [x] Persistir la excepción sin relajar las validaciones generales ni permitir que el cliente común registre envíos incompletos.
+- [x] Añadir feedback visible y pruebas backend/UI para los campos obligatorios y la excepción autorizada.
+- [ ] Verificar y publicar los ocho registros independientes de la encomienda Torino → Lima únicamente después de confirmar la autorización de la excepción.
+- [x] Registrar la aclaración: YESLY (correo yeslyvr1997@gmail.com) es quien realiza el registro; el destinatario excepcional será la cadena de códigos en mayúsculas.
 
 ## Excepción YESLY — registros individuales por código
 - [x] Limpiar la excepción anterior y reemplazarla por una excepción limitada a YESLY como usuaria registradora.
@@ -1756,4 +1756,4 @@
 - [x] Asegurar que la excepción no se aplique a clientes, administradores ni otros usuarios registradores.
 - [x] Validar duplicados, auditoría, pruebas y publicación antes de entregar los códigos generados.
 - [x] Confirmar que MV, ARG, FLI, SC, VCG, OQA, YGL y RGS se guardan únicamente como nombre del destinatario, siempre en mayúsculas, uno por registro.
-- [ ] Corregir la excepción: YESLY es únicamente usuaria registradora; dejar remitente, documento y teléfono del remitente vacíos en cada registro, usando solo el código como destinatario.
+- [x] Corregir la excepción: YESLY es únicamente usuaria registradora; dejar remitente, documento y teléfono del remitente vacíos en cada registro, usando solo el código como destinatario.

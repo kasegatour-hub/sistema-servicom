@@ -1299,7 +1299,7 @@ export default function AdminDashboard() {
   };
 
   const validateRequiredAdminShipmentFields = (data: any) => {
-    const isYeslyException = /^yeslyvr1997@gmail\.com$/i.test(String(admin?.email || "").trim()) && data.shipmentType === "encomienda" && data.route === "Torino - Lima" && String(data.senderName || "").trim() === "" && ["MV", "ARG", "FLI", "SC", "VCG", "OQA", "YGL", "RGS"].includes(String(data.recipientName || "").trim().toUpperCase());
+    const isYeslyException = (Number(admin?.id || currentAdminSession?.id) === 90001 || /^yeslyvr1997@gmail\.com$/i.test(String(admin?.email || currentAdminSession?.email || "").trim())) && data.shipmentType === "encomienda" && data.route === "Torino - Lima" && String(data.senderName || "").trim() === "" && ["MV", "ARG", "FLI", "SC", "VCG", "OQA", "YGL", "RGS"].includes(String(data.recipientName || "").trim().toUpperCase());
     if (isYeslyException) return true;
     const requiredFields: Array<{ field: string; value: unknown; label: string }> = [
       { field: "senderName", value: data.senderName, label: "nombre del remitente" },
@@ -1331,7 +1331,7 @@ export default function AdminDashboard() {
       const normalizedChecklist = data.shipmentType === "documento"
         ? catalogDocumentsToChecklist(catalogDocuments)
         : contentChecklist.map(item => item.trim()).filter(Boolean);
-      const isYeslyException = /^yeslyvr1997@gmail\.com$/i.test(String(admin?.email || "").trim()) && data.shipmentType === "encomienda" && data.route === "Torino - Lima" && String(data.senderName || "").trim() === "" && ["MV", "ARG", "FLI", "SC", "VCG", "OQA", "YGL", "RGS"].includes(String(data.recipientName || "").trim().toUpperCase());
+      const isYeslyException = (Number(admin?.id || currentAdminSession?.id) === 90001 || /^yeslyvr1997@gmail\.com$/i.test(String(admin?.email || currentAdminSession?.email || "").trim())) && data.shipmentType === "encomienda" && data.route === "Torino - Lima" && String(data.senderName || "").trim() === "" && ["MV", "ARG", "FLI", "SC", "VCG", "OQA", "YGL", "RGS"].includes(String(data.recipientName || "").trim().toUpperCase());
       if (normalizedChecklist.length === 0 && !isYeslyException) {
         const message = "Este campo es obligatorio. Agrega al menos un elemento a la lista de cosas enviadas.";
         createForm.setError("contentChecklist", { type: "required", message });
@@ -1351,7 +1351,7 @@ export default function AdminDashboard() {
         missingItems: missingItems.length ? missingItems : undefined,
         isIncomplete: Boolean(data.isIncomplete || missingItems.length),
         incompleteReason: missingItems.length ? missingItems.join(", ") : data.incompleteReason,
-        controlledExceptionCode: /^yeslyvr1997@gmail\.com$/i.test(String(admin?.email || "").trim()) && data.shipmentType === "encomienda" && data.route === "Torino - Lima" && String(data.senderName || "").trim() === "" && ["MV", "ARG", "FLI", "SC", "VCG", "OQA", "YGL", "RGS"].includes(String(data.recipientName || "").trim().toUpperCase()) ? "YESLY_VENTO_CODES" : undefined,
+        controlledExceptionCode: (Number(admin?.id || currentAdminSession?.id) === 90001 || /^yeslyvr1997@gmail\.com$/i.test(String(admin?.email || currentAdminSession?.email || "").trim())) && data.shipmentType === "encomienda" && data.route === "Torino - Lima" && String(data.senderName || "").trim() === "" && ["MV", "ARG", "FLI", "SC", "VCG", "OQA", "YGL", "RGS"].includes(String(data.recipientName || "").trim().toUpperCase()) ? "YESLY_VENTO_CODES" : undefined,
       });
       if (shipmentPhoto && createdShipment?.shipmentId) {
         const dataUrl = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = () => reject(new Error("No se pudo leer la foto.")); reader.readAsDataURL(shipmentPhoto); });
@@ -2094,7 +2094,7 @@ export default function AdminDashboard() {
     );
   }
 
-  const isYeslyExceptionForm = /^yeslyvr1997@gmail\.com$/i.test(String(admin?.email || "").trim()) && selectedShipmentType === "encomienda" && selectedRoute === "Torino - Lima" && String(createForm.watch("senderName") || "").trim() === "" && ["MV", "ARG", "FLI", "SC", "VCG", "OQA", "YGL", "RGS"].includes(String(createForm.watch("recipientName") || "").trim().toUpperCase());
+  const isYeslyExceptionForm = (Number(admin?.id || currentAdminSession?.id) === 90001 || /^yeslyvr1997@gmail\.com$/i.test(String(admin?.email || currentAdminSession?.email || "").trim())) && selectedShipmentType === "encomienda" && selectedRoute === "Torino - Lima" && String(createForm.watch("senderName") || "").trim() === "" && ["MV", "ARG", "FLI", "SC", "VCG", "OQA", "YGL", "RGS"].includes(String(createForm.watch("recipientName") || "").trim().toUpperCase());
   return (
     <div className="admin-surface min-h-screen bg-gradient-to-b from-blue-50 to-white">
       {admin?.reauthRequired && (
