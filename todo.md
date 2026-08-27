@@ -1781,12 +1781,12 @@
 - [x] Actualizar pruebas y validar la composición responsive antes de publicar.
 
 ## Cliente y rastreo simplificado
-- [ ] Ocultar completamente la opción Encomiendas para el rol Cliente, manteniéndola para Usuario y Admin autorizados.
-- [ ] Aplicar el ocultamiento también en la aplicación móvil del Cliente y conservar Documentos como opción disponible.
-- [ ] Formatear automáticamente el número de orden con guion mientras se escribe, sin impedir correcciones manuales.
-- [ ] Usar teclado numérico en móvil para el campo de orden y mantener código alfanumérico.
-- [ ] Añadir botón visible «Limpiar» para borrar orden, código, errores, resultados y parámetros de URL.
-- [ ] Añadir pruebas de permisos, formato automático, limpieza y responsive; validar y publicar.
+- [x] Ocultar completamente la opción Encomiendas para el rol Cliente, manteniéndola para Usuario y Admin autorizados.
+- [x] Aplicar el ocultamiento también en la aplicación móvil del Cliente y conservar Documentos como opción disponible.
+- [x] Formatear automáticamente el número de orden con guion mientras se escribe, sin impedir correcciones manuales.
+- [x] Usar teclado numérico en móvil para el campo de orden y mantener código alfanumérico.
+- [x] Añadir botón visible «Limpiar» para borrar orden, código, errores, resultados y parámetros de URL.
+- [x] Añadir pruebas de permisos, formato automático, limpieza y responsive; validar y publicar.
 
 ## Simplificación del rastreo y experiencia Cliente
 - [x] Ocultar la opción Encomiendas en la vista de Cliente, manteniéndola en el panel administrativo

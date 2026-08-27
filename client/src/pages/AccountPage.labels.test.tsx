@@ -89,6 +89,7 @@ describe("AccountPage client labels", () => {
 
     expect(screen.getByRole("button", { name: /Registrar Nuevo Documento/ })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Registrar Nueva Encomienda/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Encomiendas" })).toBeNull();
   });
 
   it("explica la búsqueda de envíos y acepta coincidencias difusas del destinatario", () => {
