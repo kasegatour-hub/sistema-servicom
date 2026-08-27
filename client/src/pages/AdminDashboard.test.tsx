@@ -853,7 +853,10 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.change(documentNames[0], { target: { value: "Ana" } });
     fireEvent.change(documentLastNames[0], { target: { value: "Pérez" } });
     fireEvent.change(screen.getByLabelText("Documento de remitente - número de identificación"), { target: { value: "70445566" } });
-    fireEvent.change(document.getElementById("admin-sender-phone") as HTMLInputElement, { target: { value: "970188447" } });
+    const senderPhoneInput = document.getElementById("admin-sender-phone") as HTMLInputElement;
+    fireEvent.change(senderPhoneInput, { target: { value: "970188447" } });
+    await waitFor(() => expect(senderPhoneInput.getAttribute("aria-invalid")).toBe("false"));
+    expect(screen.queryByText(/Corrige el celular del remitente/i)).toBeNull();
     fireEvent.change(documentNames[1], { target: { value: "Marco" } });
     fireEvent.change(documentLastNames[1], { target: { value: "Rossi" } });
     fireEvent.change(screen.getByLabelText("Documento de destinatario - número de identificación"), { target: { value: "71234567" } });

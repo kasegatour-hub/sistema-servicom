@@ -73,6 +73,32 @@ describe("admin.createShipment", () => {
     expect(args[29]).toMatchObject({ type: "admin", id: 9 });
   });
 
+  it("normalizes local Peruvian phones before persisting an administrative shipment", async () => {
+    const caller = appRouter.createCaller(createAdminContext());
+    await caller.admin.createShipment({
+      status: "En agencia",
+      senderName: "Yuliana",
+      senderLastName: "Leandro",
+      senderDni: "75240795",
+      senderPhone: "999 008 125",
+      recipientName: "Ana",
+      recipientLastName: "Huamancayo",
+      recipientDni: "28315728",
+      recipientPhone: "945 612 378",
+      shipmentType: "documento",
+      docType: "simple",
+      sheetCount: 1,
+      weightKg: 1,
+      paymentStatus: "Falta cancelar",
+      route: "Lima - Torino",
+      contentChecklist: ["Documento principal"],
+    });
+
+    const args = dbMocks.createShipment.mock.calls[0];
+    expect(args[6]).toBe("+51 999 008 125");
+    expect(args[10]).toBe("+51 945 612 378");
+  });
+
   it("persists the apostille service only for a Torino–Lima document", async () => {
     const caller = appRouter.createCaller(createAdminContext());
     await caller.admin.createShipment({

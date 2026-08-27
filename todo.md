@@ -1836,3 +1836,8 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Eliminar el rechazo incorrecto de teléfonos peruanos con +51 y 9 dígitos en el formulario Admin
 - [x] Asegurar que el valor del selector de país y el número local se validen igual en la interfaz y el servidor
 - [x] Añadir regresiones de guardado para remitente y destinatario y publicar la corrección
+
+## Falso error persistente en teléfono peruano
+- [x] Reproducir el mensaje rojo con +51 y 999 008 125 en el formulario Admin
+- [x] Corregir la validación en tiempo real y limpiar el error cuando el número ya sea válido
+- [x] Verificar que remitente y destinatario permitan guardar con teléfonos peruanos válidos
