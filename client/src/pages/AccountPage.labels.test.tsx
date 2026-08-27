@@ -92,6 +92,18 @@ describe("AccountPage client labels", () => {
     expect(screen.queryByRole("button", { name: "Encomiendas" })).toBeNull();
   });
 
+  it("expande Mis Envíos al ancho disponible y conserva el contenido flexible", () => {
+    render(<AccountPage />);
+    const title = screen.getByText("Mis Envíos Registrados");
+    const panel = title.closest('[data-slot="card"]');
+    const main = title.closest("main");
+
+    expect(panel?.className).toContain("w-full");
+    expect(panel?.className).toContain("min-w-0");
+    expect(main?.className).toContain("w-full");
+    expect(screen.getByRole("group", { name: "Mis envíos por tipo y ruta" }).className).toContain("w-full");
+  });
+
   it("explica la búsqueda de envíos y acepta coincidencias difusas del destinatario", () => {
     accountMocks.shipments = [
       { id: 1, orderNumber: "3520992723", code: "DOC-SAN", recipientName: "Lucía", recipientLastName: "Sánchez", recipientDni: "71234567", recipientPhone: "+51 970188447", status: "En agencia", paymentStatus: "Falta cancelar", registeredByLabel: "Cliente", createdAt: new Date("2026-08-17T10:00:00.000Z") },

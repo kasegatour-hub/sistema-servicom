@@ -546,7 +546,7 @@ export default function AccountPage() {
           </div>
         </header>
 
-        <main className="mx-auto w-[min(96vw,1560px)] space-y-8 px-5 py-10">
+        <main className="mx-auto w-full max-w-[1560px] min-w-0 space-y-8 px-3 py-6 sm:px-5 sm:py-10">
           {me.reauthRequired && (
             <Dialog open>
               <DialogContent className="max-w-md" onPointerDownOutside={(event) => event.preventDefault()} onEscapeKeyDown={(event) => event.preventDefault()}>
@@ -778,15 +778,16 @@ export default function AccountPage() {
           )}
 
           {/* Mis Envíos y Registro */}
-          <Card className={`border-0 p-6 shadow-md ${["envios", "registrar", "papelera"].includes(clientWorkspace) ? "" : "hidden"}`}>
-            {clientWorkspace !== "papelera" && <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-bold text-[#0B2B5E] flex items-center gap-2">
+          <Card className={`w-full min-w-0 border-0 p-4 shadow-md sm:p-6 ${["envios", "registrar", "papelera"].includes(clientWorkspace) ? "" : "hidden"}`}>
+            {clientWorkspace !== "papelera" && <div className="mb-6 flex w-full min-w-0 flex-col items-stretch justify-between gap-4 sm:flex-row sm:items-center">
+              <div className="min-w-0 flex-1">
+                <h2 className="break-words text-lg font-bold text-[#0B2B5E] flex items-center gap-2">
+
                   <Package className="h-5 w-5 text-[#F28C00]" /> Mis Envíos Registrados
                 </h2>
                 <p className="text-xs text-slate-500">Registra envíos de documentos o consulta el estado actual de tus registros.</p>
               </div>
-              <Button onClick={() => { setClientWorkspace("registrar"); resetClientShipmentForm(); setShowNewShipment(value => !value); }} className="bg-[#F28C00] text-white hover:bg-[#d67900]">
+              <Button onClick={() => { setClientWorkspace("registrar"); resetClientShipmentForm(); setShowNewShipment(value => !value); }} className="w-full shrink-0 bg-[#F28C00] text-white hover:bg-[#d67900] sm:w-auto">
                 <Plus className="mr-2 h-4 w-4" /> Registrar Nuevo Documento
               </Button>
             </div>}
@@ -957,26 +958,26 @@ export default function AccountPage() {
             )}
 
             {clientWorkspace === "envios" && <>
-              <div className="mb-3 space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3" role="group" aria-label="Mis envíos por tipo y ruta">
-                <div className="grid gap-2 sm:grid-cols-3">
-                  <Button type="button" aria-pressed={clientShipmentGroup === "all"} onClick={() => setClientShipmentGroup("all")} className={clientShipmentGroup === "all" ? "min-h-11 bg-[#0B2B5E] text-white" : "min-h-11 border border-blue-200 bg-white text-[#0B2B5E]"}>Todos los envíos<span className="ml-auto text-xs">({(myShipments || []).length})</span></Button>
+              <div className="mb-3 w-full min-w-0 space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3" role="group" aria-label="Mis envíos por tipo y ruta">
+                <div className="grid w-full min-w-0 gap-2 sm:grid-cols-3">
+                  <Button type="button" aria-pressed={clientShipmentGroup === "all"} onClick={() => setClientShipmentGroup("all")} className={clientShipmentGroup === "all" ? "min-h-11 w-full min-w-0 bg-[#0B2B5E] text-white" : "min-h-11 w-full min-w-0 border border-blue-200 bg-white text-[#0B2B5E]"}>Todos los envíos<span className="ml-auto text-xs">({(myShipments || []).length})</span></Button>
                   {([['documento', 'Documentos', 'bg-[#0B2B5E] text-white', 'border-blue-200 bg-blue-50 text-[#0B2B5E]']] as const).map(([type, label, activeClass, idleClass]) => {
                     const selected = clientShipmentGroup.startsWith(type);
-                    return <Button key={type} type="button" aria-pressed={selected} onClick={() => setClientShipmentGroup(`${type}_lima_torino` as ClientShipmentGroup)} className={`min-h-11 justify-start text-left font-semibold ${selected ? activeClass : `border ${idleClass}`}`}>{label}<span className="ml-auto text-xs">Elegir ruta</span></Button>;
+                    return <Button key={type} type="button" aria-pressed={selected} onClick={() => setClientShipmentGroup(`${type}_lima_torino` as ClientShipmentGroup)} className={`min-h-11 w-full min-w-0 justify-start text-left font-semibold ${selected ? activeClass : `border ${idleClass}`}`}>{label}<span className="ml-auto shrink-0 text-xs">Elegir ruta</span></Button>;
                   })}
                 </div>
-                {(clientShipmentGroup.startsWith('documento') || clientShipmentGroup.startsWith('encomienda')) && <div className="rounded-xl border border-slate-200 bg-white p-3">
+                {(clientShipmentGroup.startsWith('documento') || clientShipmentGroup.startsWith('encomienda')) && <div className="w-full min-w-0 rounded-xl border border-slate-200 bg-white p-3">
                   <p className="mb-2 text-sm font-semibold text-slate-700">Selecciona la ruta:</p>
-                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="grid w-full min-w-0 gap-2 sm:grid-cols-2 lg:grid-cols-4">
                     {([['lima_torino', 'Lima → Torino', SHIPMENT_ROUTES.LIMA_TORINO], ['torino_lima', 'Torino → Lima', SHIPMENT_ROUTES.TORINO_LIMA], ['torino_provincia', 'Torino → Lima + provincia', SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE], ['provincia_lima_torino', 'Provincia → Lima → Torino', SHIPMENT_ROUTES.PROVINCE_LIMA_TORINO]] as const).map(([suffix, label, route]) => {
                       const value = `${clientShipmentGroup.startsWith('documento') ? 'documento' : 'encomienda'}_${suffix}` as ClientShipmentGroup;
                       const count = (myShipments || []).filter((shipment: any) => (value.startsWith('documento') ? shipment.shipmentType !== 'encomienda' : shipment.shipmentType === 'encomienda') && getShipmentRouteBucket(shipment.route, shipment.isProvinceDelivery) === route).length;
-                      return <Button key={value} type="button" aria-pressed={clientShipmentGroup === value} onClick={() => setClientShipmentGroup(value)} className={`min-h-11 justify-start text-left ${clientShipmentGroup === value ? (value.startsWith('documento') ? 'bg-[#0B2B5E] text-white' : 'bg-[#F28C00] text-white') : 'border border-slate-200 bg-white text-slate-700'}`}>{label}<span className="ml-auto text-xs">({count})</span></Button>;
+                      return <Button key={value} type="button" aria-pressed={clientShipmentGroup === value} onClick={() => setClientShipmentGroup(value)} className={`min-h-11 w-full min-w-0 justify-between whitespace-normal text-left leading-tight ${clientShipmentGroup === value ? (value.startsWith('documento') ? 'bg-[#0B2B5E] text-white' : 'bg-[#F28C00] text-white') : 'border border-slate-200 bg-white text-slate-700'}`}>{label}<span className="ml-2 shrink-0 text-xs">({count})</span></Button>;
                     })}
                   </div>
                 </div>}
               </div>
-              <div className="mb-4 grid grid-cols-1 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 md:grid-cols-4">
+              <div className="mb-4 grid w-full min-w-0 grid-cols-1 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 md:grid-cols-4">
               <div className="flex min-w-0 items-center gap-2 md:col-span-2">
                 <div className="relative min-w-0 flex-1">
                   <Search className="pointer-events-none absolute left-4 top-1/2 h-6 w-6 -translate-y-1/2 text-[#0B2B5E] stroke-[2.5]" aria-hidden="true" />
@@ -998,9 +999,9 @@ export default function AccountPage() {
             ) : (
               <div className="space-y-4">
                 {clientPagination.items.map((shipment: any) => (
-                  <div key={shipment.id} className="border border-slate-200 rounded-xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white shadow-sm">
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
+                  <div key={shipment.id} className="flex w-full min-w-0 flex-col items-start justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-center">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="font-bold text-[#0B2B5E]">Orden: {shipment.orderNumber}</span>
                         <span className="rounded bg-blue-100 px-2 py-0.5 text-xs font-semibold text-[#0B2B5E]">Código: {shipment.code}</span>
                         <span className={`rounded px-2 py-0.5 text-xs font-semibold ${shipment.status === 'Entregado' ? 'bg-blue-600 text-white' : shipment.status === 'Por entregar en agencia' ? 'bg-sky-100 text-sky-800' : 'bg-orange-100 text-[#F28C00]'}`}>
@@ -1016,7 +1017,7 @@ export default function AccountPage() {
                       <p className="text-xs text-slate-400 mt-0.5">Registrado el {new Date(shipment.createdAt).toLocaleDateString()}</p>
                       <p className="mt-0.5 text-xs text-slate-500"><strong>Registrado por:</strong> {shipment.registeredByLabel || "Registro anterior"}</p>
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex w-full min-w-0 flex-wrap gap-2 md:w-auto md:justify-end">
                       <Link href={`${mobileClientMode ? "/movil" : "/"}?order=${encodeURIComponent(shipment.orderNumber)}&code=${encodeURIComponent(shipment.code)}`}>
                         <Button size="sm" className="bg-[#0B2B5E] text-white hover:bg-[#123d78]"><Search className="mr-2 h-3.5 w-3.5" /> Rastrear envío</Button>
                       </Link>
@@ -1025,7 +1026,7 @@ export default function AccountPage() {
                     </div>
                   </div>
                 ))}
-                <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"><p className="text-sm text-slate-600">Mostrando {filteredClientShipments.length === 0 ? 0 : (clientPagination.currentPage - 1) * clientPageSize + 1}–{Math.min(clientPagination.currentPage * clientPageSize, filteredClientShipments.length)} de {filteredClientShipments.length} envíos</p><div className="flex items-center gap-2"><Button type="button" size="sm" variant="outline" disabled={clientPagination.currentPage === 1} onClick={() => setClientCurrentPage(page => Math.max(1, page - 1))}>Anterior</Button><span className="min-w-20 text-center text-sm font-medium">Página {clientPagination.currentPage} de {clientPagination.totalPages}</span><Button type="button" size="sm" variant="outline" disabled={clientPagination.currentPage >= clientPagination.totalPages} onClick={() => setClientCurrentPage(page => Math.min(clientPagination.totalPages, page + 1))}>Siguiente</Button></div></div>
+                <div className="flex w-full min-w-0 flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"><p className="text-sm text-slate-600">Mostrando {filteredClientShipments.length === 0 ? 0 : (clientPagination.currentPage - 1) * clientPageSize + 1}–{Math.min(clientPagination.currentPage * clientPageSize, filteredClientShipments.length)} de {filteredClientShipments.length} envíos</p><div className="flex items-center gap-2"><Button type="button" size="sm" variant="outline" disabled={clientPagination.currentPage === 1} onClick={() => setClientCurrentPage(page => Math.max(1, page - 1))}>Anterior</Button><span className="min-w-20 text-center text-sm font-medium">Página {clientPagination.currentPage} de {clientPagination.totalPages}</span><Button type="button" size="sm" variant="outline" disabled={clientPagination.currentPage >= clientPagination.totalPages} onClick={() => setClientCurrentPage(page => Math.min(clientPagination.totalPages, page + 1))}>Siguiente</Button></div></div>
               </div>
             ))}
             {clientWorkspace === "papelera" && <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">

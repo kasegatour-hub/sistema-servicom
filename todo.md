@@ -1806,3 +1806,8 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Mostrar el error de orden o código inmediatamente mientras el usuario escribe, antes de Rastrear
 - [x] Mantener la corrección automática del guion sin aceptar entradas excesivas
 - [x] Añadir pruebas de límites, feedback preventivo y comportamiento móvil
+
+## Ajuste responsive de Mis Envíos
+- [x] Expandir el panel y las filas de Mis Envíos Registrados para usar el ancho disponible del dispositivo
+- [x] Evitar compresión o desbordamiento del texto de rutas y botones en pantallas estrechas
+- [x] Validar el layout flexible en móvil y escritorio con pruebas y capturas
