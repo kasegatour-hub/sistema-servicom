@@ -1811,3 +1811,8 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Expandir el panel y las filas de Mis Envíos Registrados para usar el ancho disponible del dispositivo
 - [x] Evitar compresión o desbordamiento del texto de rutas y botones en pantallas estrechas
 - [x] Validar el layout flexible en móvil y escritorio con pruebas y capturas
+
+## Estado Entregado para Cliente
+- [x] Añadir «Entregado» al selector de estados de Mis Envíos del Cliente
+- [x] Añadir «Entregado» al selector de estados de la papelera del Cliente
+- [x] Validar que el filtro muestre correctamente los envíos entregados en móvil y escritorio
