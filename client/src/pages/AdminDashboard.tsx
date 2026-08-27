@@ -2094,6 +2094,7 @@ export default function AdminDashboard() {
     );
   }
 
+  const isYeslyExceptionForm = /^yeslyvr1997@gmail\.com$/i.test(String(admin?.email || "").trim()) && selectedShipmentType === "encomienda" && selectedRoute === "Torino - Lima" && String(createForm.watch("senderName") || "").trim() === "" && ["MV", "ARG", "FLI", "SC", "VCG", "OQA", "YGL", "RGS"].includes(String(createForm.watch("recipientName") || "").trim().toUpperCase());
   return (
     <div className="admin-surface min-h-screen bg-gradient-to-b from-blue-50 to-white">
       {admin?.reauthRequired && (
@@ -2698,7 +2699,7 @@ export default function AdminDashboard() {
                       value={createForm.watch("senderPhone") || "+51 "}
                       onChange={(val) => createForm.setValue("senderPhone", val, { shouldDirty: true, shouldValidate: true })}
                       placeholder="970 188 447"
-                      required
+                      required={!isYeslyExceptionForm}
                     />
                     {createForm.formState.errors.senderPhone?.message && <p role="alert" className="mt-1 text-xs font-semibold text-red-600">{String(createForm.formState.errors.senderPhone.message)}</p>}
                   </div>
@@ -2757,7 +2758,7 @@ export default function AdminDashboard() {
                       value={createForm.watch("recipientPhone") || "+51 "}
                       onChange={(val) => createForm.setValue("recipientPhone", val, { shouldDirty: true, shouldValidate: true })}
                       placeholder="908 722 617"
-                      required
+                      required={!isYeslyExceptionForm}
                     />
                     {createForm.formState.errors.recipientPhone?.message && <p role="alert" className="mt-1 text-xs font-semibold text-red-600">{String(createForm.formState.errors.recipientPhone.message)}</p>}
                   </div>
