@@ -1846,3 +1846,8 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Eliminar el mensaje rojo obsoleto cuando el teléfono peruano ya tenga 9 dígitos válidos
 - [x] Sincronizar el error de PhoneInput y el error del formulario Admin al escribir o corregir el número
 - [x] Añadir una regresión visual con el caso 999 008 125 y validar la versión publicada
+
+## Respuesta rápida de aceptación de celular
+- [x] Asegurar que un celular peruano válido con +51 se acepte en un máximo de 1 segundo
+- [x] Eliminar inmediatamente el mensaje rojo al completar los 9 dígitos válidos
+- [x] Añadir prueba de rendimiento y regresión de guardado del cliente

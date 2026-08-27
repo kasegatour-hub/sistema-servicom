@@ -708,6 +708,8 @@ export default function AdminDashboard() {
   const createAdminPassword = createAdminForm.watch("password") || "";
   const createForm = useForm<any>({
     resolver: zodResolver(createShipmentSchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
     defaultValues: {
       status: 'En agencia',
       senderName: '',
@@ -1329,6 +1331,14 @@ export default function AdminDashboard() {
     focusCreateShipmentField(first.field);
     return false;
   };
+  const handleCreatePhoneChange = (field: "senderPhone" | "recipientPhone", value: string) => {
+    createForm.setValue(field, value, { shouldDirty: true, shouldValidate: true });
+    if (isValidInternationalPhone(value)) {
+      createForm.clearErrors(field);
+      setCreateShipmentValidationError(current => /celular (del remitente|del destinatario|de entrega)/i.test(current) ? "" : current);
+    }
+  };
+
   const handleCreateShipment = async (data: any) => {
     try {
       if (!validateRequiredAdminShipmentFields(data)) return;
@@ -1398,7 +1408,8 @@ export default function AdminDashboard() {
       const phoneField = rawMessage.includes("senderPhone") ? "senderPhone" : rawMessage.includes("recipientPhone") ? "recipientPhone" : rawMessage.includes("deliveryPersonPhone") ? "deliveryPersonPhone" : "";
       const phoneLabels: Record<string, string> = { senderPhone: "celular del remitente", recipientPhone: "celular del destinatario", deliveryPersonPhone: "celular de entrega" };
       const serverField = ["senderName", "senderLastName", "senderDni", "senderPhone", "recipientName", "recipientLastName", "recipientDni", "recipientPhone", "limaTorinoTransferMode", "deliveryPersonName", "deliveryPersonLastName", "deliveryPersonDni", "deliveryPersonPhone", "deliveryLocationType", "deliveryLocationAddress"].find(field => rawMessage.includes(field));
-      const phoneFriendlyMessage = phoneField ? `Corrige el ${phoneLabels[phoneField]}. Para Perú escribe 9 dígitos después de +51, por ejemplo 970 188 447.` : "";
+      const phoneIsValid = phoneField ? isValidInternationalPhone(String(data?.[phoneField] || "")) : false;
+      const phoneFriendlyMessage = phoneField && !phoneIsValid ? `Corrige el ${phoneLabels[phoneField]} según el país seleccionado y completa los dígitos requeridos.` : "";
       const isManualPriceError = rawMessage.includes("manualPriceEur") || rawMessage.includes("Precio manual");
       const friendlyMessage = phoneFriendlyMessage || (isManualPriceError
         ? "Falta indicar el precio final del envío. Completa el campo «Precio manual en EUR» y vuelve a intentarlo."
@@ -2701,7 +2712,7 @@ export default function AdminDashboard() {
                     <PhoneInput
                       id="admin-sender-phone"
                       value={createForm.watch("senderPhone") || ""}
-                      onChange={(val) => createForm.setValue("senderPhone", val, { shouldDirty: true, shouldValidate: true })}
+                      onChange={(val) => handleCreatePhoneChange("senderPhone", val)}
                       placeholder="970 188 447"
                       required={!isYeslyExceptionForm}
                     />
@@ -2760,7 +2771,7 @@ export default function AdminDashboard() {
                     <PhoneInput
                       id="admin-recipient-phone"
                       value={createForm.watch("recipientPhone") || ""}
-                      onChange={(val) => createForm.setValue("recipientPhone", val, { shouldDirty: true, shouldValidate: true })}
+                      onChange={(val) => handleCreatePhoneChange("recipientPhone", val)}
                       placeholder="908 722 617"
                       required={!isYeslyExceptionForm}
                     />
