@@ -57,7 +57,7 @@ describe("Home public page", () => {
     render(<Home />);
 
     expect(screen.queryByRole("heading", { name: "Rastrea tu envío" })).toBeNull();
-    expect(screen.queryByLabelText(/Trayecto del envío/)).toBeNull();
+    expect(screen.getByLabelText(/Trayecto del envío/)).toBeTruthy();
     expect(screen.queryByText("Rastrea tu envío de forma segura")).toBeNull();
     expect(screen.getByLabelText("Número de orden")).toBeTruthy();
     expect(screen.getByLabelText("Código de envío")).toBeTruthy();

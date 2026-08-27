@@ -1797,3 +1797,6 @@
 - [x] Validar suite completa, TypeScript y build de producción
 
 Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Registrador permanecen en AdminDashboard.
+
+## Restauración de escena en el rastreo
+- [x] Reintegrar visualmente el carrito y el avión dentro del cuadro principal de rastreo, sin alterar la pantalla limpia ni el comportamiento de los campos.

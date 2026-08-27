@@ -10,6 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Spinner } from "@/components/ui/spinner";
 import { trpc } from "@/lib/trpc";
 import { ShipmentTimeline } from "@/components/ShipmentTimeline";
+import { TrackingJourneyAnimation } from "@/components/TrackingJourneyAnimation";
 import { QRScanner } from "@/components/QRScanner";
 import QRCode from "qrcode";
 import { buildTrackingPath, buildTrackingUrl, TRACKING_QR_OPTIONS, normalizeTrackingValue } from "@/lib/tracking";
@@ -387,6 +388,7 @@ export default function Home() {
                   Limpiar
                 </Button>
               </div>
+              <TrackingJourneyAnimation status={shipmentData?.status} className="mt-6" />
             </form>
           </Card>
         </section>
