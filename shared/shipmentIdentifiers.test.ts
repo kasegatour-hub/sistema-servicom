@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateMonthlyParcelOrderNumber, generateShipmentCode, generateShipmentOrderNumber, getMonthlyParcelOrderPrefix, isNewShipmentCode, isNewShipmentOrderNumber } from "./shipmentIdentifiers";
+import { formatTrackingCodeInput, formatTrackingOrderInput, generateMonthlyParcelOrderNumber, generateShipmentCode, generateShipmentOrderNumber, getMonthlyParcelOrderPrefix, getTrackingCodeError, getTrackingOrderError, isNewShipmentCode, isNewShipmentOrderNumber } from "./shipmentIdentifiers";
 
 describe("shipment identifiers", () => {
   it("genera órdenes nuevas de exactamente 8 dígitos", () => {
@@ -42,6 +42,16 @@ describe("shipment identifiers", () => {
     expect(firstProvinceDocument).toBe("0826-0003");
     expect(firstDocument).toMatch(/^\d{4}-\d{4}$/);
     expect(firstProvinceDocument).toMatch(/^\d{4}-\d{4}$/);
+  });
+
+  it("limita y formatea los campos antes de enviar el rastreo", () => {
+    expect(formatTrackingOrderInput("08260019")).toBe("0826-0019");
+    expect(formatTrackingOrderInput("0826001999")).toBe("082600199");
+    expect(formatTrackingCodeInput("7abcde")).toBe("7ABC");
+    expect(getTrackingOrderError("08260019")).toContain("falta el guion");
+    expect(getTrackingCodeError("7AB")).toContain("faltan 1 letras");
+    expect(getTrackingOrderError("0826-0019")).toBeNull();
+    expect(getTrackingCodeError("7ABC")).toBeNull();
   });
 
   it("genera códigos nuevos con un dígito y tres letras", () => {

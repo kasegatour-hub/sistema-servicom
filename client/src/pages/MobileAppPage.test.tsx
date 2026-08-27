@@ -76,11 +76,29 @@ describe("MobileAppPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Rastrear" }));
     expect(screen.getByRole("heading", { name: "Encuentra tu envío" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Escanear QR de envío" })).toBeTruthy();
-    fireEvent.change(screen.getByLabelText("Número de orden móvil"), { target: { value: "3520992723" } });
-    fireEvent.change(screen.getByLabelText("Código de envío móvil"), { target: { value: "ca06721wb" } });
+    fireEvent.change(screen.getByLabelText("Número de orden móvil"), { target: { value: "35209927" } });
+    fireEvent.change(screen.getByLabelText("Código de envío móvil"), { target: { value: "7abc" } });
     fireEvent.click(screen.getByRole("button", { name: "Buscar envío" }));
 
-    expect(searchMock).toHaveBeenLastCalledWith({ orderNumber: "3520992723", code: "CA06721WB" }, { enabled: true });
+    expect(searchMock).toHaveBeenLastCalledWith({ orderNumber: "3520-9927", code: "7ABC" }, { enabled: true });
+  });
+
+  it("detecta errores de orden y código antes de buscar y limita la longitud", () => {
+    accountMocks.session = { id: 7, email: "cliente@servicom.pe", reauthRequired: false };
+    render(<MobileAppPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Rastrear" }));
+    const orderInput = screen.getByLabelText("Número de orden móvil") as HTMLInputElement;
+    const codeInput = screen.getByLabelText("Código de envío móvil") as HTMLInputElement;
+
+    fireEvent.change(orderInput, { target: { value: "955885566" } });
+    fireEvent.change(codeInput, { target: { value: "7AB" } });
+
+    expect(orderInput.maxLength).toBe(9);
+    expect(codeInput.maxLength).toBe(4);
+    expect(screen.getByText(/debe tener 8 dígitos/)).toBeTruthy();
+    expect(screen.getByText(/faltan 1 letras/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Buscar envío" }));
+    expect(screen.getByText("Corrige los datos marcados en rojo antes de rastrear.")).toBeTruthy();
   });
 
   it("acepta el formato mensual MMAA-XXXX de una encomienda sin ocultar el guion", () => {
@@ -154,7 +172,7 @@ describe("MobileAppPage", () => {
     render(<MobileAppPage />);
 
     await waitFor(() => expect(screen.getByRole("heading", { name: "Encuentra tu envío" })).toBeTruthy());
-    expect((screen.getByLabelText("Número de orden móvil") as HTMLInputElement).value).toBe("35209927");
+    expect((screen.getByLabelText("Número de orden móvil") as HTMLInputElement).value).toBe("3520-9927");
     expect((screen.getByLabelText("Código de envío móvil") as HTMLInputElement).value).toBe("7ABC");
     expect(screen.queryByRole("link", { name: "Ver seguimiento completo" })).toBeNull();
     expect(searchMock).toHaveBeenLastCalledWith({ orderNumber: "35209927", code: "7ABC" }, { enabled: true });

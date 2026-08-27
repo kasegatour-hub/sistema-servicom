@@ -51,7 +51,7 @@ describe("Home public page", () => {
     expect(formatTrackingOrderInput("0826")).toBe("0826");
     expect(formatTrackingOrderInput("08260019")).toBe("0826-0019");
     expect(formatTrackingOrderInput("0826-0019")).toBe("0826-0019");
-    expect(formatTrackingOrderInput("3520992723")).toBe("3520992723");
+    expect(formatTrackingOrderInput("3520992723")).toBe("352099272");
   });
   it("renders the prominent tracking hierarchy and public navigation", () => {
     render(<Home />);
@@ -67,6 +67,31 @@ describe("Home public page", () => {
     fireEvent.pointerDown(screen.getByRole("button", { name: "Abrir menú principal" }));
     expect(screen.getByRole("menuitem", { name: "Rastreo" })).toBeTruthy();
     expect(screen.getByRole("menuitem", { name: "Ubicación presencial" })).toBeTruthy();
+  });
+
+  it("detecta el error del código mientras se escribe, antes de rastrear", () => {
+    render(<Home />);
+    const codeInput = screen.getByLabelText("Código de envío");
+    fireEvent.change(codeInput, { target: { value: "7AB" } });
+
+    expect(screen.getByText("Al código le faltan 1 letras después del dígito.")).toBeTruthy();
+    expect(codeInput.getAttribute("aria-invalid")).toBe("true");
+    expect(screen.getByRole("button", { name: /Rastrear envío/ })).toBeTruthy();
+  });
+
+  it("limita la longitud visible de orden y código", () => {
+    render(<Home />);
+    const orderInput = screen.getByLabelText("Número de orden") as HTMLInputElement;
+    const codeInput = screen.getByLabelText("Código de envío") as HTMLInputElement;
+
+    expect(orderInput.maxLength).toBe(9);
+    expect(codeInput.maxLength).toBe(4);
+    fireEvent.change(orderInput, { target: { value: "955885566" } });
+    fireEvent.change(codeInput, { target: { value: "7ABCDE" } });
+
+    expect(orderInput.value).toBe("955885566");
+    expect(codeInput.value).toBe("7ABC");
+    expect(screen.getByText(/debe tener 8 dígitos/)).toBeTruthy();
   });
 
   it("renders large navigation buttons with complete rounded corners", () => {

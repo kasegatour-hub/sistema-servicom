@@ -1800,3 +1800,9 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 
 ## Restauración de escena en el rastreo
 - [x] Reintegrar visualmente el carrito y el avión dentro del cuadro principal de rastreo, sin alterar la pantalla limpia ni el comportamiento de los campos.
+
+## Validación preventiva de rastreo
+- [x] Limitar la cantidad de dígitos y caracteres aceptados en orden y código
+- [x] Mostrar el error de orden o código inmediatamente mientras el usuario escribe, antes de Rastrear
+- [x] Mantener la corrección automática del guion sin aceptar entradas excesivas
+- [x] Añadir pruebas de límites, feedback preventivo y comportamiento móvil

@@ -17,44 +17,8 @@ import { buildTrackingPath, buildTrackingUrl, TRACKING_QR_OPTIONS, normalizeTrac
 import { getPaymentStatusUi } from "@/lib/paymentStatus";
 import { formatPhoneNumber } from "@/lib/phoneFormatting";
 import { getRoutePresentation } from "@/lib/routeDetails";
-import { SHIPMENT_CODE_EXAMPLE } from "@/../../shared/shipmentIdentifiers";
-
-export function formatTrackingOrderInput(value: string): string {
-  const compact = value.toUpperCase().replace(/\s/g, "");
-  if (/^\d{0,8}$/.test(compact)) {
-    const digits = compact.replace(/-/g, "");
-    if (digits.length <= 4) return digits;
-    return `${digits.slice(0, 4)}-${digits.slice(4, 8)}`;
-  }
-  return compact;
-}
-
-export function getTrackingOrderError(value: string): string | null {
-  const normalized = value.trim().toUpperCase();
-  if (!normalized) return "Escribe tu número de orden.";
-  if (/^\d{4}\d{4}$/.test(normalized)) return "A este número le falta el guion: usa el formato MMAA-XXXX.";
-  if (normalized.includes("-")) {
-    const [prefix, sequence] = normalized.split("-");
-    if (!/^\d{4}$/.test(prefix || "")) return "El bloque anterior al guion debe tener 4 dígitos (mes y año).";
-    if (!/^\d{4}$/.test(sequence || "")) {
-      const count = (sequence || "").replace(/\D/g, "").length;
-      return count < 4 ? `Al número de orden le faltan ${4 - count} dígitos después del guion.` : "Después del guion deben ir exactamente 4 dígitos.";
-    }
-  }
-  if (/^\d+$/.test(normalized) && normalized.length !== 8) return `El número de orden debe tener 8 dígitos; has ingresado ${normalized.length}.`;
-  if (!/^\d{4}-\d{4}$/.test(normalized) && !/^\d{8}$/.test(normalized)) return "El número de orden solo admite dígitos y un guion entre los bloques.";
-  return null;
-}
-
-export function getTrackingCodeError(value: string): string | null {
-  const normalized = value.trim().toUpperCase();
-  if (!normalized) return "Escribe tu código de envío.";
-  if (!/^\d/.test(normalized)) return "Al código le falta el dígito inicial.";
-  const letters = normalized.slice(1).replace(/[^A-Z]/g, "").length;
-  if (letters < 3) return `Al código le faltan ${3 - letters} letras después del dígito.`;
-  if (normalized.length > 4 || /[^\dA-Z]/.test(normalized)) return "El código debe tener 1 dígito y exactamente 3 letras, por ejemplo 7ABC.";
-  return null;
-}
+import { SHIPMENT_CODE_EXAMPLE, TRACKING_CODE_MAX_LENGTH, TRACKING_ORDER_MAX_INPUT_LENGTH, formatTrackingCodeInput, formatTrackingOrderInput, getTrackingCodeError, getTrackingOrderError } from "@/../../shared/shipmentIdentifiers";
+export { formatTrackingOrderInput, getTrackingCodeError, getTrackingOrderError } from "@/../../shared/shipmentIdentifiers";
 
 const searchSchema = z.object({
   orderNumber: z.string().trim().min(1, "Escribe tu número de orden."),
@@ -216,8 +180,8 @@ export default function Home() {
     const code = params.get('code');
     if (order && code) {
       // Normalizar: remover espacios y convertir a mayúsculas
-      const normalizedOrder = normalizeTrackingValue(order);
-      const normalizedCode = normalizeTrackingValue(code);
+      const normalizedOrder = formatTrackingOrderInput(normalizeTrackingValue(order));
+      const normalizedCode = formatTrackingCodeInput(normalizeTrackingValue(code));
       setSearchParams({ orderNumber: normalizedOrder, code: normalizedCode });
       reset({ orderNumber: normalizedOrder, code: normalizedCode });
     }
@@ -229,9 +193,15 @@ export default function Home() {
     formState: { errors },
     reset,
     setValue,
+    watch,
   } = useForm<SearchFormData>({
     resolver: zodResolver(searchSchema),
   });
+
+  const orderInputValue = watch("orderNumber", "");
+  const codeInputValue = watch("code", "");
+  const orderInputError = orderInputValue ? getTrackingOrderError(orderInputValue) : null;
+  const codeInputError = codeInputValue ? getTrackingCodeError(codeInputValue) : null;
 
   const { data: searchResult, isLoading: isSearching, error: searchQueryError } = trpc.shipment.search.useQuery(
     searchParams || { orderNumber: "", code: "" },
@@ -298,8 +268,8 @@ export default function Home() {
       const code = url.searchParams.get("code");
 
       if (order && code) {
-        const normalizedOrder = normalizeTrackingValue(order);
-        const normalizedCode = normalizeTrackingValue(code);
+        const normalizedOrder = formatTrackingOrderInput(normalizeTrackingValue(order));
+        const normalizedCode = formatTrackingCodeInput(normalizeTrackingValue(code));
         setShipmentData(null);
         setQrCodeUrl(null);
         setSearchError(null);
@@ -356,14 +326,14 @@ export default function Home() {
               <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
                 <div>
                   <label className="mb-2 block text-base font-bold text-slate-800" htmlFor="orderNumber">Número de orden</label>
-                  <Input id="orderNumber" inputMode="numeric" autoComplete="off" aria-invalid={Boolean(errors.orderNumber)} aria-describedby={errors.orderNumber ? "orderNumber-error" : undefined} placeholder="Ej.: 0826-0019" {...register("orderNumber", { onChange: (event) => setValue("orderNumber", formatTrackingOrderInput(event.target.value), { shouldValidate: false }) })} className={`h-14 rounded-xl border-2 px-4 text-base shadow-sm focus:border-[#0B2B5E] focus:ring-4 focus:ring-[#0B2B5E]/10 sm:text-lg ${errors.orderNumber ? "border-red-600 bg-red-50/40" : "border-slate-200"}`} />
-                  {errors.orderNumber && <p id="orderNumber-error" className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-bold leading-6 text-red-700" role="alert">{errors.orderNumber.message}</p>}
+                  <Input id="orderNumber" inputMode="numeric" autoComplete="off" maxLength={TRACKING_ORDER_MAX_INPUT_LENGTH} aria-invalid={Boolean(orderInputError || errors.orderNumber)} aria-describedby={orderInputError || errors.orderNumber ? "orderNumber-error" : undefined} placeholder="Ej.: 0826-0019" {...register("orderNumber", { onChange: (event) => setValue("orderNumber", formatTrackingOrderInput(event.target.value), { shouldValidate: false }) })} className={`h-14 rounded-xl border-2 px-4 text-base shadow-sm focus:border-[#0B2B5E] focus:ring-4 focus:ring-[#0B2B5E]/10 sm:text-lg ${orderInputError || errors.orderNumber ? "border-red-600 bg-red-50/40" : "border-slate-200"}`} />
+                  {(orderInputError || errors.orderNumber) && <p id="orderNumber-error" className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-bold leading-6 text-red-700" role="alert">{orderInputError || errors.orderNumber?.message}</p>}
                 </div>
 
                 <div>
                   <label className="mb-2 block text-base font-bold text-slate-800" htmlFor="code">Código de envío</label>
-                  <Input id="code" aria-invalid={Boolean(errors.code)} aria-describedby={errors.code ? "code-error" : undefined} placeholder={`Ej.: ${SHIPMENT_CODE_EXAMPLE}`} {...register("code")} className={`h-14 rounded-xl border-2 px-4 text-base uppercase shadow-sm focus:border-[#0B2B5E] focus:ring-4 focus:ring-[#0B2B5E]/10 sm:text-lg ${errors.code ? "border-red-600 bg-red-50/40" : "border-slate-200"}`} />
-                  {errors.code && <p id="code-error" className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-bold leading-6 text-red-700" role="alert">{errors.code.message}</p>}
+                  <Input id="code" maxLength={TRACKING_CODE_MAX_LENGTH} aria-invalid={Boolean(codeInputError || errors.code)} aria-describedby={codeInputError || errors.code ? "code-error" : undefined} placeholder={`Ej.: ${SHIPMENT_CODE_EXAMPLE}`} {...register("code", { onChange: (event) => setValue("code", formatTrackingCodeInput(event.target.value), { shouldValidate: false }) })} className={`h-14 rounded-xl border-2 px-4 text-base uppercase shadow-sm focus:border-[#0B2B5E] focus:ring-4 focus:ring-[#0B2B5E]/10 sm:text-lg ${codeInputError || errors.code ? "border-red-600 bg-red-50/40" : "border-slate-200"}`} />
+                  {(codeInputError || errors.code) && <p id="code-error" className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-bold leading-6 text-red-700" role="alert">{codeInputError || errors.code?.message}</p>}
                 </div>
               </div>
 
