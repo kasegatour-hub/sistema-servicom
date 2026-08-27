@@ -295,6 +295,35 @@ export const shipmentSignatures = mysqlTable("shipment_signatures", {
 export type ShipmentSignature = typeof shipmentSignatures.$inferSelect;
 export type InsertShipmentSignature = typeof shipmentSignatures.$inferInsert;
 
+/** Comprobante de recepción asociado a una entrega de documento, encomienda o transferencia. */
+export const deliveryReceipts = mysqlTable("delivery_receipts", {
+  id: int("id").autoincrement().primaryKey(),
+  operationType: mysqlEnum("operationType", ["documento", "encomienda", "transferencia"]).notNull(),
+  operationId: int("operationId").notNull(),
+  operationReference: varchar("operationReference", { length: 64 }).notNull(),
+  brand: mysqlEnum("brand", ["servicom", "kasega"]).default("servicom").notNull(),
+  legalEntity: varchar("legalEntity", { length: 255 }).notNull(),
+  recipientName: varchar("recipientName", { length: 255 }).notNull(),
+  recipientLastName: varchar("recipientLastName", { length: 255 }).notNull(),
+  recipientDni: varchar("recipientDni", { length: 64 }).notNull(),
+  status: mysqlEnum("status", ["pending", "signed"]).default("pending").notNull(),
+  deliveredAt: timestamp("deliveredAt"),
+  signerName: varchar("signerName", { length: 255 }),
+  signerDni: varchar("signerDni", { length: 64 }),
+  signatureStrokes: longtext("signatureStrokes"),
+  consentTextVersion: varchar("consentTextVersion", { length: 64 }),
+  consentAcceptedAt: timestamp("consentAcceptedAt"),
+  evidenceHash: varchar("evidenceHash", { length: 128 }),
+  createdByAdminId: int("createdByAdminId"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => ({
+  operationIdx: index("delivery_receipts_operation_idx").on(table.operationType, table.operationId),
+  referenceIdx: index("delivery_receipts_reference_idx").on(table.operationReference),
+}));
+export type DeliveryReceipt = typeof deliveryReceipts.$inferSelect;
+export type InsertDeliveryReceipt = typeof deliveryReceipts.$inferInsert;
+
 /** Solicitud protegida de cambio de destinatario; solo la firma válida aplica la modificación al envío. */
 export const recipientChangeRequests = mysqlTable("recipient_change_requests", {
   id: int("id").autoincrement().primaryKey(),

@@ -1703,3 +1703,13 @@
 - [x] Mantener rechazo para enlaces vencidos, inválidos, ya firmados o no remotos
 - [x] Añadir regresiones con solicitudes pendientes de las tres marcas y el enlace 0826-0002 / 4LRY
 - [x] Ejecutar pruebas completas, build y publicar la corrección
+
+## Comprobantes de recepción de entrega
+- [ ] Definir y persistir la recepción asociada a cada documento, encomienda o transferencia
+- [x] Registrar fecha y hora reales de entrega, destinatario completo, DNI y tipo de firma
+- [x] Diseñar formatos diferenciados para Servicom, Magda y Kasega, incluyendo identidad y texto legal correspondiente
+- [x] Añadir botón de comprobante por destinatario en el lugar de entrega
+- [x] Permitir imprimir y descargar el comprobante de recepción
+- [x] Permitir firma en pantalla cuando no haya impresora y conservar evidencia antes/después
+- [x] Integrar la recepción específica de transferencias sin mezclarla con documentos o encomiendas
+- [x] Añadir pruebas, migración segura, validación responsive y build final

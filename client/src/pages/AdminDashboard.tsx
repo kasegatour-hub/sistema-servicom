@@ -12,7 +12,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import { Lock, LogOut, Plus, RefreshCw, Download, Printer, RotateCcw, Search, Trash2, MessageSquare, Calculator, Eye, EyeOff, Send, QrCode, ImagePlus, UserRound, X, FileSignature } from "lucide-react";
+import { Lock, LogOut, Plus, RefreshCw, Download, Printer, RotateCcw, Search, Trash2, MessageSquare, Calculator, Eye, EyeOff, Send, QrCode, ImagePlus, UserRound, X, FileSignature, CheckCircle2 } from "lucide-react";
 import QRCode from "qrcode";
 import { buildShipmentManagementUrl, buildTrackingUrl, normalizeTrackingValue, TRACKING_QR_OPTIONS } from "@/lib/tracking";
 import { PhoneInput } from "@/components/PhoneInput";
@@ -56,6 +56,7 @@ import { LIMA_SERVICOM_ADDRESS, SHIPMENT_ROUTES, getDefaultShipmentAddresses, ge
 import { getParcelRateEurPerKg } from "@shared/workspacePricing";
 import { useIsMobile } from "@/hooks/useMobile";
 import { RecipientChangeRequestDialog } from "@/components/RecipientChangeRequestDialog";
+import { DeliveryReceiptDialog } from "@/components/DeliveryReceiptDialog";
 
 const isKasegaAdminIdentity = (adminId?: number | null, email?: string | null) => [210001, 210002].includes(Number(adminId)) || /^(magda\.barreto\.alv@gmail\.com|kasegatour@gmail\.com)$/i.test(String(email || "").trim());
 const getAdminShipmentBrand = (adminId?: number | null, email?: string | null) => isKasegaAdminIdentity(adminId, email) ? "kasega" as const : "servicom" as const;
@@ -438,6 +439,7 @@ export default function AdminDashboard() {
   const [reauthLockSeconds, setReauthLockSeconds] = useState(0);
   const [loginLockSeconds, setLoginLockSeconds] = useState(0);
   const [printShipment, setPrintShipment] = useState<any>(null);
+  const [deliveryReceiptShipment, setDeliveryReceiptShipment] = useState<any>(null);
   const [receiptDownloadFormat, setReceiptDownloadFormat] = useState<ReceiptDownloadFormat>("pdf");
   const [showGeneralFeedback, setShowGeneralFeedback] = useState(false);
   const [senderClientQuery, setSenderClientQuery] = useState("");
@@ -1901,6 +1903,7 @@ export default function AdminDashboard() {
     <Button type="button" onClick={() => setDetailShipment(shipment)} size="sm" variant="outline" className="border-[#0B2B5E] text-[#0B2B5E] hover:bg-blue-50"><Eye className="mr-1 h-4 w-4" /> Ver datos completos</Button>
     <Button onClick={() => openShipmentUpdate(shipment)} size="sm" variant="outline" className="border-primary text-primary hover:bg-primary/5">Actualizar</Button>
     <Button type="button" onClick={() => setRecipientChangeShipment(shipment)} size="sm" variant="outline" className="border-amber-600 text-amber-700 hover:bg-amber-50"><FileSignature className="mr-1 h-4 w-4" />Cambiar destinatario</Button>
+    <Button onClick={() => setDeliveryReceiptShipment(shipment)} size="sm" variant="outline" className="border-emerald-600 text-emerald-700 hover:bg-emerald-50"><CheckCircle2 className="mr-1 h-4 w-4" /> Recepción</Button>
     <Button onClick={() => handlePrintReceipt(shipment)} size="sm" variant="outline" className="border-orange-600 text-orange-600 hover:bg-orange-50"><Printer className="mr-1 h-4 w-4" /> Imprimir</Button>
     <Button onClick={() => void downloadAdministrativePdf(shipment)} size="sm" variant="outline" className="border-[#0B2B5E] text-[#0B2B5E] hover:bg-blue-50"><Download className="mr-1 h-4 w-4" /> Descargar PDF</Button>
     {admin?.role === "superadmin" && <Button type="button" onClick={() => void handleToggleRegistradorVisibility(shipment)} size="sm" variant="outline" className="border-violet-600 text-violet-700 hover:bg-violet-50" disabled={setShipmentRegistradorVisibilityMutation.isPending} title={shipment.hiddenFromRegistradoresAt ? "Volver a mostrar este registro a los Registradores" : "Ocultar este registro a los Registradores"}>{shipment.hiddenFromRegistradoresAt ? "Mostrar a Registradores" : "Ocultar a Registradores"}</Button>}
@@ -3387,6 +3390,8 @@ export default function AdminDashboard() {
                 </div>
 
         </UpdateShipmentModal>
+
+        {deliveryReceiptShipment && <DeliveryReceiptDialog open={Boolean(deliveryReceiptShipment)} operation={deliveryReceiptShipment.shipmentType === "encomienda" ? "encomienda" : "documento"} reference={String(deliveryReceiptShipment.id)} order={deliveryReceiptShipment.orderNumber} code={deliveryReceiptShipment.code} recipientName={deliveryReceiptShipment.recipientName} recipientLastName={deliveryReceiptShipment.recipientLastName} recipientDni={deliveryReceiptShipment.recipientDni} brand={/^(magda\\.barreto\\.alv@gmail\\.com|kasegatour@gmail\\.com)$/i.test(String(deliveryReceiptShipment.registeredByEmail || "")) ? "kasega" : "servicom"} onClose={() => setDeliveryReceiptShipment(null)} />}
 
         {/* Print Receipt Modal */}
         {printShipment && (
