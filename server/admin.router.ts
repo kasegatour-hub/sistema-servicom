@@ -767,12 +767,12 @@ export const adminRouter = router({
       senderLastName: optionalPersonNameSchema,
       senderDni: optionalIdentityDocumentNumberSchema,
       senderDocumentType: identityDocumentTypeSchema.default("dni_peru"),
-      senderPhone: optionalInternationalPhoneSchema,
+      senderPhone: z.string().trim().optional(),
       recipientName: optionalPersonNameSchema,
       recipientLastName: optionalPersonNameSchema,
       recipientDni: optionalIdentityDocumentNumberSchema,
       recipientDocumentType: identityDocumentTypeSchema.default("dni_peru"),
-      recipientPhone: optionalInternationalPhoneSchema,
+      recipientPhone: z.string().trim().optional(),
       notes: z.string().optional(),
       shipmentType: z.enum(["documento", "encomienda"]).default("documento"),
       docType: z.enum(["simple", "apostillado"]).default("apostillado"),
@@ -823,6 +823,8 @@ export const adminRouter = router({
       const isYeslyExceptionRequest = isYeslyExceptionShape(input);
       if (!isYeslyExceptionRequest && input.contentChecklist.length === 0) ctx.addIssue({ code: "custom", path: ["contentChecklist"], message: "La lista de cosas enviadas es obligatoria." });
       if (!isYeslyExceptionRequest) {
+        if (input.senderPhone && !isValidInternationalPhone(input.senderPhone)) ctx.addIssue({ code: "custom", path: ["senderPhone"], message: "Completa el teléfono del remitente con código de país y dígitos válidos." });
+        if (input.recipientPhone && !isValidInternationalPhone(input.recipientPhone)) ctx.addIssue({ code: "custom", path: ["recipientPhone"], message: "Completa el teléfono del destinatario con código de país y dígitos válidos." });
         const senderMissing = getIncompletePersonFields({ name: input.senderName, lastName: input.senderLastName, document: input.senderDni, phone: input.senderPhone });
         const recipientMissing = getIncompletePersonFields({ name: input.recipientName, lastName: input.recipientLastName, document: input.recipientDni, phone: input.recipientPhone });
         if (senderMissing.length) ctx.addIssue({ code: "custom", path: ["senderName"], message: `Completa los datos del remitente: ${senderMissing.join(", ")}.` });
@@ -895,11 +897,11 @@ export const adminRouter = router({
         input.senderName,
         input.senderLastName,
         input.senderDni,
-        input.senderPhone,
+        isYeslyException ? undefined : input.senderPhone,
         isYeslyException ? String(input.recipientName || "").trim().toUpperCase() : input.recipientName,
-        input.recipientLastName,
-        input.recipientDni,
-        input.recipientPhone,
+        isYeslyException ? undefined : input.recipientLastName,
+        isYeslyException ? undefined : input.recipientDni,
+        isYeslyException ? undefined : input.recipientPhone,
         calculatedNotes,
         null,
         shipmentType,
