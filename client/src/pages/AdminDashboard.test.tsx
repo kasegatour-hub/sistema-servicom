@@ -875,11 +875,11 @@ describe("AdminDashboard Nueva Encomienda", () => {
       docType: "apostillado",
       sheetCount: 1,
       weightKg: 1,
-      manualPriceEur: "",
       extraPriceEur: 0,
       paymentStatus: "Pagado",
       contentChecklist: ["1 × Acta de nacimiento"],
     });
+    expect(mocks.createShipment.mutateAsync.mock.calls[0][0]).not.toHaveProperty("manualPriceEur");
 
     fireEvent.click(screen.getByRole("button", { name: "Nueva encomienda" }));
     const parcelNames = screen.getAllByPlaceholderText("Nombre") as HTMLInputElement[];

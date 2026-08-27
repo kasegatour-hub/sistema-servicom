@@ -1358,7 +1358,7 @@ export default function AdminDashboard() {
       setCreateShipmentValidationError("");
       createForm.clearErrors("contentChecklist");
       const currentCreateFreeformNotes = extractFreeformShipmentNotes(String(data.notes ?? ""), generatedCreateNoteRef.current);
-      const createdShipment = await createMutation.mutateAsync({
+      const createPayload: Record<string, unknown> = {
         ...data,
         notes: mergeShipmentNotes(createPricingPreview.notes, currentCreateFreeformNotes),
         documentItems: data.shipmentType === "documento" ? additionalDocumentItems : [],
@@ -1367,7 +1367,11 @@ export default function AdminDashboard() {
         isIncomplete: Boolean(data.isIncomplete || missingItems.length),
         incompleteReason: missingItems.length ? missingItems.join(", ") : data.incompleteReason,
         controlledExceptionCode: (Number(admin?.id || currentAdminSession?.id) === 90001 || /^yeslyvr1997@gmail\.com$/i.test(String(admin?.email || currentAdminSession?.email || "").trim())) && data.shipmentType === "encomienda" && data.route === "Torino - Lima" && String(data.senderName || "").trim() === "" && ["MV", "ARG", "FLI", "SC", "VCG", "OQA", "YGL", "RGS"].includes(String(data.recipientName || "").trim().toUpperCase()) ? "YESLY_VENTO_CODES" : undefined,
-      });
+      };
+      // La tarifa automática se calcula en el servidor. No enviamos un texto vacío como
+      // precio manual porque una versión anterior del contrato podía interpretarlo como precio incompleto.
+      if (String(data.manualPriceEur ?? "").trim() === "") delete createPayload.manualPriceEur;
+      const createdShipment = await createMutation.mutateAsync(createPayload as any);
       if (shipmentPhoto && createdShipment?.shipmentId) {
         const dataUrl = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = () => reject(new Error("No se pudo leer la foto.")); reader.readAsDataURL(shipmentPhoto); });
         await uploadShipmentPhotoMutation.mutateAsync({ shipmentId: createdShipment.shipmentId, name: shipmentPhoto.name, mimeType: shipmentPhoto.type, dataBase64: dataUrl.split(",", 2)[1] || "" });
@@ -1411,7 +1415,8 @@ export default function AdminDashboard() {
       const serverField = ["senderName", "senderLastName", "senderDni", "senderPhone", "recipientName", "recipientLastName", "recipientDni", "recipientPhone", "limaTorinoTransferMode", "deliveryPersonName", "deliveryPersonLastName", "deliveryPersonDni", "deliveryPersonPhone", "deliveryLocationType", "deliveryLocationAddress"].find(field => rawMessage.includes(field));
       const phoneIsValid = phoneField ? isValidInternationalPhone(String(data?.[phoneField] || "")) : false;
       const phoneFriendlyMessage = phoneField && !phoneIsValid ? `Corrige el ${phoneLabels[phoneField]} según el país seleccionado y completa los dígitos requeridos.` : "";
-      const isManualPriceError = rawMessage.includes("manualPriceEur") || rawMessage.includes("Precio manual");
+      const hasManualPrice = String(data.manualPriceEur ?? "").trim() !== "";
+      const isManualPriceError = hasManualPrice && (rawMessage.includes("manualPriceEur") || rawMessage.includes("Precio manual"));
       const friendlyMessage = phoneFriendlyMessage || (isManualPriceError
         ? "Falta indicar el precio final del envío. Completa el campo «Precio manual en EUR» y vuelve a intentarlo."
         : "No se pudo crear el envío. Revisa los campos señalados y vuelve a intentarlo.");

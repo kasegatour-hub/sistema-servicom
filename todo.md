@@ -1856,3 +1856,8 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Reproducir el flujo completo con Perú +51 y 972 213 535 en el formulario Admin
 - [x] Eliminar cualquier error del formulario que persista tras un teléfono válido
 - [x] Validar el caso real en interfaz, servidor y dominio publicado antes de cerrar la incidencia
+
+## Precio manual opcional
+- [x] Eliminar la exigencia incorrecta de precio manual cuando existe una tarifa automática
+- [x] Mantener el precio manual como reemplazo voluntario del cálculo automático
+- [x] Añadir regresiones de documento apostillado y encomienda con tarifa automática
