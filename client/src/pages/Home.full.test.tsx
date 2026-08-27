@@ -50,10 +50,12 @@ describe("Home public page", () => {
   it("renders the prominent tracking hierarchy and public navigation", () => {
     render(<Home />);
 
-    expect(screen.getByRole("heading", { name: "Rastrea tu envío" })).toBeTruthy();
-    expect(screen.getByLabelText(/Trayecto del envío/)).toBeTruthy();
-    expect(screen.getByText("Agencia")).toBeTruthy();
-    expect(screen.getByText("Destino")).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Rastrea tu envío" })).toBeNull();
+    expect(screen.queryByLabelText(/Trayecto del envío/)).toBeNull();
+    expect(screen.queryByText("Rastrea tu envío de forma segura")).toBeNull();
+    expect(screen.getByLabelText("Número de orden")).toBeTruthy();
+    expect(screen.getByLabelText("Código de envío")).toBeTruthy();
+    expect(screen.queryByText("Información de Contacto")).toBeNull();
     expect(screen.getByRole("button", { name: /Rastrear envío/ })).toBeTruthy();
     fireEvent.pointerDown(screen.getByRole("button", { name: "Abrir menú principal" }));
     expect(screen.getByRole("menuitem", { name: "Rastreo" })).toBeTruthy();
@@ -109,7 +111,7 @@ describe("Home public page", () => {
     expect(screen.getByRole("heading", { name: "Ubícanos" })).toBeTruthy();
     fireEvent.pointerDown(screen.getByRole("button", { name: "Abrir menú principal" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Rastreo" }));
-    expect(screen.getByRole("heading", { name: "Rastrea tu envío" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Rastrea tu envío" })).toBeNull();
   });
 
   it("explains missing separators and identifier parts in human-readable terms", () => {

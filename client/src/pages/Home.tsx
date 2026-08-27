@@ -10,14 +10,13 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Spinner } from "@/components/ui/spinner";
 import { trpc } from "@/lib/trpc";
 import { ShipmentTimeline } from "@/components/ShipmentTimeline";
-import { TrackingJourneyAnimation } from "@/components/TrackingJourneyAnimation";
 import { QRScanner } from "@/components/QRScanner";
 import QRCode from "qrcode";
 import { buildTrackingPath, buildTrackingUrl, TRACKING_QR_OPTIONS, normalizeTrackingValue } from "@/lib/tracking";
 import { getPaymentStatusUi } from "@/lib/paymentStatus";
 import { formatPhoneNumber } from "@/lib/phoneFormatting";
 import { getRoutePresentation } from "@/lib/routeDetails";
-import { SHIPMENT_CODE_HELP, SHIPMENT_CODE_EXAMPLE, SHIPMENT_ORDER_HELP } from "@/../../shared/shipmentIdentifiers";
+import { SHIPMENT_CODE_EXAMPLE } from "@/../../shared/shipmentIdentifiers";
 
 export function getTrackingOrderError(value: string): string | null {
   const normalized = value.trim().toUpperCase();
@@ -328,29 +327,18 @@ export default function Home() {
         ) : (
           <>
         {/* Search Form */}
-        <section id="rastreo" className="relative scroll-mt-28 overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#d9eff9] via-[#f1f8fb] to-white p-1 shadow-[0_24px_70px_-32px_rgba(11,43,94,0.55)]">
-          <div className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-[#F28C00]/15 blur-2xl" aria-hidden="true" />
-              <Card className="relative rounded-[1.75rem] border-0 bg-white/95 p-4 shadow-none sm:p-9 lg:p-12">
-            <div className="grid items-center gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(330px,.85fr)] lg:gap-10">
-              <div className="max-w-xl">
-                <p className="text-sm font-extrabold uppercase tracking-[0.22em] text-[#F28C00]">Rastreo rápido</p>
-                <h1 className="mt-2 text-4xl font-extrabold leading-tight tracking-tight text-[#0B2B5E] sm:text-5xl lg:text-6xl">Rastrea tu envío</h1>
-              </div>
-              <TrackingJourneyAnimation status={shipmentData?.status} className="w-full" />
-            </div>
-
-            <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-5">
+            <section id="rastreo" className="scroll-mt-28 rounded-[2rem] bg-white p-1 shadow-[0_20px_60px_-32px_rgba(11,43,94,0.38)] ring-1 ring-slate-200">
+              <Card className="rounded-[1.75rem] border-0 bg-white p-4 shadow-none sm:p-9 lg:p-12">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
               <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
                 <div>
                   <label className="mb-2 block text-base font-bold text-slate-800" htmlFor="orderNumber">Número de orden</label>
-                  <p className="mb-2 text-sm text-slate-500">{SHIPMENT_ORDER_HELP}</p>
                   <Input id="orderNumber" aria-invalid={Boolean(errors.orderNumber)} aria-describedby={errors.orderNumber ? "orderNumber-error" : undefined} placeholder="Ej.: 0826-0019 o 35209927" {...register("orderNumber")} className={`h-14 rounded-xl border-2 px-4 text-base shadow-sm focus:border-[#0B2B5E] focus:ring-4 focus:ring-[#0B2B5E]/10 sm:text-lg ${errors.orderNumber ? "border-red-600 bg-red-50/40" : "border-slate-200"}`} />
                   {errors.orderNumber && <p id="orderNumber-error" className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-bold leading-6 text-red-700" role="alert">{errors.orderNumber.message}</p>}
                 </div>
 
                 <div>
                   <label className="mb-2 block text-base font-bold text-slate-800" htmlFor="code">Código de envío</label>
-                  <p className="mb-2 text-sm text-slate-500">{SHIPMENT_CODE_HELP}; ejemplo: {SHIPMENT_CODE_EXAMPLE}</p>
                   <Input id="code" aria-invalid={Boolean(errors.code)} aria-describedby={errors.code ? "code-error" : undefined} placeholder={`Ej.: ${SHIPMENT_CODE_EXAMPLE}`} {...register("code")} className={`h-14 rounded-xl border-2 px-4 text-base uppercase shadow-sm focus:border-[#0B2B5E] focus:ring-4 focus:ring-[#0B2B5E]/10 sm:text-lg ${errors.code ? "border-red-600 bg-red-50/40" : "border-slate-200"}`} />
                   {errors.code && <p id="code-error" className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-bold leading-6 text-red-700" role="alert">{errors.code.message}</p>}
                 </div>
@@ -367,10 +355,10 @@ export default function Home() {
               )}
 
               <div className="flex flex-col gap-3 pt-2 sm:flex-row">
-                <Button type="submit" disabled={isSearching} className="min-h-14 flex-1 rounded-xl bg-[#0B2B5E] px-6 text-base font-extrabold text-white shadow-lg shadow-[#0B2B5E]/20 transition hover:bg-[#123b78] sm:text-lg">
+                <Button type="submit" disabled={isSearching} className="min-h-14 flex-1 rounded-xl bg-[#F28C00] px-6 text-base font-extrabold text-white shadow-lg shadow-[#F28C00]/25 transition hover:bg-[#d97700] sm:text-lg">
                   {isSearching ? <><Spinner className="mr-2 h-5 w-5" /> Buscando envío...</> : <><Search className="mr-2 h-5 w-5" /> Rastrear envío <ArrowRight className="ml-2 h-5 w-5" /></>}
                 </Button>
-                <Button type="button" variant="outline" onClick={() => setScannerOpen(true)} className="min-h-14 rounded-xl border-2 border-[#0B2B5E] bg-white px-6 text-base font-extrabold text-[#0B2B5E] transition hover:bg-[#0B2B5E]/5 sm:text-lg">
+                <Button type="button" variant="outline" onClick={() => setScannerOpen(true)} className="min-h-14 rounded-xl border-2 border-[#F28C00] bg-white px-6 text-base font-extrabold text-[#A85F00] transition hover:bg-orange-50 sm:text-lg">
                   <QrCode className="mr-2 h-5 w-5" /> <span>Escanear QR</span>
                 </Button>
               </div>
@@ -546,7 +534,7 @@ export default function Home() {
         onScan={handleQRScan}
       />
 
-      {!showLocations && (
+      {showLocations && (
       <>
       {/* Footer */}
       <footer className="mt-16 bg-[#0B2B5E] py-12 text-white">

@@ -1772,3 +1772,10 @@
 - [x] Validar el código de envío indicando si falta el dígito, letras o formato requerido.
 - [x] Mostrar los errores en rojo/alto contraste junto al campo y con resumen visible, sin mensajes técnicos.
 - [x] Añadir pruebas de validación, responsive, compilación y publicación.
+
+## Pantalla inicial mínima y Ubícanos
+- [x] Quitar de la primera pantalla el título, textos auxiliares, escena azul y espacio visual sobrante.
+- [x] Dejar visibles inicialmente solo número de orden, código, escáner QR y botón «Rastrear envío».
+- [x] Reservar el tratamiento azul para la opción y vista de «Ubícanos».
+- [x] Mantener los mensajes de error rojos únicamente cuando falte o sea inválido algún dato.
+- [x] Actualizar pruebas y validar la composición responsive antes de publicar.
