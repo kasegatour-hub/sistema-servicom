@@ -31,3 +31,20 @@ describe("input validation", () => {
     expect(() => optionalDniSchema.parse("123456789")).toThrow("no puede superar 8 dígitos");
   });
 });
+
+
+describe("person completeness and controlled exception", () => {
+  it("reports a missing surname when only a name is supplied", async () => {
+    const { getIncompletePersonFields } = await import("./inputValidation");
+    expect(getIncompletePersonFields({ name: "YESLY" })).toEqual(["apellido"]);
+    expect(getIncompletePersonFields({ lastName: "VENTOCILLA" })).toEqual(["nombre"]);
+    expect(getIncompletePersonFields({ name: "YESLY", lastName: "VENTOCILLA" })).toEqual([]);
+  });
+
+  it("accepts only the exact YESLY coded recipient shape", async () => {
+    const { isYeslyExceptionShape } = await import("./admin.router");
+    expect(isYeslyExceptionShape({ senderName: "", recipientName: "rgs", shipmentType: "encomienda", route: "Torino - Lima", controlledExceptionCode: "YESLY_VENTO_CODES" })).toBe(true);
+    expect(isYeslyExceptionShape({ senderName: "", recipientName: "MV, ARG, FLI", shipmentType: "encomienda", route: "Torino - Lima", controlledExceptionCode: "YESLY_VENTO_CODES" })).toBe(false);
+    expect(isYeslyExceptionShape({ senderName: "", recipientName: "MV, ARG, FLI, SC, VCG, OQA, YGL, RGS", shipmentType: "documento", route: "Torino - Lima", controlledExceptionCode: "YESLY_VENTO_CODES" })).toBe(false);
+  });
+});

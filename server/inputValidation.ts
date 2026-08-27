@@ -35,6 +35,19 @@ export const optionalIdentityDocumentNumberSchema = z.string()
   .refine(value => value === "" || (/^[A-Za-z0-9]+$/.test(value) && value.length <= 9), "El documento solo puede contener letras y números, sin espacios, y no puede superar 9 caracteres.")
   .optional();
 
+export type PersonValidationInput = {
+  name?: string | null;
+  lastName?: string | null;
+  document?: string | null;
+  phone?: string | null;
+};
+
+export function getIncompletePersonFields(person: PersonValidationInput): string[] {
+  const fields: Array<[keyof PersonValidationInput, string]> = [["name", "nombre"], ["lastName", "apellido"]];
+  const hasAny = fields.some(([key]) => Boolean(String(person[key] ?? "").trim()));
+  return hasAny ? fields.filter(([key]) => !String(person[key] ?? "").trim()).map(([, label]) => label) : [];
+}
+
 export function isIdentityDocumentValid(value: string | undefined | null, type: IdentityDocumentType): boolean {
   return !value || isValidIdentityDocument(value, type);
 }

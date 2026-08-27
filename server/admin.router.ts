@@ -14,7 +14,7 @@ import { AdminSessionPayload, clearAdminSession, getAdminSession, setAdminSessio
 import { admins, shipments } from "../drizzle/schema";
 import { consumeAdminPasswordResetCode, createAdminPasswordResetCode, getActiveAdminPasswordResetCode, getDb, incrementAdminPasswordResetAttempts, updateAdminPassword } from "./db";
 import { eq } from "drizzle-orm";
-import { identityDocumentTypeSchema, identityDocumentValidationMessage, isIdentityDocumentValid, optionalIdentityDocumentNumberSchema, optionalPersonNameSchema, personNameSchema } from "./inputValidation";
+import { getIncompletePersonFields, identityDocumentTypeSchema, identityDocumentValidationMessage, isIdentityDocumentValid, optionalIdentityDocumentNumberSchema, optionalPersonNameSchema, personNameSchema } from "./inputValidation";
 import { calculateAdminShipmentPricing, extractFreeformShipmentNotes } from "./adminPricing";
 import { applyCouponDiscount, isCouponCurrentlyValid, normalizeCouponCode } from "./couponPricing";
 import { isValidInternationalPhone, normalizeInternationalPhone } from "../shared/phoneValidation";
@@ -30,6 +30,11 @@ const MASTER_ADMIN_PASSWORD = "@m*M.mTt@~ADkHpvBbLm+5CD=3ao@DngYa+3Kea6U=qX%r9EJ
 export const ADMIN_REAUTH_REQUIRED_MESSAGE = "Por seguridad, vuelve a escribir tu contraseña administrativa para continuar.";
 const ADMIN_PASSWORD_RESET_RESEND_SECONDS = 60;
 const ROUTE_VALUES = [SHIPMENT_ROUTES.LIMA_TORINO, SHIPMENT_ROUTES.TORINO_LIMA, SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE, SHIPMENT_ROUTES.PROVINCE_LIMA_TORINO] as const;
+const YESLY_EXCEPTION_CODES = ["MV", "ARG", "FLI", "SC", "VCG", "OQA", "YGL", "RGS"] as const;
+export function isYeslyExceptionShape(input: { senderName?: string | null; recipientName?: string | null; shipmentType?: string; route?: string; controlledExceptionCode?: string }) {
+  const recipientCode = String(input.recipientName || "").trim().toUpperCase();
+  return input.controlledExceptionCode === "YESLY_VENTO_CODES" && input.shipmentType === "encomienda" && input.route === SHIPMENT_ROUTES.TORINO_LIMA && String(input.senderName || "").trim() === "" && (YESLY_EXCEPTION_CODES as readonly string[]).includes(recipientCode);
+}
 const COUPON_SCOPE_VALUES = ["ambos", "documento", "encomienda"] as const;
 const INVITATION_SIGNATURE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const PASSWORD_REUSE_MESSAGE = "La nueva contraseña no puede ser igual a la contraseña vigente.";
@@ -799,7 +804,7 @@ export const adminRouter = router({
       provinceSenderDni: z.string().trim().max(20).optional(),
       provinceSenderPhone: z.string().trim().max(20).optional(),
       couponCode: z.string().trim().max(64).optional(),
-      contentChecklist: z.array(z.string().trim().min(1).max(160)).max(24).min(1, "La lista de cosas enviadas es obligatoria."),
+      contentChecklist: z.array(z.string().trim().min(1).max(160)).max(24).default([]),
       isIncomplete: z.boolean().default(false),
       incompleteReason: z.string().trim().max(1000).optional(),
       missingItems: z.array(z.string().trim().min(1).max(160)).max(24).optional(),
@@ -813,7 +818,16 @@ export const adminRouter = router({
       deliveryLocationAddress: z.string().trim().max(1000).optional(),
       deliveryLocationLatitude: z.number().optional().nullable(),
       deliveryLocationLongitude: z.number().optional().nullable(),
+      controlledExceptionCode: z.enum(["YESLY_VENTO_CODES"]).optional(),
     }).superRefine((input, ctx) => {
+      const isYeslyExceptionRequest = isYeslyExceptionShape(input);
+      if (!isYeslyExceptionRequest && input.contentChecklist.length === 0) ctx.addIssue({ code: "custom", path: ["contentChecklist"], message: "La lista de cosas enviadas es obligatoria." });
+      if (!isYeslyExceptionRequest) {
+        const senderMissing = getIncompletePersonFields({ name: input.senderName, lastName: input.senderLastName, document: input.senderDni, phone: input.senderPhone });
+        const recipientMissing = getIncompletePersonFields({ name: input.recipientName, lastName: input.recipientLastName, document: input.recipientDni, phone: input.recipientPhone });
+        if (senderMissing.length) ctx.addIssue({ code: "custom", path: ["senderName"], message: `Completa los datos del remitente: ${senderMissing.join(", ")}.` });
+        if (recipientMissing.length) ctx.addIssue({ code: "custom", path: ["recipientName"], message: `Completa los datos del destinatario: ${recipientMissing.join(", ")}.` });
+      }
       if (input.senderDni && !isIdentityDocumentValid(input.senderDni, input.senderDocumentType)) ctx.addIssue({ code: "custom", path: ["senderDni"], message: identityDocumentValidationMessage(input.senderDocumentType) });
       if (input.recipientDni && !isIdentityDocumentValid(input.recipientDni, input.recipientDocumentType)) ctx.addIssue({ code: "custom", path: ["recipientDni"], message: identityDocumentValidationMessage(input.recipientDocumentType) });
       if (input.requiresApostilleService && (input.shipmentType !== "documento" || !isTorinoLimaRoute(input.route))) ctx.addIssue({ code: "custom", path: ["requiresApostilleService"], message: "La opción «Documentos para apostillar» solo está disponible para documentos en la ruta Torino - Lima." });
@@ -852,6 +866,10 @@ export const adminRouter = router({
       const db = await getDb();
       const [creator] = db ? await db.select({ name: admins.name, email: admins.email }).from(admins).where(eq(admins.id, ctx.adminSession.adminId)).limit(1) : [];
       const shipmentBrand = [210001, 210002].includes(Number(ctx.adminSession.adminId)) || /^(magda\.barreto\.alv@gmail\.com|kasegatour@gmail\.com)$/i.test(String(creator?.email || "").trim()) ? "kasega" as const : "servicom" as const;
+      const isYeslyException = input.controlledExceptionCode === "YESLY_VENTO_CODES";
+      if (isYeslyException && (!/^yeslyvr1997@gmail\.com$/i.test(String(creator?.email || "").trim()) || !isYeslyExceptionShape(input))) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "La excepción de registro codificado solo está autorizada para YESLY en una encomienda Torino - Lima." });
+      }
       const defaultAddresses = getDefaultShipmentAddresses(input.route, shipmentBrand);
       const enforcedOriginAddress = defaultAddresses.originAddress || input.originAddress || "";
       const enforcedDestinationAddress = input.route === SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE ? input.destinationAddress || "" : defaultAddresses.destinationAddress;
@@ -878,7 +896,7 @@ export const adminRouter = router({
         input.senderLastName,
         input.senderDni,
         input.senderPhone,
-        input.recipientName,
+        isYeslyException ? String(input.recipientName || "").trim().toUpperCase() : input.recipientName,
         input.recipientLastName,
         input.recipientDni,
         input.recipientPhone,
@@ -909,8 +927,8 @@ export const adminRouter = router({
         input.requiresTranslationService,
         pricing.serviceManualPriceEur,
         pricing.serviceManualPriceSoles,
-        input.isIncomplete,
-        input.incompleteReason,
+        input.isIncomplete || isYeslyException,
+        isYeslyException ? "Excepción autorizada YESLY_VENTO_CODES: destinatario codificado; completar datos personales antes de la entrega." : input.incompleteReason,
         pricing.isProvinceDelivery,
         pricing.provinceCustomerPriceEur,
         pricing.provinceExtraPriceEur,
@@ -939,7 +957,8 @@ export const adminRouter = router({
         });
       }
       if (coupon) await incrementDiscountCouponRedemption(coupon.id);
-      await recordInteractionEvent({ actorType: "admin", actorId: ctx.adminSession.adminId, eventName: "shipment_create_completed", surface: "admin", metadata: { shipmentType: input.shipmentType, deliveryMode: input.deliveryMode } });
+      if (isYeslyException) await recordShipmentAudit({ shipmentId: Number((result as any)?.insertId || 0), action: "created", actor: { actorType: "admin", actorId: ctx.adminSession.adminId, actorLabel: creator?.name || creator?.email || "Administrador" }, metadata: { exceptionCode: "YESLY_VENTO_CODES", senderEmail: creator?.email || null, recipientName: input.recipientName, controlledIncomplete: true } });
+      await recordInteractionEvent({ actorType: "admin", actorId: ctx.adminSession.adminId, eventName: "shipment_create_completed", surface: "admin", metadata: { shipmentType: input.shipmentType, deliveryMode: input.deliveryMode, controlledException: isYeslyException } });
       const trackingUrl = buildTrackingPath(orderNumber, code);
       return {
         success: true,

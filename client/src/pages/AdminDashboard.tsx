@@ -300,6 +300,13 @@ const createShipmentSchema = z.object({
   deliveryLocationAddress: z.string().trim().max(1000).optional(),
   deliveryLocationLatitude: z.number().optional().nullable(),
   deliveryLocationLongitude: z.number().optional().nullable(),
+  controlledExceptionCode: z.literal("YESLY_VENTO_CODES").optional(),
+}).superRefine((value, ctx) => {
+  const recipientCodes = ["MV", "ARG", "FLI", "SC", "VCG", "OQA", "YGL", "RGS"];
+  const isException = value.shipmentType === "encomienda" && value.route === "Torino - Lima" && String(value.senderName || "").trim() === "" && recipientCodes.includes(String(value.recipientName || "").trim().toUpperCase());
+  if (isException) return;
+  if (Boolean(String(value.senderName || "").trim()) !== Boolean(String(value.senderLastName || "").trim())) ctx.addIssue({ code: "custom", path: ["senderName"], message: "Completa nombre y apellido del remitente." });
+  if (Boolean(String(value.recipientName || "").trim()) !== Boolean(String(value.recipientLastName || "").trim())) ctx.addIssue({ code: "custom", path: ["recipientName"], message: "Completa nombre y apellido del destinatario." });
 });
 
 const updateStatusSchema = z.object({
@@ -1292,6 +1299,8 @@ export default function AdminDashboard() {
   };
 
   const validateRequiredAdminShipmentFields = (data: any) => {
+    const isYeslyException = /^yeslyvr1997@gmail\.com$/i.test(String(admin?.email || "").trim()) && data.shipmentType === "encomienda" && data.route === "Torino - Lima" && String(data.senderName || "").trim() === "" && ["MV", "ARG", "FLI", "SC", "VCG", "OQA", "YGL", "RGS"].includes(String(data.recipientName || "").trim().toUpperCase());
+    if (isYeslyException) return true;
     const requiredFields: Array<{ field: string; value: unknown; label: string }> = [
       { field: "senderName", value: data.senderName, label: "nombre del remitente" },
       { field: "senderLastName", value: data.senderLastName, label: "apellido del remitente" },
@@ -1322,7 +1331,8 @@ export default function AdminDashboard() {
       const normalizedChecklist = data.shipmentType === "documento"
         ? catalogDocumentsToChecklist(catalogDocuments)
         : contentChecklist.map(item => item.trim()).filter(Boolean);
-      if (normalizedChecklist.length === 0) {
+      const isYeslyException = /^yeslyvr1997@gmail\.com$/i.test(String(admin?.email || "").trim()) && data.shipmentType === "encomienda" && data.route === "Torino - Lima" && String(data.senderName || "").trim() === "" && ["MV", "ARG", "FLI", "SC", "VCG", "OQA", "YGL", "RGS"].includes(String(data.recipientName || "").trim().toUpperCase());
+      if (normalizedChecklist.length === 0 && !isYeslyException) {
         const message = "Este campo es obligatorio. Agrega al menos un elemento a la lista de cosas enviadas.";
         createForm.setError("contentChecklist", { type: "required", message });
         setCreateShipmentValidationError(message);
@@ -1341,6 +1351,7 @@ export default function AdminDashboard() {
         missingItems: missingItems.length ? missingItems : undefined,
         isIncomplete: Boolean(data.isIncomplete || missingItems.length),
         incompleteReason: missingItems.length ? missingItems.join(", ") : data.incompleteReason,
+        controlledExceptionCode: /^yeslyvr1997@gmail\.com$/i.test(String(admin?.email || "").trim()) && data.shipmentType === "encomienda" && data.route === "Torino - Lima" && String(data.senderName || "").trim() === "" && ["MV", "ARG", "FLI", "SC", "VCG", "OQA", "YGL", "RGS"].includes(String(data.recipientName || "").trim().toUpperCase()) ? "YESLY_VENTO_CODES" : undefined,
       });
       if (shipmentPhoto && createdShipment?.shipmentId) {
         const dataUrl = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = () => reject(new Error("No se pudo leer la foto.")); reader.readAsDataURL(shipmentPhoto); });
@@ -3394,7 +3405,7 @@ export default function AdminDashboard() {
 
         </UpdateShipmentModal>
 
-        {deliveryReceiptShipment && <DeliveryReceiptDialog open={Boolean(deliveryReceiptShipment)} operationId={Number(deliveryReceiptShipment.id)} operation={deliveryReceiptShipment.shipmentType === "encomienda" ? "encomienda" : "documento"} reference={String(deliveryReceiptShipment.id)} order={deliveryReceiptShipment.orderNumber} code={deliveryReceiptShipment.code} recipientName={deliveryReceiptShipment.recipientName} recipientLastName={deliveryReceiptShipment.recipientLastName} recipientDni={deliveryReceiptShipment.recipientDni} brand={/^(magda\\.barreto\\.alv@gmail\\.com|kasegatour@gmail\\.com)$/i.test(String(deliveryReceiptShipment.registeredByEmail || "")) ? "kasega" : "servicom"} onClose={() => setDeliveryReceiptShipment(null)} />}
+        {deliveryReceiptShipment && <DeliveryReceiptDialog open={Boolean(deliveryReceiptShipment)} operationId={Number(deliveryReceiptShipment.id)} operation={deliveryReceiptShipment.shipmentType === "encomienda" ? "encomienda" : "documento"} reference={String(deliveryReceiptShipment.id)} order={deliveryReceiptShipment.orderNumber} code={deliveryReceiptShipment.code} recipientName={deliveryReceiptShipment.recipientName} recipientLastName={deliveryReceiptShipment.recipientLastName} recipientDni={deliveryReceiptShipment.recipientDni} brand={/^(magda\.barreto\.alv@gmail\.com|kasegatour@gmail\.com)$/i.test(String(deliveryReceiptShipment.registeredByEmail || "")) ? "kasega" : "servicom"} onClose={() => setDeliveryReceiptShipment(null)} />}
 
         {/* Print Receipt Modal */}
         {printShipment && (

@@ -40,7 +40,7 @@ import {
   verificationExpiry,
 } from "./localAuth";
 import { AccountSessionPayload, clearAccountSession, getAccountSession, setAccountSession } from "./localSession";
-import { identityDocumentNumberSchema, identityDocumentTypeSchema, isIdentityDocumentValid, identityDocumentValidationMessage, optionalIdentityDocumentNumberSchema, optionalPersonNameSchema, personNameSchema } from "./inputValidation";
+import { getIncompletePersonFields, identityDocumentNumberSchema, identityDocumentTypeSchema, isIdentityDocumentValid, identityDocumentValidationMessage, optionalIdentityDocumentNumberSchema, optionalPersonNameSchema, personNameSchema } from "./inputValidation";
 import { isValidInternationalPhone, normalizeInternationalPhone } from "../shared/phoneValidation";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "../shared/passwordPolicy";
 import { generateMonthlyParcelOrderNumber, generateShipmentCode, getMonthlyParcelOrderPrefix } from "../shared/shipmentIdentifiers";
@@ -110,6 +110,10 @@ export const clientShipmentInputSchema = z.object({
   route: z.enum([SHIPMENT_ROUTES.LIMA_TORINO, SHIPMENT_ROUTES.TORINO_LIMA, SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE, SHIPMENT_ROUTES.PROVINCE_LIMA_TORINO]).default(SHIPMENT_ROUTES.LIMA_TORINO),
   destinationAddress: z.string().trim().max(1000).optional(),
 }).strict().superRefine((input, ctx) => {
+  const senderMissing = getIncompletePersonFields({ name: input.senderName, lastName: input.senderLastName, document: input.senderDni, phone: input.senderPhone });
+  const recipientMissing = getIncompletePersonFields({ name: input.recipientName, lastName: input.recipientLastName, document: input.recipientDni, phone: input.recipientPhone });
+  if (senderMissing.length) ctx.addIssue({ code: "custom", path: ["senderName"], message: `Completa los datos del remitente: ${senderMissing.join(", ")}.` });
+  if (recipientMissing.length) ctx.addIssue({ code: "custom", path: ["recipientName"], message: `Completa los datos del destinatario: ${recipientMissing.join(", ")}.` });
   if (input.senderDni && !isIdentityDocumentValid(input.senderDni, input.senderDocumentType)) ctx.addIssue({ code: "custom", path: ["senderDni"], message: identityDocumentValidationMessage(input.senderDocumentType) });
   if (input.recipientDni && !isIdentityDocumentValid(input.recipientDni, input.recipientDocumentType)) ctx.addIssue({ code: "custom", path: ["recipientDni"], message: identityDocumentValidationMessage(input.recipientDocumentType) });
   if (input.requiresApostilleService && !isTorinoLimaRoute(input.route)) ctx.addIssue({ code: "custom", path: ["requiresApostilleService"], message: "La opción «Documentos para apostillar» solo está disponible para la ruta Torino - Lima." });
