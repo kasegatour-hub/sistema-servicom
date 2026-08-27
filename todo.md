@@ -1705,7 +1705,7 @@
 - [x] Ejecutar pruebas completas, build y publicar la corrección
 
 ## Comprobantes de recepción de entrega
-- [ ] Definir y persistir la recepción asociada a cada documento, encomienda o transferencia
+- [x] Definir y persistir la recepción asociada a cada documento, encomienda o transferencia
 - [x] Registrar fecha y hora reales de entrega, destinatario completo, DNI y tipo de firma
 - [x] Diseñar formatos diferenciados para Servicom, Magda y Kasega, incluyendo identidad y texto legal correspondiente
 - [x] Añadir botón de comprobante por destinatario en el lugar de entrega

@@ -3391,7 +3391,7 @@ export default function AdminDashboard() {
 
         </UpdateShipmentModal>
 
-        {deliveryReceiptShipment && <DeliveryReceiptDialog open={Boolean(deliveryReceiptShipment)} operation={deliveryReceiptShipment.shipmentType === "encomienda" ? "encomienda" : "documento"} reference={String(deliveryReceiptShipment.id)} order={deliveryReceiptShipment.orderNumber} code={deliveryReceiptShipment.code} recipientName={deliveryReceiptShipment.recipientName} recipientLastName={deliveryReceiptShipment.recipientLastName} recipientDni={deliveryReceiptShipment.recipientDni} brand={/^(magda\\.barreto\\.alv@gmail\\.com|kasegatour@gmail\\.com)$/i.test(String(deliveryReceiptShipment.registeredByEmail || "")) ? "kasega" : "servicom"} onClose={() => setDeliveryReceiptShipment(null)} />}
+        {deliveryReceiptShipment && <DeliveryReceiptDialog open={Boolean(deliveryReceiptShipment)} operationId={Number(deliveryReceiptShipment.id)} operation={deliveryReceiptShipment.shipmentType === "encomienda" ? "encomienda" : "documento"} reference={String(deliveryReceiptShipment.id)} order={deliveryReceiptShipment.orderNumber} code={deliveryReceiptShipment.code} recipientName={deliveryReceiptShipment.recipientName} recipientLastName={deliveryReceiptShipment.recipientLastName} recipientDni={deliveryReceiptShipment.recipientDni} brand={/^(magda\\.barreto\\.alv@gmail\\.com|kasegatour@gmail\\.com)$/i.test(String(deliveryReceiptShipment.registeredByEmail || "")) ? "kasega" : "servicom"} onClose={() => setDeliveryReceiptShipment(null)} />}
 
         {/* Print Receipt Modal */}
         {printShipment && (

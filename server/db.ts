@@ -1,7 +1,7 @@
 import { and, asc, count, desc, eq, gt, gte, inArray, isNotNull, isNull, like, lt, ne, notInArray, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { createHash } from "node:crypto";
-import { InsertUser, users, shipments, shipmentSignatures, recipientChangeRequests, shipmentAuditLogs, shipmentFeedback, platformFeedback, interactionEvents, admins, localAccounts, verificationCodes, adminPasswordResetCodes, clients, discountCoupons, shipmentRoutePolicies, invitationLetters, invitationLetterSignatures, transfers, notifications, operatingExpenses, type Notification } from "../drizzle/schema";
+import { InsertUser, users, shipments, shipmentSignatures, recipientChangeRequests, shipmentAuditLogs, shipmentFeedback, platformFeedback, interactionEvents, admins, localAccounts, verificationCodes, adminPasswordResetCodes, clients, discountCoupons, shipmentRoutePolicies, invitationLetters, invitationLetterSignatures, transfers, deliveryReceipts, notifications, operatingExpenses, type Notification } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { buildShipmentClientDirectoryRecords, type ClientDirectoryRecord, type ShipmentClientDirectoryInput } from "./clientDirectory";
 import { rankFuzzyMatches } from "../shared/fuzzySearch";
@@ -1072,6 +1072,47 @@ export async function recordShipmentAudit(input: {
     metadata: input.metadata === undefined ? null : JSON.stringify(input.metadata),
   });
   return true;
+}
+
+export async function createDeliveryReceipt(input: {
+  operationType: "documento" | "encomienda" | "transferencia";
+  operationId: number;
+  operationReference: string;
+  brand: "servicom" | "kasega";
+  legalEntity: string;
+  recipientName: string;
+  recipientLastName: string;
+  recipientDni: string;
+  deliveredAt?: Date | null;
+  createdByAdminId?: number | null;
+  signerName?: string | null;
+  signerDni?: string | null;
+  signatureStrokes?: string | null;
+  consentTextVersion?: string | null;
+  evidenceHash?: string | null;
+}) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const existing = await db.select().from(deliveryReceipts).where(and(eq(deliveryReceipts.operationType, input.operationType), eq(deliveryReceipts.operationId, input.operationId))).orderBy(desc(deliveryReceipts.createdAt)).limit(1);
+  if (existing[0]) return existing[0];
+  const result = await db.insert(deliveryReceipts).values({ ...input, status: input.signatureStrokes ? "signed" : "pending", deliveredAt: input.deliveredAt ?? new Date(), createdByAdminId: input.createdByAdminId ?? null, consentAcceptedAt: input.signatureStrokes ? new Date() : null });
+  const inserted = await db.select().from(deliveryReceipts).where(eq(deliveryReceipts.id, Number(result[0].insertId))).limit(1);
+  return inserted[0];
+}
+
+export async function getDeliveryReceipt(operationType: "documento" | "encomienda" | "transferencia", operationId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const rows = await db.select().from(deliveryReceipts).where(and(eq(deliveryReceipts.operationType, operationType), eq(deliveryReceipts.operationId, operationId))).orderBy(desc(deliveryReceipts.createdAt)).limit(1);
+  return rows[0];
+}
+
+export async function signDeliveryReceipt(input: { id: number; signerName: string; signerDni: string; signatureStrokes: string; consentTextVersion: string; evidenceHash: string; }) {
+  const db = await getDb();
+  if (!db) return undefined;
+  await db.update(deliveryReceipts).set({ status: "signed", signerName: input.signerName, signerDni: input.signerDni, signatureStrokes: input.signatureStrokes, consentTextVersion: input.consentTextVersion, consentAcceptedAt: new Date(), evidenceHash: input.evidenceHash }).where(and(eq(deliveryReceipts.id, input.id), eq(deliveryReceipts.status, "pending")));
+  const rows = await db.select().from(deliveryReceipts).where(eq(deliveryReceipts.id, input.id)).limit(1);
+  return rows[0];
 }
 
 export async function getShipmentAuditLogs(shipmentId: number) {

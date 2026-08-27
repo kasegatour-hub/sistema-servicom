@@ -7,7 +7,7 @@ function buildTrackingPath(orderNumber: string, code: string): string {
   return `/?order=${encodeURIComponent(order)}&code=${encodeURIComponent(normalizedCode)}`;
 }
 import { publicProcedure, router } from "./_core/trpc";
-import { ISOLATED_WORKSPACE_ADMIN_IDS, attachShipmentAuditActorLabels, clearAdminPasswordFailures, createDiscountCoupon, createInvitationLetterAccount, createInvitationLetterRecord, createOrRefreshInvitationLetterSignatureRequest, createRecipientChangeRequest, createShipment, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAdminById, getAllShipments, getDeletedShipments, getDiscountCouponByCode, getInvitationLetterById, getLocalAccountById, getShipmentAuditLogs, getShipmentById, getShipmentByOrderAndCode, getShipmentRoutePolicy, incrementDiscountCouponRedemption, isEncomiendaEnabledForRoute, listDeletedInvitationLetterRecords, listDiscountCoupons, listInvitationLetterRecords, listRecipientChangeRequestsForShipment, listShipmentOrderNumbersByPrefix, listShipmentSenders, createShipmentSender, markRecipientChangeRequestNotified, setShipmentSenderActive, moveInvitationLetterToTrash, notifyAccountEvent, notifyShipmentEvent, recordInteractionEvent, recordShipmentAudit, registerAdminPasswordFailure, restoreInvitationLetterFromTrash, restoreShipment, searchClients, searchInvitationLetterPeople, setEncomiendaAvailabilityForRoute, setShipmentRegistradorVisibility, shipmentSenderMatchesAccount, updateAdminProfile, updateAdminProfilePhoto, updateDiscountCoupon, updateShipmentStatus } from "./db";
+import { ISOLATED_WORKSPACE_ADMIN_IDS, attachShipmentAuditActorLabels, clearAdminPasswordFailures, createDiscountCoupon, createInvitationLetterAccount, createInvitationLetterRecord, createOrRefreshInvitationLetterSignatureRequest, createRecipientChangeRequest, createShipment, createDeliveryReceipt, deactivateDiscountCoupon, deleteShipment, getAdminByEmail, getAdminById, getAllShipments, getDeletedShipments, getDiscountCouponByCode, getInvitationLetterById, getLocalAccountById, getShipmentAuditLogs, getShipmentById, getShipmentByOrderAndCode, getShipmentRoutePolicy, incrementDiscountCouponRedemption, isEncomiendaEnabledForRoute, listDeletedInvitationLetterRecords, listDiscountCoupons, listInvitationLetterRecords, listRecipientChangeRequestsForShipment, listShipmentOrderNumbersByPrefix, listShipmentSenders, createShipmentSender, markRecipientChangeRequestNotified, setShipmentSenderActive, moveInvitationLetterToTrash, notifyAccountEvent, notifyShipmentEvent, recordInteractionEvent, recordShipmentAudit, registerAdminPasswordFailure, restoreInvitationLetterFromTrash, restoreShipment, searchClients, searchInvitationLetterPeople, setEncomiendaAvailabilityForRoute, setShipmentRegistradorVisibility, shipmentSenderMatchesAccount, updateAdminProfile, updateAdminProfilePhoto, updateDiscountCoupon, updateShipmentStatus } from "./db";
 import { getRemainingLockoutSeconds, MAX_PASSWORD_FAILURES, PASSWORD_LOCKOUT_SECONDS } from "./loginProtection";
 import { generateTemporaryPassword, generateVerificationCode, hashPassword, hashVerificationCode, normalizeEmail, sendInvitationLetterSignatureEmail, sendRecipientChangeSignatureEmail, sendVerificationEmail, verificationExpiry, verifyPassword } from "./localAuth";
 import { AdminSessionPayload, clearAdminSession, getAdminSession, setAdminSession } from "./adminSession";
@@ -553,6 +553,25 @@ export const adminRouter = router({
       await recordInteractionEvent({ actorType: "admin", actorId: ctx.adminSession.adminId, eventName: "trash_restored", surface: "admin", metadata: { shipmentType: shipment.shipmentType } });
       return { success: true };
     }),
+
+  createDeliveryReceipt: adminProcedure
+    .input(z.object({
+      operationType: z.enum(["documento", "encomienda", "transferencia"]),
+      operationId: z.number().int().positive(),
+      operationReference: z.string().trim().min(1).max(64),
+      brand: z.enum(["servicom", "kasega"]),
+      legalEntity: z.string().trim().min(1).max(255),
+      recipientName: z.string().trim().min(1).max(255),
+      recipientLastName: z.string().trim().min(1).max(255),
+      recipientDni: z.string().trim().min(1).max(64),
+      deliveredAt: z.coerce.date().optional(),
+      signerName: z.string().trim().max(255).optional(),
+      signerDni: z.string().trim().max(64).optional(),
+      signatureStrokes: z.string().max(100000).optional(),
+      consentTextVersion: z.string().trim().max(64).optional(),
+      evidenceHash: z.string().trim().max(128).optional(),
+    }))
+    .mutation(async ({ input, ctx }) => createDeliveryReceipt({ ...input, createdByAdminId: ctx.adminSession.adminId })),
 
   shipmentAudit: adminProcedure
     .input(z.object({ shipmentId: z.number() }))

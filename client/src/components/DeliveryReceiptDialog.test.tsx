@@ -2,6 +2,8 @@
 import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+const receiptMutation = vi.hoisted(() => ({ mutateAsync: vi.fn().mockResolvedValue({ id: 1, status: "pending" }) }));
+vi.mock("@/lib/trpc", () => ({ trpc: { admin: { createDeliveryReceipt: { useMutation: () => receiptMutation } } } }));
 import { DeliveryReceiptDialog } from "./DeliveryReceiptDialog";
 
 describe("DeliveryReceiptDialog", () => {
