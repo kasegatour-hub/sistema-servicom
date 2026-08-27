@@ -243,6 +243,10 @@ const optionalDocumentNumberField = z.union([
   z.literal(""),
   z.string().trim().regex(/^[A-Za-z0-9]{1,9}$/, "El documento solo puede contener letras y números y no puede superar 9 caracteres."),
 ]).optional();
+const optionalInternationalPhoneField = z.string().trim().max(32, "El teléfono no puede superar 32 caracteres.").refine(
+  value => !value || isValidInternationalPhone(value),
+  "Completa el teléfono con el código de país y los dígitos requeridos.",
+).optional();
 
 const createShipmentSchema = z.object({
   status: z.enum(["Por entregar en agencia", "En agencia", "En tránsito", "En destino", "Entregado"]),
@@ -250,12 +254,12 @@ const createShipmentSchema = z.object({
   senderLastName: optionalTextField,
   senderDni: optionalDocumentNumberField,
   senderDocumentType: z.enum(["dni_peru", "pasaporte", "carta_identita_italia"]).default("dni_peru"),
-  senderPhone: z.string().optional(),
+  senderPhone: optionalInternationalPhoneField,
   recipientName: optionalTextField,
   recipientLastName: optionalTextField,
   recipientDni: optionalDocumentNumberField,
   recipientDocumentType: z.enum(["dni_peru", "pasaporte", "carta_identita_italia"]).default("dni_peru"),
-  recipientPhone: z.string().optional(),
+  recipientPhone: optionalInternationalPhoneField,
   notes: z.string().optional(),
   shipmentType: z.enum(["documento", "encomienda"]).default("documento"),
   documentCount: z.number().min(1).default(1),
