@@ -38,7 +38,7 @@ vi.mock("@/components/ShipmentTimeline", () => ({
   ShipmentTimeline: () => null,
 }));
 
-import Home from "./Home";
+import Home, { getTrackingCodeError, getTrackingOrderError } from "./Home";
 
 afterEach(() => {
   cleanup();
@@ -50,7 +50,10 @@ describe("Home public page", () => {
   it("renders the prominent tracking hierarchy and public navigation", () => {
     render(<Home />);
 
-    expect(screen.getByRole("heading", { name: "Sigue tu envío en todo momento" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Rastrea tu envío" })).toBeTruthy();
+    expect(screen.getByLabelText(/Trayecto del envío/)).toBeTruthy();
+    expect(screen.getByText("Agencia")).toBeTruthy();
+    expect(screen.getByText("Destino")).toBeTruthy();
     expect(screen.getByRole("button", { name: /Rastrear envío/ })).toBeTruthy();
     fireEvent.pointerDown(screen.getByRole("button", { name: "Abrir menú principal" }));
     expect(screen.getByRole("menuitem", { name: "Rastreo" })).toBeTruthy();
@@ -106,7 +109,16 @@ describe("Home public page", () => {
     expect(screen.getByRole("heading", { name: "Ubícanos" })).toBeTruthy();
     fireEvent.pointerDown(screen.getByRole("button", { name: "Abrir menú principal" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Rastreo" }));
-    expect(screen.getByRole("heading", { name: "Sigue tu envío en todo momento" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Rastrea tu envío" })).toBeTruthy();
+  });
+
+  it("explains missing separators and identifier parts in human-readable terms", () => {
+    expect(getTrackingOrderError("08260019")).toContain("falta el guion");
+    expect(getTrackingOrderError("0826-19")).toContain("faltan 2 dígitos");
+    expect(getTrackingCodeError("ABC")).toContain("dígito inicial");
+    expect(getTrackingCodeError("7A")).toContain("faltan 2 letras");
+    expect(getTrackingOrderError("0826-0019")).toBeNull();
+    expect(getTrackingCodeError("7ABC")).toBeNull();
   });
 
   it("shows the persisted payment status after the client tracks a shipment", async () => {

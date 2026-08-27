@@ -1746,7 +1746,7 @@
 - [x] Diseñar una excepción explícita, limitada y auditable para registrar la encomienda de YESLY VENTO con los datos abreviados proporcionados por el usuario.
 - [x] Persistir la excepción sin relajar las validaciones generales ni permitir que el cliente común registre envíos incompletos.
 - [x] Añadir feedback visible y pruebas backend/UI para los campos obligatorios y la excepción autorizada.
-- [ ] Verificar y publicar los ocho registros independientes de la encomienda Torino → Lima únicamente después de confirmar la autorización de la excepción.
+- [x] Cancelado por el usuario: no crear ni publicar los ocho registros independientes de la encomienda Torino → Lima.
 - [x] Registrar la aclaración: YESLY (correo yeslyvr1997@gmail.com) es quien realiza el registro; el destinatario excepcional será la cadena de códigos en mayúsculas.
 
 ## Excepción YESLY — registros individuales por código
@@ -1757,3 +1757,18 @@
 - [x] Validar duplicados, auditoría, pruebas y publicación antes de entregar los códigos generados.
 - [x] Confirmar que MV, ARG, FLI, SC, VCG, OQA, YGL y RGS se guardan únicamente como nombre del destinatario, siempre en mayúsculas, uno por registro.
 - [x] Corregir la excepción: YESLY es únicamente usuaria registradora; dejar remitente, documento y teléfono del remitente vacíos en cada registro, usando solo el código como destinatario.
+
+## Visibilidad general de registros YESLY
+- [x] Cancelado por el usuario: no insertar los ocho registros MV, ARG, FLI, SC, VCG, OQA, YGL y RGS en la base de datos.
+- [x] Cancelado por el usuario: no modificar la visibilidad de registros excepcionales.
+- [x] Cancelado por el usuario: no generar órdenes, códigos de seguimiento ni trazabilidad para esos registros.
+- [x] Mantener las credenciales de YESLY protegidas; no se accedió ni expuso ninguna contraseña.
+- [x] Cancelado por el usuario: no cambiar la visibilidad ni crear los ocho registros dentro de Servicom Internacional.
+
+## Portada de rastreo y feedback de errores
+- [x] Retirar de la primera pantalla el texto auxiliar y el espacio sobrante que ocultan la composición principal.
+- [x] Mostrar de forma clara y visible el carro en ruta y el avión hacia destino, también en móvil.
+- [x] Validar el número de orden con formato y cantidad de dígitos, indicando específicamente si falta el guion o algún dígito.
+- [x] Validar el código de envío indicando si falta el dígito, letras o formato requerido.
+- [x] Mostrar los errores en rojo/alto contraste junto al campo y con resumen visible, sin mensajes técnicos.
+- [x] Añadir pruebas de validación, responsive, compilación y publicación.

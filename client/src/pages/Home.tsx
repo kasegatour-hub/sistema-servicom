@@ -19,9 +19,41 @@ import { formatPhoneNumber } from "@/lib/phoneFormatting";
 import { getRoutePresentation } from "@/lib/routeDetails";
 import { SHIPMENT_CODE_HELP, SHIPMENT_CODE_EXAMPLE, SHIPMENT_ORDER_HELP } from "@/../../shared/shipmentIdentifiers";
 
+export function getTrackingOrderError(value: string): string | null {
+  const normalized = value.trim().toUpperCase();
+  if (!normalized) return "Escribe tu número de orden.";
+  if (/^\d{4}\d{4}$/.test(normalized)) return "A este número le falta el guion: usa el formato MMAA-XXXX.";
+  if (normalized.includes("-")) {
+    const [prefix, sequence] = normalized.split("-");
+    if (!/^\d{4}$/.test(prefix || "")) return "El bloque anterior al guion debe tener 4 dígitos (mes y año).";
+    if (!/^\d{4}$/.test(sequence || "")) {
+      const count = (sequence || "").replace(/\D/g, "").length;
+      return count < 4 ? `Al número de orden le faltan ${4 - count} dígitos después del guion.` : "Después del guion deben ir exactamente 4 dígitos.";
+    }
+  }
+  if (/^\d+$/.test(normalized) && normalized.length !== 8) return `El número de orden debe tener 8 dígitos; has ingresado ${normalized.length}.`;
+  if (!/^\d{4}-\d{4}$/.test(normalized) && !/^\d{8}$/.test(normalized)) return "El número de orden solo admite dígitos y un guion entre los bloques.";
+  return null;
+}
+
+export function getTrackingCodeError(value: string): string | null {
+  const normalized = value.trim().toUpperCase();
+  if (!normalized) return "Escribe tu código de envío.";
+  if (!/^\d/.test(normalized)) return "Al código le falta el dígito inicial.";
+  const letters = normalized.slice(1).replace(/[^A-Z]/g, "").length;
+  if (letters < 3) return `Al código le faltan ${3 - letters} letras después del dígito.`;
+  if (normalized.length > 4 || /[^\dA-Z]/.test(normalized)) return "El código debe tener 1 dígito y exactamente 3 letras, por ejemplo 7ABC.";
+  return null;
+}
+
 const searchSchema = z.object({
-  orderNumber: z.string().min(1, "Número de orden requerido"),
-  code: z.string().min(1, "Código requerido"),
+  orderNumber: z.string().trim().min(1, "Escribe tu número de orden."),
+  code: z.string().trim().min(1, "Escribe tu código de envío."),
+}).superRefine((values, context) => {
+  const orderError = getTrackingOrderError(values.orderNumber);
+  if (orderError) context.addIssue({ code: z.ZodIssueCode.custom, path: ["orderNumber"], message: orderError });
+  const codeError = getTrackingCodeError(values.code);
+  if (codeError) context.addIssue({ code: z.ZodIssueCode.custom, path: ["code"], message: codeError });
 });
 
 type SearchFormData = z.infer<typeof searchSchema>;
@@ -300,10 +332,11 @@ export default function Home() {
           <div className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-[#F28C00]/15 blur-2xl" aria-hidden="true" />
               <Card className="relative rounded-[1.75rem] border-0 bg-white/95 p-4 shadow-none sm:p-9 lg:p-12">
             <div className="grid items-center gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(330px,.85fr)] lg:gap-10">
-              <div className="max-w-3xl">
-                <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-[#0B2B5E] sm:text-4xl lg:text-5xl">Sigue tu envío en todo momento</h1>
+              <div className="max-w-xl">
+                <p className="text-sm font-extrabold uppercase tracking-[0.22em] text-[#F28C00]">Rastreo rápido</p>
+                <h1 className="mt-2 text-4xl font-extrabold leading-tight tracking-tight text-[#0B2B5E] sm:text-5xl lg:text-6xl">Rastrea tu envío</h1>
               </div>
-              <TrackingJourneyAnimation status={shipmentData?.status} className="hidden lg:block" />
+              <TrackingJourneyAnimation status={shipmentData?.status} className="w-full" />
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-5">
@@ -311,22 +344,25 @@ export default function Home() {
                 <div>
                   <label className="mb-2 block text-base font-bold text-slate-800" htmlFor="orderNumber">Número de orden</label>
                   <p className="mb-2 text-sm text-slate-500">{SHIPMENT_ORDER_HELP}</p>
-                  <Input id="orderNumber" placeholder="Ej.: 0826-0019 o 35209927" {...register("orderNumber")} className="h-14 rounded-xl border-2 border-slate-200 px-4 text-base shadow-sm focus:border-[#0B2B5E] focus:ring-4 focus:ring-[#0B2B5E]/10 sm:text-lg" />
-                  {errors.orderNumber && <p className="mt-2 text-sm font-semibold text-red-600">{errors.orderNumber.message}</p>}
+                  <Input id="orderNumber" aria-invalid={Boolean(errors.orderNumber)} aria-describedby={errors.orderNumber ? "orderNumber-error" : undefined} placeholder="Ej.: 0826-0019 o 35209927" {...register("orderNumber")} className={`h-14 rounded-xl border-2 px-4 text-base shadow-sm focus:border-[#0B2B5E] focus:ring-4 focus:ring-[#0B2B5E]/10 sm:text-lg ${errors.orderNumber ? "border-red-600 bg-red-50/40" : "border-slate-200"}`} />
+                  {errors.orderNumber && <p id="orderNumber-error" className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-bold leading-6 text-red-700" role="alert">{errors.orderNumber.message}</p>}
                 </div>
 
                 <div>
                   <label className="mb-2 block text-base font-bold text-slate-800" htmlFor="code">Código de envío</label>
                   <p className="mb-2 text-sm text-slate-500">{SHIPMENT_CODE_HELP}; ejemplo: {SHIPMENT_CODE_EXAMPLE}</p>
-                  <Input id="code" placeholder={`Ej.: ${SHIPMENT_CODE_EXAMPLE}`} {...register("code")} className="h-14 rounded-xl border-2 border-slate-200 px-4 text-base uppercase shadow-sm focus:border-[#0B2B5E] focus:ring-4 focus:ring-[#0B2B5E]/10 sm:text-lg" />
-                  {errors.code && <p className="mt-2 text-sm font-semibold text-red-600">{errors.code.message}</p>}
+                  <Input id="code" aria-invalid={Boolean(errors.code)} aria-describedby={errors.code ? "code-error" : undefined} placeholder={`Ej.: ${SHIPMENT_CODE_EXAMPLE}`} {...register("code")} className={`h-14 rounded-xl border-2 px-4 text-base uppercase shadow-sm focus:border-[#0B2B5E] focus:ring-4 focus:ring-[#0B2B5E]/10 sm:text-lg ${errors.code ? "border-red-600 bg-red-50/40" : "border-slate-200"}`} />
+                  {errors.code && <p id="code-error" className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-bold leading-6 text-red-700" role="alert">{errors.code.message}</p>}
                 </div>
               </div>
 
-              {searchError && (
-                <div className="flex gap-3 rounded-xl border border-red-200 bg-red-50 p-4" role="alert">
-                  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
-                  <p className="text-sm font-semibold leading-6 text-red-700">{searchError}</p>
+              {(searchError || errors.orderNumber || errors.code) && (
+                <div className="flex gap-3 rounded-xl border-2 border-red-300 bg-red-50 p-4 shadow-sm" role="alert" aria-live="assertive">
+                  <AlertCircle className="mt-0.5 h-6 w-6 shrink-0 text-red-700" />
+                  <div>
+                    <p className="text-base font-extrabold text-red-800">Revisa los datos marcados en rojo</p>
+                    {searchError && <p className="mt-1 text-sm font-semibold leading-6 text-red-700">{searchError}</p>}
+                  </div>
                 </div>
               )}
 
@@ -339,8 +375,6 @@ export default function Home() {
                 </Button>
               </div>
             </form>
-            <div className="mt-5 lg:hidden"><TrackingJourneyAnimation status={shipmentData?.status} /></div>
-
           </Card>
         </section>
 
