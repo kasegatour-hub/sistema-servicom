@@ -1816,3 +1816,8 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Añadir «Entregado» al selector de estados de Mis Envíos del Cliente
 - [x] Añadir «Entregado» al selector de estados de la papelera del Cliente
 - [x] Validar que el filtro muestre correctamente los envíos entregados en móvil y escritorio
+
+## Mejoras visuales para envíos Entregados
+- [x] Añadir un distintivo visual destacado para el estado «Entregado» en la vista del Cliente
+- [x] Mostrar la fecha y hora exactas de entrega cuando el envío esté entregado
+- [x] Añadir pruebas y validar la presentación responsive de ambas mejoras

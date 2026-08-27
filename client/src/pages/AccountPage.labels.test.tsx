@@ -106,7 +106,7 @@ describe("AccountPage client labels", () => {
 
   it("incluye Entregado en el filtro del Cliente y muestra solo los envíos entregados", () => {
     accountMocks.shipments = [
-      { id: 1, orderNumber: "3520992723", code: "DOC-ENT", recipientName: "Lucía", recipientLastName: "Sánchez", recipientDni: "71234567", recipientPhone: "+51 970188447", status: "Entregado", paymentStatus: "Pagado", registeredByLabel: "Cliente", createdAt: new Date("2026-08-17T10:00:00.000Z") },
+      { id: 1, orderNumber: "3520992723", code: "DOC-ENT", recipientName: "Lucía", recipientLastName: "Sánchez", recipientDni: "71234567", recipientPhone: "+51 970188447", status: "Entregado", paymentStatus: "Pagado", registeredByLabel: "Cliente", createdAt: new Date("2026-08-17T10:00:00.000Z"), events: [{ stage: "En agencia", date: "2026-08-16T09:00:00.000Z" }, { stage: "Entregado", date: "2026-08-17T10:00:00.000Z" }] },
       { id: 2, orderNumber: "3520992724", code: "DOC-TRA", recipientName: "María", recipientLastName: "Ramos", recipientDni: "71234568", recipientPhone: "+51 970188447", status: "En tránsito", paymentStatus: "Pagado", registeredByLabel: "Cliente", createdAt: new Date("2026-08-16T10:00:00.000Z") },
     ];
     render(<AccountPage />);
@@ -117,6 +117,9 @@ describe("AccountPage client labels", () => {
 
     expect(screen.getByText("Orden: 3520992723")).toBeTruthy();
     expect(screen.queryByText("Orden: 3520992724")).toBeNull();
+    expect(screen.getByTestId("delivered-status-badge")).toBeTruthy();
+    expect(screen.getByText("Entregado el:")).toBeTruthy();
+    expect(document.querySelector("time")?.getAttribute("dateTime")).toBe("2026-08-17T10:00:00.000Z");
   });
 
   it("explica la búsqueda de envíos y acepta coincidencias difusas del destinatario", () => {

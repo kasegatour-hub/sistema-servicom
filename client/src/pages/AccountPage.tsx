@@ -41,6 +41,17 @@ type ClientWorkspace = "envios" | "registrar" | "papelera" | "perfil" | "segurid
 type ClientShipmentRoute = typeof SHIPMENT_ROUTES.LIMA_TORINO | typeof SHIPMENT_ROUTES.TORINO_LIMA | typeof SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE | typeof SHIPMENT_ROUTES.PROVINCE_LIMA_TORINO;
 const getClientShipmentBrand = (email?: string | null) => /^(magda\.barreto\.alv@gmail\.com|kasegatour@gmail\.com)$/i.test(String(email || "").trim()) ? "kasega" as const : "servicom" as const;
 const getLockoutSecondsFromMessage = (message: string) => Number(message.match(/espera\s+(\d+)\s+segundos/i)?.[1] || 0);
+const getShipmentDeliveredAt = (shipment: any) => {
+  const events = Array.isArray(shipment?.events) ? shipment.events : [];
+  const deliveredEvents = events.filter((event: any) => event?.stage === "Entregado" && event?.date);
+  return deliveredEvents.at(-1)?.date || (shipment?.status === "Entregado" ? shipment?.updatedAt : null) || null;
+};
+const formatShipmentDeliveredAt = (shipment: any) => {
+  const deliveredAt = getShipmentDeliveredAt(shipment);
+  if (!deliveredAt) return "Fecha de entrega no registrada";
+  const parsedDate = new Date(deliveredAt);
+  return Number.isNaN(parsedDate.getTime()) ? "Fecha de entrega no registrada" : parsedDate.toLocaleString("es-PE", { dateStyle: "medium", timeStyle: "short" });
+};
 
 export default function AccountPage() {
   const [, setLocation] = useLocation();
@@ -1004,9 +1015,15 @@ export default function AccountPage() {
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="font-bold text-[#0B2B5E]">Orden: {shipment.orderNumber}</span>
                         <span className="rounded bg-blue-100 px-2 py-0.5 text-xs font-semibold text-[#0B2B5E]">Código: {shipment.code}</span>
-                        <span className={`rounded px-2 py-0.5 text-xs font-semibold ${shipment.status === 'Entregado' ? 'bg-blue-600 text-white' : shipment.status === 'Por entregar en agencia' ? 'bg-sky-100 text-sky-800' : 'bg-orange-100 text-[#F28C00]'}`}>
-                          {shipment.status}
-                        </span>
+                        {shipment.status === "Entregado" ? (
+                          <span data-testid="delivered-status-badge" className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 text-sm font-bold text-emerald-800 shadow-sm">
+                            <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> Entregado
+                          </span>
+                        ) : (
+                          <span className={`rounded px-2 py-0.5 text-xs font-semibold ${shipment.status === 'Por entregar en agencia' ? 'bg-sky-100 text-sky-800' : 'bg-orange-100 text-[#F28C00]'}`}>
+                            {shipment.status}
+                          </span>
+                        )}
                         <span className={`rounded px-2 py-0.5 text-xs font-semibold ${getPaymentStatusUi(shipment.paymentStatus).badgeClass}`}>
                           {getPaymentStatusUi(shipment.paymentStatus).label}
                         </span>
@@ -1015,6 +1032,13 @@ export default function AccountPage() {
                         <strong>Destinatario:</strong> {shipment.recipientName || "No especificado"} {shipment.recipientLastName || ""} ({formatPhoneNumber(shipment.recipientPhone) || "Sin teléfono"})
                       </p>
                       <p className="text-xs text-slate-400 mt-0.5">Registrado el {new Date(shipment.createdAt).toLocaleDateString()}</p>
+                      {shipment.status === "Entregado" && (
+                        <p className="mt-1 inline-flex flex-wrap items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-sm font-semibold text-emerald-800">
+                          <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+                          <span>Entregado el:</span>
+                          <time dateTime={getShipmentDeliveredAt(shipment) || undefined}>{formatShipmentDeliveredAt(shipment)}</time>
+                        </p>
+                      )}
                       <p className="mt-0.5 text-xs text-slate-500"><strong>Registrado por:</strong> {shipment.registeredByLabel || "Registro anterior"}</p>
                     </div>
                     <div className="flex w-full min-w-0 flex-wrap gap-2 md:w-auto md:justify-end">
