@@ -2696,7 +2696,7 @@ export default function AdminDashboard() {
                     <label htmlFor="admin-sender-phone" className="block text-sm font-medium text-gray-700 mb-2">Teléfono <span className="text-rose-600" aria-hidden="true">*</span></label>
                     <PhoneInput
                       id="admin-sender-phone"
-                      value={createForm.watch("senderPhone") || "+51 "}
+                      value={createForm.watch("senderPhone") || ""}
                       onChange={(val) => createForm.setValue("senderPhone", val, { shouldDirty: true, shouldValidate: true })}
                       placeholder="970 188 447"
                       required={!isYeslyExceptionForm}
