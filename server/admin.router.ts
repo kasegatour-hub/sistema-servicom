@@ -858,7 +858,8 @@ export const adminRouter = router({
       const now = new Date();
       let orderNumber: string;
       const operationalEnvironment = getShipmentOperationalEnvironment(input.route);
-      const reservedOrders = await listShipmentOrderNumbersByPrefix(getMonthlyParcelOrderPrefix(now), operationalEnvironment === "unknown" ? undefined : operationalEnvironment);
+      const reservationEnvironment = input.controlledExceptionCode === "YESLY_VENTO_CODES" ? undefined : (operationalEnvironment === "unknown" ? undefined : operationalEnvironment);
+      const reservedOrders = await listShipmentOrderNumbersByPrefix(getMonthlyParcelOrderPrefix(now), reservationEnvironment);
       try {
         orderNumber = generateMonthlyParcelOrderNumber({ existingOrderNumbers: reservedOrders, isProvinceDelivery: effectiveProvinceDelivery, date: now });
       } catch (error: any) {
