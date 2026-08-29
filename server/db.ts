@@ -30,6 +30,13 @@ export async function getDb() {
 }
 
 export type NotificationRecipientType = "admin" | "account";
+export const ISOLATED_WORKSPACE_ADMIN_IDS = [210001, 210002] as const;
+
+export function getNotificationWorkspaceAdminId(adminId?: number | null): number | null {
+  const normalizedId = Number(adminId);
+  return ISOLATED_WORKSPACE_ADMIN_IDS.includes(normalizedId as (typeof ISOLATED_WORKSPACE_ADMIN_IDS)[number]) ? normalizedId : null;
+}
+
 export type NotificationActor = {
   actorType: "admin" | "account" | "system" | "public";
   actorId?: number | null;
@@ -152,21 +159,49 @@ export function buildShipmentNotificationMessage(input: {
   ].filter(Boolean).join("\n");
 }
 
-async function activeAdminIds(options?: { scopedAdminId?: number | null }) {
+async function activeAdminIds(options?: { workspaceAdminId?: number | null }) {
   const db = await getDb();
   if (!db) return [];
   const rows = await db.select({ id: admins.id }).from(admins).where(eq(admins.isActive, 1));
-  if (options?.scopedAdminId && ISOLATED_WORKSPACE_ADMIN_IDS.includes(options.scopedAdminId as (typeof ISOLATED_WORKSPACE_ADMIN_IDS)[number])) {
-    return rows.filter(row => row.id === options.scopedAdminId).map(row => row.id);
-  }
-  return rows.filter(row => !ISOLATED_WORKSPACE_ADMIN_IDS.includes(row.id as (typeof ISOLATED_WORKSPACE_ADMIN_IDS)[number])).map(row => row.id);
+  return filterNotificationAdminIds(rows.map(row => row.id), options?.workspaceAdminId);
+}
+
+export function filterNotificationAdminIds(adminIds: number[], workspaceAdminId?: number | null) {
+  const isolatedWorkspaceAdminId = getNotificationWorkspaceAdminId(workspaceAdminId);
+  if (isolatedWorkspaceAdminId) return adminIds.filter(id => id === isolatedWorkspaceAdminId);
+  return adminIds.filter(id => !ISOLATED_WORKSPACE_ADMIN_IDS.includes(id as (typeof ISOLATED_WORKSPACE_ADMIN_IDS)[number]));
+}
+
+async function getAccountNotificationWorkspaceAdminId(accountId: number): Promise<number | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const [ownedShipment] = await db.select({ registeredById: shipments.registeredById })
+    .from(shipments)
+    .where(and(
+      eq(shipments.accountId, accountId),
+      eq(shipments.registeredByType, "admin"),
+      inArray(shipments.registeredById, [...ISOLATED_WORKSPACE_ADMIN_IDS]),
+    ))
+    .orderBy(desc(shipments.createdAt), desc(shipments.id))
+    .limit(1);
+  return getNotificationWorkspaceAdminId(ownedShipment?.registeredById);
+}
+
+function notificationWorkspaceCondition(recipientType: NotificationRecipientType, recipientId: number) {
+  if (recipientType !== "admin") return undefined;
+  const workspaceAdminId = getNotificationWorkspaceAdminId(recipientId);
+  return workspaceAdminId ? eq(notifications.workspaceAdminId, workspaceAdminId) : isNull(notifications.workspaceAdminId);
 }
 
 export async function listNotificationsForRecipient(input: { recipientType: NotificationRecipientType; recipientId: number; limit?: number }) {
   const db = await getDb();
   if (!db) return { items: [] as Notification[], unreadCount: 0 };
   const limit = Math.max(1, Math.min(input.limit ?? 40, 100));
-  const condition = and(eq(notifications.recipientType, input.recipientType), eq(notifications.recipientId, input.recipientId));
+  const condition = and(
+    eq(notifications.recipientType, input.recipientType),
+    eq(notifications.recipientId, input.recipientId),
+    notificationWorkspaceCondition(input.recipientType, input.recipientId),
+  );
   const [items, unreadRows] = await Promise.all([
     db.select().from(notifications).where(condition).orderBy(desc(notifications.createdAt)).limit(limit),
     db.select({ count: count() }).from(notifications).where(and(condition, eq(notifications.isRead, 0))),
@@ -177,14 +212,14 @@ export async function listNotificationsForRecipient(input: { recipientType: Noti
 export async function markNotificationRead(input: { id: number; recipientType: NotificationRecipientType; recipientId: number }) {
   const db = await getDb();
   if (!db) return false;
-  const result = await db.update(notifications).set({ isRead: 1, readAt: new Date() }).where(and(eq(notifications.id, input.id), eq(notifications.recipientType, input.recipientType), eq(notifications.recipientId, input.recipientId), eq(notifications.isRead, 0)));
+  const result = await db.update(notifications).set({ isRead: 1, readAt: new Date() }).where(and(eq(notifications.id, input.id), eq(notifications.recipientType, input.recipientType), eq(notifications.recipientId, input.recipientId), notificationWorkspaceCondition(input.recipientType, input.recipientId), eq(notifications.isRead, 0)));
   return Number(result[0]?.affectedRows || 0) > 0;
 }
 
 export async function markAllNotificationsRead(input: { recipientType: NotificationRecipientType; recipientId: number }) {
   const db = await getDb();
   if (!db) return 0;
-  const result = await db.update(notifications).set({ isRead: 1, readAt: new Date() }).where(and(eq(notifications.recipientType, input.recipientType), eq(notifications.recipientId, input.recipientId), eq(notifications.isRead, 0)));
+  const result = await db.update(notifications).set({ isRead: 1, readAt: new Date() }).where(and(eq(notifications.recipientType, input.recipientType), eq(notifications.recipientId, input.recipientId), notificationWorkspaceCondition(input.recipientType, input.recipientId), eq(notifications.isRead, 0)));
   return Number(result[0]?.affectedRows || 0);
 }
 
@@ -222,8 +257,10 @@ export async function notifyShipmentEvent(input: {
   changedFields?: string[];
   notifyAccount?: boolean;
 }) {
-  const scopedAdminId = input.registeredByType === "admin" ? input.registeredById : null;
-  const adminIds = await activeAdminIds({ scopedAdminId });
+  const workspaceAdminId = input.registeredByType === "admin"
+    ? getNotificationWorkspaceAdminId(input.registeredById)
+    : input.accountId ? await getAccountNotificationWorkspaceAdminId(input.accountId) : null;
+  const adminIds = await activeAdminIds({ workspaceAdminId });
   const actorDisplay = await getNotificationActorDisplay(input.actor);
   const message = buildShipmentNotificationMessage({
     shipmentType: input.shipmentType,
@@ -253,6 +290,7 @@ export async function notifyShipmentEvent(input: {
     message,
     entityType: "shipment",
     entityId: input.shipmentId,
+    workspaceAdminId,
     actorType: input.actor.actorType === "public" ? "system" : input.actor.actorType,
     actorId: input.actor.actorId ?? null,
     actorLabel: input.actor.actorLabel ?? null,
@@ -267,8 +305,12 @@ export async function notifyAccountEvent(input: {
   kind: "account_created" | "account_updated" | "recipient_change_signature";
   actor: NotificationActor;
   details?: string;
+  workspaceAdminId?: number | null;
 }) {
-  const adminIds = await activeAdminIds();
+  const workspaceAdminId = input.workspaceAdminId === undefined
+    ? await getAccountNotificationWorkspaceAdminId(input.accountId)
+    : getNotificationWorkspaceAdminId(input.workspaceAdminId);
+  const adminIds = await activeAdminIds({ workspaceAdminId });
   const message = input.details ? `${input.message} ${input.details}` : input.message;
   const recipients = [
     ...adminIds.map(id => ({ type: "admin" as const, id })),
@@ -282,6 +324,7 @@ export async function notifyAccountEvent(input: {
     message,
     entityType: "account",
     entityId: input.accountId,
+    workspaceAdminId,
     actorType: input.actor.actorType === "public" ? "system" : input.actor.actorType,
     actorId: input.actor.actorId ?? null,
     actorLabel: input.actor.actorLabel ?? null,
@@ -1560,8 +1603,6 @@ export async function setEncomiendaAvailabilityForRoute(route: string, encomiend
   });
   return true;
 }
-
-export const ISOLATED_WORKSPACE_ADMIN_IDS = [210001, 210002] as const;
 
 export async function getAllShipments(shipmentType?: "documento" | "encomienda", options?: { excludeHiddenForRegistradores?: boolean; ownerAdminId?: number; ownerAdminEmail?: string; excludeIsolatedWorkspaces?: boolean }) {
   const db = await getDb();

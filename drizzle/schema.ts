@@ -58,6 +58,8 @@ export const notifications = mysqlTable("notifications", {
   message: text("message").notNull(),
   entityType: varchar("entityType", { length: 64 }),
   entityId: int("entityId"),
+  /** Administrador propietario del entorno; null representa Servicom Internacional. */
+  workspaceAdminId: int("workspaceAdminId"),
   actorType: mysqlEnum("actorType", ["admin", "account", "system"]).notNull(),
   actorId: int("actorId"),
   actorLabel: varchar("actorLabel", { length: 255 }),
@@ -68,6 +70,7 @@ export const notifications = mysqlTable("notifications", {
   recipientIdx: index("notifications_recipient_idx").on(table.recipientType, table.recipientId, table.createdAt),
   unreadIdx: index("notifications_unread_idx").on(table.recipientType, table.recipientId, table.isRead, table.createdAt),
   entityIdx: index("notifications_entity_idx").on(table.entityType, table.entityId),
+  workspaceIdx: index("notifications_workspace_idx").on(table.workspaceAdminId, table.createdAt),
 }));
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = typeof notifications.$inferInsert;

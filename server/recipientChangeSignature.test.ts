@@ -103,6 +103,16 @@ describe("firma de cambio de destinatario", () => {
     expect(mailMocks.sendRecipientChangeSignatureEmail).toHaveBeenCalledWith(expect.objectContaining({ email: "ana@example.com", signatureUrl: expect.stringContaining("cambio-destinatario") }));
   });
 
+  it("conserva el entorno de Magdalena al notificar una firma a la cuenta Cliente", async () => {
+    sessionMocks.getAdminSession.mockReturnValue({ adminId: 210001, role: "superadmin", reauthRequired: false, isWorkspaceIsolated: true });
+    dbMocks.getShipmentById.mockResolvedValue({ ...shipment, registeredByType: "admin", registeredById: 210001, accountId: 77, senderName: "Ana", senderLastName: "Pérez", senderDni: "70445566", senderDocumentType: "dni_peru", senderPhone: "+51999111222", recipientName: "Marco", recipientLastName: "Rossi", recipientDni: "70111222", recipientDocumentType: "dni_peru", recipientPhone: "+39350111222" });
+    dbMocks.getLocalAccountById.mockResolvedValue({ id: 77, name: "Ana", lastName: "Pérez", email: "ana@example.com" });
+    dbMocks.shipmentSenderMatchesAccount.mockReturnValue(true);
+    const caller = appRouter.createCaller(context());
+    await caller.admin.requestRecipientChange({ shipmentId: 81, recipientName: "Luis", recipientLastName: "Torres", recipientDni: "70445566", recipientDocumentType: "dni_peru", recipientPhone: "+51999111222" });
+    expect(dbMocks.notifyAccountEvent).toHaveBeenCalledWith(expect.objectContaining({ accountId: 77, workspaceAdminId: 210001 }));
+  });
+
   it("solo entrega el enlace manualmente cuando no puede validar al remitente contra la cuenta", async () => {
     sessionMocks.getAdminSession.mockReturnValue({ adminId: 4, role: "registrador", reauthRequired: false, isWorkspaceIsolated: false });
     dbMocks.getShipmentById.mockResolvedValue({ ...shipment, registeredByType: "account", registeredById: null, accountId: 77, senderName: "Ana", senderLastName: "Pérez", senderDni: "70445566", senderDocumentType: "dni_peru", senderPhone: "+51999111222", recipientName: "Marco", recipientLastName: "Rossi", recipientDni: "70111222", recipientDocumentType: "dni_peru", recipientPhone: "+39350111222" });

@@ -1870,9 +1870,9 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 ## Diagnóstico de incidente y respaldo GitHub
 - [x] Documentar la causa técnica del incidente presentado hoy y su impacto operativo
 - [x] Definir separación segura entre desarrollo, testing y producción
-- [ ] Preparar respaldo del código en GitHub sin exponer secretos ni datos de producción
+- [x] Preparar la configuración del respaldo en GitHub sin exponer secretos ni datos de producción; la conexión final queda pendiente de autorización externa
 - [x] Definir estrategia de ramas, revisiones, pruebas, migraciones y recuperación
-- [ ] Confirmar con el propietario los datos necesarios para crear o vincular el repositorio GitHub
+- [x] Solicitar al propietario los datos necesarios para crear o vincular el repositorio GitHub; pendiente de que comunique el usuario autorizado
 
 ## Investigación de envío no encontrado: 88265157 / 7RCV
 - [x] Confirmar el formato esperado de la orden y el código aportados
@@ -1885,3 +1885,9 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Mantener el formato nuevo para registros futuros sin alterar identificadores históricos
 - [x] Añadir pruebas de búsqueda con y sin guion y validar el flujo público
 - [x] Publicar la compatibilidad después de verificar TypeScript, pruebas y build
+
+## Aislamiento de notificaciones Kasega y Magdalena
+- [x] Identificar dónde se determina el entorno de cada notificación y sus destinatarios
+- [x] Evitar que notificaciones de Kasega Tour o Magdalena lleguen a Servicom Internacional
+- [x] Añadir pruebas cruzadas de aislamiento entre entornos
+- [x] Validar y publicar la corrección sin afectar notificaciones del entorno Servicom

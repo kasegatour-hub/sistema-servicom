@@ -1075,7 +1075,7 @@ export const adminRouter = router({
       let accountNotified = false;
       let emailSent = false;
       if (senderMatchesAccount && account) {
-        await notifyAccountEvent({ accountId: account.id, title: "Enlace creado para firmar", message: `Se creó un enlace para que ${account.name || shipment.senderName || "el remitente"} ${account.lastName || shipment.senderLastName || ""}`.trim() + ` firme el cambio de destinatario de la Orden ${shipment.orderNumber}.`, kind: "recipient_change_signature", actor: { actorType: "admin", actorId: ctx.adminSession.adminId, actorLabel }, details: `Enlace: ${signatureUrl}` });
+        await notifyAccountEvent({ accountId: account.id, title: "Enlace creado para firmar", message: `Se creó un enlace para que ${account.name || shipment.senderName || "el remitente"} ${account.lastName || shipment.senderLastName || ""}`.trim() + ` firme el cambio de destinatario de la Orden ${shipment.orderNumber}.`, kind: "recipient_change_signature", actor: { actorType: "admin", actorId: ctx.adminSession.adminId, actorLabel }, details: `Enlace: ${signatureUrl}`, workspaceAdminId: shipment.registeredByType === "admin" ? shipment.registeredById : null });
         accountNotified = true;
         try {
           await sendRecipientChangeSignatureEmail({ email: account.email, signerName: `${account.name || ""} ${account.lastName || ""}`.trim() || "Cliente", signatureUrl, orderNumber: shipment.orderNumber });
