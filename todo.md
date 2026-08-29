@@ -1950,3 +1950,9 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Aplicar una corrección HMR más robusta para la vista previa pública
 - [x] Validar carga sin caché, consola, pruebas, TypeScript y build
 - [x] Publicar el arreglo estable y documentar la recarga necesaria
+
+## Aviso de destinatario protegido en actualización
+- [x] Identificar qué campos activa la solicitud de firma electrónica
+- [x] Confirmar si precio, notas o checklist generan un falso aviso
+- [x] Mantener protegidos los cambios reales del destinatario
+- [x] Añadir regresiones y validar el flujo administrativo

@@ -1,6 +1,7 @@
 import type { TrpcContext } from "./_core/context";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { appRouter } from "./routers";
+import { hasDirectRecipientChange } from "./admin.router";
 import { hashSignatureToken } from "./signatureTokens";
 
 const dbMocks = vi.hoisted(() => ({
@@ -63,6 +64,10 @@ beforeEach(() => {
 });
 
 describe("firma de cambio de destinatario", () => {
+  it("no bloquea una actualización de precio cuando el tipo histórico vacío usa dni_peru por defecto", () => {
+    expect(hasDirectRecipientChange({ recipientName: "Marco", recipientLastName: "Rossi", recipientDni: "70111222", recipientDocumentType: "dni_peru", recipientPhone: "+39 350 111 2222" }, { recipientName: "Marco", recipientLastName: "Rossi", recipientDni: "70111222", recipientDocumentType: null, recipientPhone: "+393501112222" })).toBe(false);
+  });
+
   it("rechaza un token incorrecto antes de revelar la declaración", async () => {
     const caller = appRouter.createCaller(context());
     await expect(caller.recipientChangeSignature.get({ requestId: 44, token: "token-incorrecto-para-cambio-123456" })).rejects.toMatchObject({ code: "UNAUTHORIZED" });

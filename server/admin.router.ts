@@ -47,6 +47,16 @@ const optionalInternationalPhoneSchema = z.string().trim().optional()
 const normalizeRecipientText = (value: unknown) => String(value ?? "").trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").toUpperCase();
 const normalizeRecipientDocument = (value: unknown) => normalizeRecipientText(value).replace(/[^A-Z0-9]/g, "");
 const normalizeRecipientPhone = (value: unknown) => String(value ?? "").trim().replace(/[^+\d]/g, "");
+export function hasDirectRecipientChange(input: { recipientName?: unknown; recipientLastName?: unknown; recipientDni?: unknown; recipientDocumentType?: unknown; recipientPhone?: unknown }, currentShipment: { recipientName?: unknown; recipientLastName?: unknown; recipientDni?: unknown; recipientDocumentType?: unknown; recipientPhone?: unknown }) {
+  const currentRecipientDocumentType = currentShipment.recipientDocumentType || "dni_peru";
+  return (
+    (input.recipientName !== undefined && normalizeRecipientText(input.recipientName) !== normalizeRecipientText(currentShipment.recipientName))
+    || (input.recipientLastName !== undefined && normalizeRecipientText(input.recipientLastName) !== normalizeRecipientText(currentShipment.recipientLastName))
+    || (input.recipientDni !== undefined && normalizeRecipientDocument(input.recipientDni) !== normalizeRecipientDocument(currentShipment.recipientDni))
+    || (input.recipientDocumentType !== undefined && input.recipientDocumentType !== currentRecipientDocumentType)
+    || (input.recipientPhone !== undefined && normalizeRecipientPhone(input.recipientPhone) !== normalizeRecipientPhone(currentShipment.recipientPhone))
+  );
+}
 const securePasswordSchema = z.string().refine(isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE);
 type AdminProfilePhoto = { key: string; url: string; name: string; mimeType: string; sizeBytes: number; createdAt: string };
 function parseAdminProfilePhotos(metadata: string | null | undefined): AdminProfilePhoto[] {
@@ -1168,14 +1178,8 @@ export const adminRouter = router({
       if (!belongsToAdminWorkspace(currentShipment, ctx.adminSession.adminId, ctx.adminWorkspaceIsolated)) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Envío no encontrado o eliminado." });
       }
-      const hasDirectRecipientChange = (
-        (input.recipientName !== undefined && normalizeRecipientText(input.recipientName) !== normalizeRecipientText(currentShipment.recipientName))
-        || (input.recipientLastName !== undefined && normalizeRecipientText(input.recipientLastName) !== normalizeRecipientText(currentShipment.recipientLastName))
-        || (input.recipientDni !== undefined && normalizeRecipientDocument(input.recipientDni) !== normalizeRecipientDocument(currentShipment.recipientDni))
-        || (input.recipientDocumentType !== undefined && input.recipientDocumentType !== currentShipment.recipientDocumentType)
-        || (input.recipientPhone !== undefined && normalizeRecipientPhone(input.recipientPhone) !== normalizeRecipientPhone(currentShipment.recipientPhone))
-      );
-      if (hasDirectRecipientChange) {
+      const recipientChangeDetected = hasDirectRecipientChange(input, currentShipment);
+      if (recipientChangeDetected) {
         throw new TRPCError({ code: "FORBIDDEN", message: "El destinatario está protegido. Genera una solicitud de cambio y espera la firma electrónica del cliente." });
       }
       if (ctx.adminSession.role !== "superadmin" && currentShipment.hiddenFromRegistradoresAt) {
