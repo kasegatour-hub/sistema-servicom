@@ -1891,3 +1891,49 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Evitar que notificaciones de Kasega Tour o Magdalena lleguen a Servicom Internacional
 - [x] Añadir pruebas cruzadas de aislamiento entre entornos
 - [x] Validar y publicar la corrección sin afectar notificaciones del entorno Servicom
+
+## Cambio de dominio público de Servicom
+- [ ] Confirmar si el dominio solicitado es exactamente servi.com o una dirección Servicom disponible
+- [ ] Configurar el nuevo dominio sin interrumpir el dominio vigente
+- [ ] Verificar Inicio, rastreo, Cliente, Admin y app móvil en la nueva dirección
+
+## Dominio ser.com
+- [x] Verificar si ser.com está libre o registrado
+- [x] Orientar la compra segura sin ejecutar pagos no autorizados
+- [ ] Vincular ser.com a la aplicación solo después de confirmar propiedad y DNS
+
+## Dominio s.com
+- [x] Verificar si s.com está libre o registrado
+- [x] Orientar la compra segura sin ejecutar pagos no autorizados
+
+## Dominio servint.com
+- [x] Verificar si servint.com está libre o registrado
+- [x] Orientar la compra segura sin ejecutar pagos no autorizados
+
+## Dominio svci.com
+- [x] Verificar si svci.com está libre o registrado
+- [x] Orientar la compra segura sin ejecutar pagos no autorizados
+
+## Dominio memorable para agencia de turismo
+- [ ] Definir criterios de nombre global, pronunciación y recordación
+- [ ] Proponer nombres diferenciados para la agencia de turismo
+- [ ] Comprobar disponibilidad preliminar y riesgos de confusión de los finalistas
+- [ ] Recomendar dominio principal y alternativas de respaldo
+- [ ] Explicar compra, protección de marca y conexión DNS a la aplicación
+
+## Distintivo Made in Manus
+- [ ] Determinar si el botón aparece solo en preview o también en producción
+- [ ] Confirmar si pertenece a la plataforma o al código de la aplicación
+- [ ] Aplicar la solución permitida y validar que no interfiera con usuarios
+
+## Cambio de URL al dominio comprado
+- [x] Confirmar que la captura corresponde al dominio antiguo shalomtrack-fsayagjs.manus.space
+- [x] Verificar que flyservicom.rest sirve la aplicación publicada
+- [x] Indicar al usuario la URL nueva y conservar el dominio antiguo durante la transición
+
+## SEO de la página principal
+- [x] Añadir entre 3 y 8 palabras clave relevantes en meta keywords
+- [x] Añadir un único H1 descriptivo de máximo 80 caracteres
+- [x] Añadir un H2 descriptivo de máximo 80 caracteres
+- [x] Añadir meta description entre 50 y 160 caracteres
+- [x] Validar conteos exactos, pruebas, TypeScript y build

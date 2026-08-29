@@ -54,6 +54,14 @@ describe("Home public page", () => {
     expect(formatTrackingOrderInput("3520992723")).toBe("3520992723");
     expect(formatTrackingOrderInput("88265157")).toBe("8826-5157");
   });
+  it("renders the SEO heading hierarchy on the public tracking page", () => {
+    render(<Home />);
+
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+    expect(screen.getByRole("heading", { level: 1, name: "Rastreo de envíos Servicom Internacional" })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 2, name: "Consulta el estado de tu envío" })).toBeTruthy();
+  });
+
   it("renders the prominent tracking hierarchy and public navigation", () => {
     render(<Home />);
 

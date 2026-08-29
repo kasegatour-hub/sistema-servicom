@@ -323,6 +323,10 @@ export default function Home() {
             <section id="rastreo" className="scroll-mt-28 rounded-[2rem] bg-white p-1 shadow-[0_20px_60px_-32px_rgba(11,43,94,0.38)] ring-1 ring-slate-200">
               <Card className="rounded-[1.75rem] border-0 bg-white p-4 shadow-none sm:p-9 lg:p-12">
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+              <div className="mb-7">
+                <h1 className="text-3xl font-extrabold tracking-tight text-[#0B2B5E] sm:text-4xl">Rastreo de envíos Servicom Internacional</h1>
+                <h2 className="mt-2 text-lg font-semibold text-slate-600 sm:text-xl">Consulta el estado de tu envío</h2>
+              </div>
               <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
                 <div>
                   <label className="mb-2 block text-base font-bold text-slate-800" htmlFor="orderNumber">Número de orden</label>
