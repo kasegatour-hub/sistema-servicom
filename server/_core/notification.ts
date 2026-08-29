@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { ENV } from "./env";
+import { shouldSuppressNotifications } from "../notificationRuntime";
 
 export type NotificationPayload = {
   title: string;
@@ -67,6 +68,8 @@ export async function notifyOwner(
   payload: NotificationPayload
 ): Promise<boolean> {
   const { title, content } = validatePayload(payload);
+
+  if (shouldSuppressNotifications()) return true;
 
   if (!ENV.forgeApiUrl) {
     throw new TRPCError({

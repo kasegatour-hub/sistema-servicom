@@ -1956,3 +1956,15 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Confirmar si precio, notas o checklist generan un falso aviso
 - [x] Mantener protegidos los cambios reales del destinatario
 - [x] Añadir regresiones y validar el flujo administrativo
+
+## Actualización directa de todos los datos administrativos
+- [x] Permitir que Admin y Usuario actualicen directamente los datos del destinatario
+- [x] Mantener la solicitud de firma electrónica como opción no obligatoria
+- [x] Conservar permisos por rol, trazabilidad y notificaciones del cambio
+- [x] Añadir regresiones y validar pruebas, TypeScript y build
+
+## Aislamiento de notificaciones durante pruebas
+- [x] Identificar todos los puntos que persisten o envían notificaciones
+- [x] Bloquear creación y entrega externa cuando NODE_ENV sea test
+- [x] Mantener las notificaciones reales activas fuera del modo de pruebas
+- [x] Añadir regresiones y validar la suite completa

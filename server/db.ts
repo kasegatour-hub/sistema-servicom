@@ -8,6 +8,7 @@ import { rankFuzzyMatches } from "../shared/fuzzySearch";
 import { searchInvitationPeople, type InvitationPersonSeed } from "../shared/invitationPeople";
 import { getFailureUpdate } from "./loginProtection";
 import { getShipmentOperationalEnvironment, isProvinceShipmentRoute, isTorinoLimaRoute, type ShipmentOperationalEnvironment } from "../shared/shipmentRoutes";
+import { shouldSuppressNotifications } from "./notificationRuntime";
 
 // Normalizar números de orden y códigos: remover espacios y convertir a mayúsculas
 function normalizeOrderCode(value: string): string {
@@ -224,6 +225,7 @@ export async function markAllNotificationsRead(input: { recipientType: Notificat
 }
 
 async function insertNotifications(rows: Array<typeof notifications.$inferInsert>) {
+  if (shouldSuppressNotifications()) return true;
   const db = await getDb();
   if (!db || rows.length === 0) return false;
   try {
@@ -257,6 +259,7 @@ export async function notifyShipmentEvent(input: {
   changedFields?: string[];
   notifyAccount?: boolean;
 }) {
+  if (shouldSuppressNotifications()) return true;
   const workspaceAdminId = input.registeredByType === "admin"
     ? getNotificationWorkspaceAdminId(input.registeredById)
     : input.accountId ? await getAccountNotificationWorkspaceAdminId(input.accountId) : null;
@@ -307,6 +310,7 @@ export async function notifyAccountEvent(input: {
   details?: string;
   workspaceAdminId?: number | null;
 }) {
+  if (shouldSuppressNotifications()) return true;
   const workspaceAdminId = input.workspaceAdminId === undefined
     ? await getAccountNotificationWorkspaceAdminId(input.accountId)
     : getNotificationWorkspaceAdminId(input.workspaceAdminId);

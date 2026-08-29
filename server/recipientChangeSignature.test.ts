@@ -1,7 +1,6 @@
 import type { TrpcContext } from "./_core/context";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { appRouter } from "./routers";
-import { hasDirectRecipientChange } from "./admin.router";
 import { hashSignatureToken } from "./signatureTokens";
 
 const dbMocks = vi.hoisted(() => ({
@@ -14,6 +13,9 @@ const dbMocks = vi.hoisted(() => ({
   createRecipientChangeRequest: vi.fn(),
   markRecipientChangeRequestNotified: vi.fn(),
   notifyAccountEvent: vi.fn(),
+  updateShipmentStatus: vi.fn(),
+  recordShipmentAudit: vi.fn(),
+  recordInteractionEvent: vi.fn(),
 }));
 const sessionMocks = vi.hoisted(() => ({ getAccountSession: vi.fn(), getAdminSession: vi.fn() }));
 const mailMocks = vi.hoisted(() => ({ sendRecipientChangeSignatureEmail: vi.fn() }));
@@ -60,14 +62,13 @@ beforeEach(() => {
   dbMocks.getShipmentById.mockResolvedValue(shipment);
   dbMocks.shipmentSenderMatchesAccount.mockReturnValue(false);
   dbMocks.createRecipientChangeRequest.mockResolvedValue({ id: 44 });
+  dbMocks.updateShipmentStatus.mockResolvedValue(true);
+  dbMocks.recordShipmentAudit.mockResolvedValue(undefined);
+  dbMocks.recordInteractionEvent.mockResolvedValue(undefined);
   mailMocks.sendRecipientChangeSignatureEmail.mockResolvedValue(undefined);
 });
 
 describe("firma de cambio de destinatario", () => {
-  it("no bloquea una actualización de precio cuando el tipo histórico vacío usa dni_peru por defecto", () => {
-    expect(hasDirectRecipientChange({ recipientName: "Marco", recipientLastName: "Rossi", recipientDni: "70111222", recipientDocumentType: "dni_peru", recipientPhone: "+39 350 111 2222" }, { recipientName: "Marco", recipientLastName: "Rossi", recipientDni: "70111222", recipientDocumentType: null, recipientPhone: "+393501112222" })).toBe(false);
-  });
-
   it("rechaza un token incorrecto antes de revelar la declaración", async () => {
     const caller = appRouter.createCaller(context());
     await expect(caller.recipientChangeSignature.get({ requestId: 44, token: "token-incorrecto-para-cambio-123456" })).rejects.toMatchObject({ code: "UNAUTHORIZED" });
@@ -153,10 +154,11 @@ describe("firma de cambio de destinatario", () => {
     expect(dbMocks.completeRecipientChangeRequest).toHaveBeenCalledWith(expect.objectContaining({ requestId: 44, signerAccountId: null, signerEmail: null }));
   });
 
-  it("rechaza cualquier modificación directa del destinatario desde la actualización operativa", async () => {
+  it("permite modificar directamente el destinatario desde la actualización operativa", async () => {
     sessionMocks.getAdminSession.mockReturnValue({ adminId: 4, role: "registrador", reauthRequired: false, isWorkspaceIsolated: false });
-    dbMocks.getShipmentById.mockResolvedValue({ ...shipment, registeredByType: "account", registeredById: null, recipientName: "Marco", recipientLastName: "Rossi", recipientDni: "70111222", recipientDocumentType: "dni_peru", recipientPhone: "+39350111222" });
+    dbMocks.getShipmentById.mockResolvedValue({ ...shipment, registeredByType: "account", registeredById: null, shipmentType: "documento", documentKind: "simple", documentSheetCount: 3, route: "Lima - Torino", status: "En agencia", senderName: "Ana", senderLastName: "Pérez", senderDni: "70445566", senderDocumentType: "dni_peru", senderPhone: "+51999111222", recipientName: "Marco", recipientLastName: "Rossi", recipientDni: "70111222", recipientDocumentType: "dni_peru", recipientPhone: "+39350111222" });
     const caller = appRouter.createCaller(context());
-    await expect(caller.admin.updateStatus({ shipmentId: 81, newStatus: "En tránsito", recipientName: "Luis" })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(caller.admin.updateStatus({ shipmentId: 81, newStatus: "En tránsito", recipientName: "Luis", recipientLastName: "Torres", recipientDni: "70445566", recipientDocumentType: "dni_peru", recipientPhone: "+51999111222" })).resolves.toMatchObject({ success: true });
+    expect(dbMocks.updateShipmentStatus).toHaveBeenCalled();
   });
 });
