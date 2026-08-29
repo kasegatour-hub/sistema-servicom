@@ -370,13 +370,17 @@ export async function getShipmentByOrderAndCode(orderNumber: string, code: strin
   // Normalizar los parámetros de búsqueda
   const normalizedOrder = normalizeOrderCode(orderNumber);
   const normalizedCode = normalizeOrderCode(code);
+  const compactOrder = normalizedOrder.replace(/-/g, "");
+  const orderCondition = compactOrder !== normalizedOrder
+    ? or(eq(shipments.orderNumber, normalizedOrder), eq(shipments.orderNumber, compactOrder))
+    : eq(shipments.orderNumber, normalizedOrder);
 
   const result = await db
     .select()
     .from(shipments)
     .where(
       and(
-        eq(shipments.orderNumber, normalizedOrder),
+        orderCondition,
         eq(shipments.code, normalizedCode),
         isNull(shipments.deletedAt)
       )

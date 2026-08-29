@@ -41,4 +41,11 @@ describe("getShipmentByOrderAndCode", () => {
     expect(result?.orderNumber).toBe("3520992723");
     expect(result?.code).toBe("CA06721WB");
   });
+
+  it("permite consultar una orden histórica con y sin guion visual", async () => {
+    const result = await getShipmentByOrderAndCode("3520-9927", "CA06721WB");
+
+    expect(result?.orderNumber).toBe("3520992723");
+    expect(result?.code).toBe("CA06721WB");
+  });
 });

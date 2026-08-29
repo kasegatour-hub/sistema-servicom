@@ -3,8 +3,8 @@ const LEGACY_ORDER_NUMBER_PATTERN = /^\d{8}$/;
 const MONTHLY_PARCEL_ORDER_PATTERN = /^\d{4}-\d{4}$/;
 
 export const TRACKING_ORDER_MAX_DIGITS = 8;
-export const TRACKING_ORDER_MAX_INPUT_LENGTH = 9;
-export const TRACKING_CODE_MAX_LENGTH = 4;
+export const TRACKING_ORDER_MAX_INPUT_LENGTH = 32;
+export const TRACKING_CODE_MAX_LENGTH = 32;
 
 /** Generador legado de identificadores numéricos de ocho dígitos, conservado para compatibilidad histórica. */
 export function generateShipmentOrderNumber(random = Math.random): string {
@@ -68,27 +68,22 @@ export function formatTrackingCodeInput(value: string): string {
 export function getTrackingOrderError(value: string): string | null {
   const normalized = value.trim().toUpperCase();
   if (!normalized) return "Escribe tu número de orden.";
-  if (/^\d{4}\d{4}$/.test(normalized)) return "A este número le falta el guion: usa el formato MMAA-XXXX.";
-  if (normalized.includes("-")) {
-    const [prefix, sequence] = normalized.split("-");
-    if (!/^\d{4}$/.test(prefix || "")) return "El bloque anterior al guion debe tener 4 dígitos (mes y año).";
-    if (!/^\d{4}$/.test(sequence || "")) {
-      const count = (sequence || "").replace(/\D/g, "").length;
-      return count < 4 ? `Al número de orden le faltan ${4 - count} dígitos después del guion.` : "Después del guion deben ir exactamente 4 dígitos.";
-    }
-  }
-  if (/^\d+$/.test(normalized) && normalized.length !== TRACKING_ORDER_MAX_DIGITS) return `El número de orden debe tener ${TRACKING_ORDER_MAX_DIGITS} dígitos; has ingresado ${normalized.length}.`;
-  if (!/^\d{4}-\d{4}$/.test(normalized) && !/^\d{8}$/.test(normalized)) return "El número de orden solo admite dígitos y un guion entre los bloques.";
+  if (!/^[0-9-]{1,32}$/.test(normalized)) return "El número de orden solo admite dígitos y guiones.";
+  const digitCount = normalized.replace(/\D/g, "").length;
+  if (digitCount < TRACKING_ORDER_MAX_DIGITS) return `Al número de orden le faltan ${TRACKING_ORDER_MAX_DIGITS - digitCount} dígitos.`;
   return null;
 }
 
 export function getTrackingCodeError(value: string): string | null {
   const normalized = value.trim().toUpperCase();
   if (!normalized) return "Escribe tu código de envío.";
-  if (!/^\d/.test(normalized)) return "Al código le falta el dígito inicial.";
-  const letters = normalized.slice(1).replace(/[^A-Z]/g, "").length;
-  if (letters < 3) return `Al código le faltan ${3 - letters} letras después del dígito.`;
-  if (normalized.length > TRACKING_CODE_MAX_LENGTH || /[^\dA-Z]/.test(normalized)) return "El código debe tener 1 dígito y exactamente 3 letras, por ejemplo 7ABC.";
+  if (normalized.length > TRACKING_CODE_MAX_LENGTH || !/^[0-9A-Z-]+$/.test(normalized)) return "El código contiene caracteres no permitidos o es demasiado largo.";
+  if (normalized.length <= 4) {
+    if (!/^\d/.test(normalized)) return "Al código le falta el dígito inicial.";
+    const letters = normalized.slice(1).replace(/[^A-Z]/g, "").length;
+    if (letters < 3) return `Al código le faltan ${3 - letters} letras después del dígito.`;
+    if (!/^\d[A-Z]{3}$/.test(normalized)) return "El código nuevo debe tener 1 dígito y 3 letras, por ejemplo 7ABC.";
+  }
   return null;
 }
 

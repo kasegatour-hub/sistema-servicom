@@ -1866,3 +1866,22 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Identificar la columna requerida que provoca el fallo SQL al crear un documento
 - [x] Completar correctamente los datos de persistencia del envío administrativo
 - [x] Añadir regresión de inserción y validar una creación con tarifa automática
+
+## Diagnóstico de incidente y respaldo GitHub
+- [ ] Documentar la causa técnica del incidente presentado hoy y su impacto operativo
+- [ ] Definir separación segura entre desarrollo, testing y producción
+- [ ] Preparar respaldo del código en GitHub sin exponer secretos ni datos de producción
+- [ ] Definir estrategia de ramas, revisiones, pruebas, migraciones y recuperación
+- [ ] Confirmar con el propietario los datos necesarios para crear o vincular el repositorio GitHub
+
+## Investigación de envío no encontrado: 88265157 / 7RCV
+- [x] Confirmar el formato esperado de la orden y el código aportados
+- [x] Buscar el envío en los entornos y consultas autorizadas sin modificar datos
+- [x] Comparar la búsqueda pública con filtros administrativos, papelera y registros ocultos
+- [x] Documentar la causa verificable y recomendar la corrección necesaria
+
+## Compatibilidad total de envíos registrados
+- [x] Aceptar en el rastreo todos los formatos de orden y código que ya estén almacenados
+- [x] Mantener el formato nuevo para registros futuros sin alterar identificadores históricos
+- [x] Añadir pruebas de búsqueda con y sin guion y validar el flujo público
+- [x] Publicar la compatibilidad después de verificar TypeScript, pruebas y build

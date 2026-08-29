@@ -46,9 +46,10 @@ describe("shipment identifiers", () => {
 
   it("limita y formatea los campos antes de enviar el rastreo", () => {
     expect(formatTrackingOrderInput("08260019")).toBe("0826-0019");
-    expect(formatTrackingOrderInput("0826001999")).toBe("082600199");
-    expect(formatTrackingCodeInput("7abcde")).toBe("7ABC");
-    expect(getTrackingOrderError("08260019")).toContain("falta el guion");
+    expect(formatTrackingOrderInput("0826001999")).toBe("0826001999");
+    expect(formatTrackingCodeInput("7abcde")).toBe("7ABCDE");
+    expect(getTrackingOrderError("08260019")).toBeNull();
+    expect(getTrackingOrderError("88265157")).toBeNull();
     expect(getTrackingCodeError("7AB")).toContain("faltan 1 letras");
     expect(getTrackingOrderError("0826-0019")).toBeNull();
     expect(getTrackingCodeError("7ABC")).toBeNull();

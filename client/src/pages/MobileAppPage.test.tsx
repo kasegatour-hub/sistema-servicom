@@ -93,9 +93,9 @@ describe("MobileAppPage", () => {
     fireEvent.change(orderInput, { target: { value: "955885566" } });
     fireEvent.change(codeInput, { target: { value: "7AB" } });
 
-    expect(orderInput.maxLength).toBe(9);
-    expect(codeInput.maxLength).toBe(4);
-    expect(screen.getByText(/debe tener 8 dígitos/)).toBeTruthy();
+    expect(orderInput.maxLength).toBe(32);
+    expect(codeInput.maxLength).toBe(32);
+    expect(screen.queryByText(/debe tener 8 dígitos/)).toBeNull();
     expect(screen.getByText(/faltan 1 letras/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Buscar envío" }));
     expect(screen.getByText("Corrige los datos marcados en rojo antes de rastrear.")).toBeTruthy();

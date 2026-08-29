@@ -51,7 +51,8 @@ describe("Home public page", () => {
     expect(formatTrackingOrderInput("0826")).toBe("0826");
     expect(formatTrackingOrderInput("08260019")).toBe("0826-0019");
     expect(formatTrackingOrderInput("0826-0019")).toBe("0826-0019");
-    expect(formatTrackingOrderInput("3520992723")).toBe("352099272");
+    expect(formatTrackingOrderInput("3520992723")).toBe("3520992723");
+    expect(formatTrackingOrderInput("88265157")).toBe("8826-5157");
   });
   it("renders the prominent tracking hierarchy and public navigation", () => {
     render(<Home />);
@@ -84,14 +85,14 @@ describe("Home public page", () => {
     const orderInput = screen.getByLabelText("Número de orden") as HTMLInputElement;
     const codeInput = screen.getByLabelText("Código de envío") as HTMLInputElement;
 
-    expect(orderInput.maxLength).toBe(9);
-    expect(codeInput.maxLength).toBe(4);
+    expect(orderInput.maxLength).toBe(32);
+    expect(codeInput.maxLength).toBe(32);
     fireEvent.change(orderInput, { target: { value: "955885566" } });
     fireEvent.change(codeInput, { target: { value: "7ABCDE" } });
 
     expect(orderInput.value).toBe("955885566");
-    expect(codeInput.value).toBe("7ABC");
-    expect(screen.getByText(/debe tener 8 dígitos/)).toBeTruthy();
+    expect(codeInput.value).toBe("7ABCDE");
+    expect(screen.queryByText(/debe tener 8 dígitos/)).toBeNull();
   });
 
   it("renders large navigation buttons with complete rounded corners", () => {
@@ -147,7 +148,8 @@ describe("Home public page", () => {
   });
 
   it("explains missing separators and identifier parts in human-readable terms", () => {
-    expect(getTrackingOrderError("08260019")).toContain("falta el guion");
+    expect(getTrackingOrderError("08260019")).toBeNull();
+    expect(getTrackingOrderError("88265157")).toBeNull();
     expect(getTrackingOrderError("0826-19")).toContain("faltan 2 dígitos");
     expect(getTrackingCodeError("ABC")).toContain("dígito inicial");
     expect(getTrackingCodeError("7A")).toContain("faltan 2 letras");
