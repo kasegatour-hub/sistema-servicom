@@ -1868,10 +1868,10 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Añadir regresión de inserción y validar una creación con tarifa automática
 
 ## Diagnóstico de incidente y respaldo GitHub
-- [ ] Documentar la causa técnica del incidente presentado hoy y su impacto operativo
-- [ ] Definir separación segura entre desarrollo, testing y producción
+- [x] Documentar la causa técnica del incidente presentado hoy y su impacto operativo
+- [x] Definir separación segura entre desarrollo, testing y producción
 - [ ] Preparar respaldo del código en GitHub sin exponer secretos ni datos de producción
-- [ ] Definir estrategia de ramas, revisiones, pruebas, migraciones y recuperación
+- [x] Definir estrategia de ramas, revisiones, pruebas, migraciones y recuperación
 - [ ] Confirmar con el propietario los datos necesarios para crear o vincular el repositorio GitHub
 
 ## Investigación de envío no encontrado: 88265157 / 7RCV
