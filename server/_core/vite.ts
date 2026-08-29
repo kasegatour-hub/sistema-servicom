@@ -9,9 +9,13 @@ import viteConfig from "../../vite.config";
 export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
     middlewareMode: true,
-    // Reutiliza el servidor HTTP y permite que el cliente derive protocolo,
-    // host y puerto a partir de la vista previa que lo está sirviendo.
-    hmr: { server },
+    // Reuse the API HTTP server while preserving the public preview HMR
+    // endpoint. Without these options Vite advertises localhost:5173 to the browser.
+    hmr: {
+      protocol: "wss",
+      clientPort: 443,
+      server,
+    },
     allowedHosts: true as const,
   };
 

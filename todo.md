@@ -1944,3 +1944,9 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Añadir o actualizar regresión de configuración HMR
 - [x] Reiniciar y validar navegador, pruebas, TypeScript y build
 - [x] Publicar la corrección si se requieren cambios persistentes
+
+## Regresión del error Vite HMR
+- [x] Auditar por qué el cliente sigue recibiendo localhost:5173 pese a la configuración anterior
+- [x] Aplicar una corrección HMR más robusta para la vista previa pública
+- [x] Validar carga sin caché, consola, pruebas, TypeScript y build
+- [x] Publicar el arreglo estable y documentar la recarga necesaria

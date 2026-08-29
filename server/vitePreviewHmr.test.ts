@@ -9,5 +9,13 @@ describe("Vite preview HMR configuration", () => {
     expect(config).toContain('protocol: "wss"');
     expect(config).toContain("clientPort: 443");
     expect(config).not.toMatch(/hmr[\s\S]{0,300}localhost:5173/);
+
+    const middlewareConfig = fs.readFileSync(
+      path.resolve(process.cwd(), "server/_core/vite.ts"),
+      "utf8"
+    );
+    expect(middlewareConfig).toContain('protocol: "wss"');
+    expect(middlewareConfig).toContain("clientPort: 443");
+    expect(middlewareConfig).toContain("server,");
   });
 });
