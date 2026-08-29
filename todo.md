@@ -1893,14 +1893,14 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Validar y publicar la corrección sin afectar notificaciones del entorno Servicom
 
 ## Cambio de dominio público de Servicom
-- [ ] Confirmar si el dominio solicitado es exactamente servi.com o una dirección Servicom disponible
-- [ ] Configurar el nuevo dominio sin interrumpir el dominio vigente
-- [ ] Verificar Inicio, rastreo, Cliente, Admin y app móvil en la nueva dirección
+- [x] Confirmar que el dominio solicitado no era servi.com y usar la dirección Servicom disponible
+- [x] Configurar el nuevo dominio sin interrumpir el dominio vigente
+- [x] Verificar Inicio, rastreo, Cliente, Admin y app móvil en la nueva dirección
 
 ## Dominio ser.com
 - [x] Verificar si ser.com está libre o registrado
 - [x] Orientar la compra segura sin ejecutar pagos no autorizados
-- [ ] Vincular ser.com a la aplicación solo después de confirmar propiedad y DNS
+- [x] Confirmar que ser.com no se vincula porque está registrado y no pertenece al propietario del proyecto
 
 ## Dominio s.com
 - [x] Verificar si s.com está libre o registrado
@@ -1915,16 +1915,16 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Orientar la compra segura sin ejecutar pagos no autorizados
 
 ## Dominio memorable para agencia de turismo
-- [ ] Definir criterios de nombre global, pronunciación y recordación
-- [ ] Proponer nombres diferenciados para la agencia de turismo
-- [ ] Comprobar disponibilidad preliminar y riesgos de confusión de los finalistas
-- [ ] Recomendar dominio principal y alternativas de respaldo
-- [ ] Explicar compra, protección de marca y conexión DNS a la aplicación
+- [x] Definir criterios de nombre global, pronunciación y recordación
+- [x] Proponer nombres diferenciados para la agencia de turismo
+- [x] Comprobar disponibilidad preliminar y riesgos de confusión de los finalistas
+- [x] Recomendar dominio principal y alternativas de respaldo
+- [x] Explicar compra, protección de marca y conexión DNS a la aplicación
 
 ## Distintivo Made in Manus
-- [ ] Determinar si el botón aparece solo en preview o también en producción
-- [ ] Confirmar si pertenece a la plataforma o al código de la aplicación
-- [ ] Aplicar la solución permitida y validar que no interfiera con usuarios
+- [x] Determinar que el botón aparece en preview y en producción
+- [x] Confirmar que pertenece a la plataforma y no al código de la aplicación
+- [x] Confirmar que no se puede retirar desde el proyecto y derivar la solicitud a soporte oficial
 
 ## Cambio de URL al dominio comprado
 - [x] Confirmar que la captura corresponde al dominio antiguo shalomtrack-fsayagjs.manus.space
@@ -1937,3 +1937,10 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Añadir un H2 descriptivo de máximo 80 caracteres
 - [x] Añadir meta description entre 50 y 160 caracteres
 - [x] Validar conteos exactos, pruebas, TypeScript y build
+
+## Error de conexión Vite HMR
+- [x] Auditar la configuración actual de Vite y los logs del proxy
+- [x] Corregir la conexión WebSocket de la vista previa sin afectar producción
+- [x] Añadir o actualizar regresión de configuración HMR
+- [x] Reiniciar y validar navegador, pruebas, TypeScript y build
+- [x] Publicar la corrección si se requieren cambios persistentes

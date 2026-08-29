@@ -170,6 +170,12 @@ export default defineConfig({
   },
   server: {
     host: true,
+    // The Manus preview proxy terminates HTTPS and forwards HMR to Vite.
+    // Tell the browser to reconnect through the public secure WebSocket.
+    hmr: {
+      protocol: "wss",
+      clientPort: 443,
+    },
     allowedHosts: [
       ".manuspre.computer",
       ".manus.computer",
