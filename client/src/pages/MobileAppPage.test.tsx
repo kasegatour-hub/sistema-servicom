@@ -45,6 +45,7 @@ describe("MobileAppPage", () => {
     expect(screen.getByRole("link", { name: "Iniciar sesión como Cliente" }).getAttribute("href")).toBe("/cuenta?returnTo=%2Fmovil");
     expect(screen.getByRole("link", { name: "Crear cuenta de Cliente" }).getAttribute("href")).toBe("/cuenta?returnTo=%2Fmovil");
     expect(screen.getByRole("link", { name: "Iniciar sesión como Admin" }).getAttribute("href")).toBe("/admin?from=movil");
+    expect(screen.queryByRole("link", { name: "Volver a Inicio web" })).toBeNull();
     expect(screen.queryByRole("heading", { name: "Rastrear envío" })).toBeNull();
     expect(screen.queryByRole("button", { name: /Escanear QR/ })).toBeNull();
   });
@@ -135,7 +136,7 @@ describe("MobileAppPage", () => {
     render(<MobileAppPage />);
 
     expect(screen.queryByRole("link", { name: "Acceso administrativo" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Inicio", current: "page" })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Volver a Inicio web" })).toBeNull();
   });
 
   it("muestra la sesión administrativa y su perfil amplio en la app móvil", () => {

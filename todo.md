@@ -1968,3 +1968,8 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Bloquear creación y entrega externa cuando NODE_ENV sea test
 - [x] Mantener las notificaciones reales activas fuera del modo de pruebas
 - [x] Añadir regresiones y validar la suite completa
+
+## Pantalla de aplicación móvil
+- [x] Retirar el botón Inicio de la cabecera de la pantalla móvil
+- [x] Mantener visibles los accesos de instalación e inicio de sesión
+- [x] Añadir regresión y validar el diseño móvil
