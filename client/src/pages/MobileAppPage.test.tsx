@@ -77,6 +77,8 @@ describe("MobileAppPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Rastrear" }));
     expect(screen.getByRole("heading", { name: "Encuentra tu envío" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Escanear QR de envío" })).toBeTruthy();
+    expect(screen.getByRole("region", { name: /Trayecto del envío/ })).toBeTruthy();
+    expect(screen.getByText("Rastrea tu envío de forma segura")).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Número de orden móvil"), { target: { value: "35209927" } });
     fireEvent.change(screen.getByLabelText("Código de envío móvil"), { target: { value: "7abc" } });
     fireEvent.click(screen.getByRole("button", { name: "Buscar envío" }));
@@ -124,6 +126,7 @@ describe("MobileAppPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Mi cuenta" }));
 
     expect(screen.getByText("Solo gestión personal.")).toBeTruthy();
+    expect(screen.getByText(/Usa las pestañas Rastreo e Inicio de esta misma app/)).toBeTruthy();
     expect(screen.queryByText("Acceso de operador")).toBeNull();
     expect(screen.queryByRole("link", { name: "Acceso administrativo" })).toBeNull();
     expect(screen.getByRole("link", { name: "Perfil, fotos y biografía" }).getAttribute("href")).toBe("/cuenta?mobile=1&workspace=perfil");

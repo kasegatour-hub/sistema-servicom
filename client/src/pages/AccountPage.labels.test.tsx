@@ -66,9 +66,27 @@ describe("AccountPage client labels", () => {
     expect(await screen.findByRole("button", { name: "Perfil" })).toBeTruthy();
     expect(screen.getAllByRole("button", { name: "Cambiar contraseña" }).length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByRole("button", { name: "Mis envíos" })).toBeNull();
+    expect(screen.queryByRole("link", { name: /Ir a Rastreo Público|Rastrear/ })).toBeNull();
     expect(screen.getByText("Fotos personales")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Editar Datos" }));
     expect(screen.getByLabelText("Biografía")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Cerrar perfil y volver a la app" }));
+  });
+
+  it("cierra Seguridad desde móvil con X y conserva el acceso dentro de la app", () => {
+    window.history.pushState({}, "", "/cuenta?mobile=1&workspace=seguridad");
+    render(<AccountPage />);
+
+    expect(screen.getByRole("button", { name: "Cerrar seguridad y volver a la app" })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: /Ir a Rastreo Público|Rastrear/ })).toBeNull();
+  });
+
+  it("muestra una X para cerrar el registro móvil y volver a la app", async () => {
+    window.history.pushState({}, "", "/cuenta?mobile=1&workspace=registrar");
+    render(<AccountPage />);
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Cerrar registro y volver a la app" })).toBeTruthy());
+    expect(screen.queryByRole("link", { name: /Ir a Rastreo Público|Rastrear/ })).toBeNull();
   });
 
   it("muestra nombre, apellidos y correo del Cliente en la cabecera", () => {
@@ -125,6 +143,11 @@ describe("AccountPage client labels", () => {
     expect(document.querySelector("time")?.getAttribute("dateTime")).toBe("2026-08-17T10:00:00.000Z");
     expect(screen.getByRole("button", { name: "Descargar comprobante de entrega de 3520992723" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Descargar comprobante de entrega de 3520992724" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Ver recibo" }));
+    expect(screen.getByText("Datos del remitente")).toBeTruthy();
+    expect(screen.getByText("Datos del destinatario")).toBeTruthy();
+    expect(screen.getByText(/Declaración Jurada y Exención de Responsabilidad Legal/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Cerrar" }));
     fireEvent.click(screen.getByRole("button", { name: "Descargar comprobante de entrega de 3520992723" }));
     await waitFor(() => expect(receiptMocks.download).toHaveBeenCalledWith(expect.objectContaining({ orderNumber: "3520992723", status: "Entregado" }), "pdf"));
   });

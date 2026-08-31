@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { ArrowLeft, CheckCircle2, Download, Eye, EyeOff, ImagePlus, KeyRound, Lock, LogOut, Mail, MessageSquare, Package, Plus, Printer, RotateCcw, Search, Trash2, User, UserPlus } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Download, Eye, EyeOff, ImagePlus, KeyRound, Lock, LogOut, Mail, MessageSquare, Package, Plus, Printer, RotateCcw, Search, Trash2, User, UserPlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -552,9 +552,9 @@ export default function AccountPage() {
               </div>
             </div>
             <div className="grid w-full grid-cols-3 gap-2 sm:flex sm:w-auto">
-              <Link href="/" className="rounded bg-white/10 px-2 py-2 text-center text-xs font-medium transition hover:bg-white/20 sm:px-3 sm:text-sm">
+              {!mobileClientMode && <Link href="/" className="rounded bg-white/10 px-2 py-2 text-center text-xs font-medium transition hover:bg-white/20 sm:px-3 sm:text-sm">
                 <span className="sm:hidden">Rastrear</span><span className="hidden sm:inline">Ir a Rastreo Público</span>
-              </Link>
+              </Link>}
               <Button aria-label="Comentarios" onClick={() => setShowGeneralFeedback(true)} variant="outline" className="border-white/30 bg-transparent px-2 text-xs text-white hover:bg-white/20 sm:px-3 sm:text-sm">
                 <MessageSquare className="h-4 w-4 sm:mr-2" /><span className="hidden sm:inline">Comentarios</span><span className="sm:hidden">Ayuda</span>
               </Button>
@@ -604,12 +604,14 @@ export default function AccountPage() {
                       <span className="max-w-full break-all rounded bg-blue-100 px-2 py-1 text-xs text-[#0B2B5E]">Código: {receiptShipment.code}</span>
                     </div>
                     <div className="grid min-w-0 grid-cols-1 gap-3 text-sm">
-                      <div><strong>Remitente:</strong> {receiptShipment.senderName} {receiptShipment.senderLastName}</div>
-                      <div><strong>DNI Remitente:</strong> {receiptShipment.senderDni || '-'}</div>
-                      <div><strong>Cel. Remitente:</strong> {formatPhoneNumber(receiptShipment.senderPhone) || '-'}</div>
-                      <div><strong>Destinatario:</strong> {receiptShipment.recipientName} {receiptShipment.recipientLastName}</div>
-                      <div><strong>DNI Destinatario:</strong> {receiptShipment.recipientDni || '-'}</div>
-                      <div><strong>Cel. Destinataria:</strong> {formatPhoneNumber(receiptShipment.recipientPhone) || '-'}</div>
+                      <div className="rounded-xl border border-blue-200 bg-blue-50 p-3">
+                        <p className="mb-2 text-xs font-extrabold uppercase tracking-wide text-[#0B2B5E]">Datos del remitente</p>
+                        <div className="space-y-1"><div><strong>Nombre:</strong> {receiptShipment.senderName} {receiptShipment.senderLastName}</div><div><strong>DNI:</strong> {receiptShipment.senderDni || '-'}</div><div><strong>Celular:</strong> {formatPhoneNumber(receiptShipment.senderPhone) || '-'}</div></div>
+                      </div>
+                      <div className="rounded-xl border border-orange-200 bg-orange-50 p-3">
+                        <p className="mb-2 text-xs font-extrabold uppercase tracking-wide text-[#9A5700]">Datos del destinatario</p>
+                        <div className="space-y-1"><div><strong>Nombre:</strong> {receiptShipment.recipientName} {receiptShipment.recipientLastName}</div><div><strong>DNI:</strong> {receiptShipment.recipientDni || '-'}</div><div><strong>Celular:</strong> {formatPhoneNumber(receiptShipment.recipientPhone) || '-'}</div></div>
+                      </div>
                       <div><strong>Fecha:</strong> {new Date(receiptShipment.createdAt || Date.now()).toLocaleDateString()}</div>
                       <div className="col-span-2"><strong>Estado de Pago:</strong> <span className={`inline-flex rounded px-2 py-0.5 font-semibold ${receiptPaymentUi?.badgeClass}`}>{receiptPaymentUi?.label}</span></div>
                        {(receiptShipment.requiresApostilleService === true || Number(receiptShipment.requiresApostilleService) === 1) && <div className="col-span-2 rounded-md border border-[#0B2B5E]/20 bg-blue-50 px-3 py-2 font-semibold text-[#0B2B5E]"><strong>Servicio solicitado:</strong> Documentos para apostillar — 40 EUR (160 soles)</div>}
@@ -656,22 +658,25 @@ export default function AccountPage() {
               {((mobileClientMode ? [["perfil", "Perfil"], ["seguridad", "Cambiar contraseña"]] : [["envios", "Mis envíos"], ["registrar", "Registrar documento"], ["papelera", `Papelera (${myDeletedShipments?.length || 0})`], ["perfil", "Mi perfil"], ["seguridad", "Seguridad"], ["resumen", "Resumen"], ["analitica", "Analítica"]]) as Array<[ClientWorkspace, string]>).map(([workspace, label]) => <Button key={workspace} type="button" size="sm" variant={clientWorkspace === workspace ? "default" : "outline"} onClick={() => { setClientWorkspace(workspace); if (workspace === "registrar") setShowNewShipment(true); }} className={`${!mobileClientMode && (workspace === "resumen" || workspace === "analitica") ? "hidden sm:inline-flex" : ""} ${clientWorkspace === workspace ? "bg-[#0B2B5E] text-white" : "border-slate-300 text-slate-700"}`}>{label}</Button>)}
             </div>
             {!mobileClientMode && <details className="mt-3 sm:hidden"><summary className="cursor-pointer text-xs font-semibold text-[#0B2B5E]">Más opciones de cuenta</summary><div className="mt-2 flex flex-wrap gap-2">{([["resumen", "Resumen"], ["analitica", "Analítica"]] as Array<[ClientWorkspace, string]>).map(([workspace, label]) => <Button key={workspace} type="button" size="sm" variant={clientWorkspace === workspace ? "default" : "outline"} onClick={() => setClientWorkspace(workspace)} className={clientWorkspace === workspace ? "bg-[#0B2B5E] text-white" : "border-slate-300 text-slate-700"}>{label}</Button>)}</div></details>}
-            <p className="mt-2 text-xs text-slate-500">{mobileClientMode ? (clientWorkspace === "registrar" ? "Registro abierto desde Inicio. Completa los pasos para crear tu envío." : "Mi cuenta contiene únicamente tu Perfil y Seguridad. Para rastrear o registrar, vuelve a Inicio móvil.") : "Elige una tarea principal; las opciones menos usadas quedan disponibles en «Más opciones»."}</p>
+            <p className="mt-2 text-xs text-slate-500">{mobileClientMode ? (clientWorkspace === "registrar" ? "Registro abierto dentro de la app. Completa los pasos para crear tu envío." : "Mi cuenta contiene únicamente tu Perfil y Seguridad. Usa la navegación inferior de la app para cambiar de sección.") : "Elige una tarea principal; las opciones menos usadas quedan disponibles en «Más opciones»."}</p>
           </Card>
 
           {me.mustChangePassword && <Card className="border border-amber-300 bg-amber-50 p-4 shadow-sm"><div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm font-medium text-amber-950">Tu cuenta fue creada con una contraseña temporal. Cámbiala ahora para continuar con un acceso seguro.</p><Button type="button" size="sm" className="bg-[#0B2B5E] text-white hover:bg-[#123d78]" onClick={() => setClientWorkspace("seguridad")}>Cambiar contraseña</Button></div></Card>}
 
           {/* Datos Personales */}
-          <Card className={`border-0 p-6 shadow-md ${clientWorkspace === "perfil" ? "" : "hidden"}`}>
-            <div className="flex justify-between items-center mb-4">
+          <Card className={`relative border-0 p-6 shadow-md ${clientWorkspace === "perfil" ? "" : "hidden"}`}>
+            <div className="mb-4 flex items-center justify-between gap-3">
               <h2 className="text-lg font-bold text-[#0B2B5E] flex items-center gap-2">
                 <User className="h-5 w-5 text-[#F28C00]" /> Perfil del Usuario
               </h2>
-              {!isEditingProfile && (
-                <Button type="button" size="sm" onClick={() => setIsEditingProfile(true)} className="bg-[#F28C00] text-white hover:bg-[#d67900]">
-                  Editar Datos
-                </Button>
-              )}
+              <div className="flex items-center gap-2">
+                {!isEditingProfile && (
+                  <Button type="button" size="sm" onClick={() => setIsEditingProfile(true)} className="bg-[#F28C00] text-white hover:bg-[#d67900]">
+                    Editar Datos
+                  </Button>
+                )}
+                {mobileClientMode && <Button type="button" variant="outline" size="icon" aria-label="Cerrar perfil y volver a la app" onClick={() => setLocation("/movil")} className="h-10 w-10 rounded-xl border-2 border-rose-300 text-rose-700 hover:bg-rose-50"><X className="h-5 w-5" /></Button>}
+              </div>
             </div>
 
             <div className="mb-5 flex flex-col items-center gap-4 rounded-2xl border border-blue-100 bg-blue-50 p-5 sm:flex-row sm:items-center">
@@ -747,10 +752,13 @@ export default function AccountPage() {
           </Card>
 
           {/* Cambio de contraseña */}
-          <Card className={`border-0 p-6 shadow-md ${clientWorkspace === "seguridad" ? "" : "hidden"}`}>
-            <h2 className="text-lg font-bold text-[#0B2B5E] mb-4 flex items-center gap-2">
-              <KeyRound className="h-5 w-5 text-[#F28C00]" /> Seguridad de la cuenta
-            </h2>
+          <Card className={`relative border-0 p-6 shadow-md ${clientWorkspace === "seguridad" ? "" : "hidden"}`}>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 className="text-lg font-bold text-[#0B2B5E] flex items-center gap-2">
+                <KeyRound className="h-5 w-5 text-[#F28C00]" /> Seguridad de la cuenta
+              </h2>
+              {mobileClientMode && <Button type="button" variant="outline" size="icon" aria-label="Cerrar seguridad y volver a la app" onClick={() => setLocation("/movil")} className="h-10 w-10 rounded-xl border-2 border-rose-300 text-rose-700 hover:bg-rose-50"><X className="h-5 w-5" /></Button>}
+            </div>
             <form onSubmit={(e) => {
               e.preventDefault();
               if (!isSecurePassword(accountNewPassword)) {
@@ -840,7 +848,7 @@ export default function AccountPage() {
                   deliveryMode: "remoto",
                 });
                   }} className="shipment-form bg-blue-50/50 p-5 md:p-7 rounded-xl mb-6 space-y-5 border border-blue-100 text-base">
-                                        <h3 className="font-bold text-[#0B2B5E]">Detalles del envío de documentos</h3>
+                                        <div className="flex items-center justify-between gap-3"><h3 className="font-bold text-[#0B2B5E]">Detalles del envío de documentos</h3>{mobileClientMode && <Button type="button" variant="outline" size="icon" aria-label="Cerrar registro y volver a la app" onClick={() => { resetClientShipmentForm(); setLocation("/movil"); }} className="h-10 w-10 shrink-0 rounded-xl border-2 border-rose-300 text-rose-700 hover:bg-rose-50"><X className="h-5 w-5" /></Button>}</div>
                 {Object.keys(shipmentValidationErrors).length > 0 && <div role="alert" className="rounded-xl border-2 border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-800"><strong className="block text-base">Completa los campos obligatorios marcados en rojo.</strong><span>Te llevaremos al primer campo pendiente para que puedas corregirlo.</span></div>}
                 {mobileClientMode && <div className="mt-4 rounded-xl border border-blue-100 bg-white p-3" aria-label="Pasos del registro"><div className="flex items-center justify-between gap-2 text-xs font-semibold"><span className={shipmentStep >= 1 ? "text-[#0B2B5E]" : "text-slate-400"}>1. Sede y tipo</span><span className={shipmentStep >= 2 ? "text-[#0B2B5E]" : "text-slate-400"}>2. Personas</span><span className={shipmentStep >= 3 ? "text-[#0B2B5E]" : "text-slate-400"}>3. Contenido</span></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-[#F28C00] transition-all" style={{ width: `${shipmentStep * 33.333}%` }} /></div><p className="mt-2 text-xs text-slate-500">Paso {shipmentStep} de 3. Tus datos se conservan mientras avanzas.</p></div>}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

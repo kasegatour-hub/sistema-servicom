@@ -1973,3 +1973,13 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Retirar el botón Inicio de la cabecera de la pantalla móvil
 - [x] Mantener visibles los accesos de instalación e inicio de sesión
 - [x] Añadir regresión y validar el diseño móvil
+
+## Rediseño móvil solicitado por el cliente
+- [x] Eliminar «Ir a rastreo público» y cualquier salida innecesaria desde la app móvil
+- [x] Añadir X para cerrar Perfil, Fotos y Biografía sin cerrar sesión ni abandonar la app
+- [x] Mantener el Perfil personal como única vista de esa sección y volver a la pantalla móvil anterior al cerrar
+- [x] Añadir regreso visible durante el registro de envíos y conservar el estado del formulario
+- [x] Mantener rastreo con la escena/animación de la experiencia web dentro del contexto móvil
+- [x] Separar visualmente remitente, destinatario, recibo y declaración jurada
+- [x] Usar para clientes Servicom únicamente la identidad y sedes de Servicom; mantener Kasega y Magdalena aislados por su entorno
+- [x] Añadir regresiones móviles, validar responsive, pruebas, TypeScript y build
