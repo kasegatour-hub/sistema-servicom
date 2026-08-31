@@ -379,7 +379,7 @@ export const shipments = mysqlTable("shipments", {
   accountId: int("accountId"), // Propietario del envío (opcional para mantener compatibilidad con envíos públicos o de admin)
   orderNumber: varchar("orderNumber", { length: 64 }).notNull(),
   code: varchar("code", { length: 64 }).notNull(),
-  status: mysqlEnum("status", ["Por entregar en agencia", "En agencia", "En tránsito", "En destino", "Entregado"]).notNull(),
+  status: mysqlEnum("status", ["Por entregar en agencia", "En agencia", "En tránsito", "En destino", "Alerta", "Devolución", "Entregado"]).notNull(),
   events: longtext("events").notNull(), // JSON string with array of events
   
   // Remitente (Sender)

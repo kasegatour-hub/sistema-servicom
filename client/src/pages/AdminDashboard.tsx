@@ -249,7 +249,7 @@ const optionalInternationalPhoneField = z.string().trim().max(32, "El teléfono 
 ).optional();
 
 const createShipmentSchema = z.object({
-  status: z.enum(["Por entregar en agencia", "En agencia", "En tránsito", "En destino", "Entregado"]),
+  status: z.enum(["Por entregar en agencia", "En agencia", "En tránsito", "En destino", "Alerta", "Devolución", "Entregado"]),
   senderName: optionalTextField,
   senderLastName: optionalTextField,
   senderDni: optionalDocumentNumberField,
@@ -315,7 +315,7 @@ const createShipmentSchema = z.object({
 
 const updateStatusSchema = z.object({
   shipmentId: z.number(),
-  newStatus: z.enum(["Por entregar en agencia", "En agencia", "En tránsito", "En destino", "Entregado"]),
+  newStatus: z.enum(["Por entregar en agencia", "En agencia", "En tránsito", "En destino", "Alerta", "Devolución", "Entregado"]),
   description: z.string().optional(),
   senderName: optionalTextField,
   senderLastName: optionalTextField,
@@ -3115,7 +3115,7 @@ export default function AdminDashboard() {
             <Input aria-label="Buscar en papelera" value={deletedSearchTerm} onChange={(event) => setDeletedSearchTerm(event.target.value)} placeholder="Buscar orden, código, nombre o DNI" className="bg-white md:col-span-2" />
             <select aria-label="Filtro de pago en papelera" value={deletedPaymentFilter} onChange={(event) => setDeletedPaymentFilter(event.target.value as "all" | "paid" | "unpaid")} className="h-10 rounded-md border border-slate-300 bg-white px-2 text-sm"><option value="all">Todos los pagos</option><option value="paid">Pagados</option><option value="unpaid">No pagados</option></select>
             <select aria-label="Filtro de tipo en papelera" value={deletedTypeFilter} onChange={(event) => setDeletedTypeFilter(event.target.value as "all" | "documento" | "encomienda")} className="h-10 rounded-md border border-slate-300 bg-white px-2 text-sm"><option value="all">Documentos y encomiendas</option><option value="documento">Documentos</option><option value="encomienda">Encomiendas</option></select>
-            <select aria-label="Filtro de estado en papelera" value={deletedLogisticsFilter} onChange={(event) => setDeletedLogisticsFilter(event.target.value)} className="h-10 rounded-md border border-slate-300 bg-white px-2 text-sm md:col-span-2"><option value="all">Todos los estados</option><option value="Por entregar en agencia">Por entregar en agencia</option><option value="En agencia">En agencia</option><option value="En tránsito">En tránsito</option><option value="En destino">En destino</option><option value="Entregado">Entregado</option></select>
+            <select aria-label="Filtro de estado en papelera" value={deletedLogisticsFilter} onChange={(event) => setDeletedLogisticsFilter(event.target.value)} className="h-10 rounded-md border border-slate-300 bg-white px-2 text-sm md:col-span-2"><option value="all">Todos los estados</option><option value="Por entregar en agencia">Por entregar en agencia</option><option value="En agencia">En agencia</option><option value="En tránsito">En tránsito</option><option value="En destino">En destino</option><option value="Alerta">Alerta</option><option value="Devolución">Devolución</option><option value="Entregado">Entregado</option></select>
             <p className="self-center text-sm text-slate-600 md:col-span-2">{filteredDeletedShipments.length} resultado(s) · 6 por página</p>
           </div>
           {filteredDeletedShipments.length === 0 ? <p className="mt-4 text-sm text-slate-500">No hay envíos eliminados que coincidan con los filtros seleccionados.</p> : <div className="mt-4 space-y-2">

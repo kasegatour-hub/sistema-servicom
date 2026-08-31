@@ -15,6 +15,7 @@ import { QRScanner } from "@/components/QRScanner";
 import QRCode from "qrcode";
 import { buildTrackingPath, buildTrackingUrl, TRACKING_QR_OPTIONS, normalizeTrackingValue } from "@/lib/tracking";
 import { getPaymentStatusUi } from "@/lib/paymentStatus";
+import { getShipmentStatusUi } from "@/../../shared/shipmentStatus";
 import { formatPhoneNumber } from "@/lib/phoneFormatting";
 import { getRoutePresentation } from "@/lib/routeDetails";
 import { SHIPMENT_CODE_EXAMPLE, TRACKING_CODE_MAX_LENGTH, TRACKING_ORDER_MAX_INPUT_LENGTH, formatTrackingCodeInput, formatTrackingOrderInput, getTrackingCodeError, getTrackingOrderError } from "@/../../shared/shipmentIdentifiers";
@@ -284,6 +285,9 @@ export default function Home() {
     }
   };
 
+  const shipmentStatusUi = getShipmentStatusUi(shipmentData?.status);
+  const authorizedUpdatePath = shipmentData ? `/admin?open=update&order=${encodeURIComponent(shipmentData.orderNumber)}&code=${encodeURIComponent(shipmentData.code)}` : "/admin";
+
   return (
     <div className="public-surface min-h-screen bg-gradient-to-b from-gray-50 to-white">
       {/* Header */}
@@ -387,10 +391,10 @@ export default function Home() {
                 </div>
                 <div>
                   <p className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-500">Estado actual</p>
-                  <div className="flex items-center gap-2">
-                    <div className="h-3 w-3 rounded-full bg-[#F28C00] shadow-[0_0_0_5px_rgba(242,140,0,0.15)]" />
-                    <p className="text-xl font-extrabold text-[#0B2B5E] sm:text-2xl">
-                      {shipmentData.status}
+                  <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 ${shipmentStatusUi.className}`}>
+                    <div className={`h-3 w-3 rounded-full ${shipmentStatusUi.dotClassName} shadow-[0_0_0_4px_rgba(220,38,38,0.12)]`} />
+                    <p className="text-xl font-extrabold sm:text-2xl">
+                      {shipmentStatusUi.label}
                     </p>
                   </div>
                 </div>
@@ -405,6 +409,10 @@ export default function Home() {
                   <p className="mt-1 text-3xl font-black tracking-tight text-blue-700 sm:text-4xl">{trackedPriceEur.toFixed(2)} <span className="text-lg font-extrabold">EUR</span></p>
                 </div>}
               </div>
+              <a href={authorizedUpdatePath} className="mt-6 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border-2 border-[#0B2B5E] bg-white px-4 py-3 text-center text-sm font-extrabold text-[#0B2B5E] transition hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#F28C00]/40 sm:w-auto">
+                <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                Actualizar en panel autorizado
+              </a>
             </Card>
 
             {pickupRoute && <Card aria-label="Ruta y sede de recojo" className="rounded-3xl border-0 bg-gradient-to-r from-amber-50 to-white p-5 shadow-[0_18px_50px_-24px_rgba(180,83,9,0.35)] ring-1 ring-amber-200 sm:p-7 lg:p-8">

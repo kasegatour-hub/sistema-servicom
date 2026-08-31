@@ -1983,3 +1983,9 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Separar visualmente remitente, destinatario, recibo y declaración jurada
 - [x] Usar para clientes Servicom únicamente la identidad y sedes de Servicom; mantener Kasega y Magdalena aislados por su entorno
 - [x] Añadir regresiones móviles, validar responsive, pruebas, TypeScript y build
+
+## Actualización y estados de alerta en rastreo
+- [x] Añadir acción de actualización desde el resultado de rastreo con permisos seguros
+- [x] Mostrar Alerta y Devolución en rojo para documentos y encomiendas
+- [x] Mantener la actualización restringida a Admin y Usuario autorizados
+- [x] Añadir regresiones web/móvil y validar permisos, TypeScript y build

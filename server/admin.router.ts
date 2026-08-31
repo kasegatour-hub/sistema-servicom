@@ -762,7 +762,7 @@ export const adminRouter = router({
 
   createShipment: adminProcedure
     .input(z.object({
-      status: z.enum(["Por entregar en agencia", "En agencia", "En tránsito", "En destino", "Entregado"]),
+      status: z.enum(["Por entregar en agencia", "En agencia", "En tránsito", "En destino", "Alerta", "Devolución", "Entregado"]),
       senderName: optionalPersonNameSchema,
       senderLastName: optionalPersonNameSchema,
       senderDni: optionalIdentityDocumentNumberSchema,
@@ -1108,7 +1108,7 @@ export const adminRouter = router({
   updateStatus: adminProcedure
     .input(z.object({
       shipmentId: z.number(),
-      newStatus: z.enum(["Por entregar en agencia", "En agencia", "En tránsito", "En destino", "Entregado"]),
+      newStatus: z.enum(["Por entregar en agencia", "En agencia", "En tránsito", "En destino", "Alerta", "Devolución", "Entregado"]),
       description: z.string().optional(),
       senderName: optionalPersonNameSchema,
       senderLastName: optionalPersonNameSchema,
