@@ -323,6 +323,8 @@ describe("AdminDashboard Nueva Encomienda", () => {
     const statusTrigger = screen.getByText("Nuevo Estado").parentElement?.querySelector("button");
     expect(statusTrigger).toBeTruthy();
     fireEvent.click(statusTrigger!);
+    expect(await screen.findByRole("option", { name: "Alerta" })).toBeTruthy();
+    expect(await screen.findByRole("option", { name: "Devolución" })).toBeTruthy();
     fireEvent.click(await screen.findByRole("option", { name: "En tránsito" }));
 
     await waitFor(() => expect(mocks.updateStatus.mutateAsync).toHaveBeenCalledWith({ shipmentId: 188, newStatus: "En tránsito", description: "" }));

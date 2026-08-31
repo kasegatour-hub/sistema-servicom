@@ -3220,6 +3220,8 @@ export default function AdminDashboard() {
                       <SelectItem value="En agencia">En agencia</SelectItem>
                       <SelectItem value="En tránsito">En tránsito</SelectItem>
                       <SelectItem value="En destino">En destino</SelectItem>
+                      <SelectItem value="Alerta" className="font-extrabold text-red-700 focus:bg-red-50 focus:text-red-800">Alerta</SelectItem>
+                      <SelectItem value="Devolución" className="font-extrabold text-red-700 focus:bg-red-50 focus:text-red-800">Devolución</SelectItem>
                       <SelectItem value="Entregado">Entregado</SelectItem>
                     </SelectContent>
                   </Select>
