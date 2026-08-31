@@ -1991,7 +1991,7 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Añadir regresiones web/móvil y validar permisos, TypeScript y build
 
 ## Selector de actualización no visible
-- [ ] Confirmar si flyservicom.rest sirve una versión anterior o si el selector omite estados
-- [ ] Mostrar claramente las opciones Alerta y Devolución en el modal
-- [ ] Mantener el estado actual separado de las opciones seleccionables
-- [ ] Añadir regresión visual y validar el flujo de actualización
+- [x] Confirmar que flyservicom.rest no era la causa; el selector omitía estados
+- [x] Mostrar claramente las opciones Alerta y Devolución en el modal
+- [x] Mantener el estado actual separado de las opciones seleccionables
+- [x] Añadir regresión visual y validar el flujo de actualización
