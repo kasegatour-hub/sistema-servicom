@@ -24,7 +24,7 @@ describe("couponPricing", () => {
   });
 
   it("calculates a rounded 25 percent discount and final total", () => {
-    expect(applyCouponDiscount(50, activeCoupon)).toEqual({
+    expect(applyCouponDiscount(50, activeCoupon, new Date("2026-08-14T12:00:00.000Z"))).toEqual({
       basePriceEur: 50,
       discountPercent: 25,
       discountAmountEur: 12.5,

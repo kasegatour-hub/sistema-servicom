@@ -1995,3 +1995,13 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Mostrar claramente las opciones Alerta y Devolución en el modal
 - [x] Mantener el estado actual separado de las opciones seleccionables
 - [x] Añadir regresión visual y validar el flujo de actualización
+
+## Limpieza del rastreo público
+- [x] Quitar «Actualizar en panel autorizado» del resultado público
+- [x] Mantener la actualización disponible para Admin y Usuario en su panel
+- [x] Añadir regresión que confirme que el cliente no ve el botón
+- [x] Validar pruebas, TypeScript, build y publicación
+
+## Estabilidad de pruebas de cupones
+- [x] Evitar que el test de descuento dependa de la fecha real del entorno
+- [x] Validar suite completa, TypeScript y build después de la corrección

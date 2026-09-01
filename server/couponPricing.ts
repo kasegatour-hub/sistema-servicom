@@ -19,9 +19,9 @@ export function isCouponCurrentlyValid(coupon: CouponWindow | null | undefined, 
   return Number.isFinite(startsAt) && Number.isFinite(endsAt) && startsAt <= current && current <= endsAt;
 }
 
-export function applyCouponDiscount(basePriceEur: number, coupon: CouponWindow | null | undefined) {
+export function applyCouponDiscount(basePriceEur: number, coupon: CouponWindow | null | undefined, now = new Date()) {
   const safeBasePrice = Math.max(0, Number(basePriceEur) || 0);
-  if (!isCouponCurrentlyValid(coupon)) {
+  if (!isCouponCurrentlyValid(coupon, now)) {
     return {
       basePriceEur: Number(safeBasePrice.toFixed(2)),
       discountPercent: 0,
