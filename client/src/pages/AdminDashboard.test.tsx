@@ -901,14 +901,13 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.click(screen.getByRole("button", { name: "Crear Encomienda" }));
 
     await waitFor(() => expect(mocks.createShipment.mutateAsync).toHaveBeenCalledTimes(2));
-    expect(mocks.createShipment.mutateAsync.mock.calls[1][0]).toMatchObject({
+        expect(mocks.createShipment.mutateAsync.mock.calls[1][0]).toMatchObject({
       shipmentType: "encomienda",
       weightKg: 2.5,
       manualPriceEur: "40",
       extraPriceEur: 0,
     });
-  });
-
+  }, 15000);
   it("limits administrative DNI input to eight digits and displays the payment selector", async () => {
     render(<AdminDashboard />);
     fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });

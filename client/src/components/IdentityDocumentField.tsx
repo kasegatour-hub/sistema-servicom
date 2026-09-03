@@ -1,7 +1,7 @@
 import React from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { IDENTITY_DOCUMENT_DEFINITIONS, IDENTITY_DOCUMENT_TYPES, type IdentityDocumentType, normalizeIdentityDocument } from "@shared/identityDocuments";
+import { IDENTITY_DOCUMENT_DEFINITIONS, IDENTITY_DOCUMENT_TYPES, type IdentityDocumentType, isValidIdentityDocument, normalizeIdentityDocument } from "@shared/identityDocuments";
 
 type IdentityDocumentFieldProps = {
   id: string;
@@ -23,7 +23,8 @@ export function IdentityDocumentField({ id, label, documentType, onDocumentTypeC
       <select id={`${id}-type`} aria-label={`${label} - tipo de identificación`} value={documentType} onChange={(event) => {
         const nextType = event.target.value as IdentityDocumentType;
         onDocumentTypeChange(nextType);
-        onValueChange(normalizeIdentityDocument(value, nextType));
+        const normalizedValue = normalizeIdentityDocument(value, nextType);
+        onValueChange(normalizedValue && isValidIdentityDocument(normalizedValue, nextType) ? normalizedValue : "");
       }} className={`h-10 rounded-md border bg-white px-2 text-sm font-medium text-slate-700 ${error ? "border-rose-500 ring-1 ring-rose-200" : "border-slate-300"}`}>
         {IDENTITY_DOCUMENT_TYPES.map(type => <option key={type} value={type}>{IDENTITY_DOCUMENT_DEFINITIONS[type].label}</option>)}
       </select>

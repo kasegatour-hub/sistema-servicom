@@ -2005,3 +2005,12 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 ## Estabilidad de pruebas de cupones
 - [x] Evitar que el test de descuento dependa de la fecha real del entorno
 - [x] Validar suite completa, TypeScript y build después de la corrección
+
+## Corrección solicitada: actualización completa de envíos
+- [x] Permitir actualizar documentos y encomiendas con todos los campos de remitente, destinatario, ruta, entrega, checklist, notas, peso y tarifas.
+- [x] Permitir editar tipo y número de documento con las opciones DNI, Pasaporte y Carta de identidad en el modal de actualización.
+- [x] Corregir el error de sesión/autenticación que aparece al guardar o recargar datos administrativos.
+- [x] Añadir regresiones para actualización de tipo/documento y persistencia de cambios.
+- [x] Verificar recibo, ticket y declaración con los datos actualizados.
+- [x] Ejecutar pruebas, TypeScript y build de producción.
+- [ ] Guardar checkpoint publicado tras validar la corrección.
