@@ -2013,4 +2013,4 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Añadir regresiones para actualización de tipo/documento y persistencia de cambios.
 - [x] Verificar recibo, ticket y declaración con los datos actualizados.
 - [x] Ejecutar pruebas, TypeScript y build de producción.
-- [ ] Guardar checkpoint publicado tras validar la corrección.
+- [x] Guardar checkpoint publicado tras validar la corrección.
