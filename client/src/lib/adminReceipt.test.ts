@@ -141,6 +141,24 @@ describe("administrative receipt ticket", () => {
     expect(html).toContain("Esta ruta solo admite documentos");
   });
 
+  it("renders current shipment and payment status in the declaration", () => {
+    const html = buildAdminDeclarationHtml({
+      sender: "Ana Pérez",
+      senderDni: "70445566",
+      order: "0926-0001",
+      token: "TOKEN-ACTUAL",
+      today: "3 de septiembre de 2026",
+      route: "Torino - Lima",
+      shipmentStatus: "Alerta",
+      paymentStatus: "Pagado",
+    });
+
+    expect(html).toContain("Estado actual del envío:");
+    expect(html).toContain("Alerta");
+    expect(html).toContain("Estado de pago:");
+    expect(html).toContain("Pagado");
+  });
+
   it("renders the Italian declaration and institutional signature for Torino–Lima", () => {
     const html = buildAdminDeclarationHtml({
       sender: "Luis Mendoza",

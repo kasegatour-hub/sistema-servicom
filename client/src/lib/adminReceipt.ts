@@ -17,10 +17,14 @@ export function buildAdminDeclarationHtml(data: {
   today: string;
   route?: string | null;
   companyName?: string;
+  shipmentStatus?: string | null;
+  paymentStatus?: string | null;
 }) {
   const legal = getDeclarationLegalText(data.route);
   const legalEntity = data.companyName?.trim() || INSTITUTIONAL_DECLARATION_ENTITY;
-  return `<p>Yo, <strong>${data.sender}</strong>, identificado(a) con documento de identidad N° <strong>${data.senderDni}</strong>, en pleno uso de mis facultades, declaro bajo juramento que el envío amparado bajo la Orden N° <strong>${data.order}</strong> (Token de seguridad: ${data.token}) contiene <strong>ÚNICA Y ESTRICTAMENTE DOCUMENTACIÓN LÍCITA</strong>.</p><p>${legal.guarantee}</p><p>${legal.authorities}</p><p>En consecuencia, eximo expresa, legal y totalmente de cualquier implicancia, investigación, responsabilidad operativa o financiera a la empresa <strong>${legalEntity}</strong>. Asimismo, autorizo de manera irrevocable la apertura, revisión física detallada y escaneo del presente envío por parte de la agencia o las autoridades competentes sin necesidad de mi presencia ni notificación previa.</p><p>${legal.originLine} ${data.today}. <strong>${legalEntity}</strong>.</p>`;
+  const payment = getPaymentStatusUi(data.paymentStatus);
+  const currentStatusHtml = `<p style="padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;background:#f8fafc"><strong>Estado actual del envío:</strong> ${data.shipmentStatus || "No especificado"}<br><strong>Estado de pago:</strong> <span style="color:${payment.isPending ? "#be123c" : payment.isPaid ? "#047857" : "#334155"}">${payment.label}</span></p>`;
+  return `${currentStatusHtml}<p>Yo, <strong>${data.sender}</strong>, identificado(a) con documento de identidad N° <strong>${data.senderDni}</strong>, en pleno uso de mis facultades, declaro bajo juramento que el envío amparado bajo la Orden N° <strong>${data.order}</strong> (Token de seguridad: ${data.token}) contiene <strong>ÚNICA Y ESTRICTAMENTE DOCUMENTACIÓN LÍCITA</strong>.</p><p>${legal.guarantee}</p><p>${legal.authorities}</p><p>En consecuencia, eximo expresa, legal y totalmente de cualquier implicancia, investigación, responsabilidad operativa o financiera a la empresa <strong>${legalEntity}</strong>. Asimismo, autorizo de manera irrevocable la apertura, revisión física detallada y escaneo del presente envío por parte de la agencia o las autoridades competentes sin necesidad de mi presencia ni notificación previa.</p><p>${legal.originLine} ${data.today}. <strong>${legalEntity}</strong>.</p>`;
 }
 
 export function buildAdminRouteSummaryHtml(routeValue?: string | null, destinationAddress?: string | null, originAddress?: string | null, originPhone?: string | null) {

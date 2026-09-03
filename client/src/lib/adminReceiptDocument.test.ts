@@ -26,7 +26,7 @@ describe("maqueta compartida del comprobante administrativo", () => {
         recipientLastName: "Gallo Moretti",
         recipientDni: "64578192",
         recipientPhone: "+39 3518642795",
-        status: "En agencia",
+        status: "Alerta",
         paymentStatus: "Pagado",
         finalPriceEur: "189",
         notes: "Tarifa: Encomienda por peso",
@@ -39,6 +39,10 @@ describe("maqueta compartida del comprobante administrativo", () => {
     expect(document.contentHtml.match(/class="receipt-page"/g)).toHaveLength(3);
     expect(document.contentHtml).toContain("INFORMACIÓN DE ENVÍO DE ENCOMIENDA — Torino - Lima");
     expect(document.contentHtml).toContain("CONTROL DE ENTREGA — LIMA, PERÚ (ENCOMIENDA)");
+    expect(document.contentHtml).toContain("Estado del envío:");
+    expect(document.contentHtml).toContain("Alerta");
+    expect(document.contentHtml).toContain("Estado de pago:");
+    expect(document.contentHtml).toContain("Pagado");
     expect(document.contentHtml).toContain("DECLARACIÓN JURADA DE CONTENIDO");
     expect(document.contentHtml).toContain("ESCANEAR PARA GESTIONAR");
     expect(document.contentHtml).toContain("data:image/png;base64,shared-qr");

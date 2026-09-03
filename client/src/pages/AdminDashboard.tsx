@@ -1836,11 +1836,17 @@ export default function AdminDashboard() {
 
   const downloadReceiptFromPreview = async () => {
     if (!printShipment) return;
-    const shipmentToDownload = printShipment;
+    const visibleShipment = printShipment;
+    let shipmentToDownload = visibleShipment;
     setPrintShipment(null);
     try {
+      try {
+        shipmentToDownload = await utils.shipment.search.fetch({ orderNumber: String(visibleShipment.orderNumber), code: String(visibleShipment.code) }) || visibleShipment;
+      } catch {
+        // La descarga puede continuar con los datos visibles si la consulta puntual falla.
+      }
       const filename = receiptDownloadFormat === "pdf"
-        ? await downloadAdministrativePdfWithRetry(shipmentToDownload, shipmentToDownload.signature)
+        ? await downloadAdministrativePdfWithRetry(shipmentToDownload, shipmentToDownload.signature || visibleShipment.signature)
         : await downloadShipmentReceipt(shipmentToDownload, receiptDownloadFormat);
       toast.success(`Archivo descargado: ${filename}`);
     } catch (error) {

@@ -42,6 +42,7 @@ const mocks = vi.hoisted(() => ({
   refetchAdminSession: vi.fn().mockResolvedValue({ data: null }),
   adminSession: null as any,
   refetchShipments: vi.fn(),
+  searchShipment: vi.fn(),
   refetchAdminUsers: vi.fn(),
   refetchCoupons: vi.fn(),
   shipments: [] as any[],
@@ -73,7 +74,7 @@ const qrScannerMocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/trpc", () => ({
   trpc: {
-    useUtils: () => ({ shipment: { search: { fetch: vi.fn() } }, admin: { me: { invalidate: vi.fn() } } }),
+    useUtils: () => ({ shipment: { search: { fetch: mocks.searchShipment } }, admin: { me: { invalidate: vi.fn() } } }),
     transfers: {
       list: { useQuery: () => mocks.listTransfers },
       create: { useMutation: () => mocks.createTransfer },
@@ -172,6 +173,7 @@ beforeEach(() => {
   mocks.deletedShipments = [];
   mocks.deliveryShipment = { data: null, isLoading: false, error: null };
   mocks.adminSession = null;
+  mocks.searchShipment.mockResolvedValue(undefined);
   qrScannerMocks.onScan = null;
   mocks.login.mutateAsync.mockResolvedValue({ id: 1, email: "admin@servicom.pe", name: "Operador", role: "registrador" });
 });
@@ -526,6 +528,8 @@ describe("AdminDashboard Nueva Encomienda", () => {
       hiddenFromRegistradoresAt: null,
     };
     mocks.shipments = [shipment];
+    const freshShipment = { ...shipment, status: "Alerta", paymentStatus: "Pagado", notes: "Estado actualizado después de abrir la vista previa" };
+    mocks.searchShipment.mockResolvedValue(freshShipment);
     render(<AdminDashboard />);
     fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
     fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
@@ -538,7 +542,8 @@ describe("AdminDashboard Nueva Encomienda", () => {
     expect(screen.queryByText("RUC: 20615004708")).toBeNull();
     expect(screen.getByRole("combobox", { name: "Formato de descarga administrativa" })).toBeTruthy();
     fireEvent.click(screen.getAllByRole("button", { name: "Descargar PDF" }).at(-1)!);
-    await waitFor(() => expect(adminReceiptDocumentMocks.download).toHaveBeenCalledWith(expect.objectContaining({ shipment, origin: window.location.origin })));
+    await waitFor(() => expect(adminReceiptDocumentMocks.download).toHaveBeenCalledWith(expect.objectContaining({ shipment: freshShipment, origin: window.location.origin })));
+    expect(mocks.searchShipment).toHaveBeenCalledWith({ orderNumber: shipment.orderNumber, code: shipment.code });
     expect(screen.queryByText("Vista Previa de Recibo")).toBeNull();
   });
 

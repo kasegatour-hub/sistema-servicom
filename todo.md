@@ -2014,3 +2014,9 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Verificar recibo, ticket y declaración con los datos actualizados.
 - [x] Ejecutar pruebas, TypeScript y build de producción.
 - [x] Guardar checkpoint publicado tras validar la corrección.
+
+## Sincronización final de documentos administrativos
+- [x] Refrescar el envío vigente antes de descargar desde la vista previa administrativa en cualquier formato.
+- [x] Confirmar que recibo, ticket y declaración jurada usan el mismo estado operativo y de pago actual.
+- [x] Añadir regresiones para cambios posteriores a la creación del envío.
+- [x] Ejecutar suite, TypeScript y build, y publicar el checkpoint validado.
