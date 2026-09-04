@@ -43,7 +43,7 @@ import { PasswordRequirements } from "@/components/PasswordRequirements";
 import { NotificationBell } from "@/components/NotificationBell";
 import { AdminFeedbackInbox } from "@/components/AdminFeedbackInbox";
 import { AgencyDestinationPicker, type AgencyProvider } from "@/components/AgencyDestinationPicker";
-import { derivePricingCurrency, normalizeIndependentEndpoints } from "@shared/shipmentEndpoints";
+import { deriveHubPath, derivePricingCurrency, normalizeIndependentEndpoints } from "@shared/shipmentEndpoints";
 import { IndependentEndpointsFields } from "@/components/IndependentEndpointsFields";
 import { LimaTorinoTransferPanel } from "@/components/LimaTorinoTransferPanel";
 import { TransferWorkspace } from "@/components/TransferWorkspace";
@@ -62,6 +62,11 @@ import { DeliveryReceiptDialog } from "@/components/DeliveryReceiptDialog";
 
 const isKasegaAdminIdentity = (adminId?: number | null, email?: string | null) => [210001, 210002].includes(Number(adminId)) || /^(magda\.barreto\.alv@gmail\.com|kasegatour@gmail\.com)$/i.test(String(email || "").trim());
 const getAdminShipmentBrand = (adminId?: number | null, email?: string | null) => isKasegaAdminIdentity(adminId, email) ? "kasega" as const : "servicom" as const;
+const getShipmentEndpointLabels = (shipment: any) => {
+  const endpoints = normalizeIndependentEndpoints({ route: shipment.route, originPoint: shipment.originPoint, destinationPoint: shipment.destinationPoint });
+  const hubPath = deriveHubPath(endpoints);
+  return { ...endpoints, hubPath, hubLabel: hubPath.length > 2 ? hubPath.join(" → ") : "Sin tránsito adicional" };
+};
 type AdminWorkspace = "resumen" | "registros" | "crear" | "cupones" | "papelera" | "usuarios" | "analitica" | "carta" | "remitentes" | "transferencias" | "contabilidad" | "feedback";
 type CreateRecordTab = "documento" | "encomienda" | "transferencia";
 const createShipmentFieldLabels: Record<string, string> = { senderName: "nombre del remitente", senderLastName: "apellido del remitente", senderDni: "documento del remitente", senderPhone: "celular del remitente", recipientName: "nombre del destinatario", recipientLastName: "apellido del destinatario", recipientDni: "documento del destinatario", recipientPhone: "celular del destinatario", weightKg: "peso del envío", provinceCustomerPriceEur: "precio al cliente para provincia", provinceExtraPriceEur: "extra provincial", destinationAddress: "sede de destino", contentChecklist: "lista de cosas enviadas", limaTorinoTransferMode: "forma de traslado a Torino", deliveryPersonName: "nombre de la persona autorizada", deliveryPersonLastName: "apellido de la persona autorizada", deliveryPersonDni: "documento de la persona autorizada", deliveryPersonPhone: "celular de la persona autorizada", deliveryLocationType: "lugar de entrega", deliveryLocationAddress: "dirección de entrega" };
@@ -425,7 +430,7 @@ export default function AdminDashboard() {
   const [autoSaveStatusFeedback, setAutoSaveStatusFeedback] = useState("");
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [shipmentView, setShipmentView] = useState<'documento' | 'encomienda'>('documento');
-  const [selectedGroupType, setSelectedGroupType] = useState<'documento' | 'encomienda' | null>(null);
+  const [selectedGroupType, setSelectedGroupType] = useState<'documento' | 'encomienda'>('documento');
   const [operationalRoute, setOperationalRoute] = useState<OperationalRouteFilter>("all");
   type ShipmentGroup = "documento_lima_torino" | "documento_torino_lima" | "documento_torino_provincia" | "documento_provincia_lima_torino" | "encomienda_lima_torino" | "encomienda_torino_lima" | "encomienda_torino_provincia" | "encomienda_provincia_lima_torino";
   const [shipmentGroup, setShipmentGroup] = useState<ShipmentGroup>("documento_lima_torino");
@@ -503,6 +508,10 @@ export default function AdminDashboard() {
   const [deliveryStatusDescription, setDeliveryStatusDescription] = useState("");
   const [paymentFilter, setPaymentFilter] = useState<"all" | "paid" | "unpaid">("all");
   const [logisticsFilter, setLogisticsFilter] = useState("all");
+  const [originFilter, setOriginFilter] = useState("all");
+  const [destinationFilter, setDestinationFilter] = useState("all");
+  const [courierFilter, setCourierFilter] = useState("all");
+  const [sedeFilter, setSedeFilter] = useState("all");
   const [deletedSearchTerm, setDeletedSearchTerm] = useState("");
   const [deletedPaymentFilter, setDeletedPaymentFilter] = useState<"all" | "paid" | "unpaid">("all");
   const [deletedLogisticsFilter, setDeletedLogisticsFilter] = useState("all");
@@ -559,18 +568,23 @@ export default function AdminDashboard() {
   const couponFirstItem = orderedCoupons.length === 0 ? 0 : (couponCurrentPage - 1) * couponPageSize + 1;
   const couponLastItem = Math.min(couponCurrentPage * couponPageSize, orderedCoupons.length);
   const routeShipments = useMemo(() => (shipments ?? []).filter(shipment => matchesOperationalRoute(shipment.route, operationalRoute)), [shipments, operationalRoute]);
+  const independentFilterOptions = useMemo(() => {
+    const rows = (shipments ?? []) as any[];
+    const endpoints = rows.map((shipment) => normalizeIndependentEndpoints({ route: shipment.route, originPoint: shipment.originPoint, destinationPoint: shipment.destinationPoint }));
+    const couriers = Array.from(new Set(rows.map((shipment) => String(shipment.provinceCarrier || "").trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"));
+    const sedes = Array.from(new Set(rows.flatMap((shipment) => [shipment.originAddress, shipment.destinationAddress]).map((value) => String(value || "").trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"));
+    return { endpoints, couriers, sedes };
+  }, [shipments]);
   const groupedShipments = useMemo(() => (shipments ?? []).filter((shipment: any) => {
     const isDocument = shipment.shipmentType !== "encomienda";
-    const groupType = shipmentGroup.startsWith("documento") ? isDocument : !isDocument;
-    const groupRoute = shipmentGroup.endsWith("lima_torino")
-      ? SHIPMENT_ROUTES.LIMA_TORINO
-      : shipmentGroup.endsWith("torino_lima")
-        ? SHIPMENT_ROUTES.TORINO_LIMA
-        : shipmentGroup.endsWith("torino_provincia")
-          ? SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE
-          : SHIPMENT_ROUTES.PROVINCE_LIMA_TORINO;
-    return groupType && getShipmentRouteBucket(shipment.route, shipment.isProvinceDelivery) === groupRoute;
-  }), [shipments, shipmentGroup]);
+    const groupType = selectedGroupType === "documento" ? isDocument : !isDocument;
+    const endpoints = normalizeIndependentEndpoints({ route: shipment.route, originPoint: shipment.originPoint, destinationPoint: shipment.destinationPoint });
+    const originMatches = originFilter === "all" || endpoints.originPoint === originFilter;
+    const destinationMatches = destinationFilter === "all" || endpoints.destinationPoint === destinationFilter;
+    const courierMatches = courierFilter === "all" || String(shipment.provinceCarrier || "") === courierFilter;
+    const sedeMatches = sedeFilter === "all" || shipment.originAddress === sedeFilter || shipment.destinationAddress === sedeFilter;
+    return groupType && originMatches && destinationMatches && courierMatches && sedeMatches;
+  }), [shipments, selectedGroupType, originFilter, destinationFilter, courierFilter, sedeFilter]);
   const adminRevenue = useMemo(() => summarizeRevenue(routeShipments), [routeShipments]);
 
   const filteredDeletedShipments = useMemo(() => {
@@ -1926,7 +1940,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, shipmentGroup, sortOrder, paymentFilter, logisticsFilter]);
+  }, [searchTerm, shipmentGroup, sortOrder, paymentFilter, logisticsFilter, originFilter, destinationFilter, courierFilter, sedeFilter]);
 
   const pagination = paginateItems(sortedShipments, currentPage, pageSize);
   const totalPages = pagination.totalPages;
@@ -2974,15 +2988,15 @@ export default function AdminDashboard() {
                   ))}
                 </div>
                 {selectedGroupType && <div className="rounded-xl border border-slate-200 bg-slate-50 p-3" role="group" aria-label={`Rutas de ${selectedGroupType === 'documento' ? 'documentos' : 'encomiendas'}`}>
-                  <p className="mb-2 text-sm font-semibold text-slate-700">Elige una ruta para ver sus registros:</p>
-                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                    {([['lima_torino', 'Lima → Torino', SHIPMENT_ROUTES.LIMA_TORINO, 'bg-[#0B2B5E] text-white', 'border-blue-200 bg-white text-[#0B2B5E]'], ['torino_lima', 'Torino → Lima', SHIPMENT_ROUTES.TORINO_LIMA, 'bg-[#1d4ed8] text-white', 'border-blue-200 bg-white text-[#1d4ed8]'], ['torino_provincia', 'Torino → Lima + provincia', SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE, 'bg-[#2563eb] text-white', 'border-blue-200 bg-white text-[#2563eb]'], ['provincia_lima_torino', 'Provincia → Lima → Torino', SHIPMENT_ROUTES.PROVINCE_LIMA_TORINO, 'bg-[#475569] text-white', 'border-slate-200 bg-white text-slate-700']] as const).map(([suffix, label, route, activeClass, idleClass]) => {
-                      const value = `${selectedGroupType}_${suffix}` as ShipmentGroup;
-                      const count = (shipments || []).filter((shipment: any) => (selectedGroupType === 'documento' ? shipment.shipmentType !== 'encomienda' : shipment.shipmentType === 'encomienda') && getShipmentRouteBucket(shipment.route, shipment.isProvinceDelivery) === route).length;
-                      return <Button key={value} type="button" aria-pressed={shipmentGroup === value} onClick={() => setShipmentGroup(value)} className={`min-h-11 justify-start text-left ${shipmentGroup === value ? activeClass : `border ${idleClass}`}`}>
-                        {label}<span className="ml-auto text-xs opacity-80">({count})</span>
-                      </Button>;
-                    })}
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <div><p className="text-sm font-semibold text-slate-700">Filtra por parámetros independientes</p><p className="text-xs text-slate-500">Puedes combinar origen, destino, courier y sede sin elegir una ruta técnica.</p></div>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => { setOriginFilter("all"); setDestinationFilter("all"); setCourierFilter("all"); setSedeFilter("all"); }} className="text-[#0B2B5E]">Limpiar filtros</Button>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <label className="grid gap-1 text-xs font-semibold text-slate-600">Origen<select aria-label="Filtro de origen" value={originFilter} onChange={(event) => setOriginFilter(event.target.value)} className="h-10 rounded-md border border-slate-300 bg-white px-2 text-sm font-normal text-slate-800"><option value="all">Todos los orígenes</option><option value="Torino">Torino</option><option value="Lima">Lima</option><option value="Provincia (Perú)">Provincia (Perú)</option></select></label>
+                    <label className="grid gap-1 text-xs font-semibold text-slate-600">Destino<select aria-label="Filtro de destino" value={destinationFilter} onChange={(event) => setDestinationFilter(event.target.value)} className="h-10 rounded-md border border-slate-300 bg-white px-2 text-sm font-normal text-slate-800"><option value="all">Todos los destinos</option><option value="Torino">Torino</option><option value="Lima">Lima</option><option value="Provincia (Perú)">Provincia (Perú)</option></select></label>
+                    <label className="grid gap-1 text-xs font-semibold text-slate-600">Courier local<select aria-label="Filtro de courier local" value={courierFilter} onChange={(event) => setCourierFilter(event.target.value)} className="h-10 rounded-md border border-slate-300 bg-white px-2 text-sm font-normal text-slate-800"><option value="all">Todos los couriers</option>{independentFilterOptions.couriers.map((courier) => <option key={courier} value={courier}>{courier}</option>)}</select></label>
+                    <label className="grid gap-1 text-xs font-semibold text-slate-600">Sede u origen detallado<select aria-label="Filtro de sede" value={sedeFilter} onChange={(event) => setSedeFilter(event.target.value)} className="h-10 rounded-md border border-slate-300 bg-white px-2 text-sm font-normal text-slate-800"><option value="all">Todas las sedes</option>{independentFilterOptions.sedes.map((sede) => <option key={sede} value={sede}>{sede}</option>)}</select></label>
                   </div>
                 </div>}
               </div>
@@ -3060,15 +3074,20 @@ export default function AdminDashboard() {
                   <dl className="mt-4 grid grid-cols-2 gap-3 border-y border-slate-100 py-3 text-sm">
                     <div><dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Número de orden</dt><dd className="mt-1 break-all font-bold text-[#0B2B5E]">{shipment.orderNumber}</dd></div>
                     <div><dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Código</dt><dd className="mt-1 break-all font-bold text-[#0B2B5E]">{shipment.code}</dd></div>
+                    <div className="col-span-2"><dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Origen → destino</dt><dd className="mt-1 font-semibold text-slate-800">{getShipmentEndpointLabels(shipment).originPoint} → {getShipmentEndpointLabels(shipment).destinationPoint}</dd><dd className="text-xs text-slate-500">Tránsito: {getShipmentEndpointLabels(shipment).hubLabel}</dd></div>
+                    <div><dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Courier local</dt><dd className="mt-1 text-slate-700">{shipment.provinceCarrier || "No aplica"}</dd></div>
+                    <div><dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Sede</dt><dd className="mt-1 break-words text-slate-700">{shipment.destinationAddress || shipment.originAddress || "No indicada"}</dd></div>
                     <div className="col-span-2"><dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Fecha de creación</dt><dd className="mt-1 text-slate-700">{new Date(shipment.createdAt).toLocaleDateString()}<span className="mt-1 block text-xs text-slate-500"><strong>Registrado por:</strong> {shipment.registeredByLabel || "Registro anterior"}</span></dd></div>
                   </dl>
                   <div className="mt-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Acciones</p><div className="mt-2 grid grid-cols-2 gap-2 [&_button]:h-auto [&_button]:min-h-10 [&_button]:w-full [&_button]:whitespace-normal [&_button]:px-2 [&_button]:py-2 [&_button]:text-xs">{shipmentActionButtons(shipment)}</div></div>
                 </article>)}
               </div> : <div className="overflow-x-auto">
               <Table className="min-w-[980px] w-full">
-                <TableHeader>
+                  <TableHeader>
                   <TableRow>
                     <TableHead className="min-w-[250px]">Destinatario</TableHead>
+                    <TableHead className="min-w-[220px]">Origen / tránsito / destino</TableHead>
+                    <TableHead className="min-w-[180px]">Courier / sede</TableHead>
                     <TableHead className="min-w-[190px]">Estado</TableHead>
                     <TableHead className="min-w-[130px]">Fecha de creación</TableHead>
                     <TableHead className="min-w-[280px]">Acciones</TableHead>
@@ -3080,6 +3099,8 @@ export default function AdminDashboard() {
                   {visibleShipments.map((shipment: any) => (
                     <TableRow key={shipment.id} className={shipment.hiddenFromRegistradoresAt ? "bg-violet-50/60" : undefined}>
                       <TableCell className="max-w-[280px] whitespace-normal font-semibold text-slate-900">{shipment.recipientName ? `${shipment.recipientName} ${shipment.recipientLastName || ''}` : 'Destinatario no especificado'}</TableCell>
+                      <TableCell className="whitespace-normal text-sm"><strong>{getShipmentEndpointLabels(shipment).originPoint} → {getShipmentEndpointLabels(shipment).destinationPoint}</strong><span className="mt-1 block text-xs text-slate-500">Tránsito: {getShipmentEndpointLabels(shipment).hubLabel}</span></TableCell>
+                      <TableCell className="whitespace-normal text-sm"><strong>{shipment.provinceCarrier || "No aplica"}</strong><span className="mt-1 block text-xs text-slate-500">{shipment.destinationAddress || shipment.originAddress || "Sede no indicada"}</span></TableCell>
                       <TableCell>{shipmentStatusBadges(shipment)}</TableCell>
                       <TableCell className="whitespace-nowrap"><div>{new Date(shipment.createdAt).toLocaleDateString()}</div><p className="mt-1 whitespace-normal text-xs text-slate-500"><strong>Registrado por:</strong> {shipment.registeredByLabel || "Registro anterior"}</p></TableCell>
                       <TableCell><div className="flex flex-wrap gap-2">{shipmentActionButtons(shipment)}</div></TableCell>

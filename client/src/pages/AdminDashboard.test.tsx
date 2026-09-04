@@ -237,7 +237,8 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
     await screen.findByRole("textbox", { name: "Buscar registros" });
     fireEvent.click(screen.getByRole("button", { name: /Documentos/ }));
-    fireEvent.click(screen.getByRole("button", { name: /Torino → Lima(?! \+ provincia)/ }));
+    fireEvent.change(screen.getByRole("combobox", { name: "Filtro de origen" }), { target: { value: "Torino" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "Filtro de destino" }), { target: { value: "Lima" } });
 
     fireEvent.click(screen.getByRole("button", { name: "Ver datos completos" }));
     const detailsDialog = screen.getByRole("dialog", { name: "Datos completos" });
@@ -263,7 +264,8 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
     await screen.findByRole("textbox", { name: "Buscar registros" });
     fireEvent.click(screen.getByRole("button", { name: /Encomiendas/ }));
-    fireEvent.click(within(screen.getByRole("group", { name: "Rutas de encomiendas" })).getAllByRole("button", { name: /Lima → Torino/ })[0]);
+    fireEvent.change(screen.getByRole("combobox", { name: "Filtro de origen" }), { target: { value: "Lima" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "Filtro de destino" }), { target: { value: "Torino" } });
 
     const card = await screen.findByRole("article", { name: "Registro 0826-0019" });
     expect(within(card).getByText("Deys Juana Eguia Huaylinos")).toBeTruthy();
@@ -938,13 +940,16 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
     await waitFor(() => expect(screen.getByRole("button", { name: /Documentos/ })).toBeTruthy());
     fireEvent.click(screen.getByRole("button", { name: /Documentos/ }));
-    expect(within(screen.getByRole("group", { name: "Rutas de documentos" })).getAllByRole("button", { name: /Lima → Torino/ })[0]).toBeTruthy();
+    expect(screen.getByRole("combobox", { name: "Filtro de origen" })).toBeTruthy();
+    expect(screen.getByRole("combobox", { name: "Filtro de destino" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Documentos registrados" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /Encomiendas/ }));
-    fireEvent.click(within(screen.getByRole("group", { name: "Rutas de encomiendas" })).getAllByRole("button", { name: /Torino → Lima \+ provincia/ })[0]);
+    fireEvent.change(screen.getByRole("combobox", { name: "Filtro de origen" }), { target: { value: "Torino" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "Filtro de destino" }), { target: { value: "Provincia (Perú)" } });
     expect(screen.getByRole("heading", { name: "Encomiendas registradas" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /Documentos/ }));
-    fireEvent.click(within(screen.getByRole("group", { name: "Rutas de documentos" })).getAllByRole("button", { name: /Lima → Torino/ })[0]);
+    fireEvent.change(screen.getByRole("combobox", { name: "Filtro de origen" }), { target: { value: "Lima" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "Filtro de destino" }), { target: { value: "Torino" } });
     expect(screen.getByRole("heading", { name: "Documentos registrados" })).toBeTruthy();
   });
 
@@ -975,7 +980,8 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
     await screen.findByRole("textbox", { name: "Buscar registros" });
     fireEvent.click(screen.getByRole("button", { name: /Encomiendas/ }));
-    fireEvent.click(within(screen.getByRole("group", { name: "Rutas de encomiendas" })).getAllByRole("button", { name: /Torino → Lima(?! \+ provincia)/ })[0]);
+    fireEvent.change(screen.getByRole("combobox", { name: "Filtro de origen" }), { target: { value: "Torino" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "Filtro de destino" }), { target: { value: "Lima" } });
     const shipmentRow = screen.getByText("63526276").closest("tr");
     expect(shipmentRow).toBeTruthy();
     fireEvent.click(within(shipmentRow as HTMLElement).getByRole("button", { name: "Actualizar" }));
@@ -1043,3 +1049,37 @@ describe("AdminDashboard Nueva Encomienda", () => {
     })));
   });
 });
+
+  it("muestra y permite abrir un envío Provincia → Lima mediante filtros independientes", async () => {
+    mocks.shipments = [{
+      id: 405,
+      shipmentType: "documento",
+      senderName: "Ana",
+      senderLastName: "Pérez",
+      recipientName: "Marco",
+      recipientLastName: "Rossi",
+      route: "Provincia - Lima",
+      originPoint: "Provincia (Perú)",
+      destinationPoint: "Lima",
+      originAddress: "Shalom — Agencia Arequipa · Av. Independencia 123",
+      destinationAddress: "Jr. de la Unión 518, Lima",
+      provinceCarrier: "shalom",
+      status: "En agencia",
+      paymentStatus: "Pagado",
+      orderNumber: "0926-0040",
+      code: "P4L1",
+      createdAt: new Date("2026-09-04T10:00:00.000Z"),
+    }];
+    render(<AdminDashboard />);
+    fireEvent.change(screen.getByPlaceholderText("Ingresa tu correo administrativo"), { target: { value: "admin@servicom.pe" } });
+    fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
+    await screen.findByRole("textbox", { name: "Buscar registros" });
+    fireEvent.change(screen.getByRole("combobox", { name: "Filtro de origen" }), { target: { value: "Provincia (Perú)" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "Filtro de destino" }), { target: { value: "Lima" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "Filtro de courier local" }), { target: { value: "shalom" } });
+    const row = await screen.findByText("0926-0040");
+    expect(row.closest("tr")).toBeTruthy();
+    fireEvent.click(within(row.closest("tr") as HTMLElement).getByRole("button", { name: "Ver datos completos" }));
+    expect(screen.getByRole("dialog", { name: "Datos completos" })).toBeTruthy();
+  });
