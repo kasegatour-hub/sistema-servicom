@@ -14,6 +14,13 @@ export const LIMA_SERVICOM_ADDRESS = "SERVICOM INTERNACIONAL — Jr. de la Unió
 export const SERVICOM_TORINO_ADDRESS = "SERVICOM INTERNACIONAL — Corso Peschiera, 162A, Zona Piazza Sabotino, Torino, Italia";
 export const KASEGA_TORINO_ADDRESS = "KASEGA TOUR — Via Muriaglio 12, Torino, Italia";
 
+/** Sedes principales reutilizables en formularios, filtros y documentos. */
+export const FIXED_SHIPMENT_LOCATIONS = [
+  { id: "servicom-lima", label: "Servicom Internacional — Jr. de la Unión 518 Sótano Int. 101, Lima", address: LIMA_SERVICOM_ADDRESS, workspace: "servicom" as const },
+  { id: "servicom-torino", label: "Servicom Internacional — Corso Peschiera 162A, Torino", address: SERVICOM_TORINO_ADDRESS, workspace: "servicom" as const },
+  { id: "kasega-torino", label: "Kasega Tour — Via Muriaglio 12, Torino", address: KASEGA_TORINO_ADDRESS, workspace: "kasega" as const },
+];
+
 export type ShipmentBrand = "servicom" | "kasega";
 
 /**

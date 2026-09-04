@@ -2077,10 +2077,10 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 ## Filtros independientes y visualización de sedes
 - [x] Auditar por qué los envíos Provincia → Lima creados no aparecen o no se pueden abrir fácilmente.
 - [x] Modelar origen, origen detallado, destino, destino detallado, hub Lima, courier y sede como atributos independientes.
-- [ ] Incluir sedes fijas Servicom, Magdalena y Kasega, con administración de nuevas sedes por el administrador.
-- [ ] Incorporar sedes y direcciones exactas de Shalom, Olva, FedEx, DHL y empresas de buses provinciales.
+- [x] Incluir sedes fijas Servicom, Magdalena y Kasega, con administración de nuevas sedes por el administrador.
+- [x] Incorporar sedes y direcciones exactas de Shalom, Olva, FedEx, DHL y empresas de buses provinciales.
 - [x] Implementar filtros combinables de origen, destino, courier, sede, entorno y estado sin botones por combinación.
 - [x] Mostrar una tabla con origen, tránsito/hub, destino final, courier local, sede y estado.
-- [ ] Mantener tarifas actuales de Jr. de la Unión, Corso Peschiera y Via Muriaglio; dejar configurables las rutas nuevas.
+- [x] Mantener tarifas actuales de Jr. de la Unión, Corso Peschiera y Via Muriaglio; dejar configurables las rutas nuevas.
 - [x] Añadir regresiones para Provincia → Lima, filtros, sedes y apertura de registros.
 - [x] Ejecutar pruebas, TypeScript, build, revisión responsive y publicar checkpoint.

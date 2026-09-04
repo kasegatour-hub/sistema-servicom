@@ -54,7 +54,7 @@ import { getFuzzySearchScore } from "@shared/fuzzySearch";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "@shared/passwordPolicy";
 import { isValidInternationalPhone } from "@shared/phoneValidation";
 import { calculateAdminShipmentPricing, extractFreeformShipmentNotes, mergeShipmentNotes } from "@shared/adminPricing";
-import { LIMA_SERVICOM_ADDRESS, SHIPMENT_ROUTES, getDefaultShipmentAddresses, getShipmentRouteBucket, isProvinceShipmentRoute, isTorinoLimaRoute } from "@shared/shipmentRoutes";
+import { FIXED_SHIPMENT_LOCATIONS, LIMA_SERVICOM_ADDRESS, SHIPMENT_ROUTES, getDefaultShipmentAddresses, getShipmentRouteBucket, isProvinceShipmentRoute, isTorinoLimaRoute } from "@shared/shipmentRoutes";
 import { getParcelRateEurPerKg } from "@shared/workspacePricing";
 import { useIsMobile } from "@/hooks/useMobile";
 import { RecipientChangeRequestDialog } from "@/components/RecipientChangeRequestDialog";
@@ -572,7 +572,7 @@ export default function AdminDashboard() {
     const rows = (shipments ?? []) as any[];
     const endpoints = rows.map((shipment) => normalizeIndependentEndpoints({ route: shipment.route, originPoint: shipment.originPoint, destinationPoint: shipment.destinationPoint }));
     const couriers = Array.from(new Set(rows.map((shipment) => String(shipment.provinceCarrier || "").trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"));
-    const sedes = Array.from(new Set(rows.flatMap((shipment) => [shipment.originAddress, shipment.destinationAddress]).map((value) => String(value || "").trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"));
+    const sedes = Array.from(new Set([...FIXED_SHIPMENT_LOCATIONS.map((location) => location.address), ...rows.flatMap((shipment) => [shipment.originAddress, shipment.destinationAddress]).map((value) => String(value || "").trim()).filter(Boolean)])).sort((a, b) => a.localeCompare(b, "es"));
     return { endpoints, couriers, sedes };
   }, [shipments]);
   const groupedShipments = useMemo(() => (shipments ?? []).filter((shipment: any) => {

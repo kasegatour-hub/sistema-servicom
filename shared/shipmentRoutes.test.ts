@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { getDefaultShipmentAddresses, getShipmentRouteBucket, KASEGA_TORINO_ADDRESS, LIMA_SERVICOM_ADDRESS, SERVICOM_TORINO_ADDRESS, SHIPMENT_ROUTES } from "./shipmentRoutes";
+import { FIXED_SHIPMENT_LOCATIONS, getDefaultShipmentAddresses, getShipmentRouteBucket, KASEGA_TORINO_ADDRESS, LIMA_SERVICOM_ADDRESS, SERVICOM_TORINO_ADDRESS, SHIPMENT_ROUTES } from "./shipmentRoutes";
 
 describe("getShipmentRouteBucket", () => {
+  it("expone las sedes fijas principales para filtros y documentos", () => {
+    expect(FIXED_SHIPMENT_LOCATIONS.map((location) => location.id)).toEqual(["servicom-lima", "servicom-torino", "kasega-torino"]);
+    expect(FIXED_SHIPMENT_LOCATIONS.find((location) => location.id === "servicom-lima")?.address).toContain("Jr. de la Unión");
+    expect(FIXED_SHIPMENT_LOCATIONS.find((location) => location.id === "servicom-torino")?.address).toContain("Corso Peschiera");
+    expect(FIXED_SHIPMENT_LOCATIONS.find((location) => location.id === "kasega-torino")?.address).toContain("Via Muriaglio");
+  });
   it("separa Torino–Lima de Torino–Lima + provincia", () => {
     expect(getShipmentRouteBucket(SHIPMENT_ROUTES.TORINO_LIMA, false)).toBe(SHIPMENT_ROUTES.TORINO_LIMA);
     expect(getShipmentRouteBucket(SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE, true)).toBe(SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE);
