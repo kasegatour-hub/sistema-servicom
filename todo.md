@@ -2037,3 +2037,9 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Actualizar formularios de creación y edición para web y móvil.
 - [x] Añadir regresiones para las seis combinaciones principales y rutas históricas.
 - [x] Ejecutar pruebas, TypeScript, build, revisión responsive y publicar checkpoint.
+
+## Retirar ventana redundante de ruta técnica
+- [x] Eliminar el bloque visual «Ruta del nuevo documento o encomienda» con botones Lima → Torino y Torino → Lima + provincia.
+- [x] Conservar el selector independiente de origen y destino y su derivación automática.
+- [x] Actualizar pruebas de interfaz y verificar que creación y actualización siguen funcionando.
+- [x] Ejecutar TypeScript, build y publicar checkpoint.
