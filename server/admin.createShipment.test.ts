@@ -99,7 +99,7 @@ describe("admin.createShipment", () => {
     expect(args[10]).toBe("+51 945 612 378");
   });
 
-  it("persists the apostille service only for a Torino–Lima document", async () => {
+  it("persists the apostille service for a document on any route", async () => {
     const caller = appRouter.createCaller(createAdminContext());
     await caller.admin.createShipment({
       status: "En agencia",
@@ -144,9 +144,9 @@ describe("admin.createShipment", () => {
     expect(result.provinceExtraPriceEur).toBe(4);
   });
 
-  it("rejects the apostille service outside the Torino–Lima document route", async () => {
+  it("accepts apostille and translation services on Provincia → Lima", async () => {
     const caller = appRouter.createCaller(createAdminContext());
-    await expect(caller.admin.createShipment({
+    await caller.admin.createShipment({
       status: "En agencia",
       senderName: "Ana",
       senderLastName: "Pérez",
@@ -157,11 +157,12 @@ describe("admin.createShipment", () => {
       sheetCount: 1,
       weightKg: 1,
       paymentStatus: "Falta cancelar",
-      route: "Lima - Torino",
+      route: "Provincia - Lima",
       requiresApostilleService: true,
+      requiresTranslationService: true,
       contentChecklist: ["Documento principal"],
-    })).rejects.toThrow(/Torino - Lima/);
-    expect(dbMocks.createShipment).not.toHaveBeenCalled();
+    });
+    expect(dbMocks.createShipment).toHaveBeenCalledTimes(1);
   });
 
   it("creates an encomienda with a short code, weight and manual tariff", async () => {

@@ -29,7 +29,7 @@ const MASTER_ADMIN_EMAIL = "peruservicom@gmail.com";
 const MASTER_ADMIN_PASSWORD = "@m*M.mTt@~ADkHpvBbLm+5CD=3ao@DngYa+3Kea6U=qX%r9EJ8-1QFc#,hD3r4Dsis9:9^i-zZJ}pT#aQAcnm^+XMAhV9u3VdrZ3.";
 export const ADMIN_REAUTH_REQUIRED_MESSAGE = "Por seguridad, vuelve a escribir tu contraseña administrativa para continuar.";
 const ADMIN_PASSWORD_RESET_RESEND_SECONDS = 60;
-const ROUTE_VALUES = [SHIPMENT_ROUTES.LIMA_TORINO, SHIPMENT_ROUTES.TORINO_LIMA, SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE, SHIPMENT_ROUTES.PROVINCE_LIMA_TORINO] as const;
+const ROUTE_VALUES = [SHIPMENT_ROUTES.LIMA_TORINO, SHIPMENT_ROUTES.TORINO_LIMA, SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE, SHIPMENT_ROUTES.PROVINCE_LIMA_TORINO, "Provincia - Lima", "Lima - Provincia", "Provincia - Lima - Provincia"] as const;
 const YESLY_EXCEPTION_CODES = ["MV", "ARG", "FLI", "SC", "VCG", "OQA", "YGL", "RGS"] as const;
 export function isYeslyExceptionShape(input: { senderName?: string | null; recipientName?: string | null; shipmentType?: string; route?: string; controlledExceptionCode?: string }) {
   const recipientCode = String(input.recipientName || "").trim().toUpperCase();
@@ -832,9 +832,9 @@ export const adminRouter = router({
       }
       if (input.senderDni && !isIdentityDocumentValid(input.senderDni, input.senderDocumentType)) ctx.addIssue({ code: "custom", path: ["senderDni"], message: identityDocumentValidationMessage(input.senderDocumentType) });
       if (input.recipientDni && !isIdentityDocumentValid(input.recipientDni, input.recipientDocumentType)) ctx.addIssue({ code: "custom", path: ["recipientDni"], message: identityDocumentValidationMessage(input.recipientDocumentType) });
-      if (input.requiresApostilleService && (input.shipmentType !== "documento" || !isTorinoLimaRoute(input.route))) ctx.addIssue({ code: "custom", path: ["requiresApostilleService"], message: "La opción «Documentos para apostillar» solo está disponible para documentos en la ruta Torino - Lima." });
-      if (input.requiresTranslationService && (input.shipmentType !== "documento" || !isTorinoLimaRoute(input.route))) ctx.addIssue({ code: "custom", path: ["requiresTranslationService"], message: "La traducción solo está disponible para documentos en la ruta Torino - Lima." });
-      if (input.isProvinceDelivery && !isTorinoLimaRoute(input.route)) ctx.addIssue({ code: "custom", path: ["isProvinceDelivery"], message: "El envío a provincia solo está disponible para la ruta Italia–Lima." });
+      if (input.requiresApostilleService && input.shipmentType !== "documento") ctx.addIssue({ code: "custom", path: ["requiresApostilleService"], message: "La apostilla solo está disponible para documentos." });
+      if (input.requiresTranslationService && input.shipmentType !== "documento") ctx.addIssue({ code: "custom", path: ["requiresTranslationService"], message: "La traducción solo está disponible para documentos." });
+      if (input.isProvinceDelivery && !isProvinceShipmentRoute(input.route)) ctx.addIssue({ code: "custom", path: ["isProvinceDelivery"], message: "Selecciona una ruta que incluya Provincia (Perú)." });
       // El excedente provincial se calcula automáticamente y puede editarse; no bloquea la creación.
       const transferRequired = input.shipmentType === "documento" && input.route === "Lima - Torino";
       if (transferRequired && !input.limaTorinoTransferMode) ctx.addIssue({ code: "custom", path: ["limaTorinoTransferMode"], message: "Selecciona cómo se trasladará el documento a Torino." });

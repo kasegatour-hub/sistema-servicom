@@ -2067,3 +2067,9 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Aplicar la moneda derivada a precios, formularios, recibos, tickets, declaraciones y contabilidad.
 - [x] Añadir pruebas de las rutas Perú e internacionales y validar la conversión BCRP donde corresponda.
 - [x] Ejecutar pruebas, TypeScript, build y publicar checkpoint.
+
+## Corrección urgente del error 400 de rutas administrativas
+- [x] Aceptar «Lima - Provincia», «Provincia - Lima» y «Provincia - Lima - Provincia» en el esquema de createShipment.
+- [x] Verificar que updateStatus y los payloads de creación compartan el mismo conjunto de rutas.
+- [x] Añadir regresiones que reproduzcan la creación de envíos provinciales y la moneda PEN.
+- [x] Ejecutar suite, TypeScript, build y publicar la corrección.
