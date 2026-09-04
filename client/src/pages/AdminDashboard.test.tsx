@@ -75,6 +75,10 @@ const qrScannerMocks = vi.hoisted(() => ({
 vi.mock("@/lib/trpc", () => ({
   trpc: {
     useUtils: () => ({ shipment: { search: { fetch: mocks.searchShipment } }, admin: { me: { invalidate: vi.fn() } } }),
+    agencies: {
+      olva: { useQuery: () => ({ data: { agencies: [] }, isLoading: false, isFetching: false, isError: false }) },
+      shalom: { useQuery: () => ({ data: { agencies: [] }, isLoading: false, isFetching: false, isError: false }) },
+    },
     transfers: {
       list: { useQuery: () => mocks.listTransfers },
       create: { useMutation: () => mocks.createTransfer },
@@ -745,17 +749,19 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.click(screen.getByRole("button", { name: "Añadir al checklist" }));
     expect(screen.getByLabelText("Checklist de faltantes").textContent).toContain("Pasaporte pendiente");
 
-    const routeTrigger = screen.getAllByRole("combobox").find(element => element.textContent?.includes("Lima – Torino"));
-    expect(routeTrigger).toBeTruthy();
-    fireEvent.click(routeTrigger!);
-    fireEvent.click(screen.getByRole("option", { name: "Torino – Lima + provincia" }));
+    const originSearch = screen.getAllByLabelText("Punto de origen").find(element => element.tagName === "INPUT") as HTMLInputElement;
+    const destinationSearch = screen.getAllByLabelText("Punto de destino").find(element => element.tagName === "INPUT") as HTMLInputElement;
+    fireEvent.change(originSearch, { target: { value: "Torino" } });
+    fireEvent.keyDown(originSearch, { key: "Enter", code: "Enter" });
+    fireEvent.change(destinationSearch, { target: { value: "Satipo" } });
+    fireEvent.keyDown(destinationSearch, { key: "Enter", code: "Enter" });
     await screen.findByText("Remitente para provincia");
     const weightInput = screen.getByText("Peso de la encomienda (kg)").parentElement?.querySelector("input");
-    const provinceExtraInput = screen.getByText("Extra provincial proporcional (EUR)").parentElement?.querySelector("input");
+    const provinceExtraInput = screen.getByText(/Extra provincial proporcional/).parentElement?.querySelector("input");
     expect(weightInput).toBeTruthy();
     expect(provinceExtraInput).toBeTruthy();
     fireEvent.change(weightInput!, { target: { value: "15" } });
-    await waitFor(() => expect((provinceExtraInput as HTMLInputElement).value).toBe("10"));
+    await waitFor(() => expect((provinceExtraInput as HTMLInputElement).placeholder).toBe("Automático: 10.00"));
     const search = screen.getByRole("textbox", { name: "Buscar remitente provincial" });
     fireEvent.change(search, { target: { value: "Marco" } });
     const senderSelect = screen.getByRole("combobox", { name: "Remitente provincial guardado" });
@@ -774,7 +780,8 @@ describe("AdminDashboard Nueva Encomienda", () => {
 
     await waitFor(() => expect(screen.getByRole("region", { name: "Pasos del registro móvil" })).toBeTruthy());
     expect(screen.getByText("Paso 1 de 3")).toBeTruthy();
-    expect(screen.getByText("Ruta de envío")).toBeTruthy();
+    expect(screen.getByText("Punto de origen")).toBeTruthy();
+    expect(screen.getByText("Punto de destino")).toBeTruthy();
     expect(screen.getByText("Información del Remitente").parentElement?.className).toContain("hidden");
 
     fireEvent.click(screen.getByRole("button", { name: "Personas" }));
@@ -797,7 +804,7 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.click(screen.getByRole("button", { name: "Nuevo documento" }));
 
     const documentType = screen.getByText("Tipo de Documento");
-    const route = screen.getByText("Ruta de envío");
+    const route = screen.getByText("Punto de origen");
     const price = screen.getByText("Precio manual en EUR (opcional)");
     const coupon = screen.getByText("Cupón de descuento (opcional)");
     expect(documentType.closest(".order-10")).toBeTruthy();

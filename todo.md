@@ -2091,3 +2091,28 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Mantener el flujo por pasos en web, móvil y actualización administrativa.
 - [x] Añadir regresiones de visibilidad y selección de origen/destino.
 - [x] Ejecutar pruebas, TypeScript, build y publicar checkpoint.
+
+## Búsqueda difusa de origen y destino
+- [x] Reemplazar los selectores de categorías por búsquedas independientes de ubicaciones reales.
+- [x] Permitir buscar sedes por nombre, ciudad, courier o dirección con coincidencias difusas.
+- [x] Mostrar solo Origen y Destino al inicio, sin «envío a provincia después de Lima» ni ruta técnica visible.
+- [x] Derivar Provincia → Lima, Lima → Provincia y rutas internacionales a partir de las ubicaciones elegidas.
+- [x] Mantener precios, servicios, documentos y filtros compatibles con las ubicaciones seleccionadas.
+- [x] Añadir regresiones de búsqueda, selección, precios y apertura de envíos provinciales.
+- [x] Ejecutar suite, TypeScript, build y revisión responsive; publicar checkpoint.
+
+## Catálogo completo dentro de Origen y Destino
+- [x] Incorporar todas las sedes reales de Shalom, Olva, FedEx, DHL y buses en las opciones de Origen y Destino.
+- [x] Incluir las sedes principales de Lima, Torino y Kasega/Magda con sus direcciones visibles.
+- [x] Hacer que escribir «Lima» filtre sedes limeñas y escribir «Jr. de la Uni…» encuentre Jr. de la Unión.
+- [x] Persistir la sede y dirección exactas seleccionadas en el envío, no solo la categoría Lima/Torino/Provincia.
+- [x] Aplicar el mismo buscador a creación, actualización y filtros administrativos.
+- [x] Añadir regresiones de búsqueda por ciudad, courier y prefijo de dirección.
+
+## Búsqueda geográfica agrupada en Origen y Destino
+- [x] Quitar las categorías visibles «Torino», «Lima» y «Provincia» de los buscadores.
+- [x] Agrupar las ubicaciones por departamento en Perú y por país en el extranjero.
+- [x] Mostrar todas las sedes de courier y empresas disponibles al buscar «Lima» u otra ciudad/departamento.
+- [x] Mostrar direcciones de FedEx, DHL y otros operadores al buscar un país extranjero.
+- [x] Mantener la derivación interna de ruta, moneda, precios y servicios sin exponerla en la interfaz.
+- [x] Añadir pruebas de búsqueda por ciudad, departamento, país y dirección.

@@ -13,6 +13,10 @@ vi.mock("@/lib/userReceipt", () => ({ downloadShipmentReceipt: receiptMocks.down
 vi.mock("@/lib/trpc", () => ({
   trpc: {
     useUtils: () => ({ account: { me: { invalidate: vi.fn() } }, shipment: { search: { fetch: vi.fn(async (input: any) => accountMocks.shipments.find((shipment: any) => String(shipment.orderNumber) === String(input.orderNumber) && String(shipment.code) === String(input.code)) || null) } } }),
+    agencies: {
+      olva: { useQuery: () => ({ data: { agencies: [] }, isLoading: false, isFetching: false, isError: false }) },
+      shalom: { useQuery: () => ({ data: { agencies: [] }, isLoading: false, isFetching: false, isError: false }) },
+    },
     transfers: {
       bcrpQuote: { useQuery: () => ({ data: { bcrpRatePenPerEur: 3.95, adjustedPenPerEur: 4.10, commissionPenPerEur: 0.15, fetchedAt: Date.now(), sourceUrl: "https://estadisticas.bcrp.gob.pe/estadisticas/series/api/PD04648PD/json", period: "02.09.2026" }, isFetching: false, error: null, refetch: vi.fn() }) },
     },
@@ -54,8 +58,12 @@ import AccountPage from "./AccountPage";
 afterEach(() => cleanup());
 
 const confirmShipmentEndpoints = async () => {
-  fireEvent.change(await screen.findByRole("combobox", { name: "Punto de origen" }), { target: { value: "Lima" } });
-  fireEvent.change(await screen.findByRole("combobox", { name: "Punto de destino" }), { target: { value: "Torino" } });
+  const origin = (await screen.findAllByLabelText("Punto de origen")).find(element => element.tagName === "INPUT") as HTMLInputElement;
+  const destination = (await screen.findAllByLabelText("Punto de destino")).find(element => element.tagName === "INPUT") as HTMLInputElement;
+  fireEvent.change(origin, { target: { value: "Lima" } });
+  fireEvent.keyDown(origin, { key: "Enter", code: "Enter" });
+  fireEvent.change(destination, { target: { value: "Torino" } });
+  fireEvent.keyDown(destination, { key: "Enter", code: "Enter" });
 };
 
 beforeEach(() => {
@@ -178,17 +186,13 @@ describe("AccountPage client labels", () => {
     expect((search as HTMLInputElement).value).toBe("");
   });
 
-  it("shows the three shipment route options when the client starts a document registration", async () => {
+    it("muestra búsquedas reales de sedes en origen y destino al iniciar un documento", async () => {
     render(<AccountPage />);
     fireEvent.click(screen.getByRole("button", { name: /Registrar Nuevo Documento/ }));
     await confirmShipmentEndpoints();
-
-    await waitFor(() => expect(screen.getByRole("combobox", { name: "Ruta de envío" })).toBeTruthy());
-    const routeSelect = screen.getByRole("combobox", { name: "Ruta de envío" });
-    expect(routeSelect).toBeTruthy();
-    expect(screen.getByRole("option", { name: "Lima – Torino" })).toBeTruthy();
-    expect(screen.getByRole("option", { name: "Torino – Lima" })).toBeTruthy();
-    expect(screen.getByRole("option", { name: "Torino – Lima + provincia" })).toBeTruthy();
+    expect(screen.getAllByLabelText("Punto de origen").some(element => element.tagName === "INPUT")).toBe(true);
+    expect(screen.getAllByLabelText("Punto de destino").some(element => element.tagName === "INPUT")).toBe(true);
+    expect(screen.queryByRole("combobox", { name: "Ruta de envío" })).toBeNull();
     expect(screen.getByText(/Lista de documentos/)).toBeTruthy();
     expect(screen.getByLabelText("Acta de nacimiento")).toBeTruthy();
     expect(screen.queryByText("¿Cómo se trasladará el documento a Torino?")).toBeNull();
@@ -228,7 +232,7 @@ describe("AccountPage client labels", () => {
     expect(screen.getByLabelText("Pasos del registro")).toBeTruthy();
     expect(screen.getByText("1. Sede y tipo")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Continuar" }));
-    expect(screen.getByRole("combobox", { name: "Ruta de envío" }).parentElement?.className).toContain("hidden");
+    expect(screen.getByText("Punto de origen").closest(".hidden")).toBeTruthy();
     expect(screen.getByPlaceholderText("Ej: María").parentElement?.className).not.toContain("hidden");
     fireEvent.click(screen.getByRole("button", { name: "Continuar" }));
     expect(screen.getByText("3. Contenido")).toBeTruthy();
@@ -240,10 +244,8 @@ describe("AccountPage client labels", () => {
     render(<AccountPage />);
     fireEvent.click(screen.getByRole("button", { name: /Registrar Nuevo Documento/ }));
     await confirmShipmentEndpoints();
-    const routeSelect = await screen.findByRole("combobox", { name: "Ruta de envío" });
-
+        expect(screen.queryByRole("combobox", { name: "Ruta de envío" })).toBeNull();
     expect(screen.getByLabelText("Documentos para apostillar")).toBeTruthy();
-    fireEvent.change(routeSelect, { target: { value: "Provincia - Lima" } });
     const apostilleOption = await screen.findByLabelText("Documentos para apostillar") as HTMLInputElement;
     fireEvent.click(apostilleOption);
     expect(apostilleOption.checked).toBe(true);
@@ -252,7 +254,6 @@ describe("AccountPage client labels", () => {
     expect(screen.getByText(/Traducción: no seleccionada/)).toBeTruthy();
     expect(screen.getAllByText(/Plazo estimado: 7 días hábiles/).length).toBeGreaterThanOrEqual(1);
 
-    fireEvent.change(routeSelect, { target: { value: "Lima - Torino" } });
     await waitFor(() => expect(screen.getByLabelText("Documentos para apostillar")).toBeTruthy());
   });
 

@@ -815,7 +815,7 @@ export default function AdminDashboard() {
   const lastGeneratedProvinceExtraRef = React.useRef<number | null>(null);
   const automaticProvincePrice = watchedWeightKg <= 5 ? 10 : 15;
   const watchedProvinceCustomerPrice = Number(createForm.watch("provinceCustomerPriceEur")) || (watchedProvinceEnabled ? automaticProvincePrice : 0);
-  const automaticProvinceExtraPrice = watchedProvinceEnabled && isTorinoLimaRoute(selectedRoute) && watchedWeightKg > 10 ? Math.round((watchedWeightKg - 10) * 2 * 100) / 100 : 0;
+  const automaticProvinceExtraPrice = watchedProvinceEnabled && watchedWeightKg > 10 ? Math.round((watchedWeightKg - 10) * 2 * 100) / 100 : 0;
   const watchedProvinceExtraPrice = watchedProvinceExtraRaw !== "" && Number.isFinite(Number(watchedProvinceExtraRaw)) ? Number(watchedProvinceExtraRaw) : automaticProvinceExtraPrice;
   const provincePreviewEur = watchedProvinceEnabled ? watchedProvinceCustomerPrice + watchedProvinceExtraPrice : 0;
   const createPricingPreview = useMemo(() => calculateAdminShipmentPricing({
@@ -851,10 +851,10 @@ export default function AdminDashboard() {
     }
   }, [createPricingPreview]);
   useEffect(() => {
-    if (watchedProvinceEnabled && isTorinoLimaRoute(selectedRoute) && !String(createForm.getValues("provinceCustomerPriceEur") ?? "").trim() && automaticProvincePrice > 0) {
+    if (watchedProvinceEnabled && !String(createForm.getValues("provinceCustomerPriceEur") ?? "").trim() && automaticProvincePrice > 0) {
       createForm.setValue("provinceCustomerPriceEur", automaticProvincePrice, { shouldDirty: true });
     }
-    if (watchedProvinceEnabled && isTorinoLimaRoute(selectedRoute)) {
+    if (watchedProvinceEnabled) {
       const currentExtra = Number(watchedProvinceExtraRaw);
       const isAutoValue = watchedProvinceExtraRaw === "" || currentExtra === 0 || currentExtra === lastGeneratedProvinceExtraRef.current;
       if (isAutoValue) {
@@ -2479,13 +2479,13 @@ export default function AdminDashboard() {
                 </div>
                 <div className={`order-20 grid grid-cols-1 gap-4 md:grid-cols-3 ${mobileSectionClass(1)}`}>
                   <div className="md:col-span-3">
-                    <IndependentEndpointsFields route={selectedRoute} onRouteChange={(nextRoute, endpoints) => {
+                    <IndependentEndpointsFields route={selectedRoute} onRouteChange={(nextRoute, endpoints, locations) => {
                       const provinceRoute = endpoints.originPoint === "Provincia (Perú)" || endpoints.destinationPoint === "Provincia (Perú)";
                       createForm.setValue("route", nextRoute, { shouldValidate: true, shouldDirty: true });
                       createForm.setValue("isProvinceDelivery", provinceRoute, { shouldValidate: true, shouldDirty: true });
                       const defaults = getDefaultShipmentAddresses(nextRoute, getAdminShipmentBrand(admin?.id, admin?.email));
-                      createForm.setValue("originAddress", defaults.originAddress, { shouldValidate: true, shouldDirty: true });
-                      createForm.setValue("destinationAddress", defaults.destinationAddress, { shouldValidate: true, shouldDirty: true });
+                      createForm.setValue("originAddress", locations?.origin.detail || defaults.originAddress, { shouldValidate: true, shouldDirty: true });
+                      createForm.setValue("destinationAddress", locations?.destination.detail || defaults.destinationAddress, { shouldValidate: true, shouldDirty: true });
                     }} />
                     <p className="mt-2 text-xs text-slate-500">Selecciona únicamente los puntos reales. El sistema conservará la ruta técnica y usará Lima como hub cuando corresponda.</p>
                   </div>
@@ -3315,13 +3315,13 @@ export default function AdminDashboard() {
 
                 <div className="border-t pt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="md:col-span-2">
-                    <IndependentEndpointsFields route={updateForm.watch("route")} onRouteChange={(nextRoute, endpoints) => {
+                    <IndependentEndpointsFields route={updateForm.watch("route")} onRouteChange={(nextRoute, endpoints, locations) => {
                       const provinceRoute = endpoints.originPoint === "Provincia (Perú)" || endpoints.destinationPoint === "Provincia (Perú)";
                       updateForm.setValue("route", nextRoute, { shouldValidate: true, shouldDirty: true });
                       updateForm.setValue("isProvinceDelivery", provinceRoute, { shouldValidate: true, shouldDirty: true });
                       const defaults = getDefaultShipmentAddresses(nextRoute, getAdminShipmentBrand(admin?.id, admin?.email));
-                      updateForm.setValue("originAddress", defaults.originAddress, { shouldValidate: true, shouldDirty: true });
-                      updateForm.setValue("destinationAddress", defaults.destinationAddress, { shouldValidate: true, shouldDirty: true });
+                      updateForm.setValue("originAddress", locations?.origin.detail || defaults.originAddress, { shouldValidate: true, shouldDirty: true });
+                      updateForm.setValue("destinationAddress", locations?.destination.detail || defaults.destinationAddress, { shouldValidate: true, shouldDirty: true });
                     }} />
                   </div>
                     {!isProvinceShipmentRoute(updateForm.watch("route")) && <div className="md:col-span-2">
