@@ -2043,3 +2043,10 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Conservar el selector independiente de origen y destino y su derivación automática.
 - [x] Actualizar pruebas de interfaz y verificar que creación y actualización siguen funcionando.
 - [x] Ejecutar TypeScript, build y publicar checkpoint.
+
+## Corrección urgente de selectores de origen y destino
+- [x] Reproducir por qué los controles de Punto de origen y Punto de destino no responden.
+- [x] Corregir eventos y actualización de estado de ambos selectores.
+- [x] Verificar derivación de ruta, provincia y campos de agencia/sucursal.
+- [x] Añadir regresiones para creación, edición y registro móvil.
+- [x] Ejecutar pruebas, TypeScript, build y publicar la corrección.

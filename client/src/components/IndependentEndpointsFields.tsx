@@ -1,5 +1,5 @@
 import React from "react";
-import { SHIPMENT_ENDPOINTS, deriveLegacyShipmentRoute, normalizeIndependentEndpoints, type ShipmentEndpoint } from "@shared/shipmentEndpoints";
+import { SHIPMENT_ENDPOINTS, deriveLegacyShipmentRoute, normalizeIndependentEndpoints, type IndependentShipmentEndpoints, type ShipmentEndpoint } from "@shared/shipmentEndpoints";
 
 type IndependentEndpointsFieldsProps = {
   route?: string | null;
@@ -10,9 +10,13 @@ type IndependentEndpointsFieldsProps = {
 const endpointOptions: ShipmentEndpoint[] = [SHIPMENT_ENDPOINTS.TORINO, SHIPMENT_ENDPOINTS.LIMA, SHIPMENT_ENDPOINTS.PROVINCIA];
 
 export function IndependentEndpointsFields({ route, className = "", onRouteChange }: IndependentEndpointsFieldsProps) {
-  const endpoints = normalizeIndependentEndpoints({ route });
+  const [selectedEndpoints, setSelectedEndpoints] = React.useState<IndependentShipmentEndpoints>(() => normalizeIndependentEndpoints({ route }));
+  React.useEffect(() => {
+    setSelectedEndpoints(normalizeIndependentEndpoints({ route }));
+  }, [route]);
   const update = (key: "originPoint" | "destinationPoint", value: ShipmentEndpoint) => {
-    const next = { ...endpoints, [key]: value };
+    const next = { ...selectedEndpoints, [key]: value };
+    setSelectedEndpoints(next);
     onRouteChange(deriveLegacyShipmentRoute(next), next);
   };
 
@@ -31,13 +35,13 @@ export function IndependentEndpointsFields({ route, className = "", onRouteChang
       </select>
       <label className="block text-sm font-bold text-[#0B2B5E]">
         Punto de origen
-        <select value={endpoints.originPoint} onChange={event => update("originPoint", event.target.value as ShipmentEndpoint)} className="mt-2 min-h-12 w-full rounded-lg border-2 border-slate-200 bg-white px-3 text-base font-semibold text-slate-800 focus:border-[#0B2B5E] focus:outline-none focus:ring-2 focus:ring-blue-100">
+        <select value={selectedEndpoints.originPoint} onChange={event => update("originPoint", event.target.value as ShipmentEndpoint)} className="mt-2 min-h-12 w-full rounded-lg border-2 border-slate-200 bg-white px-3 text-base font-semibold text-slate-800 focus:border-[#0B2B5E] focus:outline-none focus:ring-2 focus:ring-blue-100">
           {endpointOptions.map(option => <option key={option} value={option}>{option}</option>)}
         </select>
       </label>
       <label className="block text-sm font-bold text-[#0B2B5E]">
         Punto de destino
-        <select value={endpoints.destinationPoint} onChange={event => update("destinationPoint", event.target.value as ShipmentEndpoint)} className="mt-2 min-h-12 w-full rounded-lg border-2 border-slate-200 bg-white px-3 text-base font-semibold text-slate-800 focus:border-[#0B2B5E] focus:outline-none focus:ring-2 focus:ring-blue-100">
+        <select value={selectedEndpoints.destinationPoint} onChange={event => update("destinationPoint", event.target.value as ShipmentEndpoint)} className="mt-2 min-h-12 w-full rounded-lg border-2 border-slate-200 bg-white px-3 text-base font-semibold text-slate-800 focus:border-[#0B2B5E] focus:outline-none focus:ring-2 focus:ring-blue-100">
           {endpointOptions.map(option => <option key={option} value={option}>{option}</option>)}
         </select>
       </label>
