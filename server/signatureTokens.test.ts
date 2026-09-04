@@ -9,6 +9,7 @@ const dbMocks = vi.hoisted(() => ({
   getLocalAccountById: vi.fn(),
   createOrRefreshShipmentSignatureRequest: vi.fn(),
   completeShipmentSignature: vi.fn(),
+  recordInteractionEvent: vi.fn(),
 }));
 const authMocks = vi.hoisted(() => ({ getAdminSession: vi.fn(), getAccountSession: vi.fn(), sendShipmentSignatureEmail: vi.fn() }));
 
@@ -21,6 +22,7 @@ vi.mock("./db", async () => {
     getLocalAccountById: dbMocks.getLocalAccountById,
     createOrRefreshShipmentSignatureRequest: dbMocks.createOrRefreshShipmentSignatureRequest,
     completeShipmentSignature: dbMocks.completeShipmentSignature,
+    recordInteractionEvent: dbMocks.recordInteractionEvent,
   };
 });
 
@@ -59,6 +61,17 @@ describe("signature token security", () => {
     expect(signatureTokenMatches("token-diferente", result.tokenHash)).toBe(false);
     expect(isSignatureTokenExpired(result.expiresAt, now)).toBe(false);
     expect(isSignatureTokenExpired(result.expiresAt, new Date(result.expiresAt.getTime() + 1))).toBe(true);
+  });
+
+  it("returns persisted signature strokes when a historical shipment is tracked", async () => {
+    const strokes = JSON.stringify([[{ x: 10, y: 20 }, { x: 80, y: 40 }]]);
+    dbMocks.getShipmentByOrderAndCode.mockResolvedValue(shipment);
+    dbMocks.getShipmentSignatureByShipmentId.mockResolvedValue({ shipmentId: 81, status: "signed", signerName: "Ana Pérez", signerDni: "70445566", signedAt: new Date("2026-08-15T12:00:00.000Z"), signatureStrokes: strokes });
+
+    const caller = appRouter.createCaller(publicContext());
+    const result = await caller.shipment.search({ orderNumber: shipment.orderNumber, code: shipment.code });
+
+    expect(result.signature).toMatchObject({ status: "signed", signerName: "Ana Pérez", signatureStrokes: strokes });
   });
 
   it("rejects a public attempt to issue a signing session", async () => {

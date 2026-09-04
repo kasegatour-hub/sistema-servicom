@@ -2020,3 +2020,10 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Confirmar que recibo, ticket y declaración jurada usan el mismo estado operativo y de pago actual.
 - [x] Añadir regresiones para cambios posteriores a la creación del envío.
 - [x] Ejecutar suite, TypeScript y build, y publicar el checkpoint validado.
+
+## Firma electrónica visible en declaración jurada
+- [x] Auditar cómo se persisten y recuperan las firmas electrónicas de clientes.
+- [x] Mostrar la firma electrónica firmada dentro de la declaración jurada del envío.
+- [x] Hacer compatibles las firmas históricas con la apertura, impresión y descarga del documento.
+- [x] Añadir regresiones para firmas nuevas, firmas históricas y ausencia de firma.
+- [x] Ejecutar pruebas, TypeScript, build y publicar el checkpoint validado.

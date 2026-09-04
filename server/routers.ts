@@ -245,6 +245,7 @@ export const appRouter = router({
             signerName: signature.signerName,
             signerDni: signature.signerDni,
             signedAt: signature.signedAt,
+            signatureStrokes: signature.signatureStrokes,
           } : null,
         };
       }),
@@ -414,6 +415,7 @@ export const appRouter = router({
             signerName: signature.signerName,
             signerDni: signature.signerDni,
             signedAt: signature.signedAt,
+            signatureStrokes: signature.signatureStrokes,
           } : null,
         };
       }),

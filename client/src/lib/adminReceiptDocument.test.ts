@@ -31,6 +31,7 @@ describe("maqueta compartida del comprobante administrativo", () => {
         finalPriceEur: "189",
         notes: "Tarifa: Encomienda por peso",
         contentChecklist: ["Paquete sellado", "Ropa"],
+        signature: { status: "signed", signerName: "Alessandro Gallo Moretti", signerDni: "64578192", signedAt: new Date("2026-08-20T10:15:00.000Z"), signatureStrokes: JSON.stringify([[{ x: 10, y: 20 }, { x: 80, y: 40 }]]) },
         createdAt: new Date("2026-08-19T15:22:00.000Z"),
       },
     });
@@ -44,6 +45,8 @@ describe("maqueta compartida del comprobante administrativo", () => {
     expect(document.contentHtml).toContain("Estado de pago:");
     expect(document.contentHtml).toContain("Pagado");
     expect(document.contentHtml).toContain("DECLARACIÓN JURADA DE CONTENIDO");
+    expect(document.contentHtml).toContain("FIRMADO ELECTRÓNICAMENTE POR");
+    expect(document.contentHtml).toContain('stroke="#0B2B5E"');
     expect(document.contentHtml).toContain("ESCANEAR PARA GESTIONAR");
     expect(document.contentHtml).toContain("data:image/png;base64,shared-qr");
     expect(document.contentHtml).not.toContain('id="deliveryControlQR"');
