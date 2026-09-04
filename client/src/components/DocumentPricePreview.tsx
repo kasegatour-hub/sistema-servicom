@@ -1,5 +1,6 @@
 import React from "react";
 import { getDocumentPricePreview, type DocumentPriceKind } from "@/lib/documentPricePreview";
+import { convertEurToPen, formatPenAmount } from "@shared/bcrpPricing";
 
 type DocumentPricePreviewProps = {
   docType: DocumentPriceKind;
@@ -10,11 +11,13 @@ type DocumentPricePreviewProps = {
   extraDiscountEur?: string | number | null;
   serviceTotalEur?: number;
   serviceSummary?: string;
+  penPerEur?: number | null;
 };
 
-export function DocumentPricePreview({ docType, sheetCount, additionalTotalEur = 0, manualPriceEur, extraPriceEur = 0, extraDiscountEur = 0, serviceTotalEur = 0, serviceSummary }: DocumentPricePreviewProps) {
+export function DocumentPricePreview({ docType, sheetCount, additionalTotalEur = 0, manualPriceEur, extraPriceEur = 0, extraDiscountEur = 0, serviceTotalEur = 0, serviceSummary, penPerEur }: DocumentPricePreviewProps) {
   const price = getDocumentPricePreview({ docType, sheetCount, additionalTotalEur, manualPriceEur, extraPriceEur, extraDiscountEur });
   const totalWithServices = price.totalEur + Math.max(0, serviceTotalEur);
+  const totalPen = convertEurToPen(totalWithServices, penPerEur);
 
   return (
     <div key={`${price.docType}-${price.sheetCount}-${totalWithServices}-${price.usesManualPrice}`} aria-live="polite" className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950 shadow-sm transition-all duration-200">
@@ -22,6 +25,7 @@ export function DocumentPricePreview({ docType, sheetCount, additionalTotalEur =
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Precio estimado · actualización inmediata</p>
           <p data-testid="document-price-total" className="mt-1 text-2xl font-extrabold tabular-nums text-emerald-800">{totalWithServices.toFixed(2)} €</p>
+          <p data-testid="document-price-total-pen" className="mt-1 text-lg font-bold tabular-nums text-[#0B2B5E]">{formatPenAmount(totalPen)} <span className="text-xs font-medium">(BCRP + S/ 0,15 por EUR)</span></p>
         </div>
         <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-200">{price.sheetCount} de {price.maximumSheets} hojas</span>
       </div>

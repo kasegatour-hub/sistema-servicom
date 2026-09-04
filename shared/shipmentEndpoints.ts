@@ -34,6 +34,14 @@ export function endpointRequiresAgency(endpoint?: string | null) {
   return endpoint === SHIPMENT_ENDPOINTS.PROVINCIA;
 }
 
+export type ShipmentPricingCurrency = "EUR" | "PEN";
+
+/** Los tramos internos entre Lima y Provincia se cobran en soles; los internacionales en euros. */
+export function derivePricingCurrency(endpoints: IndependentShipmentEndpoints): ShipmentPricingCurrency {
+  const peruEndpoints = new Set<ShipmentEndpoint>([SHIPMENT_ENDPOINTS.LIMA, SHIPMENT_ENDPOINTS.PROVINCIA]);
+  return peruEndpoints.has(endpoints.originPoint) && peruEndpoints.has(endpoints.destinationPoint) ? "PEN" : "EUR";
+}
+
 export function deriveHubPath({ originPoint, destinationPoint }: IndependentShipmentEndpoints) {
   if (originPoint === SHIPMENT_ENDPOINTS.TORINO && destinationPoint === SHIPMENT_ENDPOINTS.LIMA) return [SHIPMENT_ENDPOINTS.TORINO, SHIPMENT_ENDPOINTS.LIMA];
   if (originPoint === SHIPMENT_ENDPOINTS.LIMA && destinationPoint === SHIPMENT_ENDPOINTS.TORINO) return [SHIPMENT_ENDPOINTS.LIMA, SHIPMENT_ENDPOINTS.TORINO];
@@ -50,6 +58,9 @@ export function normalizeIndependentEndpoints(input: Partial<IndependentShipment
     case "Torino - Lima": return { originPoint: SHIPMENT_ENDPOINTS.TORINO, destinationPoint: SHIPMENT_ENDPOINTS.LIMA };
     case "Torino - Lima + provincia": return { originPoint: SHIPMENT_ENDPOINTS.TORINO, destinationPoint: SHIPMENT_ENDPOINTS.PROVINCIA };
     case "Provincia - Lima - Torino": return { originPoint: SHIPMENT_ENDPOINTS.PROVINCIA, destinationPoint: SHIPMENT_ENDPOINTS.TORINO };
+    case "Provincia - Lima": return { originPoint: SHIPMENT_ENDPOINTS.PROVINCIA, destinationPoint: SHIPMENT_ENDPOINTS.LIMA };
+    case "Lima - Provincia": return { originPoint: SHIPMENT_ENDPOINTS.LIMA, destinationPoint: SHIPMENT_ENDPOINTS.PROVINCIA };
+    case "Provincia - Lima - Provincia": return { originPoint: SHIPMENT_ENDPOINTS.PROVINCIA, destinationPoint: SHIPMENT_ENDPOINTS.PROVINCIA };
     default:
       return input.isProvinceDelivery ? { originPoint: SHIPMENT_ENDPOINTS.TORINO, destinationPoint: SHIPMENT_ENDPOINTS.PROVINCIA } : { originPoint: SHIPMENT_ENDPOINTS.LIMA, destinationPoint: SHIPMENT_ENDPOINTS.TORINO };
   }

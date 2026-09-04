@@ -43,6 +43,7 @@ import { PasswordRequirements } from "@/components/PasswordRequirements";
 import { NotificationBell } from "@/components/NotificationBell";
 import { AdminFeedbackInbox } from "@/components/AdminFeedbackInbox";
 import { AgencyDestinationPicker, type AgencyProvider } from "@/components/AgencyDestinationPicker";
+import { derivePricingCurrency, normalizeIndependentEndpoints } from "@shared/shipmentEndpoints";
 import { IndependentEndpointsFields } from "@/components/IndependentEndpointsFields";
 import { LimaTorinoTransferPanel } from "@/components/LimaTorinoTransferPanel";
 import { TransferWorkspace } from "@/components/TransferWorkspace";
@@ -516,6 +517,7 @@ export default function AdminDashboard() {
 
   // Queries
   const { data: currentAdminSession, isLoading: loadingAdminSession, refetch: refetchAdminSession } = trpc.admin.me.useQuery();
+  const { data: bcrpQuote } = trpc.transfers.bcrpQuote.useQuery(undefined, { staleTime: 60_000, retry: 1 });
   const isSuperMasterAdmin = (admin ?? currentAdminSession)?.id === 1 && (admin ?? currentAdminSession)?.role === "superadmin";
   const { data: coupons = [], refetch: refetchCoupons } = trpc.admin.listCoupons.useQuery(undefined, { enabled: isLoggedIn && !admin?.reauthRequired });
   const { data: limaTorinoPolicy, refetch: refetchLimaTorinoPolicy } = trpc.admin.getLimaTorinoEncomiendaPolicy.useQuery(undefined, { enabled: isLoggedIn && !admin?.reauthRequired });
@@ -784,6 +786,8 @@ export default function AdminDashboard() {
   };
   const selectedDocType = createForm.watch("docType") || "apostillado";
   const selectedRoute = createForm.watch("route") || "Lima - Torino";
+  const selectedPricingCurrency = derivePricingCurrency(normalizeIndependentEndpoints({ route: selectedRoute, isProvinceDelivery: createForm.watch("isProvinceDelivery") }));
+  const selectedPenPerEur = bcrpQuote?.adjustedPenPerEur;
   useEffect(() => {
     const defaults = getDefaultShipmentAddresses(selectedRoute, getAdminShipmentBrand(admin?.id, admin?.email));
     if (!createForm.getValues("originAddress") && defaults.originAddress) createForm.setValue("originAddress", defaults.originAddress, { shouldValidate: true });
@@ -875,7 +879,7 @@ export default function AdminDashboard() {
   }, [selectedDocType]);
 
   useEffect(() => {
-    if ((selectedShipmentType !== "documento" || !isTorinoLimaRoute(selectedRoute)) && createForm.getValues("requiresApostilleService")) {
+    if (selectedShipmentType !== "documento" && createForm.getValues("requiresApostilleService")) {
       createForm.setValue("requiresApostilleService", false, { shouldValidate: true, shouldDirty: true });
     }
   }, [selectedShipmentType, selectedRoute]);
@@ -942,12 +946,13 @@ export default function AdminDashboard() {
   const updateShipmentRoute = updateForm.watch("route") || "Lima - Torino";
 
   useEffect(() => {
-    if ((updateShipmentType !== "documento" || !isTorinoLimaRoute(updateShipmentRoute)) && (updateForm.getValues("requiresApostilleService") || updateForm.getValues("requiresTranslationService"))) {
+    if (updateShipmentType !== "documento" && (updateForm.getValues("requiresApostilleService") || updateForm.getValues("requiresTranslationService"))) {
       updateForm.setValue("requiresApostilleService", false, { shouldValidate: true, shouldDirty: true });
       updateForm.setValue("requiresTranslationService", false, { shouldValidate: true, shouldDirty: true });
     }
   }, [updateShipmentType, updateShipmentRoute]);
   const updateProvinceEnabled = isProvinceShipmentRoute(updateShipmentRoute) || Boolean(updateForm.watch("isProvinceDelivery"));
+  const updatePricingCurrency = derivePricingCurrency(normalizeIndependentEndpoints({ route: updateShipmentRoute, isProvinceDelivery: updateProvinceEnabled }));
   const updateProvinceWeight = Number(updateForm.watch("weightKg") || 0.1);
   useEffect(() => {
     if (updateProvinceEnabled && isTorinoLimaRoute(updateShipmentRoute)) {
@@ -957,8 +962,8 @@ export default function AdminDashboard() {
   }, [updateProvinceEnabled, updateShipmentRoute, updateProvinceWeight]);
   const updateBillableWeight = updateProvinceWeight > 15 ? 10 : updateProvinceWeight;
   const updateBasePriceEur = updateShipmentType === "encomienda" ? updateBillableWeight * activeParcelRateEurPerKg : 0;
-  const updateProvinceCustomerPrice = updateProvinceEnabled && isTorinoLimaRoute(updateShipmentRoute) ? Number(updateForm.watch("provinceCustomerPriceEur") || 0) : 0;
-  const updateProvinceExtraPrice = updateProvinceEnabled && isTorinoLimaRoute(updateShipmentRoute) ? Number(updateForm.watch("provinceExtraPriceEur") || 0) : 0;
+  const updateProvinceCustomerPrice = updateProvinceEnabled ? Number(updateForm.watch("provinceCustomerPriceEur") || 0) : 0;
+  const updateProvinceExtraPrice = updateProvinceEnabled ? Number(updateForm.watch("provinceExtraPriceEur") || 0) : 0;
   const updateManualPrice = Number(updateForm.watch("manualPriceEur") || 0);
   const updateExtraPrice = Number(updateForm.watch("extraPriceEur") || 0);
   const updateExtraDiscount = Math.min(updateExtraPrice, Math.max(0, Number(updateForm.watch("extraDiscountEur") || 0)));
@@ -2575,15 +2580,15 @@ export default function AdminDashboard() {
                       onChange={(nextValue) => createForm.setValue("sheetCount", nextValue, { shouldValidate: true, shouldDirty: true })}
                       description={createForm.watch("docType") === "simple" ? "Máximo 8 hojas por registro." : "Máximo 10 hojas por registro."}
                     />
-                    <DocumentPricePreview docType={selectedDocType} sheetCount={Number(createForm.watch("sheetCount")) || 1} additionalTotalEur={additionalDocumentAutoTotal} manualPriceEur={createForm.watch("manualPriceEur")} extraPriceEur={createForm.watch("extraPriceEur")} extraDiscountEur={createForm.watch("extraDiscountEur")} />
+                    <DocumentPricePreview docType={selectedDocType} sheetCount={Number(createForm.watch("sheetCount")) || 1} additionalTotalEur={additionalDocumentAutoTotal} penPerEur={selectedPenPerEur} manualPriceEur={createForm.watch("manualPriceEur")} extraPriceEur={createForm.watch("extraPriceEur")} extraDiscountEur={createForm.watch("extraDiscountEur")} />
                   </div>
-                                     {isTorinoLimaRoute(selectedRoute) && (
+                                     {selectedShipmentType === "documento" && (
                      <>
                        <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border-2 border-[#0B2B5E] bg-blue-50 p-4 text-sm shadow-sm transition hover:bg-blue-100/70">
                          <input type="checkbox" aria-label="Documentos para apostillar" {...createForm.register("requiresApostilleService")} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-[#0B2B5E] focus:ring-[#0B2B5E]" />
-                         <span><strong className="block text-base text-[#0B2B5E]">Documentos para apostillar</strong><span className="mt-1 block text-slate-700">Tarifa estándar: 40 EUR o 160 soles. Disponible solo para la ruta Torino – Lima.</span></span>
+                         <span><strong className="block text-base text-[#0B2B5E]">Documentos para apostillar</strong><span className="mt-1 block text-slate-700">Tarifa estándar: 40 EUR; el equivalente en soles se calcula con el BCRP + 0,15 por EUR.</span></span>
                        </label>
-                       <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm"><input type="checkbox" aria-label="Servicio de traducción" {...createForm.register("requiresTranslationService")} className="mt-0.5 h-5 w-5" /><span><strong className="block text-base text-[#0B2B5E]">Traducción</strong><span className="mt-1 block text-slate-700">Tarifa estándar: 200 soles. Disponible para Italia – Lima.</span></span></label>
+                       <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm"><input type="checkbox" aria-label="Servicio de traducción" {...createForm.register("requiresTranslationService")} className="mt-0.5 h-5 w-5" /><span><strong className="block text-base text-[#0B2B5E]">Traducción</strong><span className="mt-1 block text-slate-700">Tarifa estándar: 50 EUR; el equivalente en soles se calcula con el BCRP + 0,15 por EUR.</span></span></label>
                        <div className="mt-3 grid gap-3 sm:grid-cols-2"><div><label className="mb-2 block text-sm font-medium text-gray-700">Precio manual del servicio (EUR)</label><Input type="number" min="0" step="0.01" placeholder="Apostilla: 40" {...createForm.register("serviceManualPriceEur")} /></div><div><label className="mb-2 block text-sm font-medium text-gray-700">Precio manual del servicio (soles)</label><Input type="number" min="0" step="0.01" placeholder="Apostilla: 160 / Traducción: 200" {...createForm.register("serviceManualPriceSoles")} /></div></div>
                      </>
                    )}
@@ -2811,8 +2816,8 @@ export default function AdminDashboard() {
   createForm.setValue("provinceSenderLastName", sender?.lastName || "", { shouldDirty: true });
   createForm.setValue("provinceSenderDni", sender?.dni || "", { shouldDirty: true });
   createForm.setValue("provinceSenderPhone", sender?.phone || "", { shouldDirty: true, shouldValidate: true });
-}} /><div className="mt-3 grid gap-3 sm:grid-cols-2"><Input placeholder="Nombres del remitente provincial" {...createForm.register("provinceSenderName")} /><Input placeholder="Apellidos del remitente provincial" {...createForm.register("provinceSenderLastName")} /><Input placeholder="DNI del remitente provincial" inputMode="numeric" maxLength={8} {...createForm.register("provinceSenderDni")} /><PhoneInput value={createForm.watch("provinceSenderPhone") || ""} onChange={(value) => createForm.setValue("provinceSenderPhone", value, { shouldDirty: true, shouldValidate: true })} placeholder="Celular del remitente provincial" /></div></div><div className="mt-3 grid gap-3 sm:grid-cols-2"><div><p className="mb-1 text-sm font-semibold text-slate-700">Peso enviado</p><p className="rounded-md bg-white px-3 py-2 text-base font-bold text-[#0B2B5E]">{selectedShipmentType === "encomienda" ? `${watchedWeightKg.toFixed(1)} kg` : "No aplica a documentos"}</p></div><div><label className="mb-1 block text-sm font-semibold text-slate-700">Precio al cliente (EUR)</label>    <Input type="number" min="0" step="0.01" placeholder="Ej. 10.00" {...createForm.register("provinceCustomerPriceEur")} />
-<div><label className="mb-1 block text-sm font-semibold text-slate-700">Extra provincial proporcional (EUR)</label><Input type="number" min="0" step="0.01" placeholder={watchedWeightKg > 10 ? `Automático: ${automaticProvinceExtraPrice.toFixed(2)}` : "0.00"} {...createForm.register("provinceExtraPriceEur")} /><p className="mt-1 text-xs text-slate-600">Solo para provincia: se calcula automáticamente como los kg por encima de 10 × 2,00 EUR; puedes modificarlo si lo deseas. Este importe no impide crear la encomienda.</p></div></div><div><label className="mb-1 block text-sm font-semibold text-slate-700">Costo operativo (soles)</label><Input type="number" min="0" step="0.01" placeholder={selectedShipmentType === "documento" ? "8.00 automático" : "Ej. 12.00"} {...createForm.register("provinceOperationalCostSoles")} /><p className="mt-1 text-xs text-slate-600">Documentos: S/ 8.00 por defecto.</p></div><div className="rounded-md bg-white px-3 py-2 text-sm text-slate-700"><strong>Courier:</strong> Se usará la agencia seleccionada arriba.</div></div></></section>}
+}} /><div className="mt-3 grid gap-3 sm:grid-cols-2"><Input placeholder="Nombres del remitente provincial" {...createForm.register("provinceSenderName")} /><Input placeholder="Apellidos del remitente provincial" {...createForm.register("provinceSenderLastName")} /><Input placeholder="DNI del remitente provincial" inputMode="numeric" maxLength={8} {...createForm.register("provinceSenderDni")} /><PhoneInput value={createForm.watch("provinceSenderPhone") || ""} onChange={(value) => createForm.setValue("provinceSenderPhone", value, { shouldDirty: true, shouldValidate: true })} placeholder="Celular del remitente provincial" /></div></div><div className="mt-3 grid gap-3 sm:grid-cols-2"><div><p className="mb-1 text-sm font-semibold text-slate-700">Peso enviado</p><p className="rounded-md bg-white px-3 py-2 text-base font-bold text-[#0B2B5E]">{selectedShipmentType === "encomienda" ? `${watchedWeightKg.toFixed(1)} kg` : "No aplica a documentos"}</p></div><div><label className="mb-1 block text-sm font-semibold text-slate-700">Precio al cliente ({selectedPricingCurrency})</label>    <Input type="number" min="0" step="0.01" placeholder="Ej. 10.00" {...createForm.register("provinceCustomerPriceEur")} />
+<div><label className="mb-1 block text-sm font-semibold text-slate-700">Extra provincial proporcional ({selectedPricingCurrency})</label><Input type="number" min="0" step="0.01" placeholder={watchedWeightKg > 10 ? `Automático: ${automaticProvinceExtraPrice.toFixed(2)}` : "0.00"} {...createForm.register("provinceExtraPriceEur")} /><p className="mt-1 text-xs text-slate-600">Solo para provincia: se calcula automáticamente como los kg por encima de 10 × 2,00 EUR; puedes modificarlo si lo deseas. Este importe no impide crear la encomienda.</p></div></div><div><label className="mb-1 block text-sm font-semibold text-slate-700">Costo operativo (soles)</label><Input type="number" min="0" step="0.01" placeholder={selectedShipmentType === "documento" ? "8.00 automático" : "Ej. 12.00"} {...createForm.register("provinceOperationalCostSoles")} /><p className="mt-1 text-xs text-slate-600">Documentos: S/ 8.00 por defecto.</p></div><div className="rounded-md bg-white px-3 py-2 text-sm text-slate-700"><strong>Courier:</strong> Se usará la agencia seleccionada arriba.</div></div></></section>}
 
               {selectedShipmentType === "documento" && selectedRoute === "Lima - Torino" && <div className={`mt-4 ${mobileSectionClass(3)}`}><LimaTorinoTransferPanel value={{ mode: createForm.watch("limaTorinoTransferMode"), personName: createForm.watch("deliveryPersonName"), personLastName: createForm.watch("deliveryPersonLastName"), personDni: createForm.watch("deliveryPersonDni"), personPhone: createForm.watch("deliveryPersonPhone"), locationType: createForm.watch("deliveryLocationType"), locationAddress: createForm.watch("deliveryLocationAddress"), latitude: createForm.watch("deliveryLocationLatitude"), longitude: createForm.watch("deliveryLocationLongitude") }} onChange={(next) => { createForm.setValue("limaTorinoTransferMode", next.mode, { shouldDirty: true, shouldValidate: true }); createForm.setValue("deliveryPersonName", next.personName || "", { shouldDirty: true }); createForm.setValue("deliveryPersonLastName", next.personLastName || "", { shouldDirty: true }); createForm.setValue("deliveryPersonDni", next.personDni || "", { shouldDirty: true }); createForm.setValue("deliveryPersonPhone", next.personPhone || "", { shouldDirty: true }); createForm.setValue("deliveryLocationType", next.locationType, { shouldDirty: true }); createForm.setValue("deliveryLocationAddress", next.locationAddress || "", { shouldDirty: true }); createForm.setValue("deliveryLocationLatitude", next.latitude ?? null, { shouldDirty: true }); createForm.setValue("deliveryLocationLongitude", next.longitude ?? null, { shouldDirty: true }); }} error={createForm.formState.errors.limaTorinoTransferMode?.message as string | undefined} /></div>}
 
@@ -3352,14 +3357,14 @@ export default function AdminDashboard() {
                         <option value="manual">Precio manual en EUR</option>
                       </select>
                     </div>
-                    {isTorinoLimaRoute(updateForm.watch("route")) && <div className="md:col-span-2 grid gap-3 sm:grid-cols-2">
+                    {updateForm.watch("shipmentType") === "documento" && <div className="md:col-span-2 grid gap-3 sm:grid-cols-2">
                       <label className="flex cursor-pointer items-start gap-3 rounded-xl border-2 border-[#0B2B5E] bg-blue-50 p-4 text-sm shadow-sm transition hover:bg-blue-100/70">
                         <input type="checkbox" aria-label="Documentos para apostillar" {...updateForm.register("requiresApostilleService")} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-[#0B2B5E] focus:ring-[#0B2B5E]" />
-                        <span><strong className="block text-base text-[#0B2B5E]">Documentos para apostillar</strong><span className="mt-1 block text-slate-700">+40 EUR (S/ 160) · plazo referencial: 7 días hábiles.</span></span>
+                        <span><strong className="block text-base text-[#0B2B5E]">Documentos para apostillar</strong><span className="mt-1 block text-slate-700">+40 EUR · soles calculados con BCRP + 0,15 por EUR · plazo referencial: 7 días hábiles.</span></span>
                       </label>
                       <label className="flex cursor-pointer items-start gap-3 rounded-xl border-2 border-amber-300 bg-amber-50 p-4 text-sm shadow-sm transition hover:bg-amber-100/70">
                         <input type="checkbox" aria-label="Servicio de traducción" {...updateForm.register("requiresTranslationService")} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-amber-700 focus:ring-amber-600" />
-                        <span><strong className="block text-base text-[#0B2B5E]">Traducción</strong><span className="mt-1 block text-slate-700">+50 EUR (S/ 200) · plazo referencial: 7 días hábiles.</span></span>
+                        <span><strong className="block text-base text-[#0B2B5E]">Traducción</strong><span className="mt-1 block text-slate-700">+50 EUR · soles calculados con BCRP + 0,15 por EUR · plazo referencial: 7 días hábiles.</span></span>
                       </label>
                       {Boolean(updateForm.watch("requiresApostilleService")) && <div className="sm:col-span-2 grid gap-3 rounded-xl border border-slate-200 bg-white p-3 sm:grid-cols-2"><label className="text-sm font-medium text-slate-700">Precio manual de apostilla (EUR, opcional)<Input type="number" min="0" step="0.01" placeholder="40.00" {...updateForm.register("serviceManualPriceEur")} className="mt-1" /></label><label className="text-sm font-medium text-slate-700">Precio manual de apostilla (S/, opcional)<Input type="number" min="0" step="0.01" placeholder="160.00" {...updateForm.register("serviceManualPriceSoles")} className="mt-1" /></label></div>}
                     </div>}
@@ -3382,7 +3387,7 @@ export default function AdminDashboard() {
                             <Input type="number" min="0" step="0.01" {...updateForm.register("provinceCustomerPriceEur")} placeholder={Number(updateForm.watch("weightKg") || 0) > 10 ? "15.00 base" : Number(updateForm.watch("weightKg") || 0) > 5 ? "15.00 automático" : "10.00 automático"} />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Extra provincial proporcional (EUR)</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Extra provincial proporcional ({updatePricingCurrency})</label>
                             <Input type="number" min="0" step="0.01" {...updateForm.register("provinceExtraPriceEur")} placeholder={Number(updateForm.watch("weightKg") || 0) > 10 ? `Automático: ${((Number(updateForm.watch("weightKg") || 0) - 10) * 2).toFixed(2)}` : "0.00"} />
                             <p className="mt-1 text-xs text-slate-600">Separa este extra del importe extra internacional. Sobre 10 kg se calcula automáticamente a 2,00 EUR por kg.</p>
                           </div>

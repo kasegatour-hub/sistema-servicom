@@ -419,6 +419,7 @@ export const shipments = mysqlTable("shipments", {
   discountPercent: decimal("discountPercent", { precision: 5, scale: 2 }).default("0.00").notNull(),
   discountAmountEur: decimal("discountAmountEur", { precision: 10, scale: 2 }).default("0.00").notNull(),
   finalPriceEur: decimal("finalPriceEur", { precision: 10, scale: 2 }),
+  pricingCurrency: mysqlEnum("pricingCurrency", ["EUR", "PEN"]).default("EUR").notNull(),
   paymentStatus: mysqlEnum("paymentStatus", ["Pagado", "Falta cancelar"]).default("Falta cancelar").notNull(),
   route: varchar("route", { length: 100 }).default("Lima - Torino").notNull(),
   /** Modelo nuevo: puntos independientes; route conserva la ruta técnica histórica. */

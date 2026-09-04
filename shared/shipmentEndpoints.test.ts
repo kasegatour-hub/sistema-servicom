@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { deriveHubPath, deriveLegacyShipmentRoute, normalizeIndependentEndpoints, SHIPMENT_ENDPOINTS } from "./shipmentEndpoints";
+import { deriveHubPath, deriveLegacyShipmentRoute, derivePricingCurrency, normalizeIndependentEndpoints, SHIPMENT_ENDPOINTS } from "./shipmentEndpoints";
 
 describe("modelo de origen y destino independientes", () => {
   it.each([
@@ -22,5 +22,18 @@ describe("modelo de origen y destino independientes", () => {
   it("normaliza registros históricos al nuevo modelo", () => {
     expect(normalizeIndependentEndpoints({ route: "Torino - Lima + provincia" })).toEqual({ originPoint: "Torino", destinationPoint: "Provincia (Perú)" });
     expect(normalizeIndependentEndpoints({ route: "Lima - Torino" })).toEqual({ originPoint: "Lima", destinationPoint: "Torino" });
+    expect(normalizeIndependentEndpoints({ route: "Provincia - Lima" })).toEqual({ originPoint: "Provincia (Perú)", destinationPoint: "Lima" });
+    expect(normalizeIndependentEndpoints({ route: "Lima - Provincia" })).toEqual({ originPoint: "Lima", destinationPoint: "Provincia (Perú)" });
+  });
+
+  it.each([
+    [SHIPMENT_ENDPOINTS.PROVINCIA, SHIPMENT_ENDPOINTS.LIMA, "PEN"],
+    [SHIPMENT_ENDPOINTS.LIMA, SHIPMENT_ENDPOINTS.PROVINCIA, "PEN"],
+    [SHIPMENT_ENDPOINTS.LIMA, SHIPMENT_ENDPOINTS.LIMA, "PEN"],
+    [SHIPMENT_ENDPOINTS.LIMA, SHIPMENT_ENDPOINTS.TORINO, "EUR"],
+    [SHIPMENT_ENDPOINTS.TORINO, SHIPMENT_ENDPOINTS.LIMA, "EUR"],
+    [SHIPMENT_ENDPOINTS.TORINO, SHIPMENT_ENDPOINTS.PROVINCIA, "EUR"],
+  ])("deriva la moneda %s → %s", (originPoint, destinationPoint, currency) => {
+    expect(derivePricingCurrency({ originPoint, destinationPoint })).toBe(currency);
   });
 });

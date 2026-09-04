@@ -8,7 +8,7 @@ import { rankFuzzyMatches } from "../shared/fuzzySearch";
 import { searchInvitationPeople, type InvitationPersonSeed } from "../shared/invitationPeople";
 import { getFailureUpdate } from "./loginProtection";
 import { getShipmentOperationalEnvironment, isProvinceShipmentRoute, isTorinoLimaRoute, type ShipmentOperationalEnvironment } from "../shared/shipmentRoutes";
-import { normalizeIndependentEndpoints } from "../shared/shipmentEndpoints";
+import { derivePricingCurrency, normalizeIndependentEndpoints } from "../shared/shipmentEndpoints";
 import { shouldSuppressNotifications } from "./notificationRuntime";
 
 // Normalizar números de orden y códigos: remover espacios y convertir a mayúsculas
@@ -1764,8 +1764,10 @@ export async function createShipment(
   const normalizedCode = normalizeOrderCode(code);
   const normalizedShipmentType = shipmentType || "documento";
   const normalizedRoute = route || "Lima - Torino";
-  const canRequireApostilleService = normalizedShipmentType === "documento" && isTorinoLimaRoute(normalizedRoute);
-  const provinceDelivery = (Boolean(isProvinceDelivery) || isProvinceShipmentRoute(normalizedRoute)) && isTorinoLimaRoute(normalizedRoute);
+  const normalizedEndpoints = normalizeIndependentEndpoints({ route: normalizedRoute, isProvinceDelivery });
+  const pricingCurrency = derivePricingCurrency(normalizedEndpoints);
+  const canRequireApostilleService = normalizedShipmentType === "documento";
+  const provinceDelivery = Boolean(isProvinceDelivery) || isProvinceShipmentRoute(normalizedRoute);
 
   const events = [
     {
@@ -1813,8 +1815,9 @@ export async function createShipment(
     finalPriceEur: finalPriceEur !== undefined && finalPriceEur !== null && String(finalPriceEur).trim() !== "" ? String(finalPriceEur) : null,
     paymentStatus: paymentStatus || "Falta cancelar",
     route: normalizedRoute,
-    originPoint: normalizeIndependentEndpoints({ route: normalizedRoute, isProvinceDelivery: provinceDelivery }).originPoint,
-    destinationPoint: normalizeIndependentEndpoints({ route: normalizedRoute, isProvinceDelivery: provinceDelivery }).destinationPoint,
+    pricingCurrency,
+    originPoint: normalizedEndpoints.originPoint,
+    destinationPoint: normalizedEndpoints.destinationPoint,
     originAddress: originAddress || "",
     destinationAddress: destinationAddress || "",
     isProvinceDelivery: provinceDelivery ? 1 : 0,
@@ -1940,10 +1943,12 @@ export async function updateShipmentStatus(
     if (!shipment) return undefined;
     const updatedShipmentType = shipmentType ?? shipment.shipmentType ?? "documento";
     const updatedRoute = route ?? shipment.route ?? "Lima - Torino";
+    const updatedEndpoints = normalizeIndependentEndpoints({ route: updatedRoute, isProvinceDelivery });
+    const pricingCurrency = derivePricingCurrency(updatedEndpoints);
     const shouldRequireApostilleService = requiresApostilleService ?? shipment.requiresApostilleService === 1;
     const shouldRequireTranslationService = requiresTranslationService ?? shipment.requiresTranslationService === 1;
-    const canRequireApostilleService = updatedShipmentType === "documento" && isTorinoLimaRoute(updatedRoute);
-    const updatedProvinceDelivery = (Boolean(isProvinceDelivery ?? shipment.isProvinceDelivery) || isProvinceShipmentRoute(updatedRoute)) && isTorinoLimaRoute(updatedRoute);
+    const canRequireApostilleService = updatedShipmentType === "documento";
+    const updatedProvinceDelivery = Boolean(isProvinceDelivery ?? shipment.isProvinceDelivery) || isProvinceShipmentRoute(updatedRoute);
 
     let events = [];
     try {
@@ -2005,8 +2010,9 @@ export async function updateShipmentStatus(
         finalPriceEur: finalPriceEur !== undefined ? (finalPriceEur !== null && String(finalPriceEur).trim() !== "" ? String(finalPriceEur) : null) : shipment.finalPriceEur,
         paymentStatus: paymentStatus ?? shipment.paymentStatus ?? "Falta cancelar",
         route: updatedRoute,
-        originPoint: normalizeIndependentEndpoints({ route: updatedRoute, isProvinceDelivery }).originPoint,
-        destinationPoint: normalizeIndependentEndpoints({ route: updatedRoute, isProvinceDelivery }).destinationPoint,
+        pricingCurrency,
+        originPoint: updatedEndpoints.originPoint,
+        destinationPoint: updatedEndpoints.destinationPoint,
         originAddress: originAddress ?? shipment.originAddress ?? "",
         destinationAddress: destinationAddress ?? shipment.destinationAddress ?? "",
         deliveryMode: deliveryMode ?? shipment.deliveryMode ?? "agencia",

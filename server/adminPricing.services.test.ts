@@ -16,9 +16,9 @@ describe("servicios de documentos Italia–Lima", () => {
     expect(pricing.totalEur).toBe(95);
   });
 
-  it("no aplica estos servicios fuera de Torino–Lima", () => {
+  it("aplica estos servicios en cualquier ruta documental", () => {
     const pricing = calculateAdminShipmentPricing({ shipmentType: "documento", route: "Lima - Torino", requiresApostilleService: true, requiresTranslationService: true });
-    expect(pricing.servicePriceEur).toBe(0);
-    expect(pricing.servicePriceSoles).toBe(0);
+    expect(pricing.servicePriceEur).toBe(90);
+    expect(pricing.servicePriceSoles).toBe(360);
   });
 });

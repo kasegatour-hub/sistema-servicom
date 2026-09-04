@@ -79,20 +79,21 @@ describe("calculateAdminShipmentPricing — provincia Italia–Lima", () => {
     }
   });
 
-  it("no activa provincia fuera de Italia–Lima", () => {
+  it("activa Provincia → Lima o Lima → Provincia y conserva la moneda PEN", () => {
     const result = calculateAdminShipmentPricing({
       shipmentType: "documento",
-      route: "Lima - Torino",
+      route: "Lima - Provincia",
       isProvinceDelivery: true,
       provinceCustomerPriceEur: 20,
       provinceOperationalCostSoles: 12,
       provinceCarrier: "olva",
     });
 
-    expect(result.isProvinceDelivery).toBe(false);
-    expect(result.provinceCustomerPriceEur).toBe(0);
-    expect(result.provinceOperationalCostSoles).toBe(0);
-    expect(result.provinceCarrier).toBeNull();
-    expect(result.totalEur).toBe(50);
+    expect(result.isProvinceDelivery).toBe(true);
+    expect(result.pricingCurrency).toBe("PEN");
+    expect(result.provinceCustomerPriceEur).toBe(20);
+    expect(result.provinceOperationalCostSoles).toBe(12);
+    expect(result.provinceCarrier).toBe("olva");
+    expect(result.totalEur).toBe(70);
   });
 });

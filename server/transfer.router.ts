@@ -4,6 +4,7 @@ import { publicProcedure, router } from "./_core/trpc";
 import { getAdminSession } from "./adminSession";
 import { createTransfer, listTransfersByAdmin } from "./db";
 import { getArgenperEuroQuote } from "./argenper";
+import { getBcrpEuroQuote } from "./bcrp";
 import { calculateTransferAmount as calculateConvertedTransferAmount, calculateTransferFee, getTransferCommissionPercent, type TransferCurrency } from "../shared/transferCalculation";
 
 const personName = z.string().trim().min(2, "Ingresa el nombre completo.").max(255);
@@ -60,6 +61,13 @@ function transferNumber() {
 }
 
 export const transferRouter = router({
+  bcrpQuote: publicProcedure.query(async () => {
+    try {
+      return await getBcrpEuroQuote();
+    } catch (error) {
+      throw new TRPCError({ code: "BAD_GATEWAY", message: "No se pudo obtener el tipo de cambio del BCRP. Puedes ingresar un valor manual.", cause: error });
+    }
+  }),
   argenperQuote: publicProcedure.query(async ({ ctx }) => {
     const session = getAdminSession(ctx.req);
     if (!session || session.reauthRequired) throw new TRPCError({ code: "UNAUTHORIZED", message: "Sesión administrativa requerida." });

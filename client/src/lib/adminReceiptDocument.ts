@@ -7,6 +7,7 @@ import { getRoutePresentation } from "./routeDetails";
 import { buildElectronicSignatureHtml, buildReceiptDownloadFilename, getReceiptBranding } from "./userReceipt";
 import { buildShipmentDeliveryStatusUrl, buildTrackingUrl, TRACKING_QR_OPTIONS } from "./tracking";
 import { getIdentityDocumentLabel } from "@shared/identityDocuments";
+import { formatShipmentAmount } from "@shared/bcrpPricing";
 
 type AdminReceiptDocumentInput = {
   shipment: any;
@@ -206,7 +207,7 @@ export async function downloadAdminReceiptPdf(input: AdminReceiptDocumentInput, 
   y = addRows([["Destinatario", recipient], [getIdentityDocumentLabel(shipment.recipientDocumentType), String(shipment.recipientDni || "No especificado")], ["Celular", formatPhoneNumber(shipment.recipientPhone) || "No especificado"], ["Sede de entrega", `${route.destinationPrintLabel} · ${route.destination.officeLabel}`], ["Dirección", route.destination.address]], y);
   y = addSection("Contenido y precio", y + 4);
   const checklist = getChecklist(shipment);
-  y = addRows([["Lista de cosas", checklist.length ? checklist.join(" · ") : "Sin ítems registrados"], ["Notas", String(shipment.notes || "Sin notas")], ["Precio final", `${Number(shipment.finalPriceEur ?? shipment.basePriceEur ?? 0).toFixed(2)} EUR`]], y);
+  y = addRows([["Lista de cosas", checklist.length ? checklist.join(" · ") : "Sin ítems registrados"], ["Notas", String(shipment.notes || "Sin notas")], ["Precio final", formatShipmentAmount(Number(shipment.finalPriceEur ?? shipment.basePriceEur ?? 0), shipment)]], y);
   // QR y políticas deben permanecer en la primera hoja, junto con el comprobante.
   y = Math.min(y, 230);
   pdf.addImage(trackingQr, "PNG", left, y + 2, 35, 35);
@@ -236,7 +237,7 @@ export async function downloadAdminReceiptPdf(input: AdminReceiptDocumentInput, 
   pdf.setFontSize(14);
   pdf.text(`CONTROL DE ENTREGA — ${route.deliveryTitle}`, left, y);
   y = addSection(`Información de envío de ${shipmentLabel}`, y + 12);
-  y = addRows([["Orden", order], ["Código", code], ["Ruta", route.route], ...apostilleRows, ["Remitente", sender], ["Celular remitente", formatPhoneNumber(shipment.senderPhone) || "No especificado"], ["Destinatario", recipient], ["Celular destinatario", formatPhoneNumber(shipment.recipientPhone) || "No especificado"], ["Notas", String(shipment.notes || "Sin notas")], ["Precio final", `${Number(shipment.finalPriceEur ?? shipment.basePriceEur ?? 0).toFixed(2)} EUR`]], y);
+  y = addRows([["Orden", order], ["Código", code], ["Ruta", route.route], ...apostilleRows, ["Remitente", sender], ["Celular remitente", formatPhoneNumber(shipment.senderPhone) || "No especificado"], ["Destinatario", recipient], ["Celular destinatario", formatPhoneNumber(shipment.recipientPhone) || "No especificado"], ["Notas", String(shipment.notes || "Sin notas")], ["Precio final", formatShipmentAmount(Number(shipment.finalPriceEur ?? shipment.basePriceEur ?? 0), shipment)]], y);
   pdf.addImage(deliveryQr, "PNG", right - 45, 208, 38, 38);
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(9);

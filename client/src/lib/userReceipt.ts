@@ -7,6 +7,7 @@ import { getDeclarationLegalText, getRoutePresentation } from "./routeDetails";
 import { formatPhoneNumber } from "./phoneFormatting";
 import { buildSignatureSvgMarkup } from "../../../shared/signature";
 import { getIdentityDocumentLabel } from "@shared/identityDocuments";
+import { formatShipmentAmount } from "@shared/bcrpPricing";
 
 const brandLogoPath = "/manus-storage/servicom_logo_final_e7ce35aa.png";
 const kasegaLogoPath = "/manus-storage/kasega_logo_estampado_0008a158.png";
@@ -87,9 +88,9 @@ export function buildReceiptMarkdown(shipment: any): string {
   const recipientDocumentLabel = getIdentityDocumentLabel(shipment.recipientDocumentType);
   const payment = getPaymentStatusPresentation(shipment.paymentStatus);
   const rawPrice = Number(shipment.finalPriceEur ?? shipment.basePriceEur ?? 0);
-  const price = Number.isFinite(rawPrice) ? `${rawPrice.toFixed(2)} EUR` : "No especificado";
+  const price = formatShipmentAmount(rawPrice, shipment);
   const rawExtraPrice = Number(shipment.extraPriceEur ?? 0);
-  const extraPrice = Number.isFinite(rawExtraPrice) ? `${rawExtraPrice.toFixed(2)} EUR` : "0.00 EUR";
+  const extraPrice = formatShipmentAmount(Number.isFinite(rawExtraPrice) ? rawExtraPrice : 0, shipment);
   const checklist = receiptChecklist(shipment);
   const trackingUrl = buildTrackingUrl(String(shipment.orderNumber), String(shipment.code));
   const shipmentLabel = shipment.shipmentType === "encomienda" ? "ENCOMIENDA" : "DOCUMENTO";
@@ -272,9 +273,9 @@ export async function downloadUserShipmentReceiptPdf(shipment: any): Promise<str
   const sender = fullName(shipment.senderName, shipment.senderLastName);
   const payment = getPaymentStatusPresentation(shipment.paymentStatus);
   const rawPrice = Number(shipment.finalPriceEur ?? shipment.basePriceEur ?? 0);
-  const price = Number.isFinite(rawPrice) ? `${rawPrice.toFixed(2)} EUR` : "No especificado";
+  const price = formatShipmentAmount(rawPrice, shipment);
   const rawExtraPrice = Number(shipment.extraPriceEur ?? 0);
-  const extraPrice = Number.isFinite(rawExtraPrice) ? `${rawExtraPrice.toFixed(2)} EUR` : "0.00 EUR";
+  const extraPrice = formatShipmentAmount(Number.isFinite(rawExtraPrice) ? rawExtraPrice : 0, shipment);
   const qrDataUrl = await QRCode.toDataURL(buildTrackingUrl(String(shipment.orderNumber), String(shipment.code)), {
     ...TRACKING_QR_OPTIONS,
     width: 180,

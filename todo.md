@@ -2050,3 +2050,20 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Verificar derivación de ruta, provincia y campos de agencia/sucursal.
 - [x] Añadir regresiones para creación, edición y registro móvil.
 - [x] Ejecutar pruebas, TypeScript, build y publicar la corrección.
+
+## Corrección de rutas, servicios y conversión EUR/PEN
+- [x] Permitir seleccionar y persistir Provincia (Perú) → Lima sin convertirla a otra ruta.
+- [x] Habilitar traducción y legalización para todos los orígenes y destinos aplicables.
+- [x] Consultar el tipo de cambio oficial del BCRP mediante su API con fecha vigente.
+- [x] Calcular soles como euros multiplicados por el tipo BCRP más 0,15 soles por euro.
+- [x] Mostrar el cálculo EUR/PEN en creación, actualización, recibos, notas y documentos.
+- [x] Añadir regresiones para rutas, servicios y conversión monetaria.
+- [x] Ejecutar pruebas, TypeScript, build y publicar checkpoint.
+
+## Moneda derivada por ruta
+- [x] Definir soles para Provincia → Lima y Lima → Provincia.
+- [x] Mantener euros para Lima → Torino, Torino → Lima y destinos fuera de Perú.
+- [x] Asegurar que Olva, Shalom y otros couriers no cambien incorrectamente la moneda.
+- [x] Aplicar la moneda derivada a precios, formularios, recibos, tickets, declaraciones y contabilidad.
+- [x] Añadir pruebas de las rutas Perú e internacionales y validar la conversión BCRP donde corresponda.
+- [x] Ejecutar pruebas, TypeScript, build y publicar checkpoint.

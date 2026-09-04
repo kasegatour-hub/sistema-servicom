@@ -13,6 +13,9 @@ vi.mock("@/lib/userReceipt", () => ({ downloadShipmentReceipt: receiptMocks.down
 vi.mock("@/lib/trpc", () => ({
   trpc: {
     useUtils: () => ({ account: { me: { invalidate: vi.fn() } }, shipment: { search: { fetch: vi.fn(async (input: any) => accountMocks.shipments.find((shipment: any) => String(shipment.orderNumber) === String(input.orderNumber) && String(shipment.code) === String(input.code)) || null) } } }),
+    transfers: {
+      bcrpQuote: { useQuery: () => ({ data: { bcrpRatePenPerEur: 3.95, adjustedPenPerEur: 4.10, commissionPenPerEur: 0.15, fetchedAt: Date.now(), sourceUrl: "https://estadisticas.bcrp.gob.pe/estadisticas/series/api/PD04648PD/json", period: "02.09.2026" }, isFetching: false, error: null, refetch: vi.fn() }) },
+    },
     account: {
       me: { useQuery: () => ({ data: accountMocks.session, isLoading: false }) },
       myShipments: { useQuery: () => ({ data: accountMocks.shipments, refetch: vi.fn() }) },
@@ -225,23 +228,23 @@ describe("AccountPage client labels", () => {
     window.history.pushState({}, "", "/cuenta");
   });
 
-  it("muestra y limpia la opción de apostilla solo al seleccionar Torino – Lima", async () => {
+  it("mantiene apostilla y traducción disponibles en cualquier ruta documental", async () => {
     render(<AccountPage />);
     fireEvent.click(screen.getByRole("button", { name: /Registrar Nuevo Documento/ }));
     const routeSelect = await screen.findByRole("combobox", { name: "Ruta de envío" });
 
-    expect(screen.queryByLabelText("Documentos para apostillar")).toBeNull();
-    fireEvent.change(routeSelect, { target: { value: "Torino - Lima" } });
+    expect(screen.getByLabelText("Documentos para apostillar")).toBeTruthy();
+    fireEvent.change(routeSelect, { target: { value: "Provincia - Lima" } });
     const apostilleOption = await screen.findByLabelText("Documentos para apostillar") as HTMLInputElement;
     fireEvent.click(apostilleOption);
     expect(apostilleOption.checked).toBe(true);
     expect(screen.getByText("Servicios adicionales opcionales")).toBeTruthy();
-    expect(screen.getByText(/Apostillado: \+40,00 EUR \(160,00 soles\) · 7 días hábiles/)).toBeTruthy();
+    expect(screen.getByText(/Apostillado: \+40,00 EUR/)).toBeTruthy();
     expect(screen.getByText(/Traducción: no seleccionada/)).toBeTruthy();
     expect(screen.getAllByText(/Plazo estimado: 7 días hábiles/).length).toBeGreaterThanOrEqual(1);
 
     fireEvent.change(routeSelect, { target: { value: "Lima - Torino" } });
-    await waitFor(() => expect(screen.queryByLabelText("Documentos para apostillar")).toBeNull());
+    await waitFor(() => expect(screen.getByLabelText("Documentos para apostillar")).toBeTruthy());
   });
 
   it("marca en rojo los datos y la lista requeridos antes de registrar un documento", async () => {

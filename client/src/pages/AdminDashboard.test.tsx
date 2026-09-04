@@ -79,6 +79,7 @@ vi.mock("@/lib/trpc", () => ({
       list: { useQuery: () => mocks.listTransfers },
       create: { useMutation: () => mocks.createTransfer },
       argenperQuote: { useQuery: () => ({ data: { eurPurchaseRate: 3.79, eurSaleRate: 4.02, adjustedPenPerEur: 4.17, fetchedAt: Date.now(), sourceUrl: "https://www.argenper.com.pe/servicios/cambio-moneda" }, isFetching: false, error: null, refetch: vi.fn() }) },
+      bcrpQuote: { useQuery: () => ({ data: { bcrpRatePenPerEur: 3.95, adjustedPenPerEur: 4.10, commissionPenPerEur: 0.15, fetchedAt: Date.now(), sourceUrl: "https://estadisticas.bcrp.gob.pe/estadisticas/series/api/PD04648PD/json", period: "02.09.2026" }, isFetching: false, error: null, refetch: vi.fn() }) },
     },
     notifications: {
       list: { useQuery: () => ({ data: mocks.notifications.data, isLoading: false, refetch: mocks.notifications.refetch }) },
