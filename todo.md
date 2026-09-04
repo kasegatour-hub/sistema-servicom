@@ -2084,3 +2084,10 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Mantener tarifas actuales de Jr. de la Unión, Corso Peschiera y Via Muriaglio; dejar configurables las rutas nuevas.
 - [x] Añadir regresiones para Provincia → Lima, filtros, sedes y apertura de registros.
 - [x] Ejecutar pruebas, TypeScript, build, revisión responsive y publicar checkpoint.
+
+## Reordenación del registro: origen y destino primero
+- [x] Mostrar Punto de origen y Punto de destino como primer paso del formulario.
+- [x] Ocultar tipo de documento, servicios, personas y precios hasta completar ambos puntos.
+- [x] Mantener el flujo por pasos en web, móvil y actualización administrativa.
+- [x] Añadir regresiones de visibilidad y selección de origen/destino.
+- [x] Ejecutar pruebas, TypeScript, build y publicar checkpoint.

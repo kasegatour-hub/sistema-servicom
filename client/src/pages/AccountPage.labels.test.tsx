@@ -53,6 +53,11 @@ import AccountPage from "./AccountPage";
 
 afterEach(() => cleanup());
 
+const confirmShipmentEndpoints = async () => {
+  fireEvent.change(await screen.findByRole("combobox", { name: "Punto de origen" }), { target: { value: "Lima" } });
+  fireEvent.change(await screen.findByRole("combobox", { name: "Punto de destino" }), { target: { value: "Torino" } });
+};
+
 beforeEach(() => {
   window.history.pushState({}, "", "/cuenta");
   accountMocks.shipments = [];
@@ -176,6 +181,7 @@ describe("AccountPage client labels", () => {
   it("shows the three shipment route options when the client starts a document registration", async () => {
     render(<AccountPage />);
     fireEvent.click(screen.getByRole("button", { name: /Registrar Nuevo Documento/ }));
+    await confirmShipmentEndpoints();
 
     await waitFor(() => expect(screen.getByRole("combobox", { name: "Ruta de envío" })).toBeTruthy());
     const routeSelect = screen.getByRole("combobox", { name: "Ruta de envío" });
@@ -202,6 +208,7 @@ describe("AccountPage client labels", () => {
   it("muestra el tipo documental seleccionado completo con tarifa destacada", async () => {
     render(<AccountPage />);
     fireEvent.click(screen.getByRole("button", { name: /Registrar Nuevo Documento/ }));
+    await confirmShipmentEndpoints();
 
     const documentType = await screen.findByRole("combobox", { name: "Tipo de Documento" });
     expect((documentType as HTMLSelectElement).value).toBe("simple");
@@ -217,6 +224,7 @@ describe("AccountPage client labels", () => {
     window.history.pushState({}, "", "/cuenta?returnTo=%2Fmovil");
     render(<AccountPage />);
     fireEvent.click(screen.getByRole("button", { name: /Registrar Nuevo Documento/ }));
+    await confirmShipmentEndpoints();
     expect(screen.getByLabelText("Pasos del registro")).toBeTruthy();
     expect(screen.getByText("1. Sede y tipo")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Continuar" }));
@@ -231,6 +239,7 @@ describe("AccountPage client labels", () => {
   it("mantiene apostilla y traducción disponibles en cualquier ruta documental", async () => {
     render(<AccountPage />);
     fireEvent.click(screen.getByRole("button", { name: /Registrar Nuevo Documento/ }));
+    await confirmShipmentEndpoints();
     const routeSelect = await screen.findByRole("combobox", { name: "Ruta de envío" });
 
     expect(screen.getByLabelText("Documentos para apostillar")).toBeTruthy();
@@ -250,6 +259,7 @@ describe("AccountPage client labels", () => {
   it("marca en rojo los datos y la lista requeridos antes de registrar un documento", async () => {
     render(<AccountPage />);
     fireEvent.click(screen.getByRole("button", { name: /Registrar Nuevo Documento/ }));
+    await confirmShipmentEndpoints();
     await screen.findByRole("button", { name: "Guardar envío" });
 
     fireEvent.click(screen.getByRole("button", { name: "Guardar envío" }));
@@ -263,6 +273,7 @@ describe("AccountPage client labels", () => {
     accountMocks.shipments = [{ id: 8, orderNumber: "3520992728", code: "DOC-LUC", recipientName: "Lucía", recipientLastName: "Sánchez", recipientDni: "71234567", recipientDocumentType: "dni_peru", recipientPhone: "+51 970188447", status: "En agencia", paymentStatus: "Falta cancelar", createdAt: new Date("2026-08-17T10:00:00.000Z") }];
     render(<AccountPage />);
     fireEvent.click(screen.getByRole("button", { name: /Registrar Nuevo Documento/ }));
+    await confirmShipmentEndpoints();
     const search = await screen.findByLabelText("Buscar destinatario guardado");
     fireEvent.change(search, { target: { value: "sanches" } });
     const option = await screen.findByRole("button", { name: /Usar Lucía Sánchez/ });

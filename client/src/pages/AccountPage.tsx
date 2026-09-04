@@ -111,6 +111,7 @@ export default function AccountPage() {
   const [documentCount, setDocumentCount] = useState(1);
   const [docType, setDocType] = useState<"simple" | "apostillado">("simple");
   const [shipmentRoute, setShipmentRoute] = useState<ClientShipmentRoute>(SHIPMENT_ROUTES.LIMA_TORINO);
+  const [endpointsConfirmed, setEndpointsConfirmed] = useState(false);
   const [clientRouteFilter, setClientRouteFilter] = useState<"all" | "Lima - Torino" | "Torino - Lima">("all");
   type ClientShipmentGroup = "all" | "documento_lima_torino" | "documento_torino_lima" | "documento_torino_provincia" | "documento_provincia_lima_torino" | "encomienda_lima_torino" | "encomienda_torino_lima" | "encomienda_torino_provincia" | "encomienda_provincia_lima_torino";
   const [clientShipmentGroup, setClientShipmentGroup] = useState<ClientShipmentGroup>("all");
@@ -144,6 +145,7 @@ export default function AccountPage() {
     setDocumentCount(1);
     setDocType("simple");
     setShipmentRoute("Lima - Torino");
+    setEndpointsConfirmed(false);
     setRequiresApostilleService(false);
     setRequiresTranslationService(false);
     setDestinationAddress("");
@@ -850,10 +852,11 @@ export default function AccountPage() {
                 {Object.keys(shipmentValidationErrors).length > 0 && <div role="alert" className="rounded-xl border-2 border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-800"><strong className="block text-base">Completa los campos obligatorios marcados en rojo.</strong><span>Te llevaremos al primer campo pendiente para que puedas corregirlo.</span></div>}
                 {mobileClientMode && <div className="mt-4 rounded-xl border border-blue-100 bg-white p-3" aria-label="Pasos del registro"><div className="flex items-center justify-between gap-2 text-xs font-semibold"><span className={shipmentStep >= 1 ? "text-[#0B2B5E]" : "text-slate-400"}>1. Sede y tipo</span><span className={shipmentStep >= 2 ? "text-[#0B2B5E]" : "text-slate-400"}>2. Personas</span><span className={shipmentStep >= 3 ? "text-[#0B2B5E]" : "text-slate-400"}>3. Contenido</span></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-[#F28C00] transition-all" style={{ width: `${shipmentStep * 33.333}%` }} /></div><p className="mt-2 text-xs text-slate-500">Paso {shipmentStep} de 3. Tus datos se conservan mientras avanzas.</p></div>}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className={mobileShipmentStepVisible(1) ? "" : "hidden"}>
-                    <IndependentEndpointsFields className={mobileShipmentStepVisible(1) ? "" : "hidden"} route={shipmentRoute} onRouteChange={(nextRoute) => { const normalizedRoute = nextRoute as ClientShipmentRoute; setShipmentRoute(normalizedRoute); setDestinationAddress(getDefaultShipmentAddresses(normalizedRoute, getClientShipmentBrand(me?.email)).destinationAddress); }} />
-                    <p className="mt-2 text-xs text-gray-500">Selecciona origen y destino. Si interviene Provincia, aparecerán los datos de agencia y sucursal.</p>
+                  <div className={mobileShipmentStepVisible(1) ? "md:col-span-2" : "hidden"}>
+                    <IndependentEndpointsFields className={mobileShipmentStepVisible(1) ? "" : "hidden"} route={shipmentRoute} onRouteChange={(nextRoute) => { const normalizedRoute = nextRoute as ClientShipmentRoute; setShipmentRoute(normalizedRoute); setEndpointsConfirmed(true); setDestinationAddress(getDefaultShipmentAddresses(normalizedRoute, getClientShipmentBrand(me?.email)).destinationAddress); }} />
+                    <p className="mt-2 text-xs text-gray-500">Primero selecciona el origen y el destino. Después aparecerán el tipo de documento, servicios, personas y precio.</p>
                   </div>
+                  {endpointsConfirmed ? <>
                   <div className={mobileShipmentStepVisible(1) ? "" : "hidden"}>
                     <Label>Tipo de Documento</Label>
                     <select
@@ -957,16 +960,17 @@ export default function AccountPage() {
                      <label className="mt-3 block text-sm font-semibold text-[#0B2B5E]">Foto del envío (opcional)</label>
                      <Input type="file" accept="image/jpeg,image/png,image/webp,image/heic" aria-label="Foto del envío" onChange={event => setShipmentPhoto(event.target.files?.[0] || null)} className="mt-1 bg-white" />
                    </div>
+                  </> : <div className="md:col-span-2 rounded-xl border-2 border-dashed border-[#0B2B5E]/30 bg-blue-50 px-5 py-6 text-center text-[#0B2B5E]"><strong className="block text-lg">Selecciona primero el origen y el destino</strong><span className="mt-1 block text-sm">El resto del formulario aparecerá después de definir el trayecto.</span></div>}
                 </div>
                 <div className="flex flex-wrap justify-between gap-2">
                   <div className="flex flex-wrap gap-2">
                     <Button type="button" variant="outline" onClick={resetClientShipmentForm} aria-label="Limpiar todos los campos del formulario">Limpiar formulario</Button>
                     <Button type="button" variant="outline" onClick={() => { resetClientShipmentForm(); setShowNewShipment(false); }}>Cancelar</Button>
                   </div>
-                  {mobileClientMode && shipmentStep > 1 && <Button type="button" variant="outline" onClick={previousMobileShipmentStep}>Anterior</Button>}
-                  {mobileClientMode && shipmentStep < 3 ? <Button type="button" onClick={advanceMobileShipmentStep} className="ml-auto bg-[#0B2B5E] text-white">Continuar</Button> : <Button type="submit" disabled={createShipmentMutation.isPending} className="ml-auto bg-[#0B2B5E] text-white">
+                  {endpointsConfirmed && mobileClientMode && shipmentStep > 1 && <Button type="button" variant="outline" onClick={previousMobileShipmentStep}>Anterior</Button>}
+                  {endpointsConfirmed && (mobileClientMode && shipmentStep < 3 ? <Button type="button" onClick={advanceMobileShipmentStep} className="ml-auto bg-[#0B2B5E] text-white">Continuar</Button> : <Button type="submit" disabled={createShipmentMutation.isPending} className="ml-auto bg-[#0B2B5E] text-white">
                     {createShipmentMutation.isPending ? "Registrando..." : "Guardar envío"}
-                  </Button>}
+                  </Button>)}
                 </div>
               </form>
             )}
