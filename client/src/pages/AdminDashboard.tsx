@@ -43,6 +43,7 @@ import { PasswordRequirements } from "@/components/PasswordRequirements";
 import { NotificationBell } from "@/components/NotificationBell";
 import { AdminFeedbackInbox } from "@/components/AdminFeedbackInbox";
 import { AgencyDestinationPicker, type AgencyProvider } from "@/components/AgencyDestinationPicker";
+import { IndependentEndpointsFields } from "@/components/IndependentEndpointsFields";
 import { LimaTorinoTransferPanel } from "@/components/LimaTorinoTransferPanel";
 import { TransferWorkspace } from "@/components/TransferWorkspace";
 import { AccountingWorkspace } from "@/components/AccountingWorkspace";
@@ -2459,26 +2460,16 @@ export default function AdminDashboard() {
                   <span className="text-xs text-slate-600">El tipo ya fue definido por el botón elegido</span>
                 </div>
                 <div className={`order-20 grid grid-cols-1 gap-4 md:grid-cols-3 ${mobileSectionClass(1)}`}>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Ruta de envío</label>
-                    <Select value={selectedRoute} onValueChange={(value) => {
-                      const nextRoute = value as string;
-                      const provinceRoute = isProvinceShipmentRoute(nextRoute);
+                  <div className="md:col-span-3">
+                    <IndependentEndpointsFields route={selectedRoute} onRouteChange={(nextRoute, endpoints) => {
+                      const provinceRoute = endpoints.originPoint === "Provincia (Perú)" || endpoints.destinationPoint === "Provincia (Perú)";
                       createForm.setValue("route", nextRoute, { shouldValidate: true, shouldDirty: true });
                       createForm.setValue("isProvinceDelivery", provinceRoute, { shouldValidate: true, shouldDirty: true });
                       const defaults = getDefaultShipmentAddresses(nextRoute, getAdminShipmentBrand(admin?.id, admin?.email));
                       createForm.setValue("originAddress", defaults.originAddress, { shouldValidate: true, shouldDirty: true });
                       createForm.setValue("destinationAddress", defaults.destinationAddress, { shouldValidate: true, shouldDirty: true });
-                    }}>
-                      <SelectTrigger className="border-2 focus:border-primary"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={SHIPMENT_ROUTES.LIMA_TORINO}>Lima – Torino</SelectItem>
-                        <SelectItem value={SHIPMENT_ROUTES.TORINO_LIMA}>Torino – Lima</SelectItem>
-                        <SelectItem value={SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE}>Torino – Lima + provincia</SelectItem>
-                        <SelectItem value={SHIPMENT_ROUTES.PROVINCE_LIMA_TORINO}>Provincia – Lima – Torino</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="mt-1 text-xs text-slate-500">Origen definido manualmente; no usa IP, GPS ni geolocalización.</p>
+                    }} />
+                    <p className="mt-2 text-xs text-slate-500">Selecciona únicamente los puntos reales. El sistema conservará la ruta técnica y usará Lima como hub cuando corresponda.</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Modalidad de entrega</label>
@@ -3298,24 +3289,15 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="border-t pt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Ruta</label>
-                    <select
-                      {...updateForm.register("route", { onChange: (event) => {
-                        const nextRoute = String(event.target.value);
-                        const provinceRoute = isProvinceShipmentRoute(nextRoute);
-                        updateForm.setValue("isProvinceDelivery", provinceRoute, { shouldValidate: true, shouldDirty: true });
-                        const defaults = getDefaultShipmentAddresses(nextRoute, getAdminShipmentBrand(admin?.id, admin?.email));
-                        updateForm.setValue("originAddress", defaults.originAddress, { shouldValidate: true, shouldDirty: true });
-                        updateForm.setValue("destinationAddress", defaults.destinationAddress, { shouldValidate: true, shouldDirty: true });
-                      } })}
-                      className="w-full p-2 bg-white border-2 border-slate-200 rounded-md text-sm font-medium focus:border-primary"
-                    >
-                      <option value={SHIPMENT_ROUTES.LIMA_TORINO}>Lima - Torino</option>
-                      <option value={SHIPMENT_ROUTES.TORINO_LIMA}>Torino - Lima</option>
-                      <option value={SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE}>Torino - Lima + provincia</option>
-                      <option value={SHIPMENT_ROUTES.PROVINCE_LIMA_TORINO}>Provincia - Lima - Torino</option>
-                    </select>
+                  <div className="md:col-span-2">
+                    <IndependentEndpointsFields route={updateForm.watch("route")} onRouteChange={(nextRoute, endpoints) => {
+                      const provinceRoute = endpoints.originPoint === "Provincia (Perú)" || endpoints.destinationPoint === "Provincia (Perú)";
+                      updateForm.setValue("route", nextRoute, { shouldValidate: true, shouldDirty: true });
+                      updateForm.setValue("isProvinceDelivery", provinceRoute, { shouldValidate: true, shouldDirty: true });
+                      const defaults = getDefaultShipmentAddresses(nextRoute, getAdminShipmentBrand(admin?.id, admin?.email));
+                      updateForm.setValue("originAddress", defaults.originAddress, { shouldValidate: true, shouldDirty: true });
+                      updateForm.setValue("destinationAddress", defaults.destinationAddress, { shouldValidate: true, shouldDirty: true });
+                    }} />
                   </div>
                     {!isProvinceShipmentRoute(updateForm.watch("route")) && <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Sede de llegada / agencia</label>

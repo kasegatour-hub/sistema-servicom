@@ -421,6 +421,9 @@ export const shipments = mysqlTable("shipments", {
   finalPriceEur: decimal("finalPriceEur", { precision: 10, scale: 2 }),
   paymentStatus: mysqlEnum("paymentStatus", ["Pagado", "Falta cancelar"]).default("Falta cancelar").notNull(),
   route: varchar("route", { length: 100 }).default("Lima - Torino").notNull(),
+  /** Modelo nuevo: puntos independientes; route conserva la ruta técnica histórica. */
+  originPoint: varchar("originPoint", { length: 32 }).default("Lima").notNull(),
+  destinationPoint: varchar("destinationPoint", { length: 32 }).default("Torino").notNull(),
   originAddress: text("originAddress"),
   destinationAddress: text("destinationAddress"),
   isProvinceDelivery: int("isProvinceDelivery").default(0).notNull(),

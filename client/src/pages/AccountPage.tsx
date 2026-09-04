@@ -27,6 +27,7 @@ import { IdentityDocumentField } from "@/components/IdentityDocumentField";
 import { ShipmentTrendCharts } from "@/components/ShipmentTrendCharts";
 import { PasswordRequirements } from "@/components/PasswordRequirements";
 import { AgencyDestinationPicker } from "@/components/AgencyDestinationPicker";
+import { IndependentEndpointsFields } from "@/components/IndependentEndpointsFields";
 import type { IdentityDocumentType } from "@shared/identityDocuments";
 import { getFuzzySearchScore } from "@shared/fuzzySearch";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "@shared/passwordPolicy";
@@ -38,7 +39,7 @@ const brandLogo = "/manus-storage/servicom_logo_final_e7ce35aa.png";
 
 type AccountMode = "login" | "register" | "request" | "reset";
 type ClientWorkspace = "envios" | "registrar" | "papelera" | "perfil" | "seguridad" | "resumen" | "analitica";
-type ClientShipmentRoute = typeof SHIPMENT_ROUTES.LIMA_TORINO | typeof SHIPMENT_ROUTES.TORINO_LIMA | typeof SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE | typeof SHIPMENT_ROUTES.PROVINCE_LIMA_TORINO;
+type ClientShipmentRoute = typeof SHIPMENT_ROUTES.LIMA_TORINO | typeof SHIPMENT_ROUTES.TORINO_LIMA | typeof SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE | typeof SHIPMENT_ROUTES.PROVINCE_LIMA_TORINO | typeof SHIPMENT_ROUTES.LIMA_PROVINCE | typeof SHIPMENT_ROUTES.PROVINCE_LIMA | typeof SHIPMENT_ROUTES.PROVINCE_PROVINCE;
 const getClientShipmentBrand = (email?: string | null) => /^(magda\.barreto\.alv@gmail\.com|kasegatour@gmail\.com)$/i.test(String(email || "").trim()) ? "kasega" as const : "servicom" as const;
 const getLockoutSecondsFromMessage = (message: string) => Number(message.match(/espera\s+(\d+)\s+segundos/i)?.[1] || 0);
 const getShipmentDeliveredAt = (shipment: any) => {
@@ -853,20 +854,8 @@ export default function AccountPage() {
                 {mobileClientMode && <div className="mt-4 rounded-xl border border-blue-100 bg-white p-3" aria-label="Pasos del registro"><div className="flex items-center justify-between gap-2 text-xs font-semibold"><span className={shipmentStep >= 1 ? "text-[#0B2B5E]" : "text-slate-400"}>1. Sede y tipo</span><span className={shipmentStep >= 2 ? "text-[#0B2B5E]" : "text-slate-400"}>2. Personas</span><span className={shipmentStep >= 3 ? "text-[#0B2B5E]" : "text-slate-400"}>3. Contenido</span></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-[#F28C00] transition-all" style={{ width: `${shipmentStep * 33.333}%` }} /></div><p className="mt-2 text-xs text-slate-500">Paso {shipmentStep} de 3. Tus datos se conservan mientras avanzas.</p></div>}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className={mobileShipmentStepVisible(1) ? "" : "hidden"}>
-                    <Label>Ruta de envío</Label>
-                    <div className="mb-2 grid gap-2 sm:grid-cols-2" role="group" aria-label="Ruta del nuevo envío">{([ [SHIPMENT_ROUTES.LIMA_TORINO, "Lima → Torino", "bg-[#0B2B5E]"], [SHIPMENT_ROUTES.TORINO_LIMA, "Torino → Lima", "bg-[#F28C00]"], [SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE, "Torino → Lima + provincia", "bg-[#F28C00]"], [SHIPMENT_ROUTES.PROVINCE_LIMA_TORINO, "Provincia → Lima → Torino", "bg-[#0B2B5E]"] ] as const).map(([route, label, activeColor]) => <Button key={route} type="button" aria-pressed={shipmentRoute === route} onClick={() => { setShipmentRoute(route); setDestinationAddress(getDefaultShipmentAddresses(route, getClientShipmentBrand(me?.email)).destinationAddress); }} className={shipmentRoute === route ? `min-h-11 text-white ${activeColor}` : "min-h-11 border border-slate-200 bg-white text-[#0B2B5E]"}>{label}</Button>)}</div>
-                    <select
-                      aria-label="Ruta de envío"
-                      value={shipmentRoute}
-                      onChange={e => { const nextRoute = e.target.value as ClientShipmentRoute; setShipmentRoute(nextRoute); setDestinationAddress(getDefaultShipmentAddresses(nextRoute, getClientShipmentBrand(me?.email)).destinationAddress); }}
-                      className="w-full mt-1 p-2 bg-white border border-slate-300 rounded-md text-sm font-medium"
-                    >
-                      <option value={SHIPMENT_ROUTES.LIMA_TORINO}>Lima – Torino</option>
-                      <option value={SHIPMENT_ROUTES.TORINO_LIMA}>Torino – Lima</option>
-                      <option value={SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE}>Torino – Lima + provincia</option>
-                      <option value={SHIPMENT_ROUTES.PROVINCE_LIMA_TORINO}>Provincia – Lima – Torino</option>
-                    </select>
-                    <p className="mt-1 text-[10px] text-gray-500">Selecciona la sede a la que llegará tu envío.</p>
+                    <IndependentEndpointsFields className={mobileShipmentStepVisible(1) ? "" : "hidden"} route={shipmentRoute} onRouteChange={(nextRoute) => { const normalizedRoute = nextRoute as ClientShipmentRoute; setShipmentRoute(normalizedRoute); setDestinationAddress(getDefaultShipmentAddresses(normalizedRoute, getClientShipmentBrand(me?.email)).destinationAddress); }} />
+                    <p className="mt-2 text-xs text-gray-500">Selecciona origen y destino. Si interviene Provincia, aparecerán los datos de agencia y sucursal.</p>
                   </div>
                   <div className={mobileShipmentStepVisible(1) ? "" : "hidden"}>
                     <Label>Tipo de Documento</Label>

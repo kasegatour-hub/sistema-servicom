@@ -8,6 +8,7 @@ import { rankFuzzyMatches } from "../shared/fuzzySearch";
 import { searchInvitationPeople, type InvitationPersonSeed } from "../shared/invitationPeople";
 import { getFailureUpdate } from "./loginProtection";
 import { getShipmentOperationalEnvironment, isProvinceShipmentRoute, isTorinoLimaRoute, type ShipmentOperationalEnvironment } from "../shared/shipmentRoutes";
+import { normalizeIndependentEndpoints } from "../shared/shipmentEndpoints";
 import { shouldSuppressNotifications } from "./notificationRuntime";
 
 // Normalizar números de orden y códigos: remover espacios y convertir a mayúsculas
@@ -1812,6 +1813,8 @@ export async function createShipment(
     finalPriceEur: finalPriceEur !== undefined && finalPriceEur !== null && String(finalPriceEur).trim() !== "" ? String(finalPriceEur) : null,
     paymentStatus: paymentStatus || "Falta cancelar",
     route: normalizedRoute,
+    originPoint: normalizeIndependentEndpoints({ route: normalizedRoute, isProvinceDelivery: provinceDelivery }).originPoint,
+    destinationPoint: normalizeIndependentEndpoints({ route: normalizedRoute, isProvinceDelivery: provinceDelivery }).destinationPoint,
     originAddress: originAddress || "",
     destinationAddress: destinationAddress || "",
     isProvinceDelivery: provinceDelivery ? 1 : 0,
@@ -2002,6 +2005,8 @@ export async function updateShipmentStatus(
         finalPriceEur: finalPriceEur !== undefined ? (finalPriceEur !== null && String(finalPriceEur).trim() !== "" ? String(finalPriceEur) : null) : shipment.finalPriceEur,
         paymentStatus: paymentStatus ?? shipment.paymentStatus ?? "Falta cancelar",
         route: updatedRoute,
+        originPoint: normalizeIndependentEndpoints({ route: updatedRoute, isProvinceDelivery }).originPoint,
+        destinationPoint: normalizeIndependentEndpoints({ route: updatedRoute, isProvinceDelivery }).destinationPoint,
         originAddress: originAddress ?? shipment.originAddress ?? "",
         destinationAddress: destinationAddress ?? shipment.destinationAddress ?? "",
         deliveryMode: deliveryMode ?? shipment.deliveryMode ?? "agencia",

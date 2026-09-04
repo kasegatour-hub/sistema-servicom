@@ -2027,3 +2027,13 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Hacer compatibles las firmas históricas con la apertura, impresión y descarga del documento.
 - [x] Añadir regresiones para firmas nuevas, firmas históricas y ausencia de firma.
 - [x] Ejecutar pruebas, TypeScript, build y publicar el checkpoint validado.
+
+## Modelo de Origen y Destino Independientes — Hub and Spoke
+- [x] Auditar los campos actuales de ruta, agencia, sede provincial y dirección en creación y actualización.
+- [x] Definir origen y destino independientes con opciones Torino, Lima y Provincia (Perú).
+- [x] Derivar automáticamente el tránsito por Lima y conservar compatibilidad con registros históricos.
+- [x] Mostrar agencia courier y ciudad/sucursal solo cuando origen o destino sea Provincia.
+- [x] Ajustar reglas de precios, provincia, contabilidad, rastreo y documentos al nuevo modelo.
+- [x] Actualizar formularios de creación y edición para web y móvil.
+- [x] Añadir regresiones para las seis combinaciones principales y rutas históricas.
+- [x] Ejecutar pruebas, TypeScript, build, revisión responsive y publicar checkpoint.

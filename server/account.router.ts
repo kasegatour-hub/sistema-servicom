@@ -107,7 +107,7 @@ export const clientShipmentInputSchema = z.object({
   serviceManualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
   serviceManualPriceSoles: z.union([z.string(), z.number()]).optional().nullable(),
   isIncomplete: z.literal(false).default(false),
-  route: z.enum([SHIPMENT_ROUTES.LIMA_TORINO, SHIPMENT_ROUTES.TORINO_LIMA, SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE, SHIPMENT_ROUTES.PROVINCE_LIMA_TORINO]).default(SHIPMENT_ROUTES.LIMA_TORINO),
+  route: z.enum([SHIPMENT_ROUTES.LIMA_TORINO, SHIPMENT_ROUTES.TORINO_LIMA, SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE, SHIPMENT_ROUTES.PROVINCE_LIMA_TORINO, SHIPMENT_ROUTES.LIMA_PROVINCE, SHIPMENT_ROUTES.PROVINCE_LIMA, SHIPMENT_ROUTES.PROVINCE_PROVINCE]).default(SHIPMENT_ROUTES.LIMA_TORINO),
   destinationAddress: z.string().trim().max(1000).optional(),
 }).strict().superRefine((input, ctx) => {
   const senderMissing = getIncompletePersonFields({ name: input.senderName, lastName: input.senderLastName, document: input.senderDni, phone: input.senderPhone });
@@ -130,7 +130,7 @@ export function buildClientShipmentPersistenceArgs(
 ) {
   const brand = /^(magda\.barreto\.alv@gmail\.com|kasegatour@gmail\.com)$/i.test(String(registeredEmail || "").trim()) ? "kasega" as const : "servicom" as const;
   const defaults = getDefaultShipmentAddresses(input.route, brand);
-  const isProvincialAgencyRoute = input.route === SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE;
+  const isProvincialAgencyRoute = isProvinceShipmentRoute(input.route);
   return [
     orderNumber,
     code,
