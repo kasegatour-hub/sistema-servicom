@@ -28,16 +28,14 @@ jobs:
       - name: Descargar código
         uses: actions/checkout@v4
 
+      - name: Configurar pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
-
-      - name: Configurar pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - name: Instalar dependencias
         run: pnpm install --frozen-lockfile
@@ -45,8 +43,9 @@ jobs:
       - name: Comprobar TypeScript
         run: pnpm check
 
-      - name: Ejecutar pruebas
-        run: pnpm test -- --run --reporter=dot
+      - name: Ejecutar pruebas reproducibles
+        # El perfil CI excluye únicamente pruebas que requieren servicios o secretos externos.
+        run: pnpm exec vitest --config vitest.config.ci.ts --run --reporter=dot
 
       - name: Construir producción
         run: pnpm run build
