@@ -54,8 +54,12 @@ export function normalizeShalomOffice(office: ShalomOffice): AgencyDirectoryEntr
 }
 
 export function filterAgencies(entries: AgencyDirectoryEntry[], query: string, limit = 1000) {
-  const normalized = query.trim().toLocaleLowerCase("es-PE");
-  const filtered = !normalized ? entries : entries.filter(entry => [entry.name, entry.address, entry.department, entry.province, entry.district, entry.kind, entry.phone, entry.businessHours].join(" ").toLocaleLowerCase("es-PE").includes(normalized));
+  const normalize = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("es-PE");
+  const terms = normalize(query).split(/[^a-z0-9]+/).filter(Boolean);
+  const filtered = !terms.length ? entries : entries.filter(entry => {
+    const haystack = normalize([entry.name, entry.address, entry.department, entry.province, entry.district, entry.kind, entry.phone, entry.businessHours].join(" "));
+    return terms.every(term => haystack.includes(term));
+  });
   return filtered.slice(0, limit);
 }
 

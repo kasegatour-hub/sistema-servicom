@@ -14,6 +14,23 @@ export const LIMA_SERVICOM_ADDRESS = "SERVICOM INTERNACIONAL — Jr. de la Unió
 export const SERVICOM_TORINO_ADDRESS = "SERVICOM INTERNACIONAL — Corso Peschiera, 162A, Zona Piazza Sabotino, Torino, Italia";
 export const KASEGA_TORINO_ADDRESS = "KASEGA TOUR — Via Muriaglio 12, Torino, Italia";
 
+const PRIMARY_LIMA_OFFICE_TERMS = ["jr. de la unión", "jr de la union", "jr. de la unión nro. 518"];
+const PRIMARY_TORINO_OFFICE_TERMS = ["corso peschiera", "via muriaglio", "kasega tour"];
+
+function containsOfficeTerm(value: string | null | undefined, terms: string[]) {
+  const normalized = String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("es-PE");
+  return terms.some(term => normalized.includes(term.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("es-PE")));
+}
+
+/** Solo el corredor entre las oficinas principales permite los servicios especiales y el traslado a Torino. */
+export function isPrimaryInternationalOfficeRoute(route?: string | null, originAddress?: string | null, destinationAddress?: string | null) {
+  if (route !== SHIPMENT_ROUTES.LIMA_TORINO && route !== SHIPMENT_ROUTES.TORINO_LIMA) return false;
+  // Registros históricos no guardaban dirección exacta: la ruta internacional era suficiente.
+  if (!String(originAddress || "").trim() && !String(destinationAddress || "").trim()) return true;
+  return (containsOfficeTerm(originAddress, PRIMARY_LIMA_OFFICE_TERMS) && containsOfficeTerm(destinationAddress, PRIMARY_TORINO_OFFICE_TERMS))
+    || (containsOfficeTerm(originAddress, PRIMARY_TORINO_OFFICE_TERMS) && containsOfficeTerm(destinationAddress, PRIMARY_LIMA_OFFICE_TERMS));
+}
+
 /** Sedes principales reutilizables en formularios, filtros y documentos. */
 export const FIXED_SHIPMENT_LOCATIONS = [
   { id: "servicom-lima", label: "Servicom Internacional — Jr. de la Unión 518 Sótano Int. 101, Lima", address: LIMA_SERVICOM_ADDRESS, workspace: "servicom" as const },

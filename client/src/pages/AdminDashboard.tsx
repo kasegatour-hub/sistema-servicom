@@ -54,7 +54,7 @@ import { getFuzzySearchScore } from "@shared/fuzzySearch";
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "@shared/passwordPolicy";
 import { isValidInternationalPhone } from "@shared/phoneValidation";
 import { calculateAdminShipmentPricing, extractFreeformShipmentNotes, mergeShipmentNotes } from "@shared/adminPricing";
-import { FIXED_SHIPMENT_LOCATIONS, LIMA_SERVICOM_ADDRESS, SHIPMENT_ROUTES, getDefaultShipmentAddresses, getShipmentRouteBucket, isProvinceShipmentRoute, isTorinoLimaRoute } from "@shared/shipmentRoutes";
+import { FIXED_SHIPMENT_LOCATIONS, LIMA_SERVICOM_ADDRESS, SHIPMENT_ROUTES, getDefaultShipmentAddresses, getShipmentRouteBucket, isPrimaryInternationalOfficeRoute, isProvinceShipmentRoute, isTorinoLimaRoute } from "@shared/shipmentRoutes";
 import { getParcelRateEurPerKg } from "@shared/workspacePricing";
 import { useIsMobile } from "@/hooks/useMobile";
 import { RecipientChangeRequestDialog } from "@/components/RecipientChangeRequestDialog";
@@ -801,6 +801,9 @@ export default function AdminDashboard() {
   const selectedDocType = createForm.watch("docType") || "apostillado";
   const selectedRoute = createForm.watch("route") || "Lima - Torino";
   const selectedPricingCurrency = derivePricingCurrency(normalizeIndependentEndpoints({ route: selectedRoute, isProvinceDelivery: createForm.watch("isProvinceDelivery") }));
+  const watchedOriginAddress = createForm.watch("originAddress") || "";
+  const watchedDestinationAddress = createForm.watch("destinationAddress") || "";
+  const isPrimaryOfficeRoute = isPrimaryInternationalOfficeRoute(selectedRoute, watchedOriginAddress, watchedDestinationAddress);
   const selectedPenPerEur = bcrpQuote?.adjustedPenPerEur;
   useEffect(() => {
     const defaults = getDefaultShipmentAddresses(selectedRoute, getAdminShipmentBrand(admin?.id, admin?.email));
@@ -828,6 +831,8 @@ export default function AdminDashboard() {
     extraPriceEur: createForm.watch("extraPriceEur"),
     extraDiscountEur: createForm.watch("extraDiscountEur"),
     route: selectedRoute,
+    originAddress: watchedOriginAddress,
+    destinationAddress: watchedDestinationAddress,
     requiresApostilleService: Boolean(createForm.watch("requiresApostilleService")),
     requiresTranslationService: Boolean(createForm.watch("requiresTranslationService")),
     serviceManualPriceEur: createForm.watch("serviceManualPriceEur"),
@@ -840,7 +845,7 @@ export default function AdminDashboard() {
     workspaceAdminId: admin?.id,
     workspaceAdminEmail: admin?.email,
     notes: extractFreeformShipmentNotes(createForm.watch("notes"), generatedCreateNoteRef.current),
-  }), [selectedShipmentType, selectedDocType, selectedRoute, additionalDocumentItems, watchedWeightKg, watchedProvinceEnabled, watchedProvinceExtraPrice, admin?.id, admin?.email, createForm.watch("sheetCount"), createForm.watch("manualPriceEur"), createForm.watch("extraPriceEur"), createForm.watch("extraDiscountEur"), createForm.watch("requiresApostilleService"), createForm.watch("requiresTranslationService"), createForm.watch("serviceManualPriceEur"), createForm.watch("serviceManualPriceSoles"), createForm.watch("provinceCustomerPriceEur"), createForm.watch("provinceExtraPriceEur"), createForm.watch("provinceOperationalCostSoles"), createForm.watch("provinceCarrier"), createForm.watch("notes")]);
+  }), [selectedShipmentType, selectedDocType, selectedRoute, watchedOriginAddress, watchedDestinationAddress, additionalDocumentItems, watchedWeightKg, watchedProvinceEnabled, watchedProvinceExtraPrice, admin?.id, admin?.email, createForm.watch("sheetCount"), createForm.watch("manualPriceEur"), createForm.watch("extraPriceEur"), createForm.watch("extraDiscountEur"), createForm.watch("requiresApostilleService"), createForm.watch("requiresTranslationService"), createForm.watch("serviceManualPriceEur"), createForm.watch("serviceManualPriceSoles"), createForm.watch("provinceCustomerPriceEur"), createForm.watch("provinceExtraPriceEur"), createForm.watch("provinceOperationalCostSoles"), createForm.watch("provinceCarrier"), createForm.watch("notes")]);
   useEffect(() => {
     const currentNotes = String(createForm.getValues("notes") ?? "");
     const freeformNotes = extractFreeformShipmentNotes(currentNotes, generatedCreateNoteRef.current);
@@ -2565,8 +2570,9 @@ export default function AdminDashboard() {
                   <div className="rounded-md bg-white px-4 py-3 text-sm font-semibold text-emerald-800 ring-1 ring-emerald-200">El precio promocional se calcula al guardar</div>
                 </div>
 
-                {selectedShipmentType === "documento" ? (
+                  {selectedShipmentType === "documento" ? (
                   <div className={`order-10 ${mobileSectionClass(1)}`}>
+                  {isPrimaryOfficeRoute && <p className="mb-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-[#0B2B5E]">Servicios especiales disponibles para el corredor entre las sedes principales seleccionadas.</p>}
                   <div className="mt-4 grid grid-cols-1 gap-4 border-t border-slate-200 pt-4 md:grid-cols-3">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Documento</label>
@@ -2596,7 +2602,7 @@ export default function AdminDashboard() {
                     />
                     <DocumentPricePreview docType={selectedDocType} sheetCount={Number(createForm.watch("sheetCount")) || 1} additionalTotalEur={additionalDocumentAutoTotal} penPerEur={selectedPenPerEur} manualPriceEur={createForm.watch("manualPriceEur")} extraPriceEur={createForm.watch("extraPriceEur")} extraDiscountEur={createForm.watch("extraDiscountEur")} />
                   </div>
-                                     {selectedShipmentType === "documento" && (
+                                     {selectedShipmentType === "documento" && isPrimaryOfficeRoute && (
                      <>
                        <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border-2 border-[#0B2B5E] bg-blue-50 p-4 text-sm shadow-sm transition hover:bg-blue-100/70">
                          <input type="checkbox" aria-label="Documentos para apostillar" {...createForm.register("requiresApostilleService")} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-[#0B2B5E] focus:ring-[#0B2B5E]" />

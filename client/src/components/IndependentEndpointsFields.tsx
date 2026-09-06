@@ -4,6 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { REGIONAL_TRANSPORT_DIRECTORY } from "@/lib/regionalTransportDirectory";
 import { FIXED_SHIPMENT_LOCATIONS } from "@shared/shipmentRoutes";
 import { rankFuzzyMatches } from "@shared/fuzzySearch";
+import { normalizeCarrierPlace } from "@/components/AgencyDestinationPicker";
 import { SHIPMENT_ENDPOINTS, deriveLegacyShipmentRoute, normalizeIndependentEndpoints, type IndependentShipmentEndpoints, type ShipmentEndpoint } from "@shared/shipmentEndpoints";
 
 type ShipmentLocationOption = {
@@ -69,10 +70,10 @@ function compactLocationText(value: string) {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("es-PE");
 }
 
-function findLocationByAllTerms(query: string) {
+function findLocationByAllTerms(query: string, options: ShipmentLocationOption[] = locationOptions) {
   const terms = compactLocationText(query).split(/[^a-z0-9]+/).filter(Boolean);
   if (!terms.length) return undefined;
-  return locationOptions.find(option => {
+  return options.find(option => {
     const candidate = compactLocationText(option.searchText);
     return terms.every(term => candidate.includes(term));
   });
@@ -104,6 +105,7 @@ function LocationSearch({
   value,
   endpoint,
   remoteOptions = [],
+  carrierOptions = [],
   onQueryChange,
   onSelect,
 }: {
@@ -111,6 +113,7 @@ function LocationSearch({
   value: ShipmentLocationOption;
   endpoint: ShipmentEndpoint;
   remoteOptions?: ShipmentLocationOption[];
+  carrierOptions?: ShipmentLocationOption[];
   onQueryChange: (query: string) => void;
   onSelect: (option: ShipmentLocationOption) => void;
 }) {
@@ -119,10 +122,10 @@ function LocationSearch({
   React.useEffect(() => setQuery(value.label), [value.id, value.label]);
 
   const matches = React.useMemo(() => {
-    const availableOptions = [...locationOptions, ...remoteOptions];
+    const availableOptions = Array.from(new Map([...locationOptions, ...remoteOptions, ...carrierOptions].map(option => [option.id, option])).values());
     const ranked = rankFuzzyMatches(availableOptions, query, option => `${option.searchText} ${option.detail || ""}`);
-    return ranked.slice(0, 8);
-  }, [endpoint, query, remoteOptions]);
+    return ranked.slice(0, 100);
+  }, [endpoint, query, remoteOptions, carrierOptions]);
 
   const choose = (option: ShipmentLocationOption) => {
     setQuery(option.label);
@@ -137,9 +140,7 @@ function LocationSearch({
     const normalized = nextValue.trim().toLocaleLowerCase("es-PE");
     if (!normalized) return;
     const exactLocation = locationOptions.find(option => option.label.toLocaleLowerCase("es-PE") === normalized);
-    const fuzzyLocation = findLocationByAllTerms(nextValue);
     if (exactLocation) choose(exactLocation);
-    else if (fuzzyLocation && normalized.split(/\s+/).filter(Boolean).length >= 2) choose(fuzzyLocation);
   };
 
   return (
@@ -160,7 +161,8 @@ function LocationSearch({
               if (event.key === "Enter") {
                 event.preventDefault();
                 const currentQuery = (event.currentTarget as HTMLInputElement).value;
-                const bestMatch = matches[0] || rankFuzzyMatches([...locationOptions, ...remoteOptions], currentQuery, option => `${option.searchText} ${option.detail || ""}`)[0] || findLocationByAllTerms(currentQuery);
+                const availableOptions = Array.from(new Map([...locationOptions, ...remoteOptions, ...carrierOptions].map(option => [option.id, option])).values());
+                const bestMatch = matches[0] || rankFuzzyMatches(availableOptions, currentQuery, option => `${option.searchText} ${option.detail || ""}`)[0] || findLocationByAllTerms(currentQuery, availableOptions);
                 if (bestMatch) choose(bestMatch);
               }
               if (event.key === "Escape") setOpen(false);
@@ -170,7 +172,7 @@ function LocationSearch({
             autoComplete="off"
             className="min-h-12 w-full rounded-lg border-2 border-slate-200 bg-white px-10 pr-10 text-base font-semibold text-slate-800 focus:border-[#0B2B5E] focus:outline-none focus:ring-2 focus:ring-blue-100"
           />
-          {query && <button type="button" aria-label={`Limpiar ${label.toLocaleLowerCase("es-PE")}`} onMouseDown={event => event.preventDefault()} onClick={() => { setQuery(""); setOpen(true); }} className="absolute right-2 top-2 rounded p-1 text-slate-500 hover:bg-slate-100"><X className="h-4 w-4" /></button>}
+          {query && <button type="button" aria-label={`Limpiar ${label.toLocaleLowerCase("es-PE")}`} onMouseDown={event => event.preventDefault()} onClick={() => { setQuery(""); onQueryChange(""); setOpen(true); onSelect(optionForEndpoint(endpoint)); }} className="absolute right-2 top-2 rounded p-1 text-slate-500 hover:bg-slate-100"><X className="h-4 w-4" /></button>}
         </div>
       </label>
       {open && matches.length > 0 && (
@@ -203,6 +205,51 @@ function remoteAgencyOptions(data: { agencies?: Array<{ id: string; provider: st
   }));
 }
 
+function carrierPlaceToLocationOption(result: google.maps.places.PlaceResult, provider: "fedex" | "dhl"): ShipmentLocationOption | null {
+  const agency = normalizeCarrierPlace(result, provider);
+  if (!agency) return null;
+  const isPeru = /peru|perú|lima/i.test(agency.address);
+  return {
+    id: `carrier-${agency.id}`,
+    label: `${agency.provider} — ${agency.name}`,
+    searchText: `${agency.provider} ${agency.name} ${agency.address}`,
+    endpoint: isPeru ? SHIPMENT_ENDPOINTS.LIMA : SHIPMENT_ENDPOINTS.TORINO,
+    detail: agency.address,
+    provider: agency.provider,
+    group: isPeru ? "Perú · Ubicaciones encontradas" : "Extranjero · Ubicaciones encontradas",
+  };
+}
+
+function useCarrierLocationOptions(query: string) {
+  const [options, setOptions] = React.useState<ShipmentLocationOption[]>([]);
+  React.useEffect(() => {
+    const normalizedQuery = query.trim();
+    if (normalizedQuery.length < 2 || typeof google === "undefined" || !google.maps?.places?.PlacesService) {
+      setOptions([]);
+      return;
+    }
+    let active = true;
+    const timer = window.setTimeout(() => {
+      const service = new google.maps.places.PlacesService(document.createElement("div"));
+      const providers = ["fedex", "dhl"] as const;
+      let pending = providers.length;
+      const collected: ShipmentLocationOption[] = [];
+      providers.forEach(provider => service.textSearch({ query: `${provider.toUpperCase()} ${normalizedQuery}` }, (results, status) => {
+        if (active && status === google.maps.places.PlacesServiceStatus.OK) {
+          for (const result of results || []) {
+            const option = carrierPlaceToLocationOption(result, provider);
+            if (option && !collected.some(existing => existing.id === option.id)) collected.push(option);
+          }
+        }
+        pending -= 1;
+        if (active && pending === 0) setOptions(collected);
+      }));
+    }, 300);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [query]);
+  return options;
+}
+
 export function IndependentEndpointsFields({ route, className = "", onRouteChange }: IndependentEndpointsFieldsProps) {
   const initial = React.useMemo(() => normalizeIndependentEndpoints({ route }), [route]);
   const [originQuery, setOriginQuery] = React.useState("");
@@ -213,6 +260,8 @@ export function IndependentEndpointsFields({ route, className = "", onRouteChang
   const destinationShalom = trpc.agencies.shalom.useQuery({ query: destinationQuery }, { enabled: destinationQuery.trim().length >= 2, staleTime: 5 * 60 * 1000 });
   const originRemoteOptions = React.useMemo(() => [...remoteAgencyOptions(originOlva.data), ...remoteAgencyOptions(originShalom.data)], [originOlva.data, originShalom.data]);
   const destinationRemoteOptions = React.useMemo(() => [...remoteAgencyOptions(destinationOlva.data), ...remoteAgencyOptions(destinationShalom.data)], [destinationOlva.data, destinationShalom.data]);
+  const originCarrierOptions = useCarrierLocationOptions(originQuery);
+  const destinationCarrierOptions = useCarrierLocationOptions(destinationQuery);
   const [selectedEndpoints, setSelectedEndpoints] = React.useState<IndependentShipmentEndpoints>(initial);
   const [originLocation, setOriginLocation] = React.useState(() => initialOption(initial.originPoint));
   const [destinationLocation, setDestinationLocation] = React.useState(() => initialOption(initial.destinationPoint));
@@ -234,8 +283,8 @@ export function IndependentEndpointsFields({ route, className = "", onRouteChang
 
   return (
     <div className={`grid gap-4 rounded-xl border-2 border-slate-200 bg-white p-4 md:grid-cols-2 ${className}`} aria-label="Origen y destino independientes">
-      <LocationSearch label="Punto de origen" value={originLocation} endpoint={selectedEndpoints.originPoint} remoteOptions={originRemoteOptions} onQueryChange={setOriginQuery} onSelect={option => update("originPoint", option)} />
-      <LocationSearch label="Punto de destino" value={destinationLocation} endpoint={selectedEndpoints.destinationPoint} remoteOptions={destinationRemoteOptions} onQueryChange={setDestinationQuery} onSelect={option => update("destinationPoint", option)} />
+      <LocationSearch label="Punto de origen" value={originLocation} endpoint={selectedEndpoints.originPoint} remoteOptions={originRemoteOptions} carrierOptions={originCarrierOptions} onQueryChange={setOriginQuery} onSelect={option => update("originPoint", option)} />
+      <LocationSearch label="Punto de destino" value={destinationLocation} endpoint={selectedEndpoints.destinationPoint} remoteOptions={destinationRemoteOptions} carrierOptions={destinationCarrierOptions} onQueryChange={setDestinationQuery} onSelect={option => update("destinationPoint", option)} />
     </div>
   );
 }

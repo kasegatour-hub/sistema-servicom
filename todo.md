@@ -2116,3 +2116,21 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Mostrar direcciones de FedEx, DHL y otros operadores al buscar un país extranjero.
 - [x] Mantener la derivación interna de ruta, moneda, precios y servicios sin exponerla en la interfaz.
 - [x] Añadir pruebas de búsqueda por ciudad, departamento, país y dirección.
+
+## Ajuste final de bolsa de sedes y precios por corredor
+- [x] Unificar resultados Shalom, Olva, FedEx, DHL y buses por ciudad en Origen y Destino.
+- [x] Mostrar todas las sedes de Trujillo y otras ciudades, no solo una empresa o destino genérico.
+- [ ] Mover el precio manual a la parte superior y permitir seleccionar EUR, USD o PEN para sedes externas.
+- [x] Mostrar apostillado, traducción y traslado a Torino únicamente en el corredor de oficinas principales.
+- [ ] Añadir checklist con búsqueda difusa para servicios solicitados en sedes externas.
+- [ ] Reflejar moneda, precio, servicio y notas en contabilidad y documentos.
+- [ ] Añadir regresiones y publicar tras ejecutar suite, TypeScript y build.
+
+## Corrección de bolsa de sedes y servicios por corredor
+- [x] Combinar resultados de Shalom, Olva, FedEx, DHL y buses al buscar una ciudad como Trujillo.
+- [x] Permitir coincidencias por ciudad, distrito, nombre de sede y dirección como «El Porvenir».
+- [ ] Colocar el precio manual al inicio y permitir elegir EUR, USD o PEN para sedes externas.
+- [x] Mostrar servicios especiales y traslado a Torino solo en el corredor exacto de oficinas principales.
+- [ ] Mostrar un checklist buscable de servicios solicitados para las demás sedes.
+- [ ] Reflejar precio, moneda, servicio y notas en documentos y contabilidad.
+- [x] Añadir regresiones, ejecutar validaciones y publicar checkpoint.

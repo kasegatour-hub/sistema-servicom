@@ -25,3 +25,10 @@ describe("agencyDirectory", () => {
     expect(agencies.some(agency => agency.provider === "SHALOM" && agency.name.includes("CHACHAPOYAS"))).toBe(true);
   });
 });
+
+  it("combina términos de ciudad y distrito para no ocultar sedes provinciales", () => {
+    const shalom = normalizeShalomOffice({ ter_id: "trujillo-1", nombre: "AGENCIA EL PORVENIR", direccion: "AV. SÁNCHEZ CARRIÓN 123", departamento: "LA LIBERTAD", provincia: "TRUJILLO", zona: "EL PORVENIR" })!;
+    const olva = normalizeOlvaStore({ office_id: "trujillo-2", nombres: "OLVA TRUJILLO CENTRO", direccion: "JR. INDEPENDENCIA 456", tipo: "TIENDAS", department: "LA LIBERTAD", province: "TRUJILLO", district: "TRUJILLO" })!;
+    expect(filterAgencies([shalom, olva], "Trujillo El Porvenir")).toEqual([shalom]);
+    expect(filterAgencies([shalom, olva], "TRUJILLO")).toEqual([shalom, olva]);
+  });
