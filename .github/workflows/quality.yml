@@ -45,7 +45,7 @@ jobs:
 
       - name: Ejecutar pruebas reproducibles
         # El perfil CI excluye únicamente pruebas que requieren servicios o secretos externos.
-        run: pnpm test -- --run --config vitest.config.ci.ts --reporter=dot
+        run: pnpm exec vitest --config vitest.config.ci.ts --run --reporter=dot
 
       - name: Construir producción
         run: pnpm run build

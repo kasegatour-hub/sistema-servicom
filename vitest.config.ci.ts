@@ -4,11 +4,8 @@ export default {
   ...baseConfig,
   test: {
     ...baseConfig.test,
-    exclude: [
-      "**/admin.login.test.ts",
-      "**/branding.secrets.test.ts",
-      "**/notification.secrets.test.ts",
-      "**/trash.test.ts",
-    ],
+    // El CI público no dispone de la base de datos, servidor local ni secretos externos.
+    // Se mantienen pruebas unitarias, compartidas y de componentes reproducibles.
+    include: ["client/**/*.test.ts", "client/**/*.test.tsx", "shared/**/*.test.ts"],
   },
 };
