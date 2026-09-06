@@ -3090,20 +3090,15 @@ export default function AdminDashboard() {
                   <dl className="mt-4 grid grid-cols-2 gap-3 border-y border-slate-100 py-3 text-sm">
                     <div><dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Número de orden</dt><dd className="mt-1 break-all font-bold text-[#0B2B5E]">{shipment.orderNumber}</dd></div>
                     <div><dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Código</dt><dd className="mt-1 break-all font-bold text-[#0B2B5E]">{shipment.code}</dd></div>
-                    <div className="col-span-2"><dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Origen → destino</dt><dd className="mt-1 font-semibold text-slate-800">{getShipmentEndpointLabels(shipment).originPoint} → {getShipmentEndpointLabels(shipment).destinationPoint}</dd><dd className="text-xs text-slate-500">Tránsito: {getShipmentEndpointLabels(shipment).hubLabel}</dd></div>
-                    <div><dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Courier local</dt><dd className="mt-1 text-slate-700">{shipment.provinceCarrier || "No aplica"}</dd></div>
-                    <div><dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Sede</dt><dd className="mt-1 break-words text-slate-700">{shipment.destinationAddress || shipment.originAddress || "No indicada"}</dd></div>
                     <div className="col-span-2"><dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Fecha de creación</dt><dd className="mt-1 text-slate-700">{new Date(shipment.createdAt).toLocaleDateString()}<span className="mt-1 block text-xs text-slate-500"><strong>Registrado por:</strong> {shipment.registeredByLabel || "Registro anterior"}</span></dd></div>
                   </dl>
                   <div className="mt-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Acciones</p><div className="mt-2 grid grid-cols-2 gap-2 [&_button]:h-auto [&_button]:min-h-10 [&_button]:w-full [&_button]:whitespace-normal [&_button]:px-2 [&_button]:py-2 [&_button]:text-xs">{shipmentActionButtons(shipment)}</div></div>
                 </article>)}
               </div> : <div className="overflow-x-auto">
-              <Table className="min-w-[980px] w-full">
+              <Table className="min-w-[760px] w-full">
                   <TableHeader>
                   <TableRow>
                     <TableHead className="min-w-[250px]">Destinatario</TableHead>
-                    <TableHead className="min-w-[220px]">Origen / tránsito / destino</TableHead>
-                    <TableHead className="min-w-[180px]">Courier / sede</TableHead>
                     <TableHead className="min-w-[190px]">Estado</TableHead>
                     <TableHead className="min-w-[130px]">Fecha de creación</TableHead>
                     <TableHead className="min-w-[280px]">Acciones</TableHead>
@@ -3115,8 +3110,6 @@ export default function AdminDashboard() {
                   {visibleShipments.map((shipment: any) => (
                     <TableRow key={shipment.id} className={shipment.hiddenFromRegistradoresAt ? "bg-violet-50/60" : undefined}>
                       <TableCell className="max-w-[280px] whitespace-normal font-semibold text-slate-900">{shipment.recipientName ? `${shipment.recipientName} ${shipment.recipientLastName || ''}` : 'Destinatario no especificado'}</TableCell>
-                      <TableCell className="whitespace-normal text-sm"><strong>{getShipmentEndpointLabels(shipment).originPoint} → {getShipmentEndpointLabels(shipment).destinationPoint}</strong><span className="mt-1 block text-xs text-slate-500">Tránsito: {getShipmentEndpointLabels(shipment).hubLabel}</span></TableCell>
-                      <TableCell className="whitespace-normal text-sm"><strong>{shipment.provinceCarrier || "No aplica"}</strong><span className="mt-1 block text-xs text-slate-500">{shipment.destinationAddress || shipment.originAddress || "Sede no indicada"}</span></TableCell>
                       <TableCell>{shipmentStatusBadges(shipment)}</TableCell>
                       <TableCell className="whitespace-nowrap"><div>{new Date(shipment.createdAt).toLocaleDateString()}</div><p className="mt-1 whitespace-normal text-xs text-slate-500"><strong>Registrado por:</strong> {shipment.registeredByLabel || "Registro anterior"}</p></TableCell>
                       <TableCell><div className="flex flex-wrap gap-2">{shipmentActionButtons(shipment)}</div></TableCell>

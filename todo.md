@@ -2141,3 +2141,8 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Reflejar manualPriceCurrency en recibos, tickets, declaraciones juradas y contabilidad sin alterar tarifas automáticas.
 - [x] Añadir pruebas de regresión para persistencia, documentos y contabilidad multimoneda.
 - [x] Ejecutar suite completa, TypeScript, build y verificación visual antes del checkpoint.
+
+## Simplificación de tabla administrativa
+- [x] Eliminar de la tabla la columna y el detalle redundante de origen, tránsito, courier y sede mostrados en los registros.
+- [x] Verificar que la tabla conserve identificación, estado y acciones esenciales sin desbordamiento.
+- [x] Ejecutar pruebas, revisar visualmente y publicar el cambio.
