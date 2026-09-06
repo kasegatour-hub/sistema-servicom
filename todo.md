@@ -2153,6 +2153,7 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Preparar la conexión y el respaldo del código mediante GitHub.
 - [x] Verificar variables de entorno, base de datos, pruebas y build en cada fase.
 - [x] Entregar al propietario los requisitos de autorización o datos que GitHub solicite.
+- [ ] Activar la protección obligatoria de main cuando el plan de GitHub permita branch protection para repositorios privados.
 
 ## Integración autorizada con sistema-servicom
 - [x] Reemplazar la rama main remota con la versión local validada por autorización del propietario.
