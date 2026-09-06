@@ -2164,3 +2164,7 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Confirmar que sistema-servicom es público.
 - [x] Activar protección de main con pull request, revisión y workflow de calidad obligatorio.
 - [x] Verificar las reglas activas y cerrar la tarea de protección.
+
+## Documentación arquitectónica en README
+- [x] Incorporar al README.md el resumen de frontend, backend, base de datos, API, autenticación, pruebas y entornos.
+- [x] Validar el README y sincronizar la documentación con GitHub.
