@@ -34,6 +34,7 @@ import { evaluateScientificExpression } from "@/lib/scientificCalculator";
 import { buildElectronicSignatureHtml, buildReceiptDownloadFilename, downloadShipmentReceipt, getReceiptBranding, type ReceiptDownloadFormat } from "@/lib/userReceipt";
 import { buildAdminReceiptDocument, downloadAdminReceiptUsingPrintTemplate } from "@/lib/adminReceiptDocument";
 import { summarizeRevenue } from "@shared/revenueSummary";
+import { formatShipmentAmount } from "@shared/bcrpPricing";
 import { DocumentPricePreview } from "@/components/DocumentPricePreview";
 import { GeneralFeedbackDialog } from "@/components/GeneralFeedbackDialog";
 import { IdentityDocumentField } from "@/components/IdentityDocumentField";
@@ -279,6 +280,7 @@ const createShipmentSchema = z.object({
   serviceManualPriceSoles: z.union([z.string(), z.number()]).optional().nullable(),
   weightKg: z.number().min(0.1).default(1),
   manualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
+  manualPriceCurrency: z.enum(["EUR", "USD", "PEN"]).default("EUR"),
   extraPriceEur: z.union([z.string(), z.number()]).default(0),
   extraDiscountEur: z.union([z.string(), z.number()]).default(0),
   paymentStatus: z.enum(["Pagado", "Falta cancelar"]).default("Falta cancelar"),
@@ -349,6 +351,7 @@ const updateStatusSchema = z.object({
   destinationAddress: z.string().optional(),
   weightKg: z.number().min(0.1).optional(),
   manualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
+  manualPriceCurrency: z.enum(["EUR", "USD", "PEN"]).optional(),
   extraPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
   extraDiscountEur: z.union([z.string(), z.number()]).optional().nullable(),
   deliveryMode: z.enum(["agencia", "remoto"]).optional(),
@@ -788,7 +791,7 @@ export default function AdminDashboard() {
 
   const resetCreateForm = () => {
     generatedCreateNoteRef.current = "";
-    createForm.reset({ status: "En agencia", senderName: "", senderLastName: "", senderDni: "", senderDocumentType: "dni_peru", senderPhone: "", recipientName: "", recipientLastName: "", recipientDni: "", recipientDocumentType: "dni_peru", recipientPhone: "", notes: "", shipmentType: "documento", documentCount: 1, docType: "apostillado", sheetCount: 1, requiresApostilleService: false, requiresTranslationService: false, serviceManualPriceEur: "", serviceManualPriceSoles: "", weightKg: 1, manualPriceEur: "", extraPriceEur: 0, extraDiscountEur: 0, paymentStatus: "Falta cancelar", route: "Lima - Torino", originAddress: getDefaultShipmentAddresses("Lima - Torino", getAdminShipmentBrand(admin?.id, admin?.email)).originAddress, destinationAddress: getDefaultShipmentAddresses("Lima - Torino", getAdminShipmentBrand(admin?.id, admin?.email)).destinationAddress, isProvinceDelivery: false, provinceCustomerPriceEur: "", provinceExtraPriceEur: "", provinceOperationalCostSoles: "", provinceCarrier: "shalom", provinceSenderName: "", provinceSenderLastName: "", provinceSenderDni: "", provinceSenderPhone: "", couponCode: "", documentItems: [], contentChecklist: [], missingItems: [], deliveryMode: "agencia", limaTorinoTransferMode: undefined, deliveryPersonName: "", deliveryPersonLastName: "", deliveryPersonDni: "", deliveryPersonPhone: "", deliveryLocationType: "direccion", deliveryLocationAddress: "", deliveryLocationLatitude: null, deliveryLocationLongitude: null });
+    createForm.reset({ status: "En agencia", senderName: "", senderLastName: "", senderDni: "", senderDocumentType: "dni_peru", senderPhone: "", recipientName: "", recipientLastName: "", recipientDni: "", recipientDocumentType: "dni_peru", recipientPhone: "", notes: "", shipmentType: "documento", documentCount: 1, docType: "apostillado", sheetCount: 1, requiresApostilleService: false, requiresTranslationService: false, serviceManualPriceEur: "", serviceManualPriceSoles: "", weightKg: 1, manualPriceEur: "", manualPriceCurrency: "EUR", extraPriceEur: 0, extraDiscountEur: 0, paymentStatus: "Falta cancelar", route: "Lima - Torino", originAddress: getDefaultShipmentAddresses("Lima - Torino", getAdminShipmentBrand(admin?.id, admin?.email)).originAddress, destinationAddress: getDefaultShipmentAddresses("Lima - Torino", getAdminShipmentBrand(admin?.id, admin?.email)).destinationAddress, isProvinceDelivery: false, provinceCustomerPriceEur: "", provinceExtraPriceEur: "", provinceOperationalCostSoles: "", provinceCarrier: "shalom", provinceSenderName: "", provinceSenderLastName: "", provinceSenderDni: "", provinceSenderPhone: "", couponCode: "", documentItems: [], contentChecklist: [], missingItems: [], deliveryMode: "agencia", limaTorinoTransferMode: undefined, deliveryPersonName: "", deliveryPersonLastName: "", deliveryPersonDni: "", deliveryPersonPhone: "", deliveryLocationType: "direccion", deliveryLocationAddress: "", deliveryLocationLatitude: null, deliveryLocationLongitude: null });
     setSenderClientQuery("");
     setRecipientClientQuery("");
     setAdditionalDocumentItems([]);
@@ -831,6 +834,7 @@ export default function AdminDashboard() {
     documentItems: additionalDocumentItems,
     weightKg: watchedWeightKg,
     manualPriceEur: createForm.watch("manualPriceEur"),
+    manualPriceCurrency: createForm.watch("manualPriceCurrency"),
     extraPriceEur: createForm.watch("extraPriceEur"),
     extraDiscountEur: createForm.watch("extraDiscountEur"),
     route: selectedRoute,
@@ -848,7 +852,7 @@ export default function AdminDashboard() {
     workspaceAdminId: admin?.id,
     workspaceAdminEmail: admin?.email,
     notes: extractFreeformShipmentNotes(createForm.watch("notes"), generatedCreateNoteRef.current),
-  }), [selectedShipmentType, selectedDocType, selectedRoute, watchedOriginAddress, watchedDestinationAddress, additionalDocumentItems, watchedWeightKg, watchedProvinceEnabled, watchedProvinceExtraPrice, admin?.id, admin?.email, createForm.watch("sheetCount"), createForm.watch("manualPriceEur"), createForm.watch("extraPriceEur"), createForm.watch("extraDiscountEur"), createForm.watch("requiresApostilleService"), createForm.watch("requiresTranslationService"), createForm.watch("serviceManualPriceEur"), createForm.watch("serviceManualPriceSoles"), createForm.watch("provinceCustomerPriceEur"), createForm.watch("provinceExtraPriceEur"), createForm.watch("provinceOperationalCostSoles"), createForm.watch("provinceCarrier"), createForm.watch("notes")]);
+  }), [selectedShipmentType, selectedDocType, selectedRoute, watchedOriginAddress, watchedDestinationAddress, additionalDocumentItems, watchedWeightKg, watchedProvinceEnabled, watchedProvinceExtraPrice, admin?.id, admin?.email, createForm.watch("sheetCount"), createForm.watch("manualPriceEur"), createForm.watch("manualPriceCurrency"), createForm.watch("extraPriceEur"), createForm.watch("extraDiscountEur"), createForm.watch("requiresApostilleService"), createForm.watch("requiresTranslationService"), createForm.watch("serviceManualPriceEur"), createForm.watch("serviceManualPriceSoles"), createForm.watch("provinceCustomerPriceEur"), createForm.watch("provinceExtraPriceEur"), createForm.watch("provinceOperationalCostSoles"), createForm.watch("provinceCarrier"), createForm.watch("notes")]);
   useEffect(() => {
     const currentNotes = String(createForm.getValues("notes") ?? "");
     const freeformNotes = extractFreeformShipmentNotes(currentNotes, generatedCreateNoteRef.current);
@@ -958,6 +962,7 @@ export default function AdminDashboard() {
       destinationAddress: '',
       weightKg: 1,
       manualPriceEur: '',
+      manualPriceCurrency: 'EUR',
       extraPriceEur: 0,
       extraDiscountEur: 0,
       deliveryMode: 'agencia',
@@ -996,6 +1001,7 @@ export default function AdminDashboard() {
     sheetCount: Number(updateForm.watch("sheetCount") || 1),
     weightKg: updateProvinceWeight,
     manualPriceEur: updateForm.watch("pricingMode") === "manual" ? updateForm.watch("manualPriceEur") : null,
+    manualPriceCurrency: updateForm.watch("manualPriceCurrency"),
     extraPriceEur: updateForm.watch("extraPriceEur"),
     extraDiscountEur: updateForm.watch("extraDiscountEur"),
     route: updateShipmentRoute,
@@ -1011,7 +1017,7 @@ export default function AdminDashboard() {
     workspaceAdminId: admin?.id,
     workspaceAdminEmail: admin?.email,
     notes: extractFreeformShipmentNotes(updateForm.watch("notes"), generatedUpdateNoteRef.current),
-  }), [updateShipmentType, updateShipmentRoute, updateProvinceWeight, updateProvinceEnabled, admin?.id, admin?.email, updateForm.watch("docType"), updateForm.watch("sheetCount"), updateForm.watch("pricingMode"), updateForm.watch("manualPriceEur"), updateForm.watch("extraPriceEur"), updateForm.watch("extraDiscountEur"), updateForm.watch("requiresApostilleService"), updateForm.watch("requiresTranslationService"), updateForm.watch("serviceManualPriceEur"), updateForm.watch("serviceManualPriceSoles"), updateForm.watch("provinceCustomerPriceEur"), updateForm.watch("provinceExtraPriceEur"), updateForm.watch("provinceOperationalCostSoles"), updateForm.watch("provinceCarrier"), updateForm.watch("notes")]);
+  }), [updateShipmentType, updateShipmentRoute, updateProvinceWeight, updateProvinceEnabled, admin?.id, admin?.email, updateForm.watch("docType"), updateForm.watch("sheetCount"), updateForm.watch("pricingMode"), updateForm.watch("manualPriceEur"), updateForm.watch("manualPriceCurrency"), updateForm.watch("extraPriceEur"), updateForm.watch("extraDiscountEur"), updateForm.watch("requiresApostilleService"), updateForm.watch("requiresTranslationService"), updateForm.watch("serviceManualPriceEur"), updateForm.watch("serviceManualPriceSoles"), updateForm.watch("provinceCustomerPriceEur"), updateForm.watch("provinceExtraPriceEur"), updateForm.watch("provinceOperationalCostSoles"), updateForm.watch("provinceCarrier"), updateForm.watch("notes")]);
   const updateVisibleParcelTotal = updatePricingPreview.totalEur;
 
   useEffect(() => {
@@ -1056,6 +1062,7 @@ export default function AdminDashboard() {
       destinationAddress: shipment.destinationAddress || "",
       weightKg: Number(shipment.weightKg || 1),
       manualPriceEur: shipment.manualPriceEur || "",
+      manualPriceCurrency: shipment.manualPriceCurrency || "EUR",
       extraPriceEur: Number(shipment.extraPriceEur || 0),
       extraDiscountEur: Number(shipment.extraDiscountEur || 0),
       deliveryMode: shipment.deliveryMode || "agencia",
@@ -1228,7 +1235,7 @@ export default function AdminDashboard() {
 
   const shipmentDetailsText = (shipment: any) => {
     const checklist = Array.isArray(shipment.contentChecklist) ? shipment.contentChecklist : (() => { try { return JSON.parse(shipment.contentChecklist || "[]"); } catch { return []; } })();
-    return [`ENVÍO ${shipment.shipmentType === "encomienda" ? "ENCOMIENDA" : "DOCUMENTO"}`, `Orden: ${shipment.orderNumber || "No indicado"}`, `Código: ${shipment.code || "No indicado"}`, `Estado: ${shipment.status || "No indicado"}`, `Estado de pago: ${shipment.paymentStatus || "No indicado"}`, `Ruta: ${shipment.route || "No indicado"}`, `Remitente: ${[shipment.senderName, shipment.senderLastName].filter(Boolean).join(" ") || "No indicado"}`, `Teléfono remitente: ${shipment.senderPhone || "No indicado"}`, `Documento remitente: ${shipment.senderDni || "No indicado"}`, `Destinatario: ${[shipment.recipientName, shipment.recipientLastName].filter(Boolean).join(" ") || "No indicado"}`, `Teléfono destinatario: ${shipment.recipientPhone || "No indicado"}`, `Documento destinatario: ${shipment.recipientDni || "No indicado"}`, `Origen: ${shipment.originAddress || "No indicado"}`, `Destino / sede: ${shipment.destinationAddress || "No indicado"}`, `Modalidad Lima–Torino: ${shipment.limaTorinoTransferMode === "dhl_recogida" ? "DHL recoge el documento" : shipment.limaTorinoTransferMode === "persona_autorizada" ? "Entrega a persona autorizada" : "No aplica"}`, `Persona autorizada: ${[shipment.deliveryPersonName, shipment.deliveryPersonLastName].filter(Boolean).join(" ") || "No aplica"}`, `Lugar de entrega: ${shipment.deliveryLocationType === "aeropuerto_jorge_chavez" ? "Nuevo Aeropuerto Internacional Jorge Chávez" : shipment.deliveryLocationAddress || "No aplica"}`, `Operador provincial: ${shipment.provinceCarrier || "No aplica"}`, `Peso: ${shipment.weightKg ? `${shipment.weightKg} kg` : "No aplica"}`, `Precio final: ${shipment.finalPriceEur ?? shipment.basePriceEur ?? shipment.manualPriceEur ?? "No indicado"} EUR`, `Notas: ${shipment.notes || "Sin notas"}`, `Checklist: ${checklist.length ? checklist.join(", ") : "Sin checklist"}`].join("\n");
+    return [`ENVÍO ${shipment.shipmentType === "encomienda" ? "ENCOMIENDA" : "DOCUMENTO"}`, `Orden: ${shipment.orderNumber || "No indicado"}`, `Código: ${shipment.code || "No indicado"}`, `Estado: ${shipment.status || "No indicado"}`, `Estado de pago: ${shipment.paymentStatus || "No indicado"}`, `Ruta: ${shipment.route || "No indicado"}`, `Remitente: ${[shipment.senderName, shipment.senderLastName].filter(Boolean).join(" ") || "No indicado"}`, `Teléfono remitente: ${shipment.senderPhone || "No indicado"}`, `Documento remitente: ${shipment.senderDni || "No indicado"}`, `Destinatario: ${[shipment.recipientName, shipment.recipientLastName].filter(Boolean).join(" ") || "No indicado"}`, `Teléfono destinatario: ${shipment.recipientPhone || "No indicado"}`, `Documento destinatario: ${shipment.recipientDni || "No indicado"}`, `Origen: ${shipment.originAddress || "No indicado"}`, `Destino / sede: ${shipment.destinationAddress || "No indicado"}`, `Modalidad Lima–Torino: ${shipment.limaTorinoTransferMode === "dhl_recogida" ? "DHL recoge el documento" : shipment.limaTorinoTransferMode === "persona_autorizada" ? "Entrega a persona autorizada" : "No aplica"}`, `Persona autorizada: ${[shipment.deliveryPersonName, shipment.deliveryPersonLastName].filter(Boolean).join(" ") || "No aplica"}`, `Lugar de entrega: ${shipment.deliveryLocationType === "aeropuerto_jorge_chavez" ? "Nuevo Aeropuerto Internacional Jorge Chávez" : shipment.deliveryLocationAddress || "No aplica"}`, `Operador provincial: ${shipment.provinceCarrier || "No aplica"}`, `Peso: ${shipment.weightKg ? `${shipment.weightKg} kg` : "No aplica"}`, `Precio final: ${formatShipmentAmount(shipment.finalPriceEur ?? shipment.basePriceEur ?? shipment.manualPriceEur, shipment)}`, `Notas: ${shipment.notes || "Sin notas"}`, `Checklist: ${checklist.length ? checklist.join(", ") : "Sin checklist"}`].join("\n");
   };
   const handleCopyShipmentDetails = async () => {
     if (!detailShipment) return;
@@ -2537,7 +2544,12 @@ export default function AdminDashboard() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Precio manual en EUR (opcional)</label>
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <label className="block text-sm font-medium text-gray-700">Precio manual en EUR (opcional)</label>
+                      <select aria-label="Moneda del precio manual" {...createForm.register("manualPriceCurrency")} className="h-9 rounded-md border-2 border-slate-200 bg-white px-2 text-sm font-semibold text-[#0B2B5E]">
+                        <option value="EUR">EUR €</option><option value="USD">USD $</option><option value="PEN">PEN S/</option>
+                      </select>
+                    </div>
                     <Input
                       type="number"
                       min="0"
@@ -2546,7 +2558,7 @@ export default function AdminDashboard() {
                       {...createForm.register("manualPriceEur")}
                       className={`border-2 focus:border-primary ${createForm.formState.errors.manualPriceEur ? "border-rose-500 bg-rose-50" : ""}`}
                     />
-                    {createForm.formState.errors.manualPriceEur ? <p role="alert" className="mt-1 text-sm font-semibold text-rose-700">{String(createForm.formState.errors.manualPriceEur.message || "Completa este precio para continuar.")}</p> : <p className="mt-1 text-xs text-slate-500">Si el envío supera 10 kg, indica aquí el precio final que se cobrará al cliente.</p>}
+                    {createForm.formState.errors.manualPriceEur ? <p role="alert" className="mt-1 text-sm font-semibold text-rose-700">{String(createForm.formState.errors.manualPriceEur.message || "Completa este precio para continuar.")}</p> : <p className="mt-1 text-xs text-slate-500">Selecciona EUR, USD o PEN. Si el envío supera 10 kg, indica aquí el precio final que se cobrará al cliente.</p>}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Importe extra en EUR</label>
@@ -2577,7 +2589,7 @@ export default function AdminDashboard() {
 
                   {selectedShipmentType === "documento" ? (
                   <div className={`order-10 ${mobileSectionClass(1)}`}>
-                  {isPrimaryOfficeRoute && <p className="mb-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-[#0B2B5E]">Servicios especiales disponibles para el corredor entre las sedes principales seleccionadas.</p>}
+                  {selectedShipmentType === "documento" && <p className="mb-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-[#0B2B5E]">Apostilla y traducción disponibles para cualquier ruta documental.</p>}
                   <div className="mt-4 grid grid-cols-1 gap-4 border-t border-slate-200 pt-4 md:grid-cols-3">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Documento</label>
@@ -2605,9 +2617,9 @@ export default function AdminDashboard() {
                       onChange={(nextValue) => createForm.setValue("sheetCount", nextValue, { shouldValidate: true, shouldDirty: true })}
                       description={createForm.watch("docType") === "simple" ? "Máximo 8 hojas por registro." : "Máximo 10 hojas por registro."}
                     />
-                    <DocumentPricePreview docType={selectedDocType} sheetCount={Number(createForm.watch("sheetCount")) || 1} additionalTotalEur={additionalDocumentAutoTotal} penPerEur={selectedPenPerEur} manualPriceEur={createForm.watch("manualPriceEur")} extraPriceEur={createForm.watch("extraPriceEur")} extraDiscountEur={createForm.watch("extraDiscountEur")} />
+                    <DocumentPricePreview docType={selectedDocType} sheetCount={Number(createForm.watch("sheetCount")) || 1} additionalTotalEur={additionalDocumentAutoTotal} penPerEur={selectedPenPerEur} manualPriceEur={createForm.watch("manualPriceEur")} manualPriceCurrency={createForm.watch("manualPriceCurrency")} pricingCurrency={createPricingPreview.pricingCurrency} extraPriceEur={createForm.watch("extraPriceEur")} extraDiscountEur={createForm.watch("extraDiscountEur")} />
                   </div>
-                                     {selectedShipmentType === "documento" && isPrimaryOfficeRoute && (
+                                     {selectedShipmentType === "documento" && (
                      <>
                        <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border-2 border-[#0B2B5E] bg-blue-50 p-4 text-sm shadow-sm transition hover:bg-blue-100/70">
                          <input type="checkbox" aria-label="Documentos para apostillar" {...createForm.register("requiresApostilleService")} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-[#0B2B5E] focus:ring-[#0B2B5E]" />
@@ -3177,7 +3189,7 @@ export default function AdminDashboard() {
               <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="rounded-2xl bg-[#0B2B5E] p-4 text-white sm:col-span-2 lg:col-span-3"><p className="text-xs font-bold uppercase tracking-wide text-orange-200">Identificación del envío</p><div className="mt-2 grid gap-3 sm:grid-cols-3"><div><p className="text-xs text-blue-100">Destinatario</p><p className="text-lg font-extrabold">{[detailShipment.recipientName, detailShipment.recipientLastName].filter(Boolean).join(" ") || "No indicado"}</p></div><div><p className="text-xs text-blue-100">Orden</p><p className="break-all text-lg font-extrabold">{detailShipment.orderNumber || "No indicado"}</p></div><div><p className="text-xs text-blue-100">Código</p><p className="break-all text-lg font-extrabold">{detailShipment.code || "No indicado"}</p></div></div></div>
                 <section className="sm:col-span-2 lg:col-span-3"><h3 className="mb-2 text-lg font-bold text-[#0B2B5E]">Remitente y destinatario</h3><dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"><DetailRow label="Remitente" value={[detailShipment.senderName, detailShipment.senderLastName].filter(Boolean).join(" ")} /><DetailRow label="Documento del remitente" value={detailShipment.senderDni} /><DetailRow label="Teléfono del remitente" value={detailShipment.senderPhone} /><DetailRow label="Destinatario" value={[detailShipment.recipientName, detailShipment.recipientLastName].filter(Boolean).join(" ")} /><DetailRow label="Documento del destinatario" value={detailShipment.recipientDni} /><DetailRow label="Teléfono del destinatario" value={detailShipment.recipientPhone} /></dl></section>
-                <section className="sm:col-span-2 lg:col-span-3"><h3 className="mb-2 text-lg font-bold text-[#0B2B5E]">Operación y precio</h3><dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><DetailRow label="Tipo" value={detailShipment.shipmentType === "encomienda" ? "Encomienda" : "Documento"} /><DetailRow label="Ruta" value={detailShipment.route} /><DetailRow label="Estado" value={detailShipment.status} /><DetailRow label="Estado de pago" value={detailShipment.paymentStatus} /><DetailRow label="Origen" value={detailShipment.originAddress} /><DetailRow label="Sede / destino" value={detailShipment.destinationAddress} /><DetailRow label="Operador provincial" value={detailShipment.provinceCarrier} /><DetailRow label="Peso" value={detailShipment.weightKg ? `${detailShipment.weightKg} kg` : "No aplica"} /><DetailRow label="Precio final" value={(detailShipment.finalPriceEur ?? detailShipment.basePriceEur ?? detailShipment.manualPriceEur) !== undefined ? `${detailShipment.finalPriceEur ?? detailShipment.basePriceEur ?? detailShipment.manualPriceEur} EUR` : "No indicado"} /><DetailRow label="Registrado por" value={detailShipment.registeredByLabel || "Registro anterior"} /><DetailRow label="Fecha de creación" value={detailShipment.createdAt ? new Date(detailShipment.createdAt).toLocaleString() : null} /></dl></section>
+                <section className="sm:col-span-2 lg:col-span-3"><h3 className="mb-2 text-lg font-bold text-[#0B2B5E]">Operación y precio</h3><dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><DetailRow label="Tipo" value={detailShipment.shipmentType === "encomienda" ? "Encomienda" : "Documento"} /><DetailRow label="Ruta" value={detailShipment.route} /><DetailRow label="Estado" value={detailShipment.status} /><DetailRow label="Estado de pago" value={detailShipment.paymentStatus} /><DetailRow label="Origen" value={detailShipment.originAddress} /><DetailRow label="Sede / destino" value={detailShipment.destinationAddress} /><DetailRow label="Operador provincial" value={detailShipment.provinceCarrier} /><DetailRow label="Peso" value={detailShipment.weightKg ? `${detailShipment.weightKg} kg` : "No aplica"} /><DetailRow label="Precio final" value={(detailShipment.finalPriceEur ?? detailShipment.basePriceEur ?? detailShipment.manualPriceEur) !== undefined ? formatShipmentAmount(detailShipment.finalPriceEur ?? detailShipment.basePriceEur ?? detailShipment.manualPriceEur, detailShipment) : "No indicado"} /><DetailRow label="Registrado por" value={detailShipment.registeredByLabel || "Registro anterior"} /><DetailRow label="Fecha de creación" value={detailShipment.createdAt ? new Date(detailShipment.createdAt).toLocaleString() : null} /></dl></section>
                 <section className="sm:col-span-2 lg:col-span-3"><h3 className="mb-2 text-lg font-bold text-[#0B2B5E]">Notas y checklist</h3><div className="grid gap-3 lg:grid-cols-2"><div className="whitespace-pre-wrap rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">{detailShipment.notes || "Sin notas"}</div><div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"><p className="font-bold text-[#0B2B5E]">Contenido registrado</p><ul className="mt-2 list-disc space-y-1 pl-5">{(Array.isArray(detailShipment.contentChecklist) ? detailShipment.contentChecklist : (() => { try { return JSON.parse(detailShipment.contentChecklist || "[]"); } catch { return []; } })()).length ? (Array.isArray(detailShipment.contentChecklist) ? detailShipment.contentChecklist : JSON.parse(detailShipment.contentChecklist || "[]")).map((item: string) => <li key={item}>{item}</li>) : <li>Sin checklist registrado</li>}</ul></div></div></section>
               </div>
               <div className="mt-6 flex flex-wrap justify-end gap-3 border-t border-slate-200 pt-4"><Button type="button" variant="outline" onClick={() => { setDetailShipment(null); setDetailCopied(false); }}>Cerrar</Button><Button type="button" onClick={() => void handleCopyShipmentDetails()} className="bg-[#0B2B5E] text-white hover:bg-[#123d78]"><Download className="mr-2 h-4 w-4" />{detailCopied ? "Datos copiados" : "Copiar / extraer datos"}</Button></div>
@@ -3359,7 +3371,7 @@ export default function AdminDashboard() {
                       <label className="block text-sm font-medium text-gray-700 mb-1">Tarifa</label>
                       <select {...updateForm.register("pricingMode")} className="w-full p-2 bg-white border-2 border-slate-200 rounded-md text-sm font-medium focus:border-primary">
                         <option value="estandar">Estándar: 15,00 €/kg</option>
-                        <option value="manual">Precio manual en EUR</option>
+                        <option value="manual">Precio manual en EUR, USD o PEN</option>
                       </select>
                     </div>
                   </> : <>
@@ -3388,7 +3400,7 @@ export default function AdminDashboard() {
                       <label className="block text-sm font-medium text-gray-700 mb-1">Tarifa del documento</label>
                       <select {...updateForm.register("pricingMode")} className="w-full p-2 bg-white border-2 border-slate-200 rounded-md text-sm font-medium focus:border-primary">
                         <option value="estandar">Tarifa automática según tipo y hojas</option>
-                        <option value="manual">Precio manual en EUR</option>
+                        <option value="manual">Precio manual en EUR, USD o PEN</option>
                       </select>
                     </div>
                     {updateForm.watch("shipmentType") === "documento" && <div className="md:col-span-2 grid gap-3 sm:grid-cols-2">
@@ -3434,11 +3446,11 @@ export default function AdminDashboard() {
                       )}
                     </div>
                   )}
-                  {updateForm.watch("pricingMode") === "manual" && <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Precio manual (EUR)</label><Input type="number" min="0" step="0.01" {...updateForm.register("manualPriceEur")} placeholder="Ej.: 25.00" /><p className="mt-1 text-xs text-slate-500">Guarda una tarifa para que los pagos de este envío se contabilicen correctamente.</p></div>}
+                  {updateForm.watch("pricingMode") === "manual" && <div className="md:col-span-2"><div className="mb-1 flex items-center justify-between gap-3"><label className="block text-sm font-medium text-gray-700">Precio manual para agencia externa</label><select aria-label="Moneda del precio manual de actualización" {...updateForm.register("manualPriceCurrency")} className="h-9 rounded-md border-2 border-slate-200 bg-white px-2 text-sm font-semibold text-[#0B2B5E]"><option value="EUR">EUR €</option><option value="USD">USD $</option><option value="PEN">PEN S/</option></select></div><Input type="number" min="0" step="0.01" {...updateForm.register("manualPriceEur")} placeholder="Ej.: 25.00" /><p className="mt-1 text-xs text-slate-500">La moneda seleccionada se conserva en contabilidad, notas y documentos.</p></div>}
                   <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Importe extra (EUR)</label><Input type="number" min="0" step="0.01" aria-label="Importe extra de actualización" {...updateForm.register("extraPriceEur")} /><p className="mt-1 text-xs text-slate-500">Se suma al precio base automático o al precio manual.</p></div>
                   <div className="md:col-span-2"><label className="block text-sm font-medium text-gray-700 mb-1">Descuento del importe extra (EUR)</label><Input type="number" min="0" step="0.01" aria-label="Descuento del importe extra de actualización" {...updateForm.register("extraDiscountEur")} /><p className="mt-1 text-xs text-slate-500">Reduce únicamente el extra. Si escribes un descuento mayor, se limita al importe extra.</p><p className="mt-1 text-sm font-semibold text-[#0B2B5E]">Extra neto aplicado: {updateNetExtra.toFixed(2)} EUR</p></div>
-                  {updateForm.watch("shipmentType") === "documento" && <div className="md:col-span-2 rounded-xl border-2 border-blue-200 bg-blue-50 p-3"><p className="text-xs font-bold uppercase tracking-wide text-[#0B2B5E]">Precio actualizado</p><DocumentPricePreview docType={(updateForm.watch("docType") || "apostillado") as "simple" | "apostillado"} sheetCount={Number(updateForm.watch("sheetCount") || 1)} manualPriceEur={updateForm.watch("pricingMode") === "manual" ? updateForm.watch("manualPriceEur") : null} extraPriceEur={updateForm.watch("extraPriceEur")} extraDiscountEur={updateForm.watch("extraDiscountEur")} serviceTotalEur={updatePricingPreview.servicePriceEur} serviceSummary={[updateForm.watch("requiresApostilleService") ? "apostilla" : "", updateForm.watch("requiresTranslationService") ? "traducción" : ""].filter(Boolean).join(" + ")} /></div>}
-                  {updateForm.watch("shipmentType") === "encomienda" && <div className="md:col-span-2 rounded-xl border-2 border-blue-200 bg-blue-50 p-4" aria-live="polite"><p className="text-xs font-bold uppercase tracking-wide text-[#0B2B5E]">Precio actualizado</p><p className="mt-1 text-3xl font-extrabold tabular-nums text-[#0B2B5E]">{updateVisibleParcelTotal.toFixed(2)} EUR</p><p className="mt-1 text-sm text-slate-700">Se recalcula con el peso, la tarifa, el extra provincial y la agencia seleccionada.</p></div>}
+                  {updateForm.watch("shipmentType") === "documento" && <div className="md:col-span-2 rounded-xl border-2 border-blue-200 bg-blue-50 p-3"><p className="text-xs font-bold uppercase tracking-wide text-[#0B2B5E]">Precio actualizado</p><DocumentPricePreview docType={(updateForm.watch("docType") || "apostillado") as "simple" | "apostillado"} sheetCount={Number(updateForm.watch("sheetCount") || 1)} manualPriceEur={updateForm.watch("pricingMode") === "manual" ? updateForm.watch("manualPriceEur") : null} manualPriceCurrency={updateForm.watch("manualPriceCurrency")} pricingCurrency={updatePricingPreview.pricingCurrency} extraPriceEur={updateForm.watch("extraPriceEur")} extraDiscountEur={updateForm.watch("extraDiscountEur")} serviceTotalEur={updatePricingPreview.servicePriceEur} serviceSummary={[updateForm.watch("requiresApostilleService") ? "apostilla" : "", updateForm.watch("requiresTranslationService") ? "traducción" : ""].filter(Boolean).join(" + ")} /></div>}
+                  {updateForm.watch("shipmentType") === "encomienda" && <div className="md:col-span-2 rounded-xl border-2 border-blue-200 bg-blue-50 p-4" aria-live="polite"><p className="text-xs font-bold uppercase tracking-wide text-[#0B2B5E]">Precio actualizado</p><p className="mt-1 text-3xl font-extrabold tabular-nums text-[#0B2B5E]">{formatShipmentAmount(updateVisibleParcelTotal, { manualPriceEur: updateForm.watch("pricingMode") === "manual" ? updateForm.watch("manualPriceEur") : null, manualPriceCurrency: updateForm.watch("manualPriceCurrency"), pricingCurrency: updatePricingPreview.pricingCurrency })}</p><p className="mt-1 text-sm text-slate-700">Se recalcula con el peso, la tarifa, el extra provincial y la agencia seleccionada.</p></div>}
                 </div>
 
                 <div className="border-t pt-4">

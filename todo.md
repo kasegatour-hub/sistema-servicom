@@ -2134,3 +2134,10 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [ ] Mostrar un checklist buscable de servicios solicitados para las demás sedes.
 - [ ] Reflejar precio, moneda, servicio y notas en documentos y contabilidad.
 - [x] Añadir regresiones, ejecutar validaciones y publicar checkpoint.
+
+## Precio manual multimoneda para agencias externas
+- [x] Completar propagación de manualPriceCurrency (EUR, USD, PEN) en creación y actualización administrativa.
+- [x] Mostrar el importe manual y su moneda en la vista previa, notas y payloads backend.
+- [x] Reflejar manualPriceCurrency en recibos, tickets, declaraciones juradas y contabilidad sin alterar tarifas automáticas.
+- [x] Añadir pruebas de regresión para persistencia, documentos y contabilidad multimoneda.
+- [x] Ejecutar suite completa, TypeScript, build y verificación visual antes del checkpoint.

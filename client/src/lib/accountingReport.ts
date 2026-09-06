@@ -3,7 +3,10 @@ type AccountingReportData = {
   routeLabel: string;
   workspace: { label: string };
   revenueEur: number;
+  revenueUsd: number;
+  revenuePen: number;
   manualExpenseEur: number;
+  manualExpenseUsd: number;
   provinceCostPen: number;
   manualExpensePen: number;
   expensePen: number;
@@ -21,8 +24,9 @@ type AccountingReportData = {
   monthly: Array<Record<string, any>>;
 };
 
-const money = (amount: number, currency: "EUR" | "PEN") => new Intl.NumberFormat("es-PE", { style: "currency", currency, minimumFractionDigits: 2 }).format(Number(amount || 0));
+const money = (amount: number, currency: "EUR" | "USD" | "PEN") => new Intl.NumberFormat("es-PE", { style: "currency", currency, minimumFractionDigits: 2 }).format(Number(amount || 0));
 const date = (value: unknown) => value ? new Date(value as string | Date).toLocaleDateString("es-PE") : "—";
+const shipmentCurrency = (shipment: Record<string, any>): "EUR" | "USD" | "PEN" => shipment.manualPriceCurrency === "USD" ? "USD" : shipment.manualPriceCurrency === "PEN" || shipment.pricingCurrency === "PEN" ? "PEN" : "EUR";
 const shipmentRecipient = (shipment: Record<string, any>) => `${shipment.recipientName || ""} ${shipment.recipientLastName || ""}`.trim() || "No indicado";
 const filenameSegment = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "-").replace(/(^-|-$)/g, "").toLowerCase();
 
@@ -39,8 +43,11 @@ function downloadBlob(blob: Blob, filename: string) {
 
 function statementRows(report: AccountingReportData) {
   return [
-    ["Ingresos cobrados", money(report.revenueEur, "EUR")],
-    ["Gastos manuales", money(report.manualExpenseEur, "EUR")],
+    ["Ingresos cobrados EUR", money(report.revenueEur, "EUR")],
+    ["Ingresos cobrados USD", money(report.revenueUsd, "USD")],
+    ["Ingresos cobrados PEN", money(report.revenuePen, "PEN")],
+    ["Gastos manuales EUR", money(report.manualExpenseEur, "EUR")],
+    ["Gastos manuales USD", money(report.manualExpenseUsd, "USD")],
     ["Costo provincial automático", money(report.provinceCostPen, "PEN")],
     ["Gastos manuales", money(report.manualExpensePen, "PEN")],
     ["Total de egresos PEN", money(report.expensePen, "PEN")],
@@ -76,7 +83,8 @@ export async function downloadAccountingExcel(report: AccountingReportData) {
     "Ruta": shipment.route || "—",
     "Estado": shipment.status || "—",
     "Pago": shipment.paymentStatus || "—",
-    "Cobrado (EUR)": Number(shipment.finalPriceEur ?? shipment.basePriceEur ?? 0),
+    "Cobrado": Number(shipment.finalPriceEur ?? shipment.basePriceEur ?? 0),
+    "Moneda cobrada": shipmentCurrency(shipment),
     "Costo provincial (PEN)": Number(shipment.provinceOperationalCostSoles ?? 0),
   })));
   parcelsSheet["!cols"] = [{ wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 30 }, { wch: 24 }, { wch: 20 }, { wch: 18 }, { wch: 17 }, { wch: 23 }];
@@ -98,6 +106,8 @@ export async function downloadAccountingExcel(report: AccountingReportData) {
     const monthlySheet = XLSX.utils.json_to_sheet(report.monthly.map(month => ({
       "Mes": month.periodLabel,
       "Ingresos EUR": month.revenueEur,
+      "Ingresos USD": month.revenueUsd,
+      "Ingresos PEN": month.revenuePen,
       "Egresos EUR": month.expenseEur,
       "Egresos PEN": month.expensePen,
       "Utilidad EUR": month.netEur,
@@ -145,7 +155,7 @@ export async function downloadAccountingPdf(report: AccountingReportData) {
   line("Relación de encomiendas del periodo", { bold: true, size: 12, color: [11, 43, 94] });
   if (!report.parcelRows.length) line("No hay encomiendas registradas en este periodo.");
   report.parcelRows.forEach((shipment, index) => {
-    line(`${index + 1}. ${shipment.orderNumber} · ${shipment.code} · ${shipmentRecipient(shipment)} · ${shipment.status || "Sin estado"} · ${shipment.paymentStatus || "Sin pago"} · ${money(Number(shipment.finalPriceEur ?? shipment.basePriceEur ?? 0), "EUR")}`, { size: 9 });
+    line(`${index + 1}. ${shipment.orderNumber} · ${shipment.code} · ${shipmentRecipient(shipment)} · ${shipment.status || "Sin estado"} · ${shipment.paymentStatus || "Sin pago"} · ${money(Number(shipment.finalPriceEur ?? shipment.basePriceEur ?? 0), shipmentCurrency(shipment))}`, { size: 9 });
   });
   rule();
   line("Gastos manuales del periodo", { bold: true, size: 12, color: [11, 43, 94] });

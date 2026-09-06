@@ -1752,6 +1752,7 @@ export async function createShipment(
   deliveryLocationLongitude?: string | number | null,
   missingItems?: string[] | string | null,
   extraDiscountEur?: string | number | null,
+  manualPriceCurrency?: "EUR" | "USD" | "PEN" | null,
 ) {
   const db = await getDb();
   if (!db) {
@@ -1816,6 +1817,7 @@ export async function createShipment(
     paymentStatus: paymentStatus || "Falta cancelar",
     route: normalizedRoute,
     pricingCurrency,
+    manualPriceCurrency: manualPriceCurrency ?? "EUR",
     originPoint: normalizedEndpoints.originPoint,
     destinationPoint: normalizedEndpoints.destinationPoint,
     originAddress: originAddress || "",
@@ -1930,6 +1932,7 @@ export async function updateShipmentStatus(
   deliveryLocationLongitude?: string | number | null,
   missingItems?: string[] | string | null,
   extraDiscountEur?: string | number | null,
+  manualPriceCurrency?: "EUR" | "USD" | "PEN" | null,
   changeActor?: ShipmentAuditActor,
 ) {
   const db = await getDb();
@@ -2011,6 +2014,7 @@ export async function updateShipmentStatus(
         paymentStatus: paymentStatus ?? shipment.paymentStatus ?? "Falta cancelar",
         route: updatedRoute,
         pricingCurrency,
+        manualPriceCurrency: manualPriceCurrency !== undefined ? (manualPriceCurrency ?? "EUR") : shipment.manualPriceCurrency ?? "EUR",
         originPoint: updatedEndpoints.originPoint,
         destinationPoint: updatedEndpoints.destinationPoint,
         originAddress: originAddress ?? shipment.originAddress ?? "",

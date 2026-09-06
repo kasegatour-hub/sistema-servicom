@@ -79,3 +79,25 @@ describe("operating accounting", () => {
     expect(torinoLima).toMatchObject({ routeLabel: "Torino–Lima", revenueEur: 140, manualExpenseEur: 12, netEur: 128, provinceCostPen: 20 });
   });
 });
+
+
+describe("ingresos por moneda de la tarifa", () => {
+  it("separa un precio manual USD y un precio manual PEN sin convertirlos silenciosamente a EUR", () => {
+    const statement = calculateOperatingStatement({
+      shipments: [
+        { id: 21, orderNumber: "0826-0021", code: "USD1", shipmentType: "encomienda", paymentStatus: "Pagado", finalPriceEur: "80", manualPriceEur: "80", manualPriceCurrency: "USD", pricingCurrency: "EUR", createdAt: new Date("2026-08-12T12:00:00.000Z") },
+        { id: 22, orderNumber: "0826-0022", code: "PEN1", shipmentType: "documento", paymentStatus: "Pagado", finalPriceEur: "150", manualPriceEur: "150", manualPriceCurrency: "PEN", pricingCurrency: "EUR", createdAt: new Date("2026-08-12T12:00:00.000Z") },
+        { id: 23, orderNumber: "0826-0023", code: "EUR1", shipmentType: "documento", paymentStatus: "Pagado", finalPriceEur: "45", pricingCurrency: "EUR", createdAt: new Date("2026-08-12T12:00:00.000Z") },
+      ],
+      expenses: [],
+      period: { year: 2026, month: 8 },
+    });
+
+    expect(statement.revenueEur).toBe(45);
+    expect(statement.revenueUsd).toBe(80);
+    expect(statement.revenuePen).toBe(150);
+    expect(statement.revenueByCurrency).toEqual({ EUR: 45, USD: 80, PEN: 150 });
+    expect(statement.netUsd).toBe(80);
+    expect(statement.netPen).toBe(150);
+  });
+});

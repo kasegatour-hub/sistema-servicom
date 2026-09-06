@@ -1,6 +1,6 @@
 import { isTorinoLimaRoute } from "./shipmentRoutes";
 
-export type AccountingCurrency = "EUR" | "PEN";
+export type AccountingCurrency = "EUR" | "USD" | "PEN";
 
 export type AccountingShipment = {
   id: number;
@@ -11,6 +11,9 @@ export type AccountingShipment = {
   paymentStatus?: string | null;
   finalPriceEur?: string | number | null;
   basePriceEur?: string | number | null;
+  manualPriceEur?: string | number | null;
+  manualPriceCurrency?: AccountingCurrency | string | null;
+  pricingCurrency?: "EUR" | "PEN" | string | null;
   provinceOperationalCostSoles?: string | number | null;
   isProvinceDelivery?: number | boolean | null;
   recipientName?: string | null;
@@ -161,9 +164,18 @@ export function calculateOperatingStatement(input: {
   const expenses = input.expenses.filter(expense => dateInPeriod(expense.expenseDate, period) && (routeFilter === "all" || (expense.shipmentId != null && shipmentIds.has(expense.shipmentId))));
   const paidShipments = shipments.filter(shipment => shipment.paymentStatus === "Pagado");
   const parcelRows = shipments.filter(shipment => shipment.shipmentType === "encomienda");
-  const revenueEur = paidShipments.reduce((total, shipment) => total + positiveMoney(shipment.finalPriceEur ?? shipment.basePriceEur), 0);
+  const shipmentCurrency = (shipment: AccountingShipment): AccountingCurrency => {
+    const hasManualPrice = shipment.manualPriceEur !== undefined && shipment.manualPriceEur !== null && String(shipment.manualPriceEur).trim() !== "" && Number.isFinite(Number(shipment.manualPriceEur));
+    if (hasManualPrice && (shipment.manualPriceCurrency === "EUR" || shipment.manualPriceCurrency === "USD" || shipment.manualPriceCurrency === "PEN")) return shipment.manualPriceCurrency;
+    return shipment.pricingCurrency === "PEN" ? "PEN" : "EUR";
+  };
+  const shipmentRevenue = (shipment: AccountingShipment) => positiveMoney(shipment.finalPriceEur ?? shipment.basePriceEur);
+  const revenueEur = paidShipments.filter(shipment => shipmentCurrency(shipment) === "EUR").reduce((total, shipment) => total + shipmentRevenue(shipment), 0);
+  const revenueUsd = paidShipments.filter(shipment => shipmentCurrency(shipment) === "USD").reduce((total, shipment) => total + shipmentRevenue(shipment), 0);
+  const revenuePen = paidShipments.filter(shipment => shipmentCurrency(shipment) === "PEN").reduce((total, shipment) => total + shipmentRevenue(shipment), 0);
   const provinceCostPen = shipments.reduce((total, shipment) => total + positiveMoney(shipment.provinceOperationalCostSoles), 0);
   const manualExpenseEur = expenses.filter(expense => expense.currency === "EUR").reduce((total, expense) => total + positiveMoney(expense.amount), 0);
+  const manualExpenseUsd = expenses.filter(expense => expense.currency === "USD").reduce((total, expense) => total + positiveMoney(expense.amount), 0);
   const manualExpensePen = expenses.filter(expense => expense.currency === "PEN").reduce((total, expense) => total + positiveMoney(expense.amount), 0);
   const expensePen = provinceCostPen + manualExpensePen;
   const validRate = Number(input.penPerEur);
@@ -171,6 +183,8 @@ export function calculateOperatingStatement(input: {
   const expensePenConvertedEur = penPerEur ? expensePen / penPerEur : null;
   const expenseEur = manualExpenseEur + (expensePenConvertedEur ?? 0);
   const netEur = penPerEur ? revenueEur - expenseEur : revenueEur - manualExpenseEur;
+  const netUsd = revenueUsd - manualExpenseUsd;
+  const netPen = revenuePen - expensePen;
 
   return {
     periodLabel: period.label,
@@ -185,7 +199,11 @@ export function calculateOperatingStatement(input: {
     parcelCount: parcelRows.length,
     provinceShipmentCount: shipments.filter(shipment => Boolean(shipment.isProvinceDelivery)).length,
     revenueEur: rounded(revenueEur),
+    revenueUsd: rounded(revenueUsd),
+    revenuePen: rounded(revenuePen),
+    revenueByCurrency: { EUR: rounded(revenueEur), USD: rounded(revenueUsd), PEN: rounded(revenuePen) },
     manualExpenseEur: rounded(manualExpenseEur),
+    manualExpenseUsd: rounded(manualExpenseUsd),
     provinceCostPen: rounded(provinceCostPen),
     manualExpensePen: rounded(manualExpensePen),
     expensePen: rounded(expensePen),
@@ -193,6 +211,8 @@ export function calculateOperatingStatement(input: {
     expensePenConvertedEur: expensePenConvertedEur == null ? null : rounded(expensePenConvertedEur),
     expenseEur: rounded(expenseEur),
     netEur: rounded(netEur),
+    netUsd: rounded(netUsd),
+    netPen: rounded(netPen),
     isNetEurConsolidated: Boolean(penPerEur),
   };
 }

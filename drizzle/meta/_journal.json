@@ -407,6 +407,13 @@
       "when": 1788551468127,
       "tag": "0057_flaky_lady_ursula",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "5",
+      "when": 1788722247756,
+      "tag": "0058_puzzling_karnak",
+      "breakpoints": true
     }
   ]
 }

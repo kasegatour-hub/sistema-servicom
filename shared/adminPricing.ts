@@ -1,8 +1,10 @@
 import { calculateAdditionalDocumentItems, type AdditionalDocumentItemInput } from "./documentPricing";
 
-import { isProvinceShipmentRoute, isTorinoLimaRoute, isPrimaryInternationalOfficeRoute } from "./shipmentRoutes";
+import { isProvinceShipmentRoute, isTorinoLimaRoute } from "./shipmentRoutes";
 import { derivePricingCurrency, normalizeIndependentEndpoints, type ShipmentPricingCurrency } from "./shipmentEndpoints";
 import { getParcelRateEurPerKg } from "./workspacePricing";
+
+export type ManualPriceCurrency = "EUR" | "USD" | "PEN";
 
 export type AdminShipmentPricingInput = {
   shipmentType?: "documento" | "encomienda";
@@ -11,6 +13,7 @@ export type AdminShipmentPricingInput = {
   documentItems?: AdditionalDocumentItemInput[];
   weightKg?: number;
   manualPriceEur?: string | number | null;
+  manualPriceCurrency?: ManualPriceCurrency | null;
   extraPriceEur?: string | number | null;
   extraDiscountEur?: string | number | null;
   route?: string;
@@ -63,16 +66,18 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
   const weightKg = Math.max(0.1, Number(input.weightKg || 1));
   const route = input.route || "Lima - Torino";
   const pricingCurrency: ShipmentPricingCurrency = derivePricingCurrency(normalizeIndependentEndpoints({ route, isProvinceDelivery: input.isProvinceDelivery }));
-  const priceUnit = pricingCurrency;
+  const manualPriceCurrency: ManualPriceCurrency = input.manualPriceCurrency === "USD" || input.manualPriceCurrency === "PEN" || input.manualPriceCurrency === "EUR" ? input.manualPriceCurrency : "EUR";
   const rawManualPrice = input.manualPriceEur === undefined || input.manualPriceEur === null ? "" : String(input.manualPriceEur).trim();
   const manualPrice = rawManualPrice === "" ? null : Number(rawManualPrice);
+  const usesManualPrice = manualPrice !== null && Number.isFinite(manualPrice) && manualPrice >= 0;
+  const priceUnit: ManualPriceCurrency | ShipmentPricingCurrency = usesManualPrice ? manualPriceCurrency : pricingCurrency;
   const rawServiceManualEur = input.serviceManualPriceEur === undefined || input.serviceManualPriceEur === null ? "" : String(input.serviceManualPriceEur).trim();
   const parsedServiceManualEur = Number(rawServiceManualEur);
   const serviceManualPriceEur = rawServiceManualEur !== "" && Number.isFinite(parsedServiceManualEur) && parsedServiceManualEur >= 0 ? parsedServiceManualEur : null;
   const rawServiceManualSoles = input.serviceManualPriceSoles === undefined || input.serviceManualPriceSoles === null ? "" : String(input.serviceManualPriceSoles).trim();
   const parsedServiceManualSoles = Number(rawServiceManualSoles);
   const serviceManualPriceSoles = rawServiceManualSoles !== "" && Number.isFinite(parsedServiceManualSoles) && parsedServiceManualSoles >= 0 ? parsedServiceManualSoles : null;
-  const servicesAllowed = shipmentType === "documento" && isPrimaryInternationalOfficeRoute(route, input.originAddress, input.destinationAddress);
+  const servicesAllowed = shipmentType === "documento";
   const requiresApostilleService = Boolean(input.requiresApostilleService) && servicesAllowed;
   const requiresTranslationService = Boolean(input.requiresTranslationService) && servicesAllowed;
   const apostillePriceEur = requiresApostilleService ? serviceManualPriceEur ?? 40 : 0;
@@ -107,11 +112,11 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
   let tariffDescription: string;
   const additionalDocuments = shipmentType === "documento" ? calculateAdditionalDocumentItems(input.documentItems) : { items: [], totalEur: 0 };
 
-  if (manualPrice !== null && Number.isFinite(manualPrice) && manualPrice >= 0) {
+  if (usesManualPrice) {
     totalEur = manualPrice;
     tariffDescription = shipmentType === "encomienda"
-      ? `Encomienda (${weightKg} kg, tarifa manual): ${totalEur.toFixed(2)} EUR`
-      : `Documento (${docType}, ${sheetCount} hojas, tarifa manual): ${totalEur.toFixed(2)} EUR`;
+      ? `Encomienda (${weightKg} kg, tarifa manual): ${totalEur.toFixed(2)} ${manualPriceCurrency}`
+      : `Documento (${docType}, ${sheetCount} hojas, tarifa manual): ${totalEur.toFixed(2)} ${manualPriceCurrency}`;
   } else if (shipmentType === "encomienda") {
     const automaticParcelPrice = calculateAutomaticParcelPriceEur(weightKg, route, parcelRateEurPerKg);
     totalEur = automaticParcelPrice.totalEur;
@@ -132,7 +137,7 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
   const provinceDescription = provinceEnabled
     ? ` Envío a provincia (${provinceCarrier || "agencia seleccionada"}): +${provinceCustomerPriceEur.toFixed(2)} ${priceUnit}${usesAutomaticProvincePrice ? ` (${provinceTierLabel})` : ""}${provinceExtraPriceEur > 0 ? `; excedente sobre 10 kg (2,00 ${priceUnit}/kg): +${provinceExtraPriceEur.toFixed(2)} ${priceUnit}` : ""}.`
     : "";
-  const extraDescription = extraPriceEur > 0 ? ` Importe extra: +${extraPriceEur.toFixed(2)} EUR${extraDiscountEur > 0 ? `; descuento del extra: -${extraDiscountEur.toFixed(2)} EUR; extra neto: +${netExtraPriceEur.toFixed(2)} EUR` : ""}.` : "";
+  const extraDescription = extraPriceEur > 0 ? ` Importe extra: +${extraPriceEur.toFixed(2)} ${priceUnit}${extraDiscountEur > 0 ? `; descuento del extra: -${extraDiscountEur.toFixed(2)} ${priceUnit}; extra neto: +${netExtraPriceEur.toFixed(2)} ${priceUnit}` : ""}.` : "";
   const serviceDescription = `${requiresApostilleService ? ` Servicio de apostilla del corredor principal: +${apostillePriceEur.toFixed(2)} EUR y +${apostillePriceSoles.toFixed(2)} soles.` : ""}${requiresTranslationService ? ` Servicio de traducción del corredor principal: +${translationPriceEur.toFixed(2)} EUR y +${translationPriceSoles.toFixed(2)} soles.` : ""}`;
   const generatedNote = `${GENERATED_SHIPMENT_NOTE_PREFIX} ${tariffDescription}.${serviceDescription}${provinceDescription}${extraDescription}`.trim();
   return {
@@ -142,6 +147,8 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
     weightKg,
     parcelRateEurPerKg,
     manualPrice,
+    manualPriceCurrency,
+    usesManualPrice,
     extraPriceEur,
     extraDiscountEur,
     netExtraPriceEur,

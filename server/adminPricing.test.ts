@@ -111,3 +111,18 @@ describe("calculateAdminShipmentPricing", () => {
     expect(refreshed.notes).toContain("Llamar antes de entregar.");
     expect(refreshed.notes).not.toContain("1 kg @ 15 EUR/kg");
   });
+
+
+describe("precio manual multimoneda", () => {
+  it.each([
+    ["EUR", "40.00 EUR"],
+    ["USD", "40.00 USD"],
+    ["PEN", "40.00 PEN"],
+  ] as const)("conserva la moneda %s en el total y las notas", (currency, label) => {
+    const pricing = calculateAdminShipmentPricing({ shipmentType: "documento", manualPriceEur: "40", manualPriceCurrency: currency, route: "Lima - Provincia", isProvinceDelivery: true });
+    expect(pricing.manualPriceCurrency).toBe(currency);
+    expect(pricing.totalEur).toBe(50);
+    expect(pricing.notes).toContain(`tarifa manual): ${label}`);
+    expect(pricing.notes).toContain("+10.00");
+  });
+});
