@@ -45,6 +45,7 @@ import { AdminFeedbackInbox } from "@/components/AdminFeedbackInbox";
 import { AgencyDestinationPicker, type AgencyProvider } from "@/components/AgencyDestinationPicker";
 import { deriveHubPath, derivePricingCurrency, normalizeIndependentEndpoints } from "@shared/shipmentEndpoints";
 import { IndependentEndpointsFields } from "@/components/IndependentEndpointsFields";
+import { ServiceRequestPicker } from "@/components/ServiceRequestPicker";
 import { LimaTorinoTransferPanel } from "@/components/LimaTorinoTransferPanel";
 import { TransferWorkspace } from "@/components/TransferWorkspace";
 import { AccountingWorkspace } from "@/components/AccountingWorkspace";
@@ -469,6 +470,7 @@ export default function AdminDashboard() {
   const [senderDirectoryPhone, setSenderDirectoryPhone] = useState("");
   const [additionalDocumentItems, setAdditionalDocumentItems] = useState<Array<{ docType: "simple" | "apostillado"; sheetCount: number; manualPriceEur: string }>>([]);
   const [contentChecklist, setContentChecklist] = useState<string[]>([]);
+  const [requestedExternalServices, setRequestedExternalServices] = useState<string[]>([]);
   const [missingItems, setMissingItems] = useState<string[]>([]);
   const [missingItemDraft, setMissingItemDraft] = useState("");
   const [shipmentPhoto, setShipmentPhoto] = useState<File | null>(null);
@@ -791,6 +793,7 @@ export default function AdminDashboard() {
     setRecipientClientQuery("");
     setAdditionalDocumentItems([]);
     setContentChecklist([]);
+    setRequestedExternalServices([]);
     setMissingItems([]);
     setMissingItemDraft("");
     setCatalogDocuments([]);
@@ -1371,6 +1374,8 @@ export default function AdminDashboard() {
       const normalizedChecklist = data.shipmentType === "documento"
         ? catalogDocumentsToChecklist(catalogDocuments)
         : contentChecklist.map(item => item.trim()).filter(Boolean);
+      const normalizedExternalServices = !isPrimaryOfficeRoute ? requestedExternalServices.map(item => item.trim()).filter(Boolean) : [];
+      const servicesNote = normalizedExternalServices.length ? `Servicio solicitado: ${normalizedExternalServices.join(", ")}.` : "";
       const isYeslyException = (Number(admin?.id || currentAdminSession?.id) === 90001 || /^yeslyvr1997@gmail\.com$/i.test(String(admin?.email || currentAdminSession?.email || "").trim())) && data.shipmentType === "encomienda" && data.route === "Torino - Lima" && String(data.senderName || "").trim() === "" && ["MV", "ARG", "FLI", "SC", "VCG", "OQA", "YGL", "RGS"].includes(String(data.recipientName || "").trim().toUpperCase());
       if (normalizedChecklist.length === 0 && !isYeslyException) {
         const message = "Este campo es obligatorio. Agrega al menos un elemento a la lista de cosas enviadas.";
@@ -1385,9 +1390,9 @@ export default function AdminDashboard() {
       const currentCreateFreeformNotes = extractFreeformShipmentNotes(String(data.notes ?? ""), generatedCreateNoteRef.current);
       const createPayload: Record<string, unknown> = {
         ...data,
-        notes: mergeShipmentNotes(createPricingPreview.notes, currentCreateFreeformNotes),
+        notes: mergeShipmentNotes([mergeShipmentNotes(createPricingPreview.notes, currentCreateFreeformNotes), servicesNote].filter(Boolean).join(" "), ""),
         documentItems: data.shipmentType === "documento" ? additionalDocumentItems : [],
-        contentChecklist: normalizedChecklist,
+        contentChecklist: [...normalizedChecklist, ...normalizedExternalServices.map(service => `Servicio solicitado: ${service}`)],
         missingItems: missingItems.length ? missingItems : undefined,
         isIncomplete: Boolean(data.isIncomplete || missingItems.length),
         incompleteReason: missingItems.length ? missingItems.join(", ") : data.incompleteReason,
@@ -2831,7 +2836,9 @@ export default function AdminDashboard() {
                 </div>
               )}
 
-              {isProvinceShipmentRoute(selectedRoute) && <section className={`mt-4 rounded-xl border border-orange-200 bg-orange-50 p-4 ${mobileSectionClass(3)}`}><div className="mb-3 text-sm font-semibold text-[#0B2B5E]"><span className="block text-base">Entrega a provincia después de Lima</span><span className="mt-1 block text-xs font-normal text-slate-700">Elige una agencia de Olva, Shalom, FedEx, DHL u otra empresa regional. Esta ruta activa automáticamente los precios y datos provinciales.</span></div><><AgencyDestinationPicker route={selectedRoute} value={createForm.watch("destinationAddress") || ""} hideServicomDestination onChange={(destinationAddress) => createForm.setValue("destinationAddress", destinationAddress, { shouldValidate: true, shouldDirty: true })} /><div className="mt-3 rounded-xl border border-blue-200 bg-blue-50 p-4"><p className="text-sm font-bold text-[#0B2B5E]">Remitente para provincia</p><p className="mt-1 text-xs text-slate-600">Si no completas estos datos, se usará automáticamente el remitente internacional.</p><ProvinceSenderPicker senders={shipmentSenders as ProvinceSenderRecord[]} value={[createForm.watch("provinceSenderName"), createForm.watch("provinceSenderLastName"), createForm.watch("provinceSenderDni")].filter(Boolean).join("|")} onSelect={(sender) => {
+              {!isPrimaryOfficeRoute && <div className={`mt-4 ${mobileSectionClass(3)}`}><ServiceRequestPicker value={requestedExternalServices} onChange={setRequestedExternalServices} /></div>}
+
+              {false && <section className={`mt-4 rounded-xl border border-orange-200 bg-orange-50 p-4 ${mobileSectionClass(3)}`}><div className="mb-3 text-sm font-semibold text-[#0B2B5E]"><span className="block text-base">Entrega a provincia después de Lima</span><span className="mt-1 block text-xs font-normal text-slate-700">Elige una agencia de Olva, Shalom, FedEx, DHL u otra empresa regional. Esta ruta activa automáticamente los precios y datos provinciales.</span></div><><AgencyDestinationPicker route={selectedRoute} value={createForm.watch("destinationAddress") || ""} hideServicomDestination onChange={(destinationAddress) => createForm.setValue("destinationAddress", destinationAddress, { shouldValidate: true, shouldDirty: true })} /><div className="mt-3 rounded-xl border border-blue-200 bg-blue-50 p-4"><p className="text-sm font-bold text-[#0B2B5E]">Remitente para provincia</p><p className="mt-1 text-xs text-slate-600">Si no completas estos datos, se usará automáticamente el remitente internacional.</p><ProvinceSenderPicker senders={shipmentSenders as ProvinceSenderRecord[]} value={[createForm.watch("provinceSenderName"), createForm.watch("provinceSenderLastName"), createForm.watch("provinceSenderDni")].filter(Boolean).join("|")} onSelect={(sender) => {
   createForm.setValue("provinceSenderName", sender?.name || "", { shouldDirty: true });
   createForm.setValue("provinceSenderLastName", sender?.lastName || "", { shouldDirty: true });
   createForm.setValue("provinceSenderDni", sender?.dni || "", { shouldDirty: true });
@@ -2839,7 +2846,7 @@ export default function AdminDashboard() {
 }} /><div className="mt-3 grid gap-3 sm:grid-cols-2"><Input placeholder="Nombres del remitente provincial" {...createForm.register("provinceSenderName")} /><Input placeholder="Apellidos del remitente provincial" {...createForm.register("provinceSenderLastName")} /><Input placeholder="DNI del remitente provincial" inputMode="numeric" maxLength={8} {...createForm.register("provinceSenderDni")} /><PhoneInput value={createForm.watch("provinceSenderPhone") || ""} onChange={(value) => createForm.setValue("provinceSenderPhone", value, { shouldDirty: true, shouldValidate: true })} placeholder="Celular del remitente provincial" /></div></div><div className="mt-3 grid gap-3 sm:grid-cols-2"><div><p className="mb-1 text-sm font-semibold text-slate-700">Peso enviado</p><p className="rounded-md bg-white px-3 py-2 text-base font-bold text-[#0B2B5E]">{selectedShipmentType === "encomienda" ? `${watchedWeightKg.toFixed(1)} kg` : "No aplica a documentos"}</p></div><div><label className="mb-1 block text-sm font-semibold text-slate-700">Precio al cliente ({selectedPricingCurrency})</label>    <Input type="number" min="0" step="0.01" placeholder="Ej. 10.00" {...createForm.register("provinceCustomerPriceEur")} />
 <div><label className="mb-1 block text-sm font-semibold text-slate-700">Extra provincial proporcional ({selectedPricingCurrency})</label><Input type="number" min="0" step="0.01" placeholder={watchedWeightKg > 10 ? `Automático: ${automaticProvinceExtraPrice.toFixed(2)}` : "0.00"} {...createForm.register("provinceExtraPriceEur")} /><p className="mt-1 text-xs text-slate-600">Solo para provincia: se calcula automáticamente como los kg por encima de 10 × 2,00 EUR; puedes modificarlo si lo deseas. Este importe no impide crear la encomienda.</p></div></div><div><label className="mb-1 block text-sm font-semibold text-slate-700">Costo operativo (soles)</label><Input type="number" min="0" step="0.01" placeholder={selectedShipmentType === "documento" ? "8.00 automático" : "Ej. 12.00"} {...createForm.register("provinceOperationalCostSoles")} /><p className="mt-1 text-xs text-slate-600">Documentos: S/ 8.00 por defecto.</p></div><div className="rounded-md bg-white px-3 py-2 text-sm text-slate-700"><strong>Courier:</strong> Se usará la agencia seleccionada arriba.</div></div></></section>}
 
-              {selectedShipmentType === "documento" && selectedRoute === "Lima - Torino" && <div className={`mt-4 ${mobileSectionClass(3)}`}><LimaTorinoTransferPanel value={{ mode: createForm.watch("limaTorinoTransferMode"), personName: createForm.watch("deliveryPersonName"), personLastName: createForm.watch("deliveryPersonLastName"), personDni: createForm.watch("deliveryPersonDni"), personPhone: createForm.watch("deliveryPersonPhone"), locationType: createForm.watch("deliveryLocationType"), locationAddress: createForm.watch("deliveryLocationAddress"), latitude: createForm.watch("deliveryLocationLatitude"), longitude: createForm.watch("deliveryLocationLongitude") }} onChange={(next) => { createForm.setValue("limaTorinoTransferMode", next.mode, { shouldDirty: true, shouldValidate: true }); createForm.setValue("deliveryPersonName", next.personName || "", { shouldDirty: true }); createForm.setValue("deliveryPersonLastName", next.personLastName || "", { shouldDirty: true }); createForm.setValue("deliveryPersonDni", next.personDni || "", { shouldDirty: true }); createForm.setValue("deliveryPersonPhone", next.personPhone || "", { shouldDirty: true }); createForm.setValue("deliveryLocationType", next.locationType, { shouldDirty: true }); createForm.setValue("deliveryLocationAddress", next.locationAddress || "", { shouldDirty: true }); createForm.setValue("deliveryLocationLatitude", next.latitude ?? null, { shouldDirty: true }); createForm.setValue("deliveryLocationLongitude", next.longitude ?? null, { shouldDirty: true }); }} error={createForm.formState.errors.limaTorinoTransferMode?.message as string | undefined} /></div>}
+              {selectedShipmentType === "documento" && isPrimaryOfficeRoute && <div className={`mt-4 ${mobileSectionClass(3)}`}><LimaTorinoTransferPanel value={{ mode: createForm.watch("limaTorinoTransferMode"), personName: createForm.watch("deliveryPersonName"), personLastName: createForm.watch("deliveryPersonLastName"), personDni: createForm.watch("deliveryPersonDni"), personPhone: createForm.watch("deliveryPersonPhone"), locationType: createForm.watch("deliveryLocationType"), locationAddress: createForm.watch("deliveryLocationAddress"), latitude: createForm.watch("deliveryLocationLatitude"), longitude: createForm.watch("deliveryLocationLongitude") }} onChange={(next) => { createForm.setValue("limaTorinoTransferMode", next.mode, { shouldDirty: true, shouldValidate: true }); createForm.setValue("deliveryPersonName", next.personName || "", { shouldDirty: true }); createForm.setValue("deliveryPersonLastName", next.personLastName || "", { shouldDirty: true }); createForm.setValue("deliveryPersonDni", next.personDni || "", { shouldDirty: true }); createForm.setValue("deliveryPersonPhone", next.personPhone || "", { shouldDirty: true }); createForm.setValue("deliveryLocationType", next.locationType, { shouldDirty: true }); createForm.setValue("deliveryLocationAddress", next.locationAddress || "", { shouldDirty: true }); createForm.setValue("deliveryLocationLatitude", next.latitude ?? null, { shouldDirty: true }); createForm.setValue("deliveryLocationLongitude", next.longitude ?? null, { shouldDirty: true }); }} error={createForm.formState.errors.limaTorinoTransferMode?.message as string | undefined} /></div>}
 
               {/* Notas */}
               <div className={`border-t pt-4 ${mobileSectionClass(3)}`}>

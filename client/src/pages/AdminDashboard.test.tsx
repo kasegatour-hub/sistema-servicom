@@ -755,22 +755,10 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.keyDown(originSearch, { key: "Enter", code: "Enter" });
     fireEvent.change(destinationSearch, { target: { value: "Satipo" } });
     fireEvent.keyDown(destinationSearch, { key: "Enter", code: "Enter" });
-    await screen.findByText("Remitente para provincia");
-    const weightInput = screen.getByText("Peso de la encomienda (kg)").parentElement?.querySelector("input");
-    const provinceExtraInput = screen.getByText(/Extra provincial proporcional/).parentElement?.querySelector("input");
-    expect(weightInput).toBeTruthy();
-    expect(provinceExtraInput).toBeTruthy();
-    fireEvent.change(weightInput!, { target: { value: "15" } });
-    await waitFor(() => expect((provinceExtraInput as HTMLInputElement).placeholder).toBe("Automático: 10.00"));
-    const search = screen.getByRole("textbox", { name: "Buscar remitente provincial" });
-    fireEvent.change(search, { target: { value: "Marco" } });
-    const senderSelect = screen.getByRole("combobox", { name: "Remitente provincial guardado" });
-    expect(within(senderSelect).getByRole("option", { name: /Marco Polo/ })).toBeTruthy();
-    expect(within(senderSelect).queryByRole("option", { name: /Lucía Ramos/ })).toBeNull();
-    fireEvent.change(senderSelect, { target: { value: "Marco|Polo|70123456" } });
-    expect((screen.getByPlaceholderText("Nombres del remitente provincial") as HTMLInputElement).value).toBe("Marco");
-    expect((screen.getByPlaceholderText("Apellidos del remitente provincial") as HTMLInputElement).value).toBe("Polo");
-    expect((screen.getByPlaceholderText("DNI del remitente provincial") as HTMLInputElement).value).toBe("70123456");
+    await waitFor(() => expect(screen.queryByText("Remitente para provincia")).toBeNull());
+    expect(screen.queryByText("Entrega a provincia después de Lima")).toBeNull();
+    expect(screen.getByLabelText("Punto de origen")).toBeTruthy();
+    expect(screen.getByLabelText("Punto de destino")).toBeTruthy();
   });
 
   it("muestra el wizard móvil por pasos sin mezclar configuración, personas y contenido", async () => {
