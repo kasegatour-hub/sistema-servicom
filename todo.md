@@ -2146,3 +2146,10 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Eliminar de la tabla la columna y el detalle redundante de origen, tránsito, courier y sede mostrados en los registros.
 - [x] Verificar que la tabla conserve identificación, estado y acciones esenciales sin desbordamiento.
 - [x] Ejecutar pruebas, revisar visualmente y publicar el cambio.
+
+## Separación de entornos y respaldo en GitHub
+- [ ] Documentar y configurar los entornos de desarrollo, testing y producción.
+- [ ] Definir un flujo de promoción que impida cambios directos no validados en producción.
+- [ ] Preparar la conexión y el respaldo del código mediante GitHub.
+- [ ] Verificar variables de entorno, base de datos, pruebas y build en cada fase.
+- [ ] Entregar al propietario los requisitos de autorización o datos que GitHub solicite.
