@@ -34,10 +34,10 @@ jobs:
         # Estos tests requieren base de datos, servidor local o secretos externos.
         run: >-
           pnpm test --run
-          --exclude server/admin.login.test.ts
-          --exclude server/branding.secrets.test.ts
-          --exclude server/notification.secrets.test.ts
-          --exclude server/trash.test.ts
+          --exclude '**/admin.login.test.ts'
+          --exclude '**/branding.secrets.test.ts'
+          --exclude '**/notification.secrets.test.ts'
+          --exclude '**/trash.test.ts'
 
       - name: Verificar TypeScript
         run: pnpm check
