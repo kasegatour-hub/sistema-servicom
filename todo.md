@@ -2148,13 +2148,13 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Ejecutar pruebas, revisar visualmente y publicar el cambio.
 
 ## Separación de entornos y respaldo en GitHub
-- [ ] Documentar y configurar los entornos de desarrollo, testing y producción.
-- [ ] Definir un flujo de promoción que impida cambios directos no validados en producción.
-- [ ] Preparar la conexión y el respaldo del código mediante GitHub.
-- [ ] Verificar variables de entorno, base de datos, pruebas y build en cada fase.
-- [ ] Entregar al propietario los requisitos de autorización o datos que GitHub solicite.
+- [x] Documentar y configurar los entornos de desarrollo, testing y producción.
+- [x] Definir un flujo de promoción que impida cambios directos no validados en producción.
+- [x] Preparar la conexión y el respaldo del código mediante GitHub.
+- [x] Verificar variables de entorno, base de datos, pruebas y build en cada fase.
+- [x] Entregar al propietario los requisitos de autorización o datos que GitHub solicite.
 
 ## Integración autorizada con sistema-servicom
-- [ ] Reemplazar la rama main remota con la versión local validada por autorización del propietario.
-- [ ] Crear y publicar las ramas develop y testing desde la versión validada.
-- [ ] Verificar el contenido, ramas y estado privado del repositorio GitHub.
+- [x] Reemplazar la rama main remota con la versión local validada por autorización del propietario.
+- [x] Crear y publicar las ramas develop y testing desde la versión validada.
+- [x] Verificar el contenido, ramas y estado privado del repositorio GitHub.
