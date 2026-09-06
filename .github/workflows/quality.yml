@@ -44,13 +44,8 @@ jobs:
         run: pnpm check
 
       - name: Ejecutar pruebas reproducibles
-        # Estos tests requieren base de datos, servidor local o secretos externos.
-        run: >-
-          pnpm test -- --run --reporter=dot
-          --exclude '**/admin.login.test.ts'
-          --exclude '**/branding.secrets.test.ts'
-          --exclude '**/notification.secrets.test.ts'
-          --exclude '**/trash.test.ts'
+        # El perfil CI excluye únicamente pruebas que requieren servicios o secretos externos.
+        run: pnpm test -- --run --config vitest.config.ci.ts --reporter=dot
 
       - name: Construir producción
         run: pnpm run build
