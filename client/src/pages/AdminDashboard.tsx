@@ -2506,6 +2506,14 @@ export default function AdminDashboard() {
                     }} />
                     <p className="mt-2 text-xs text-slate-500">Selecciona únicamente los puntos reales. El sistema conservará la ruta técnica y usará Lima como hub cuando corresponda.</p>
                   </div>
+                  <div className="md:col-span-3 rounded-xl border-2 border-orange-200 bg-orange-50 p-4 shadow-sm">
+                    <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
+                      <div><label className="block text-base font-extrabold text-[#0B2B5E]">Precio manual en EUR (opcional)</label><p className="mt-1 text-xs text-slate-600">Para sedes externas, selecciona la moneda que realmente cobrarás.</p></div>
+                      <select aria-label="Moneda del precio manual" {...createForm.register("manualPriceCurrency")} className="h-10 rounded-md border-2 border-slate-200 bg-white px-3 text-sm font-extrabold text-[#0B2B5E]"><option value="EUR">EUR €</option><option value="USD">USD $</option><option value="PEN">PEN S/</option></select>
+                    </div>
+                    <Input type="number" min="0" step="0.01" placeholder="Ej. 75.00" {...createForm.register("manualPriceEur")} className={`border-2 focus:border-primary ${createForm.formState.errors.manualPriceEur ? "border-rose-500 bg-rose-50" : ""}`} />
+                    {createForm.formState.errors.manualPriceEur ? <p role="alert" className="mt-1 text-sm font-semibold text-rose-700">{String(createForm.formState.errors.manualPriceEur.message || "Completa este precio para continuar.")}</p> : <p className="mt-1 text-xs text-slate-500">Selecciona EUR, USD o PEN. Si el envío supera 10 kg, indica aquí el precio final que se cobrará al cliente.</p>}
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Modalidad de entrega</label>
                     <Select value={createForm.watch("deliveryMode") || "agencia"} onValueChange={(value) => createForm.setValue("deliveryMode", value as "agencia" | "remoto", { shouldValidate: true, shouldDirty: true })}>
@@ -2543,23 +2551,6 @@ export default function AdminDashboard() {
                     <p className="mt-1 text-xs text-slate-500">Define si el envío se registra como pagado o pendiente de pago.</p>
                   </div>
 
-                  <div>
-                    <div className="mb-2 flex items-center justify-between gap-3">
-                      <label className="block text-sm font-medium text-gray-700">Precio manual en EUR (opcional)</label>
-                      <select aria-label="Moneda del precio manual" {...createForm.register("manualPriceCurrency")} className="h-9 rounded-md border-2 border-slate-200 bg-white px-2 text-sm font-semibold text-[#0B2B5E]">
-                        <option value="EUR">EUR €</option><option value="USD">USD $</option><option value="PEN">PEN S/</option>
-                      </select>
-                    </div>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      placeholder="Ej. 75.00"
-                      {...createForm.register("manualPriceEur")}
-                      className={`border-2 focus:border-primary ${createForm.formState.errors.manualPriceEur ? "border-rose-500 bg-rose-50" : ""}`}
-                    />
-                    {createForm.formState.errors.manualPriceEur ? <p role="alert" className="mt-1 text-sm font-semibold text-rose-700">{String(createForm.formState.errors.manualPriceEur.message || "Completa este precio para continuar.")}</p> : <p className="mt-1 text-xs text-slate-500">Selecciona EUR, USD o PEN. Si el envío supera 10 kg, indica aquí el precio final que se cobrará al cliente.</p>}
-                  </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Importe extra en EUR</label>
                     <Input type="number" min="0" step="0.01" aria-label="Importe extra en EUR" {...createForm.register("extraPriceEur")} />

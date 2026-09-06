@@ -2120,19 +2120,19 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 ## Ajuste final de bolsa de sedes y precios por corredor
 - [x] Unificar resultados Shalom, Olva, FedEx, DHL y buses por ciudad en Origen y Destino.
 - [x] Mostrar todas las sedes de Trujillo y otras ciudades, no solo una empresa o destino genérico.
-- [ ] Mover el precio manual a la parte superior y permitir seleccionar EUR, USD o PEN para sedes externas.
+- [x] Mover el precio manual a la parte superior y permitir seleccionar EUR, USD o PEN para sedes externas.
 - [x] Mostrar apostillado, traducción y traslado a Torino únicamente en el corredor de oficinas principales.
-- [ ] Añadir checklist con búsqueda difusa para servicios solicitados en sedes externas.
-- [ ] Reflejar moneda, precio, servicio y notas en contabilidad y documentos.
-- [ ] Añadir regresiones y publicar tras ejecutar suite, TypeScript y build.
+- [x] Añadir checklist con búsqueda difusa para servicios solicitados en sedes externas.
+- [x] Reflejar moneda, precio, servicio y notas en contabilidad y documentos.
+- [x] Añadir regresiones y publicar tras ejecutar suite, TypeScript y build.
 
 ## Corrección de bolsa de sedes y servicios por corredor
 - [x] Combinar resultados de Shalom, Olva, FedEx, DHL y buses al buscar una ciudad como Trujillo.
 - [x] Permitir coincidencias por ciudad, distrito, nombre de sede y dirección como «El Porvenir».
-- [ ] Colocar el precio manual al inicio y permitir elegir EUR, USD o PEN para sedes externas.
+- [x] Colocar el precio manual al inicio y permitir elegir EUR, USD o PEN para sedes externas.
 - [x] Mostrar servicios especiales y traslado a Torino solo en el corredor exacto de oficinas principales.
-- [ ] Mostrar un checklist buscable de servicios solicitados para las demás sedes.
-- [ ] Reflejar precio, moneda, servicio y notas en documentos y contabilidad.
+- [x] Mostrar un checklist buscable de servicios solicitados para las demás sedes.
+- [x] Reflejar precio, moneda, servicio y notas en documentos y contabilidad.
 - [x] Añadir regresiones, ejecutar validaciones y publicar checkpoint.
 
 ## Precio manual multimoneda para agencias externas
