@@ -2153,3 +2153,8 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [ ] Preparar la conexión y el respaldo del código mediante GitHub.
 - [ ] Verificar variables de entorno, base de datos, pruebas y build en cada fase.
 - [ ] Entregar al propietario los requisitos de autorización o datos que GitHub solicite.
+
+## Integración autorizada con sistema-servicom
+- [ ] Reemplazar la rama main remota con la versión local validada por autorización del propietario.
+- [ ] Crear y publicar las ramas develop y testing desde la versión validada.
+- [ ] Verificar el contenido, ramas y estado privado del repositorio GitHub.
