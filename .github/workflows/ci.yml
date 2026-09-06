@@ -33,7 +33,7 @@ jobs:
       - name: Ejecutar pruebas reproducibles
         # Estos tests requieren base de datos, servidor local o secretos externos.
         run: >-
-          pnpm test --run
+          pnpm test -- --run
           --exclude '**/admin.login.test.ts'
           --exclude '**/branding.secrets.test.ts'
           --exclude '**/notification.secrets.test.ts'
