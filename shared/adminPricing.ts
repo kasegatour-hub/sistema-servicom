@@ -101,6 +101,10 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
   const apostillePriceSoles = requiresApostilleService ? (apostilleManualCurrency === "PEN" ? apostilleManualPrice ?? 160 : 160) : 0;
   const translationPriceSoles = requiresTranslationService ? (translationManualCurrency === "PEN" ? translationManualPrice ?? 200 : 200) : 0;
   const servicePriceSoles = apostillePriceSoles + translationPriceSoles;
+  const apostillePriceUsd = requiresApostilleService ? (apostilleManualCurrency === "USD" ? apostilleManualPrice ?? 40 : 40) : 0;
+  const translationPriceUsd = requiresTranslationService ? (translationManualCurrency === "USD" ? translationManualPrice ?? 50 : 50) : 0;
+  const servicePriceUsd = apostillePriceUsd + translationPriceUsd;
+  const servicePriceInPriceUnit = priceUnit === "PEN" ? servicePriceSoles : priceUnit === "USD" ? servicePriceUsd : servicePriceEur;
   const provinceEnabled = Boolean(input.isProvinceDelivery) || isProvinceShipmentRoute(route);
   const rawProvinceCustomerPrice = input.provinceCustomerPriceEur === undefined || input.provinceCustomerPriceEur === null ? "" : String(input.provinceCustomerPriceEur).trim();
   const parsedProvinceCustomerPrice = Number(rawProvinceCustomerPrice);
@@ -146,7 +150,9 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
     tariffDescription = `Documento apostillado (${sheetCount} hoja${sheetCount > 1 ? "s" : ""}): ${basePrice} EUR${additionalDocuments.items.length ? `. Adicionales: ${additionalDocuments.items.map(item => item.description).join("; ")}` : ""}`;
   }
 
-  const totalWithExtraEur = totalEur + netExtraPriceEur + servicePriceEur + provinceCustomerPriceEur + provinceExtraPriceEur;
+  // Todos los componentes numéricos del total se expresan en priceUnit. Esto evita
+  // mezclar un documento manual en PEN con servicios o provincia calculados en EUR.
+  const totalWithExtraEur = totalEur + netExtraPriceEur + servicePriceInPriceUnit + provinceCustomerPriceEur + provinceExtraPriceEur;
   const usesAutomaticProvincePrice = provinceEnabled && rawProvinceCustomerPrice === "";
   const provinceTierLabel = weightKg <= 5 ? "hasta 5 kg" : "más de 5 kg";
   const provinceDescription = provinceEnabled
@@ -179,6 +185,8 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
     translationManualCurrency,
     servicePriceEur,
     servicePriceSoles,
+    servicePriceUsd,
+    servicePriceInPriceUnit,
     isProvinceDelivery: provinceEnabled,
     provinceCustomerPriceEur,
     provinceExtraPriceEur,

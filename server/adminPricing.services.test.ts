@@ -38,3 +38,26 @@ describe("servicios de documentos Italia–Lima", () => {
     expect(pricing.notes).not.toContain("USD");
     expect(pricing.servicePriceEur).toBe(50);
   });
+
+
+  it("suma documento, apostillado, traducción y provincia en PEN", () => {
+    const pricing = calculateAdminShipmentPricing({
+      shipmentType: "documento",
+      docType: "simple",
+      route: "Lima - Provincia",
+      manualPriceEur: 100,
+      manualPriceCurrency: "PEN",
+      requiresApostilleService: true,
+      apostilleManualPrice: 160,
+      apostilleManualCurrency: "PEN",
+      requiresTranslationService: true,
+      translationManualPrice: 200,
+      translationManualCurrency: "PEN",
+      isProvinceDelivery: true,
+      provinceCustomerPriceEur: 10,
+    });
+
+    expect(pricing.priceUnit).toBe("PEN");
+    expect(pricing.servicePriceInPriceUnit).toBe(360);
+    expect(pricing.totalEur).toBe(470);
+  });

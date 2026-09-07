@@ -2207,3 +2207,9 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Ajustar márgenes y contenedores para ocupar el ancho disponible de la pantalla.
 - [x] Adaptar tabla, acciones y cabecera sin dejar espacios laterales innecesarios.
 - [x] Validar escritorio y móvil, ejecutar pruebas y publicar el ajuste visual.
+
+## Corrección del total compuesto de documentos
+- [x] Sumar correctamente documento manual, apostillado, traducción y envío provincial.
+- [x] Persistir y mostrar el mismo total en rastreo, recibo, ticket y declaración jurada.
+- [x] Añadir regresión del caso S/ 100 + S/ 160 + S/ 200 + S/ 10 = S/ 470.
+- [x] Ejecutar suite, TypeScript, build y desplegar la corrección.
