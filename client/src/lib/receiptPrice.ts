@@ -25,7 +25,7 @@ function resolveCurrency(data: ReceiptPriceData): ReceiptPriceCurrency {
 }
 
 export function currencyLabel(currency: ReceiptPriceCurrency) {
-  return currency === "PEN" ? "S/" : currency;
+  return currency === "PEN" ? "S/" : currency === "EUR" ? "€" : "$";
 }
 
 export function getReceiptPricePresentation(data: ReceiptPriceData) {
@@ -45,12 +45,12 @@ export function getReceiptPricePresentation(data: ReceiptPriceData) {
     discountPercent,
     discountAmount,
     hasDiscount: discountPercent > 0 && discountAmount > 0 && basePrice !== null && finalPrice !== null,
-    finalLabel: finalPrice === null ? "Según tarifa" : `${finalPrice.toFixed(2)} ${unit}`,
-    baseLabel: basePrice === null ? "Según tarifa" : `${basePrice.toFixed(2)} ${unit}`,
+    finalLabel: finalPrice === null ? "Según tarifa" : `${unit} ${finalPrice.toFixed(2)}`,
+    baseLabel: basePrice === null ? "Según tarifa" : `${unit} ${basePrice.toFixed(2)}`,
   };
 }
 
 export function buildReceiptPriceHtml(data: ReceiptPriceData) {
   const price = getReceiptPricePresentation(data);
-  return `<div class="price-highlight"><span class="price-label">PRECIO FINAL</span><strong class="price-value">${price.finalLabel}</strong>${price.extraPrice > 0 ? `<span class="price-base">Importe extra: +${price.extraPrice.toFixed(2)} ${price.unit}</span>` : ""}${price.hasDiscount ? `<span class="price-base">Precio base: ${price.baseLabel} · Descuento ${price.discountPercent.toFixed(0)}% (-${price.discountAmount.toFixed(2)} ${price.unit})</span>` : ""}</div>`;
+  return `<div class="price-highlight"><span class="price-label">PRECIO FINAL</span><strong class="price-value">${price.finalLabel}</strong>${price.extraPrice > 0 ? `<span class="price-base">Importe extra: +${price.unit} ${price.extraPrice.toFixed(2)}</span>` : ""}${price.hasDiscount ? `<span class="price-base">Precio base: ${price.baseLabel} · Descuento ${price.discountPercent.toFixed(0)}% (-${price.unit} ${price.discountAmount.toFixed(2)})</span>` : ""}</div>`;
 }

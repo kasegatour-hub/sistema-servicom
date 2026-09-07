@@ -11,6 +11,7 @@ describe("DocumentCatalogSelector", () => {
     const onChange = vi.fn();
     const { rerender } = render(<DocumentCatalogSelector value={[]} onChange={onChange} idPrefix="test-doc" />);
 
+    fireEvent.change(screen.getByRole("searchbox", { name: "Buscar documento" }), { target: { value: "nacimiento" } });
     fireEvent.click(screen.getByLabelText("Acta de nacimiento"));
     expect(onChange).toHaveBeenLastCalledWith([{ id: "acta-nacimiento", quantity: 1, treatments: [] }]);
 
@@ -28,6 +29,7 @@ describe("DocumentCatalogSelector", () => {
     const onChange = vi.fn();
     const { rerender } = render(<DocumentCatalogSelector value={[]} onChange={onChange} idPrefix="test-custom" />);
 
+    fireEvent.change(screen.getByRole("searchbox", { name: "Buscar documento" }), { target: { value: "otro simple" } });
     fireEvent.click(screen.getByLabelText("Otro documento simple"));
     rerender(<DocumentCatalogSelector value={[{ id: "otro-simple", quantity: 1, treatments: ["simple"] }]} onChange={onChange} idPrefix="test-custom" />);
 

@@ -25,7 +25,7 @@ export function DocumentCatalogSelector({ value, onChange, idPrefix, error = "" 
   const [search, setSearch] = React.useState("");
   const selectedItem = (id: string) => value.find(item => item.id === id);
   const matchingOptions = catalogOptions.filter(option => matchesDocumentCatalogSearch(option.label, search));
-  const visibleOptions = catalogOptions.filter(option => Boolean(selectedItem(option.id)) || matchingOptions.some(match => match.id === option.id));
+  const visibleOptions = catalogOptions.filter(option => Boolean(selectedItem(option.id)) || (Boolean(search.trim()) && matchingOptions.some(match => match.id === option.id)));
   const hasNoSearchMatches = Boolean(search.trim()) && matchingOptions.length === 0;
 
   const selectDocument = (id: string, selected: boolean) => {
@@ -47,7 +47,7 @@ export function DocumentCatalogSelector({ value, onChange, idPrefix, error = "" 
       <div className="mb-3">
         <label htmlFor={`${idPrefix}-document-search`} className="sr-only">Buscar documento</label>
         <Input id={`${idPrefix}-document-search`} type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar documento: ej. matrimonio, nacimento, predios…" aria-invalid={Boolean(error)} className={`bg-white ${error ? "border-rose-500 bg-rose-50 ring-1 ring-rose-200" : ""}`} />
-        <p role="status" className="mt-1 text-xs text-slate-600">{search.trim() ? `${visibleOptions.length} resultado(s). Los documentos seleccionados se mantienen visibles.` : "Busca por nombre, palabras parciales, sin tildes o con pequeños errores."}</p>
+        <p role="status" className="mt-1 text-xs text-slate-600">{search.trim() ? `${matchingOptions.length} resultado(s). Los documentos seleccionados se mantienen visibles.` : "Escribe para buscar por nombre, palabras parciales, sin tildes o con pequeños errores."}</p>
       </div>
       {error && <p id={`${idPrefix}-documents-error`} role="alert" className="mb-3 text-sm font-semibold text-rose-700">{error}</p>}
       <div className="space-y-2">
@@ -114,7 +114,7 @@ export function DocumentCatalogSelector({ value, onChange, idPrefix, error = "" 
             </div>
           );
         })}
-        {visibleOptions.length === 0 && <p className="rounded-lg border border-dashed border-slate-300 bg-white/70 p-4 text-center text-sm text-slate-600">No se encontraron documentos. Prueba con otra palabra o revisa la ortografía.</p>}
+        {search.trim() && visibleOptions.length === 0 && <p className="rounded-lg border border-dashed border-slate-300 bg-white/70 p-4 text-center text-sm text-slate-600">No se encontraron documentos. Prueba con otra palabra o revisa la ortografía.</p>}
         {hasNoSearchMatches && visibleOptions.length > 0 && <p className="rounded-lg border border-dashed border-slate-300 bg-white/70 p-4 text-center text-sm text-slate-600">No se encontraron documentos nuevos. Se mantienen visibles los que ya seleccionaste.</p>}
       </div>
     </fieldset>

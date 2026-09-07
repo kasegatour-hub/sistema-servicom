@@ -1,0 +1,1 @@
+ALTER TABLE `shipments` ADD `serviceManualPriceCurrency` enum('EUR','USD','PEN') DEFAULT 'EUR';
