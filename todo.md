@@ -2231,3 +2231,4 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Ejecutar TypeScript, pruebas y build; verificar la experiencia del formulario administrativo.
 - [x] Publicar la rama fix/admin-route-olva-503 y abrir Pull Request únicamente hacia testing, sin fusionar automáticamente.
 - [x] Reorientar la integración conforme al workflow: revisar la rama fix en develop antes de promoverla a testing.
+- [ ] Fusionar excepcionalmente el PR #6 hacia develop con autorización explícita del usuario; no promover automáticamente a testing o main.
