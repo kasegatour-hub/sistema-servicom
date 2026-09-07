@@ -30,6 +30,19 @@ jobs:
       - name: Instalar dependencias
         run: pnpm install --frozen-lockfile
 
+      - name: Validar promoción entre entornos
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          if [[ "${GITHUB_BASE_REF}" == "testing" && "${GITHUB_HEAD_REF}" != "develop" ]]; then
+            echo "Testing solo puede recibir pull requests desde develop."
+            exit 1
+          fi
+          if [[ "${GITHUB_BASE_REF}" == "main" && "${GITHUB_HEAD_REF}" != "testing" ]]; then
+            echo "Producción solo puede recibir pull requests desde testing."
+            exit 1
+          fi
+
       - name: Ejecutar pruebas reproducibles
         # El perfil CI excluye únicamente pruebas que requieren servicios o secretos externos.
         run: pnpm exec vitest --config vitest.config.ci.ts --run --reporter=dot

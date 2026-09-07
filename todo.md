@@ -2213,3 +2213,14 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Persistir y mostrar el mismo total en rastreo, recibo, ticket y declaración jurada.
 - [x] Añadir regresión del caso S/ 100 + S/ 160 + S/ 200 + S/ 10 = S/ 470.
 - [x] Ejecutar suite, TypeScript, build y desplegar la corrección.
+
+## Sincronización final con GitHub
+- [ ] Confirmar que el commit de la corrección S/ 470 y su regresión están en sistema-servicom.
+- [ ] Publicar en GitHub cualquier cambio local que falte, respetando develop, testing y main.
+- [ ] Verificar ramas, workflow y estado limpio del repositorio remoto.
+
+## Flujo obligatorio permanente de promoción
+- [ ] Documentar que todo cambio nuevo comienza y se sube primero a develop.
+- [ ] Ejecutar pruebas y promover únicamente los cambios aprobados a testing.
+- [ ] Promover a main y producción solo después de que testing esté aprobado.
+- [ ] Evitar publicaciones directas desde desarrollo a producción y verificar la protección del flujo.
