@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { filterAgencies, getOfficialShalomAgencies, normalizeOlvaStore, normalizeShalomOffice } from "./agencyDirectory";
+import { filterAgencies, getOfficialOlvaAgencies, getOfficialShalomAgencies, normalizeOlvaStore, normalizeShalomOffice } from "./agencyDirectory";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -23,6 +23,13 @@ describe("agencyDirectory", () => {
     const agencies = await getOfficialShalomAgencies();
     expect(agencies.length).toBeGreaterThan(500);
     expect(agencies.some(agency => agency.provider === "SHALOM" && agency.name.includes("CHACHAPOYAS"))).toBe(true);
+  });
+
+  it("usa el snapshot oficial de Olva cuando su servicio público responde 503", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("", { status: 503 })));
+    const agencies = await getOfficialOlvaAgencies();
+    expect(agencies.length).toBeGreaterThan(100);
+    expect(agencies.some(agency => agency.provider === "OLVA COURIER" && agency.name.includes("CHACHAPOYAS"))).toBe(true);
   });
 });
 

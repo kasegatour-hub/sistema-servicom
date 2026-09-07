@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { deriveHubPath, deriveLegacyShipmentRoute, derivePricingCurrency, normalizeIndependentEndpoints, SHIPMENT_ENDPOINTS } from "./shipmentEndpoints";
+import { deriveHubPath, deriveLegacyShipmentRoute, derivePricingCurrency, normalizeIndependentEndpoints, normalizeLegacyShipmentRoute, SHIPMENT_ENDPOINTS } from "./shipmentEndpoints";
 
 describe("modelo de origen y destino independientes", () => {
   it.each([
@@ -17,6 +17,11 @@ describe("modelo de origen y destino independientes", () => {
   it("mantiene el tránsito por Lima para provincia", () => {
     expect(deriveHubPath({ originPoint: SHIPMENT_ENDPOINTS.TORINO, destinationPoint: SHIPMENT_ENDPOINTS.PROVINCIA })).toEqual(["Torino", "Lima", "Provincia (Perú)"]);
     expect(deriveHubPath({ originPoint: SHIPMENT_ENDPOINTS.PROVINCIA, destinationPoint: SHIPMENT_ENDPOINTS.TORINO })).toEqual(["Provincia (Perú)", "Lima", "Torino"]);
+  });
+
+  it("normaliza el alias histórico inválido de Lima a Torino con provincia", () => {
+    expect(normalizeLegacyShipmentRoute("Lima - Torino + provincia")).toBe("Lima - Provincia");
+    expect(normalizeIndependentEndpoints({ route: "Lima - Torino + provincia" })).toEqual({ originPoint: "Lima", destinationPoint: "Provincia (Perú)" });
   });
 
   it("normaliza registros históricos al nuevo modelo", () => {

@@ -16,6 +16,15 @@ export type IndependentShipmentEndpoints = {
  * Las nuevas pantallas trabajan con origen/destino y solo generan esta ruta
  * para mantener compatibilidad con precios, contabilidad, filtros y documentos.
  */
+export const LEGACY_ROUTE_ALIASES: Record<string, string> = {
+  "Lima - Torino + provincia": "Lima - Provincia",
+};
+
+export function normalizeLegacyShipmentRoute(route?: string | null) {
+  if (!route) return route;
+  return LEGACY_ROUTE_ALIASES[route] || route;
+}
+
 export const LEGACY_ROUTE_BY_ENDPOINTS: Record<string, string> = {
   [`${SHIPMENT_ENDPOINTS.LIMA}|${SHIPMENT_ENDPOINTS.TORINO}`]: "Lima - Torino",
   [`${SHIPMENT_ENDPOINTS.TORINO}|${SHIPMENT_ENDPOINTS.LIMA}`]: "Torino - Lima",
@@ -53,7 +62,7 @@ export function deriveHubPath({ originPoint, destinationPoint }: IndependentShip
 
 export function normalizeIndependentEndpoints(input: Partial<IndependentShipmentEndpoints> & { route?: string | null; isProvinceDelivery?: boolean | null }): IndependentShipmentEndpoints {
   if (input.originPoint && input.destinationPoint) return { originPoint: input.originPoint, destinationPoint: input.destinationPoint };
-  switch (input.route) {
+  switch (normalizeLegacyShipmentRoute(input.route)) {
     case "Lima - Torino": return { originPoint: SHIPMENT_ENDPOINTS.LIMA, destinationPoint: SHIPMENT_ENDPOINTS.TORINO };
     case "Torino - Lima": return { originPoint: SHIPMENT_ENDPOINTS.TORINO, destinationPoint: SHIPMENT_ENDPOINTS.LIMA };
     case "Torino - Lima + provincia": return { originPoint: SHIPMENT_ENDPOINTS.TORINO, destinationPoint: SHIPMENT_ENDPOINTS.PROVINCIA };

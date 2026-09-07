@@ -31,6 +31,7 @@ const SHALOM_SOURCE_PAGE = "https://shalom.com.pe/agencias/";
 const CACHE_WINDOW_MS = 30 * 60 * 1000;
 const SHALOM_PUBLIC_WEB_SECRET = ".Ov3rsku112024l4r43l.";
 const SHALOM_FALLBACK_FILE = join(process.cwd(), "server", "data", "shalom-official-agencies-snapshot-2026-08-22.json");
+const OLVA_FALLBACK_FILE = join(process.cwd(), "server", "data", "olva-official-agencies-snapshot-2026-09-07.json");
 
 let olvaCache: { value: AgencyDirectoryEntry[]; expiresAt: number } | null = null;
 let shalomCache: { value: AgencyDirectoryEntry[]; expiresAt: number } | null = null;
@@ -63,15 +64,30 @@ export function filterAgencies(entries: AgencyDirectoryEntry[], query: string, l
   return filtered.slice(0, limit);
 }
 
-export async function getOfficialOlvaAgencies() {
-  if (olvaCache && olvaCache.expiresAt > Date.now()) return olvaCache.value;
-  const response = await fetch(OLVA_OFFICIAL_DIRECTORY_URL, { headers: { Accept: "application/json", "User-Agent": "Servicom-Agency-Directory/1.0" } });
-  if (!response.ok) throw new Error(`El directorio oficial de Olva respondió ${response.status}.`);
-  const payload = await response.json() as { success?: boolean; data?: { data?: OlvaStore[] } };
+function parseOlvaPayload(payload: { success?: boolean; data?: { data?: OlvaStore[] } }) {
   const entries = (payload.data?.data || []).map(normalizeOlvaStore).filter((entry): entry is AgencyDirectoryEntry => Boolean(entry));
   if (!payload.success || entries.length === 0) throw new Error("El directorio oficial de Olva no devolvió agencias utilizables.");
-  olvaCache = { value: entries, expiresAt: Date.now() + CACHE_WINDOW_MS };
   return entries;
+}
+
+function readOlvaFallback() {
+  const payload = JSON.parse(readFileSync(OLVA_FALLBACK_FILE, "utf8")) as { success?: boolean; data?: { data?: OlvaStore[] } };
+  return parseOlvaPayload(payload);
+}
+
+export async function getOfficialOlvaAgencies() {
+  if (olvaCache && olvaCache.expiresAt > Date.now()) return olvaCache.value;
+  try {
+    const response = await fetch(OLVA_OFFICIAL_DIRECTORY_URL, { headers: { Accept: "application/json", "User-Agent": "Servicom-Agency-Directory/1.0" } });
+    if (!response.ok) throw new Error(`El directorio oficial de Olva respondió ${response.status}.`);
+    const entries = parseOlvaPayload(await response.json() as { success?: boolean; data?: { data?: OlvaStore[] } });
+    olvaCache = { value: entries, expiresAt: Date.now() + CACHE_WINDOW_MS };
+    return entries;
+  } catch {
+    const fallbackEntries = readOlvaFallback();
+    olvaCache = { value: fallbackEntries, expiresAt: Date.now() + CACHE_WINDOW_MS };
+    return fallbackEntries;
+  }
 }
 
 function buildShalomAuthorization() {
