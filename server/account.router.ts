@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { publicProcedure, router } from "./_core/trpc";
 import { SHIPMENT_ROUTES, getDefaultShipmentAddresses, getShipmentOperationalEnvironment, isProvinceShipmentRoute, isTorinoLimaRoute } from "../shared/shipmentRoutes";
+import { deriveLegacyShipmentRoute, normalizeIndependentEndpoints } from "../shared/shipmentEndpoints";
 import {
   consumeVerificationCode,
   createLocalAccount,
@@ -108,6 +109,9 @@ export const clientShipmentInputSchema = z.object({
   serviceManualPriceSoles: z.union([z.string(), z.number()]).optional().nullable(),
   isIncomplete: z.literal(false).default(false),
   route: z.enum([SHIPMENT_ROUTES.LIMA_TORINO, SHIPMENT_ROUTES.TORINO_LIMA, SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE, SHIPMENT_ROUTES.PROVINCE_LIMA_TORINO, SHIPMENT_ROUTES.LIMA_PROVINCE, SHIPMENT_ROUTES.PROVINCE_LIMA, SHIPMENT_ROUTES.PROVINCE_PROVINCE]).default(SHIPMENT_ROUTES.LIMA_TORINO),
+  originPoint: z.enum(["Lima", "Torino", "Provincia (Perú)"]).optional(),
+  destinationPoint: z.enum(["Lima", "Torino", "Provincia (Perú)"]).optional(),
+  originAddress: z.string().trim().max(1000).optional(),
   destinationAddress: z.string().trim().max(1000).optional(),
 }).strict().superRefine((input, ctx) => {
   const senderMissing = getIncompletePersonFields({ name: input.senderName, lastName: input.senderLastName, document: input.senderDni, phone: input.senderPhone });
@@ -116,7 +120,6 @@ export const clientShipmentInputSchema = z.object({
   if (recipientMissing.length) ctx.addIssue({ code: "custom", path: ["recipientName"], message: `Completa los datos del destinatario: ${recipientMissing.join(", ")}.` });
   if (input.senderDni && !isIdentityDocumentValid(input.senderDni, input.senderDocumentType)) ctx.addIssue({ code: "custom", path: ["senderDni"], message: identityDocumentValidationMessage(input.senderDocumentType) });
   if (input.recipientDni && !isIdentityDocumentValid(input.recipientDni, input.recipientDocumentType)) ctx.addIssue({ code: "custom", path: ["recipientDni"], message: identityDocumentValidationMessage(input.recipientDocumentType) });
-  if (input.requiresApostilleService && !isTorinoLimaRoute(input.route)) ctx.addIssue({ code: "custom", path: ["requiresApostilleService"], message: "La opción «Documentos para apostillar» solo está disponible para la ruta Torino - Lima." });
 });
 
 export function buildClientShipmentPersistenceArgs(
@@ -129,8 +132,10 @@ export function buildClientShipmentPersistenceArgs(
   registeredEmail?: string | null,
 ) {
   const brand = /^(magda\.barreto\.alv@gmail\.com|kasegatour@gmail\.com)$/i.test(String(registeredEmail || "").trim()) ? "kasega" as const : "servicom" as const;
-  const defaults = getDefaultShipmentAddresses(input.route, brand);
-  const isProvincialAgencyRoute = isProvinceShipmentRoute(input.route);
+  const endpoints = normalizeIndependentEndpoints({ route: input.route, originPoint: input.originPoint, destinationPoint: input.destinationPoint });
+  const effectiveRoute = deriveLegacyShipmentRoute(endpoints);
+  const defaults = getDefaultShipmentAddresses(effectiveRoute, brand);
+  const isProvincialAgencyRoute = isProvinceShipmentRoute(effectiveRoute);
   return [
     orderNumber,
     code,
@@ -150,9 +155,9 @@ export function buildClientShipmentPersistenceArgs(
     null,
     0,
     CLIENT_PAYMENT_DEFAULTS.status,
-    input.route,
-    defaults.originAddress,
-    isProvincialAgencyRoute ? input.destinationAddress || "" : defaults.destinationAddress,
+    effectiveRoute,
+    input.originAddress || defaults.originAddress,
+    input.destinationAddress || defaults.destinationAddress,
     null,
     basePriceEur ?? null,
     0,
@@ -190,6 +195,8 @@ export function buildClientShipmentPersistenceArgs(
     null,
     null,
     null,
+    input.originPoint ?? null,
+    input.destinationPoint ?? null,
   ] as const;
 }
 

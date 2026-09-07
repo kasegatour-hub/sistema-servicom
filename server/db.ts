@@ -1753,6 +1753,9 @@ export async function createShipment(
   missingItems?: string[] | string | null,
   extraDiscountEur?: string | number | null,
   manualPriceCurrency?: "EUR" | "USD" | "PEN" | null,
+  originPoint?: "Lima" | "Torino" | "Provincia (Perú)" | null,
+  destinationPoint?: "Lima" | "Torino" | "Provincia (Perú)" | null,
+  serviceManualPriceCurrency?: "EUR" | "USD" | "PEN" | null,
 ) {
   const db = await getDb();
   if (!db) {
@@ -1765,7 +1768,7 @@ export async function createShipment(
   const normalizedCode = normalizeOrderCode(code);
   const normalizedShipmentType = shipmentType || "documento";
   const normalizedRoute = route || "Lima - Torino";
-  const normalizedEndpoints = normalizeIndependentEndpoints({ route: normalizedRoute, isProvinceDelivery });
+  const normalizedEndpoints = normalizeIndependentEndpoints({ route: normalizedRoute, originPoint: originPoint ?? undefined, destinationPoint: destinationPoint ?? undefined, isProvinceDelivery });
   const pricingCurrency = derivePricingCurrency(normalizedEndpoints);
   const canRequireApostilleService = normalizedShipmentType === "documento";
   const provinceDelivery = Boolean(isProvinceDelivery) || isProvinceShipmentRoute(normalizedRoute);
@@ -1802,6 +1805,7 @@ export async function createShipment(
     requiresTranslationService: requiresTranslationService && canRequireApostilleService ? 1 : 0,
     serviceManualPriceEur: serviceManualPriceEur !== undefined && serviceManualPriceEur !== null && String(serviceManualPriceEur).trim() !== "" ? String(serviceManualPriceEur) : null,
     serviceManualPriceSoles: serviceManualPriceSoles !== undefined && serviceManualPriceSoles !== null && String(serviceManualPriceSoles).trim() !== "" ? String(serviceManualPriceSoles) : null,
+    serviceManualPriceCurrency: serviceManualPriceCurrency ?? "EUR",
     isIncomplete: isIncomplete ? 1 : 0,
     incompleteReason: isIncomplete && incompleteReason ? incompleteReason.trim() : null,
     missingItems: Array.isArray(missingItems) ? JSON.stringify(missingItems) : missingItems || null,
@@ -1933,6 +1937,9 @@ export async function updateShipmentStatus(
   missingItems?: string[] | string | null,
   extraDiscountEur?: string | number | null,
   manualPriceCurrency?: "EUR" | "USD" | "PEN" | null,
+  originPoint?: "Lima" | "Torino" | "Provincia (Perú)" | null,
+  destinationPoint?: "Lima" | "Torino" | "Provincia (Perú)" | null,
+  serviceManualPriceCurrency?: "EUR" | "USD" | "PEN" | null,
   changeActor?: ShipmentAuditActor,
 ) {
   const db = await getDb();
@@ -1946,7 +1953,7 @@ export async function updateShipmentStatus(
     if (!shipment) return undefined;
     const updatedShipmentType = shipmentType ?? shipment.shipmentType ?? "documento";
     const updatedRoute = route ?? shipment.route ?? "Lima - Torino";
-    const updatedEndpoints = normalizeIndependentEndpoints({ route: updatedRoute, isProvinceDelivery });
+    const updatedEndpoints = normalizeIndependentEndpoints({ route: updatedRoute, originPoint: originPoint ?? (shipment.originPoint as any) ?? undefined, destinationPoint: destinationPoint ?? (shipment.destinationPoint as any) ?? undefined, isProvinceDelivery });
     const pricingCurrency = derivePricingCurrency(updatedEndpoints);
     const shouldRequireApostilleService = requiresApostilleService ?? shipment.requiresApostilleService === 1;
     const shouldRequireTranslationService = requiresTranslationService ?? shipment.requiresTranslationService === 1;
@@ -1993,6 +2000,7 @@ export async function updateShipmentStatus(
         requiresTranslationService: shouldRequireTranslationService && canRequireApostilleService ? 1 : 0,
         serviceManualPriceEur: serviceManualPriceEur !== undefined ? (serviceManualPriceEur !== null && String(serviceManualPriceEur).trim() !== "" ? String(serviceManualPriceEur) : null) : shipment.serviceManualPriceEur,
         serviceManualPriceSoles: serviceManualPriceSoles !== undefined ? (serviceManualPriceSoles !== null && String(serviceManualPriceSoles).trim() !== "" ? String(serviceManualPriceSoles) : null) : shipment.serviceManualPriceSoles,
+        serviceManualPriceCurrency: serviceManualPriceCurrency !== undefined ? (serviceManualPriceCurrency ?? "EUR") : shipment.serviceManualPriceCurrency ?? "EUR",
         isProvinceDelivery: updatedProvinceDelivery ? 1 : 0,
         provinceCustomerPriceEur: updatedProvinceDelivery ? (provinceCustomerPriceEur !== undefined && provinceCustomerPriceEur !== null && String(provinceCustomerPriceEur).trim() !== "" ? String(provinceCustomerPriceEur) : shipment.provinceCustomerPriceEur) : null,
         provinceExtraPriceEur: updatedProvinceDelivery ? (provinceExtraPriceEur !== undefined && provinceExtraPriceEur !== null && String(provinceExtraPriceEur).trim() !== "" ? String(Math.max(0, Number(provinceExtraPriceEur) || 0)) : shipment.provinceExtraPriceEur ?? "0.00") : "0.00",

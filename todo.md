@@ -2175,3 +2175,10 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Mostrar el monto con el símbolo delante, por ejemplo `S/ 470`, `€ 470` o `$ 470`.
 - [x] Añadir regresiones para rutas PEN/EUR/USD y comprobar que no se invierta el formato.
 - [x] Ejecutar pruebas, TypeScript y build; desplegar la versión validada en producción.
+
+## Corrección de ruta real y servicios multimoneda
+- [x] Mostrar en rastreo la etiqueta `Origen - Destino` usando exactamente los puntos seleccionados.
+- [x] Evitar que la sede de la cuenta, Corso Peschiera o Torino-Lima sobrescriban la ruta seleccionada.
+- [x] Usar origen y destino exactos en recibo electrónico, ticket y declaración jurada.
+- [x] Hacer que apostillado y traducción respeten la denominación seleccionada y sus precios de 40 EUR y 50 EUR por defecto.
+- [x] Añadir regresiones, ejecutar pruebas y desplegar la corrección en producción.

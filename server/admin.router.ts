@@ -21,6 +21,7 @@ import { isValidInternationalPhone, normalizeInternationalPhone } from "../share
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "../shared/passwordPolicy";
 import { generateMonthlyParcelOrderNumber, generateShipmentCode, generateShipmentOrderNumber, getMonthlyParcelOrderPrefix } from "../shared/shipmentIdentifiers";
 import { SHIPMENT_ROUTES, getDefaultShipmentAddresses, getShipmentOperationalEnvironment, isProvinceShipmentRoute, isTorinoLimaRoute } from "../shared/shipmentRoutes";
+import { deriveLegacyShipmentRoute, normalizeIndependentEndpoints } from "../shared/shipmentEndpoints";
 import { invokeLLM } from "./_core/llm";
 import { createSignatureToken } from "./signatureTokens";
 import { storagePut } from "./storage";
@@ -781,6 +782,7 @@ export const adminRouter = router({
       requiresTranslationService: z.boolean().default(false),
       serviceManualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
       serviceManualPriceSoles: z.union([z.string(), z.number()]).optional().nullable(),
+      serviceManualPriceCurrency: z.enum(["EUR", "USD", "PEN"]).optional().nullable(),
       documentItems: z.array(z.object({
         docType: z.enum(["simple", "apostillado"]),
         sheetCount: z.number().int().min(1).max(10),
@@ -793,6 +795,8 @@ export const adminRouter = router({
       extraDiscountEur: z.union([z.string(), z.number()]).optional().nullable(),
       paymentStatus: z.enum(["Pagado", "Falta cancelar"]).default("Falta cancelar"),
       route: z.enum(ROUTE_VALUES).default("Lima - Torino"),
+      originPoint: z.enum(["Lima", "Torino", "Provincia (Perú)"]).optional(),
+      destinationPoint: z.enum(["Lima", "Torino", "Provincia (Perú)"]).optional(),
       originAddress: z.string().optional(),
       destinationAddress: z.string().optional(),
       isProvinceDelivery: z.boolean().default(false),
@@ -849,16 +853,18 @@ export const adminRouter = router({
       }
     }))
     .mutation(async ({ input, ctx }) => {
-      if (input.shipmentType === "encomienda" && input.route === "Lima - Torino" && !await isEncomiendaEnabledForRoute(input.route)) {
+      const selectedEndpoints = normalizeIndependentEndpoints({ route: input.route, originPoint: input.originPoint, destinationPoint: input.destinationPoint, isProvinceDelivery: input.isProvinceDelivery });
+      const effectiveRoute = deriveLegacyShipmentRoute(selectedEndpoints);
+      if (input.shipmentType === "encomienda" && effectiveRoute === "Lima - Torino" && !await isEncomiendaEnabledForRoute(effectiveRoute)) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "Las encomiendas de Lima a Torino están desactivadas temporalmente por control de seguridad. Registra únicamente documentos o selecciona Torino - Lima.",
         });
       }
-      const effectiveProvinceDelivery = input.isProvinceDelivery || isProvinceShipmentRoute(input.route);
+      const effectiveProvinceDelivery = input.isProvinceDelivery || isProvinceShipmentRoute(effectiveRoute);
       const now = new Date();
       let orderNumber: string;
-      const operationalEnvironment = getShipmentOperationalEnvironment(input.route);
+      const operationalEnvironment = getShipmentOperationalEnvironment(effectiveRoute);
       const reservationEnvironment = input.controlledExceptionCode === "YESLY_VENTO_CODES" ? undefined : (operationalEnvironment === "unknown" ? undefined : operationalEnvironment);
       const reservedOrders = await listShipmentOrderNumbersByPrefix(getMonthlyParcelOrderPrefix(now), reservationEnvironment);
       try {
@@ -874,10 +880,10 @@ export const adminRouter = router({
       if (isYeslyException && (!/^yeslyvr1997@gmail\.com$/i.test(String(creator?.email || "").trim()) || !isYeslyExceptionShape(input))) {
         throw new TRPCError({ code: "FORBIDDEN", message: "La excepción de registro codificado solo está autorizada para YESLY en una encomienda Torino - Lima." });
       }
-      const defaultAddresses = getDefaultShipmentAddresses(input.route, shipmentBrand);
-      const enforcedOriginAddress = defaultAddresses.originAddress || input.originAddress || "";
-      const enforcedDestinationAddress = input.route === SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE ? input.destinationAddress || "" : defaultAddresses.destinationAddress;
-      const pricing = calculateAdminShipmentPricing({ ...input, manualPriceCurrency: input.manualPriceCurrency ?? undefined, isProvinceDelivery: effectiveProvinceDelivery, workspaceAdminId: ctx.adminSession.adminId, workspaceAdminEmail: creator?.email });
+      const defaultAddresses = getDefaultShipmentAddresses(effectiveRoute, shipmentBrand);
+      const enforcedOriginAddress = input.originAddress || defaultAddresses.originAddress || "";
+      const enforcedDestinationAddress = input.destinationAddress || defaultAddresses.destinationAddress || "";
+      const pricing = calculateAdminShipmentPricing({ ...input, route: effectiveRoute, manualPriceCurrency: input.manualPriceCurrency ?? undefined, isProvinceDelivery: effectiveProvinceDelivery, workspaceAdminId: ctx.adminSession.adminId, workspaceAdminEmail: creator?.email });
       const couponCode = normalizeCouponCode(input.couponCode);
       const coupon = couponCode ? await getDiscountCouponByCode(couponCode) : undefined;
       if (couponCode && !coupon) {
@@ -954,6 +960,9 @@ export const adminRouter = router({
         input.missingItems,
         pricing.extraDiscountEur,
         input.manualPriceCurrency,
+        input.originPoint,
+        input.destinationPoint,
+        input.serviceManualPriceCurrency,
       );
       if (!result) {
         throw new TRPCError({
@@ -1130,6 +1139,7 @@ export const adminRouter = router({
       requiresTranslationService: z.boolean().optional(),
       serviceManualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
       serviceManualPriceSoles: z.union([z.string(), z.number()]).optional().nullable(),
+      serviceManualPriceCurrency: z.enum(["EUR", "USD", "PEN"]).optional().nullable(),
       weightKg: z.number().optional(),
       manualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
       manualPriceCurrency: z.enum(["EUR", "USD", "PEN"]).optional().nullable(),
@@ -1137,6 +1147,8 @@ export const adminRouter = router({
       extraDiscountEur: z.union([z.string(), z.number()]).optional().nullable(),
       paymentStatus: z.enum(["Pagado", "Falta cancelar"]).optional(),
       route: z.string().optional(),
+      originPoint: z.enum(["Lima", "Torino", "Provincia (Perú)"]).optional(),
+      destinationPoint: z.enum(["Lima", "Torino", "Provincia (Perú)"]).optional(),
       originAddress: z.string().optional(),
       destinationAddress: z.string().optional(),
       deliveryMode: z.enum(["agencia", "remoto"]).optional(),
@@ -1175,7 +1187,8 @@ export const adminRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Envío no encontrado." });
       }
       const effectiveType = input.shipmentType ?? currentShipment.shipmentType;
-      const effectiveRoute = input.route ?? currentShipment.route ?? "Lima - Torino";
+      const selectedEndpoints = normalizeIndependentEndpoints({ route: input.route ?? currentShipment.route ?? "Lima - Torino", originPoint: input.originPoint ?? (currentShipment.originPoint as any), destinationPoint: input.destinationPoint ?? (currentShipment.destinationPoint as any), isProvinceDelivery: input.isProvinceDelivery ?? Boolean(currentShipment.isProvinceDelivery) });
+      const effectiveRoute = deriveLegacyShipmentRoute(selectedEndpoints);
       const effectiveSenderDocumentType = input.senderDocumentType ?? currentShipment.senderDocumentType ?? "dni_peru";
       const effectiveRecipientDocumentType = input.recipientDocumentType ?? currentShipment.recipientDocumentType ?? "dni_peru";
       const effectiveSenderDocument = input.senderDni ?? currentShipment.senderDni;
@@ -1208,8 +1221,8 @@ export const adminRouter = router({
       const updatedPricing = pricing || documentPricing;
       const currentBrand = [210001, 210002].includes(Number(ctx.adminSession.adminId)) || /^(magda\.barreto\.alv@gmail\.com|kasegatour@gmail\.com)$/i.test(String(currentShipment.registeredByEmail || "").trim()) ? "kasega" as const : "servicom" as const;
       const updatedAddresses = getDefaultShipmentAddresses(effectiveRoute, currentBrand);
-      const enforcedUpdateOrigin = updatedAddresses.originAddress || input.originAddress || currentShipment.originAddress || "";
-      const enforcedUpdateDestination = effectiveRoute === SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE ? input.destinationAddress || currentShipment.destinationAddress || "" : updatedAddresses.destinationAddress;
+      const enforcedUpdateOrigin = input.originAddress || currentShipment.originAddress || updatedAddresses.originAddress || "";
+      const enforcedUpdateDestination = input.destinationAddress || currentShipment.destinationAddress || updatedAddresses.destinationAddress || "";
       const result = await updateShipmentStatus(
         input.shipmentId,
         input.newStatus,
@@ -1266,6 +1279,9 @@ export const adminRouter = router({
         input.missingItems,
         updatedPricing?.extraDiscountEur ?? input.extraDiscountEur,
         input.manualPriceCurrency,
+        input.originPoint ?? (currentShipment.originPoint as any),
+        input.destinationPoint ?? (currentShipment.destinationPoint as any),
+        input.serviceManualPriceCurrency ?? (currentShipment.serviceManualPriceCurrency as any),
         { actorType: "admin", actorId: ctx.adminSession.adminId, actorLabel: ctx.adminSession.role },
       );
       if (!result) {
