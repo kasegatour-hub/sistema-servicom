@@ -2240,7 +2240,7 @@ export default function AdminDashboard() {
 
       {/* Header */}
       <header className="bg-primary text-white shadow-md sticky top-0 z-40">
-        <div className="mx-auto flex w-[min(96vw,1560px)] flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-5">
+        <div className="flex w-full flex-col gap-4 px-3 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-5 lg:px-7">
           <div className="min-w-0">
             <h1 className="text-2xl font-bold leading-tight sm:text-3xl">Panel de Administración</h1>
             <p className="mt-1 max-w-xl text-sm leading-5 opacity-90">Servicom Internacional - Gestión de Encomiendas</p>
@@ -2288,7 +2288,7 @@ export default function AdminDashboard() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-8">
+      <main className="w-full max-w-none px-3 py-6 sm:px-5 lg:px-7 lg:py-8">
         {!showAdminProfile && <Card className="mb-6 border-0 p-4 shadow-sm" aria-label="Áreas de trabajo">
           <div className="flex flex-wrap items-center gap-2">
             {([

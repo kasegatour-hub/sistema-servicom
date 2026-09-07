@@ -2202,3 +2202,8 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Mostrar en recibos, tickets y declaraciones solo los servicios marcados, sin precios por defecto no contratados.
 - [x] Convertir servicios solicitados y lista de documentos en búsquedas difusas seleccionables.
 - [x] Añadir regresiones, validar, compilar y desplegar producción.
+
+## Panel administrativo a ancho completo
+- [x] Ajustar márgenes y contenedores para ocupar el ancho disponible de la pantalla.
+- [x] Adaptar tabla, acciones y cabecera sin dejar espacios laterales innecesarios.
+- [x] Validar escritorio y móvil, ejecutar pruebas y publicar el ajuste visual.
