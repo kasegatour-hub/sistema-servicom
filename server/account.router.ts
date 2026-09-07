@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { publicProcedure, router } from "./_core/trpc";
 import { SHIPMENT_ROUTES, getDefaultShipmentAddresses, getShipmentOperationalEnvironment, isProvinceShipmentRoute, isTorinoLimaRoute } from "../shared/shipmentRoutes";
-import { deriveLegacyShipmentRoute, normalizeIndependentEndpoints } from "../shared/shipmentEndpoints";
+import { deriveLegacyShipmentRoute, normalizeIndependentEndpoints, normalizeLegacyShipmentRoute } from "../shared/shipmentEndpoints";
 import {
   consumeVerificationCode,
   createLocalAccount,
@@ -108,7 +108,7 @@ export const clientShipmentInputSchema = z.object({
   serviceManualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
   serviceManualPriceSoles: z.union([z.string(), z.number()]).optional().nullable(),
   isIncomplete: z.literal(false).default(false),
-  route: z.enum([SHIPMENT_ROUTES.LIMA_TORINO, SHIPMENT_ROUTES.TORINO_LIMA, SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE, SHIPMENT_ROUTES.PROVINCE_LIMA_TORINO, SHIPMENT_ROUTES.LIMA_PROVINCE, SHIPMENT_ROUTES.PROVINCE_LIMA, SHIPMENT_ROUTES.PROVINCE_PROVINCE]).default(SHIPMENT_ROUTES.LIMA_TORINO),
+  route: z.preprocess(value => typeof value === "string" ? normalizeLegacyShipmentRoute(value) : value, z.enum([SHIPMENT_ROUTES.LIMA_TORINO, SHIPMENT_ROUTES.TORINO_LIMA, SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE, SHIPMENT_ROUTES.PROVINCE_LIMA_TORINO, SHIPMENT_ROUTES.LIMA_PROVINCE, SHIPMENT_ROUTES.PROVINCE_LIMA, SHIPMENT_ROUTES.PROVINCE_PROVINCE])).default(SHIPMENT_ROUTES.LIMA_TORINO),
   originPoint: z.enum(["Lima", "Torino", "Provincia (Perú)"]).optional(),
   destinationPoint: z.enum(["Lima", "Torino", "Provincia (Perú)"]).optional(),
   originAddress: z.string().trim().max(1000).optional(),

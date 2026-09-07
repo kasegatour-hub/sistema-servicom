@@ -21,7 +21,7 @@ import { isValidInternationalPhone, normalizeInternationalPhone } from "../share
 import { isSecurePassword, PASSWORD_REQUIREMENTS_MESSAGE } from "../shared/passwordPolicy";
 import { generateMonthlyParcelOrderNumber, generateShipmentCode, generateShipmentOrderNumber, getMonthlyParcelOrderPrefix } from "../shared/shipmentIdentifiers";
 import { SHIPMENT_ROUTES, getDefaultShipmentAddresses, getShipmentOperationalEnvironment, isProvinceShipmentRoute, isTorinoLimaRoute } from "../shared/shipmentRoutes";
-import { deriveLegacyShipmentRoute, normalizeIndependentEndpoints } from "../shared/shipmentEndpoints";
+import { deriveLegacyShipmentRoute, normalizeIndependentEndpoints, normalizeLegacyShipmentRoute } from "../shared/shipmentEndpoints";
 import { invokeLLM } from "./_core/llm";
 import { createSignatureToken } from "./signatureTokens";
 import { storagePut } from "./storage";
@@ -798,7 +798,7 @@ export const adminRouter = router({
       extraPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
       extraDiscountEur: z.union([z.string(), z.number()]).optional().nullable(),
       paymentStatus: z.enum(["Pagado", "Falta cancelar"]).default("Falta cancelar"),
-      route: z.enum(ROUTE_VALUES).default("Lima - Torino"),
+      route: z.preprocess(value => typeof value === "string" ? normalizeLegacyShipmentRoute(value) : value, z.enum(ROUTE_VALUES)).default("Lima - Torino"),
       originPoint: z.enum(["Lima", "Torino", "Provincia (Perú)"]).optional(),
       destinationPoint: z.enum(["Lima", "Torino", "Provincia (Perú)"]).optional(),
       originAddress: z.string().optional(),

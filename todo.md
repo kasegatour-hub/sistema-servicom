@@ -2224,3 +2224,9 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [ ] Ejecutar pruebas y promover únicamente los cambios aprobados a testing.
 - [ ] Promover a main y producción solo después de que testing esté aprobado.
 - [ ] Evitar publicaciones directas desde desarrollo a producción y verificar la protección del flujo.
+
+## Corrección en rama independiente: ruta administrativa y directorio Olva
+- [x] Corregir la derivación de rutas desde origen y destino para que admin.createShipment solo reciba valores aceptados por el backend.
+- [x] Evitar que la indisponibilidad temporal del directorio oficial de Olva bloquee el formulario con un error 503; añadir respaldo y prueba de regresión.
+- [x] Ejecutar TypeScript, pruebas y build; verificar la experiencia del formulario administrativo.
+- [ ] Publicar la rama fix/admin-route-olva-503 y abrir Pull Request únicamente hacia testing, sin fusionar automáticamente.
