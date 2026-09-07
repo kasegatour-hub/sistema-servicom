@@ -870,6 +870,7 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.change(documentLastNames[1], { target: { value: "Rossi" } });
     fireEvent.change(screen.getByLabelText("Documento de destinatario - número de identificación"), { target: { value: "71234567" } });
     fireEvent.change(document.getElementById("admin-recipient-phone") as HTMLInputElement, { target: { value: "945612378" } });
+    fireEvent.change(screen.getByRole("searchbox", { name: "Buscar documento" }), { target: { value: "nacimiento" } });
     fireEvent.click(screen.getByLabelText("Acta de nacimiento"));
     fireEvent.click(screen.getByRole("combobox", { name: "Estado de Pago" }));
     fireEvent.click(screen.getByRole("option", { name: "Pagado" }));

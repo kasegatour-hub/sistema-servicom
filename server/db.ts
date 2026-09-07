@@ -1756,6 +1756,10 @@ export async function createShipment(
   originPoint?: "Lima" | "Torino" | "Provincia (Perú)" | null,
   destinationPoint?: "Lima" | "Torino" | "Provincia (Perú)" | null,
   serviceManualPriceCurrency?: "EUR" | "USD" | "PEN" | null,
+  apostilleManualPrice?: string | number | null,
+  apostilleManualCurrency?: "EUR" | "USD" | "PEN" | null,
+  translationManualPrice?: string | number | null,
+  translationManualCurrency?: "EUR" | "USD" | "PEN" | null,
 ) {
   const db = await getDb();
   if (!db) {
@@ -1806,6 +1810,10 @@ export async function createShipment(
     serviceManualPriceEur: serviceManualPriceEur !== undefined && serviceManualPriceEur !== null && String(serviceManualPriceEur).trim() !== "" ? String(serviceManualPriceEur) : null,
     serviceManualPriceSoles: serviceManualPriceSoles !== undefined && serviceManualPriceSoles !== null && String(serviceManualPriceSoles).trim() !== "" ? String(serviceManualPriceSoles) : null,
     serviceManualPriceCurrency: serviceManualPriceCurrency ?? "EUR",
+    apostilleManualPrice: apostilleManualPrice !== undefined && apostilleManualPrice !== null && String(apostilleManualPrice).trim() !== "" ? String(apostilleManualPrice) : null,
+    apostilleManualCurrency: apostilleManualCurrency ?? "EUR",
+    translationManualPrice: translationManualPrice !== undefined && translationManualPrice !== null && String(translationManualPrice).trim() !== "" ? String(translationManualPrice) : null,
+    translationManualCurrency: translationManualCurrency ?? "EUR",
     isIncomplete: isIncomplete ? 1 : 0,
     incompleteReason: isIncomplete && incompleteReason ? incompleteReason.trim() : null,
     missingItems: Array.isArray(missingItems) ? JSON.stringify(missingItems) : missingItems || null,
@@ -1941,6 +1949,10 @@ export async function updateShipmentStatus(
   destinationPoint?: "Lima" | "Torino" | "Provincia (Perú)" | null,
   serviceManualPriceCurrency?: "EUR" | "USD" | "PEN" | null,
   changeActor?: ShipmentAuditActor,
+  apostilleManualPrice?: string | number | null,
+  apostilleManualCurrency?: "EUR" | "USD" | "PEN" | null,
+  translationManualPrice?: string | number | null,
+  translationManualCurrency?: "EUR" | "USD" | "PEN" | null,
 ) {
   const db = await getDb();
   if (!db) {
@@ -2001,6 +2013,10 @@ export async function updateShipmentStatus(
         serviceManualPriceEur: serviceManualPriceEur !== undefined ? (serviceManualPriceEur !== null && String(serviceManualPriceEur).trim() !== "" ? String(serviceManualPriceEur) : null) : shipment.serviceManualPriceEur,
         serviceManualPriceSoles: serviceManualPriceSoles !== undefined ? (serviceManualPriceSoles !== null && String(serviceManualPriceSoles).trim() !== "" ? String(serviceManualPriceSoles) : null) : shipment.serviceManualPriceSoles,
         serviceManualPriceCurrency: serviceManualPriceCurrency !== undefined ? (serviceManualPriceCurrency ?? "EUR") : shipment.serviceManualPriceCurrency ?? "EUR",
+        apostilleManualPrice: apostilleManualPrice !== undefined ? (apostilleManualPrice !== null && String(apostilleManualPrice).trim() !== "" ? String(apostilleManualPrice) : null) : shipment.apostilleManualPrice,
+        apostilleManualCurrency: apostilleManualCurrency !== undefined ? (apostilleManualCurrency ?? "EUR") : shipment.apostilleManualCurrency ?? "EUR",
+        translationManualPrice: translationManualPrice !== undefined ? (translationManualPrice !== null && String(translationManualPrice).trim() !== "" ? String(translationManualPrice) : null) : shipment.translationManualPrice,
+        translationManualCurrency: translationManualCurrency !== undefined ? (translationManualCurrency ?? "EUR") : shipment.translationManualCurrency ?? "EUR",
         isProvinceDelivery: updatedProvinceDelivery ? 1 : 0,
         provinceCustomerPriceEur: updatedProvinceDelivery ? (provinceCustomerPriceEur !== undefined && provinceCustomerPriceEur !== null && String(provinceCustomerPriceEur).trim() !== "" ? String(provinceCustomerPriceEur) : shipment.provinceCustomerPriceEur) : null,
         provinceExtraPriceEur: updatedProvinceDelivery ? (provinceExtraPriceEur !== undefined && provinceExtraPriceEur !== null && String(provinceExtraPriceEur).trim() !== "" ? String(Math.max(0, Number(provinceExtraPriceEur) || 0)) : shipment.provinceExtraPriceEur ?? "0.00") : "0.00",

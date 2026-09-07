@@ -2194,3 +2194,11 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Mostrar claramente EUR, USD y PEN con sus tipos de cambio o equivalencias disponibles.
 - [x] Añadir regresiones para evitar que la comisión interna vuelva a aparecer en la interfaz.
 - [x] Ejecutar pruebas, build y publicar el cambio.
+
+## Servicios documentales y búsquedas difusas
+- [x] Añadir botón independiente de precio manual opcional para apostillado y traducción.
+- [x] Permitir EUR, USD y PEN dentro del bloque manual de cada servicio.
+- [x] Eliminar los campos separados de precio manual del servicio en EUR y soles.
+- [x] Mostrar en recibos, tickets y declaraciones solo los servicios marcados, sin precios por defecto no contratados.
+- [x] Convertir servicios solicitados y lista de documentos en búsquedas difusas seleccionables.
+- [x] Añadir regresiones, validar, compilar y desplegar producción.

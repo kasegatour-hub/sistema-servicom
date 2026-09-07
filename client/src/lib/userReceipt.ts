@@ -43,6 +43,11 @@ export function getReceiptDeliveryDetails(shipment: any, branding = getReceiptBr
 const escapeHtml = (value: unknown) => String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/'/g, "&#039;");
 const fullName = (name?: string | null, lastName?: string | null) => `${name ?? ""} ${lastName ?? ""}`.trim() || "No especificado";
 export const hasApostilleServiceRequest = (shipment: any) => shipment?.requiresApostilleService === true || Number(shipment?.requiresApostilleService) === 1;
+export const hasTranslationServiceRequest = (shipment: any) => shipment?.requiresTranslationService === true || Number(shipment?.requiresTranslationService) === 1;
+export const getContractedDocumentServices = (shipment: any) => [
+  hasApostilleServiceRequest(shipment) ? "Apostillado" : "",
+  hasTranslationServiceRequest(shipment) ? "Traducción" : "",
+].filter(Boolean);
 
 export const resolveReceiptAssetUrl = (path: string, origin: string) => new URL(path, origin).href;
 export const buildReceiptUrl = (origin: string, order: string, code: string) => {
@@ -94,7 +99,8 @@ export function buildReceiptMarkdown(shipment: any): string {
   const checklist = receiptChecklist(shipment);
   const trackingUrl = buildTrackingUrl(String(shipment.orderNumber), String(shipment.code));
   const shipmentLabel = shipment.shipmentType === "encomienda" ? "ENCOMIENDA" : "DOCUMENTO";
-  const apostilleService = hasApostilleServiceRequest(shipment) ? "\n**Servicio solicitado:** Documentos para apostillar" : "";
+  const contractedServices = getContractedDocumentServices(shipment);
+  const servicesMarkdown = contractedServices.length ? `\n\n**Servicios contratados:** ${contractedServices.join(", ")}` : "";
   return `# ${branding.companyName}
 
 ## COMPROBANTE DE ENVÍO DE ${shipmentLabel}
@@ -104,7 +110,7 @@ export function buildReceiptMarkdown(shipment: any): string {
 **Estado:** ${shipment.status || "No especificado"}  
 **Estado de pago:** ${payment.label}  
 **Importe extra:** ${extraPrice}  
-**Precio final:** ${price}${apostilleService}
+**Precio final:** ${price}${servicesMarkdown}
 
 ## Ruta y sedes
 
@@ -253,9 +259,9 @@ export function buildReceiptTicketHtml(data: {
   const checklistHtml = checklist.length
     ? `<br><strong>LISTA DE COSAS ENVIADAS:</strong><ul style="margin:4px 0;padding-left:18px">${checklist.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`
     : "";
-  const apostilleHtml = (data.requiresApostilleService === true || Number(data.requiresApostilleService) === 1) ? `<br><strong>SERVICIO SOLICITADO:</strong> Documentos para apostillar — 40 EUR (160 soles) · 7 días hábiles` : "";
-  const translationHtml = (data.requiresTranslationService === true || Number(data.requiresTranslationService) === 1) ? `<br><strong>SERVICIO SOLICITADO:</strong> Documentos para traducir — 50 EUR (200 soles) · 7 días hábiles` : "";
-  return `<div class="ticket"><div class="ticket-title">CONTROL DE ENTREGA — ${route.deliveryTitle} (${shipmentLabel})</div><div class="ticket-grid"><div><strong>INFORMACIÓN DE ENVÍO DE ${shipmentLabel}</strong><br><strong>ORDEN:</strong> ${data.order}<br><strong>CÓDIGO:</strong> ${data.code}<br><strong>RUTA:</strong> ${route.route}<br><strong>ORIGEN:</strong> ${route.originPrintLabel}<br><strong>DESTINO:</strong> ${route.destinationPrintLabel}<br><strong>SEDE DE ENTREGA:</strong> ${route.destination.officeLabel}<br><strong>DIRECCIÓN:</strong> ${route.destination.address}<br><strong>REMITENTE:</strong> ${data.sender || "No especificado"}<br><strong>CELULAR REMITENTE:</strong> ${data.senderPhone || "No especificado"}<br><strong>DNI REMITENTE:</strong> ${data.senderDni || "No especificado"}<br><strong>DESTINATARIO:</strong> ${data.recipient}<br><strong>CELULAR DESTINATARIA:</strong> ${data.recipientPhone}<br><strong>DNI DESTINATARIO:</strong> ${data.recipientDni || "No especificado"}<br><strong>NOTAS:</strong> ${escapeHtml(data.notes || "Sin notas")}${apostilleHtml}${translationHtml}${checklistHtml}${priceHtml}</div><div class="ticket-code">${data.code}</div></div></div>`;
+  const contractedServices = getContractedDocumentServices(data);
+  const servicesHtml = contractedServices.length ? `<br><strong>SERVICIOS CONTRATADOS:</strong> ${contractedServices.map(service => escapeHtml(service)).join(", ")}` : "";
+  return `<div class="ticket"><div class="ticket-title">CONTROL DE ENTREGA — ${route.deliveryTitle} (${shipmentLabel})</div><div class="ticket-grid"><div><strong>INFORMACIÓN DE ENVÍO DE ${shipmentLabel}</strong><br><strong>ORDEN:</strong> ${data.order}<br><strong>CÓDIGO:</strong> ${data.code}<br><strong>RUTA:</strong> ${route.route}<br><strong>ORIGEN:</strong> ${route.originPrintLabel}<br><strong>DESTINO:</strong> ${route.destinationPrintLabel}<br><strong>SEDE DE ENTREGA:</strong> ${route.destination.officeLabel}<br><strong>DIRECCIÓN:</strong> ${route.destination.address}<br><strong>REMITENTE:</strong> ${data.sender || "No especificado"}<br><strong>CELULAR REMITENTE:</strong> ${data.senderPhone || "No especificado"}<br><strong>DNI REMITENTE:</strong> ${data.senderDni || "No especificado"}<br><strong>DESTINATARIO:</strong> ${data.recipient}<br><strong>CELULAR DESTINATARIA:</strong> ${data.recipientPhone}<br><strong>DNI DESTINATARIO:</strong> ${data.recipientDni || "No especificado"}<br><strong>NOTAS:</strong> ${escapeHtml(data.notes || "Sin notas")}${servicesHtml}${checklistHtml}${priceHtml}</div><div class="ticket-code">${data.code}</div></div></div>`;
 }
 
 export async function downloadUserShipmentReceiptPdf(shipment: any): Promise<string> {
@@ -351,7 +357,8 @@ export async function downloadUserShipmentReceiptPdf(shipment: any): Promise<str
   row("Código", String(shipment.code));
   row("Estado del envío", String(shipment.status || "No especificado"));
   row("Estado de pago", payment.label);
-  if (hasApostilleServiceRequest(shipment)) row("Servicio solicitado", "Documentos para apostillar");
+  const contractedServices = getContractedDocumentServices(shipment);
+  if (contractedServices.length) row("Servicios contratados", contractedServices.join(", "));
   row("Importe extra", extraPrice);
   row("Precio final", price);
   row("Notas", String(shipment.notes || "Sin notas"));

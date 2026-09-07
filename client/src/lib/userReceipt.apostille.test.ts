@@ -21,7 +21,7 @@ describe("recibos de Cliente con servicio de apostilla", () => {
   };
 
   it("muestra el servicio solicitado en Markdown y control de entrega", () => {
-    expect(buildReceiptMarkdown(shipment)).toContain("Servicio solicitado:** Documentos para apostillar");
+    expect(buildReceiptMarkdown(shipment)).toContain("Servicios contratados:** Apostillado");
     expect(buildReceiptTicketHtml({
       order: shipment.orderNumber,
       code: shipment.code,
@@ -30,7 +30,7 @@ describe("recibos de Cliente con servicio de apostilla", () => {
       shipmentType: "documento",
       route: shipment.route,
       requiresApostilleService: shipment.requiresApostilleService,
-    })).toContain("SERVICIO SOLICITADO:</strong> Documentos para apostillar");
+    })).toContain("SERVICIOS CONTRATADOS:</strong> Apostillado");
   });
 
   it("omite la etiqueta cuando no se solicitó apostilla", () => {

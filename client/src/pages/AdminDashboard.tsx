@@ -279,6 +279,10 @@ const createShipmentSchema = z.object({
   serviceManualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
   serviceManualPriceSoles: z.union([z.string(), z.number()]).optional().nullable(),
   serviceManualPriceCurrency: z.enum(["EUR", "USD", "PEN"]).default("EUR"),
+  apostilleManualPrice: z.union([z.string(), z.number()]).optional().nullable(),
+  apostilleManualCurrency: z.enum(["EUR", "USD", "PEN"]).default("EUR"),
+  translationManualPrice: z.union([z.string(), z.number()]).optional().nullable(),
+  translationManualCurrency: z.enum(["EUR", "USD", "PEN"]).default("EUR"),
   weightKg: z.number().min(0.1).default(1),
   manualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
   manualPriceCurrency: z.enum(["EUR", "USD", "PEN"]).default("EUR"),
@@ -349,6 +353,10 @@ const updateStatusSchema = z.object({
   serviceManualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
   serviceManualPriceSoles: z.union([z.string(), z.number()]).optional().nullable(),
   serviceManualPriceCurrency: z.enum(["EUR", "USD", "PEN"]).optional(),
+  apostilleManualPrice: z.union([z.string(), z.number()]).optional().nullable(),
+  apostilleManualCurrency: z.enum(["EUR", "USD", "PEN"]).optional(),
+  translationManualPrice: z.union([z.string(), z.number()]).optional().nullable(),
+  translationManualCurrency: z.enum(["EUR", "USD", "PEN"]).optional(),
   paymentStatus: z.enum(["Pagado", "Falta cancelar"]).optional(),
   route: z.string().optional(),
   originPoint: z.enum(["Lima", "Torino", "Provincia (Perú)"]).optional(),
@@ -801,7 +809,7 @@ export default function AdminDashboard() {
 
   const resetCreateForm = () => {
     generatedCreateNoteRef.current = "";
-    createForm.reset({ status: "En agencia", senderName: "", senderLastName: "", senderDni: "", senderDocumentType: "dni_peru", senderPhone: "", recipientName: "", recipientLastName: "", recipientDni: "", recipientDocumentType: "dni_peru", recipientPhone: "", notes: "", shipmentType: "documento", documentCount: 1, docType: "apostillado", sheetCount: 1, requiresApostilleService: false, requiresTranslationService: false, serviceManualPriceEur: "", serviceManualPriceSoles: "", serviceManualPriceCurrency: "EUR", weightKg: 1, manualPriceEur: "", manualPriceCurrency: "EUR", extraPriceEur: 0, extraDiscountEur: 0, paymentStatus: "Falta cancelar", route: "Lima - Torino", originAddress: getDefaultShipmentAddresses("Lima - Torino", getAdminShipmentBrand(admin?.id, admin?.email)).originAddress, destinationAddress: getDefaultShipmentAddresses("Lima - Torino", getAdminShipmentBrand(admin?.id, admin?.email)).destinationAddress, isProvinceDelivery: false, provinceCustomerPriceEur: "", provinceExtraPriceEur: "", provinceOperationalCostSoles: "", provinceCarrier: "shalom", provinceSenderName: "", provinceSenderLastName: "", provinceSenderDni: "", provinceSenderPhone: "", couponCode: "", documentItems: [], contentChecklist: [], missingItems: [], deliveryMode: "agencia", limaTorinoTransferMode: undefined, deliveryPersonName: "", deliveryPersonLastName: "", deliveryPersonDni: "", deliveryPersonPhone: "", deliveryLocationType: "direccion", deliveryLocationAddress: "", deliveryLocationLatitude: null, deliveryLocationLongitude: null });
+    createForm.reset({ status: "En agencia", senderName: "", senderLastName: "", senderDni: "", senderDocumentType: "dni_peru", senderPhone: "", recipientName: "", recipientLastName: "", recipientDni: "", recipientDocumentType: "dni_peru", recipientPhone: "", notes: "", shipmentType: "documento", documentCount: 1, docType: "apostillado", sheetCount: 1, requiresApostilleService: false, requiresTranslationService: false, serviceManualPriceEur: "", serviceManualPriceSoles: "", serviceManualPriceCurrency: "EUR", apostilleManualPrice: "", apostilleManualCurrency: "EUR", translationManualPrice: "", translationManualCurrency: "EUR", weightKg: 1, manualPriceEur: "", manualPriceCurrency: "EUR", extraPriceEur: 0, extraDiscountEur: 0, paymentStatus: "Falta cancelar", route: "Lima - Torino", originAddress: getDefaultShipmentAddresses("Lima - Torino", getAdminShipmentBrand(admin?.id, admin?.email)).originAddress, destinationAddress: getDefaultShipmentAddresses("Lima - Torino", getAdminShipmentBrand(admin?.id, admin?.email)).destinationAddress, isProvinceDelivery: false, provinceCustomerPriceEur: "", provinceExtraPriceEur: "", provinceOperationalCostSoles: "", provinceCarrier: "shalom", provinceSenderName: "", provinceSenderLastName: "", provinceSenderDni: "", provinceSenderPhone: "", couponCode: "", documentItems: [], contentChecklist: [], missingItems: [], deliveryMode: "agencia", limaTorinoTransferMode: undefined, deliveryPersonName: "", deliveryPersonLastName: "", deliveryPersonDni: "", deliveryPersonPhone: "", deliveryLocationType: "direccion", deliveryLocationAddress: "", deliveryLocationLatitude: null, deliveryLocationLongitude: null });
     setSenderClientQuery("");
     setRecipientClientQuery("");
     setAdditionalDocumentItems([]);
@@ -855,6 +863,10 @@ export default function AdminDashboard() {
     serviceManualPriceEur: createForm.watch("serviceManualPriceEur"),
     serviceManualPriceSoles: createForm.watch("serviceManualPriceSoles"),
     serviceManualPriceCurrency: createForm.watch("serviceManualPriceCurrency"),
+    apostilleManualPrice: createForm.watch("apostilleManualPrice"),
+    apostilleManualCurrency: createForm.watch("apostilleManualCurrency"),
+    translationManualPrice: createForm.watch("translationManualPrice"),
+    translationManualCurrency: createForm.watch("translationManualCurrency"),
     isProvinceDelivery: watchedProvinceEnabled,
     provinceCustomerPriceEur: createForm.watch("provinceCustomerPriceEur"),
     provinceExtraPriceEur: createForm.watch("provinceExtraPriceEur"),
@@ -863,7 +875,7 @@ export default function AdminDashboard() {
     workspaceAdminId: admin?.id,
     workspaceAdminEmail: admin?.email,
     notes: extractFreeformShipmentNotes(createForm.watch("notes"), generatedCreateNoteRef.current),
-  }), [selectedShipmentType, selectedDocType, selectedRoute, watchedOriginAddress, watchedDestinationAddress, additionalDocumentItems, watchedWeightKg, watchedProvinceEnabled, watchedProvinceExtraPrice, admin?.id, admin?.email, createForm.watch("sheetCount"), createForm.watch("manualPriceEur"), createForm.watch("manualPriceCurrency"), createForm.watch("extraPriceEur"), createForm.watch("extraDiscountEur"), createForm.watch("requiresApostilleService"), createForm.watch("requiresTranslationService"), createForm.watch("serviceManualPriceEur"), createForm.watch("serviceManualPriceSoles"), createForm.watch("serviceManualPriceCurrency"), createForm.watch("provinceCustomerPriceEur"), createForm.watch("provinceExtraPriceEur"), createForm.watch("provinceOperationalCostSoles"), createForm.watch("provinceCarrier"), createForm.watch("notes")]);
+  }), [selectedShipmentType, selectedDocType, selectedRoute, watchedOriginAddress, watchedDestinationAddress, additionalDocumentItems, watchedWeightKg, watchedProvinceEnabled, watchedProvinceExtraPrice, admin?.id, admin?.email, createForm.watch("sheetCount"), createForm.watch("manualPriceEur"), createForm.watch("manualPriceCurrency"), createForm.watch("extraPriceEur"), createForm.watch("extraDiscountEur"), createForm.watch("requiresApostilleService"), createForm.watch("requiresTranslationService"), createForm.watch("serviceManualPriceEur"), createForm.watch("serviceManualPriceSoles"), createForm.watch("serviceManualPriceCurrency"), createForm.watch("apostilleManualPrice"), createForm.watch("apostilleManualCurrency"), createForm.watch("translationManualPrice"), createForm.watch("translationManualCurrency"), createForm.watch("provinceCustomerPriceEur"), createForm.watch("provinceExtraPriceEur"), createForm.watch("provinceOperationalCostSoles"), createForm.watch("provinceCarrier"), createForm.watch("notes")]);
   useEffect(() => {
     const currentNotes = String(createForm.getValues("notes") ?? "");
     const freeformNotes = extractFreeformShipmentNotes(currentNotes, generatedCreateNoteRef.current);
@@ -968,6 +980,10 @@ export default function AdminDashboard() {
                    serviceManualPriceEur: '',
                    serviceManualPriceSoles: '',
                    serviceManualPriceCurrency: 'EUR',
+                   apostilleManualPrice: '',
+                   apostilleManualCurrency: 'EUR',
+                   translationManualPrice: '',
+                   translationManualCurrency: 'EUR',
                    paymentStatus: 'Falta cancelar',
       route: 'Lima - Torino',
       originAddress: '',
@@ -1022,6 +1038,10 @@ export default function AdminDashboard() {
     serviceManualPriceEur: updateForm.watch("serviceManualPriceEur"),
     serviceManualPriceSoles: updateForm.watch("serviceManualPriceSoles"),
     serviceManualPriceCurrency: updateForm.watch("serviceManualPriceCurrency"),
+    apostilleManualPrice: updateForm.watch("apostilleManualPrice"),
+    apostilleManualCurrency: updateForm.watch("apostilleManualCurrency"),
+    translationManualPrice: updateForm.watch("translationManualPrice"),
+    translationManualCurrency: updateForm.watch("translationManualCurrency"),
     isProvinceDelivery: updateProvinceEnabled,
     provinceCustomerPriceEur: updateForm.watch("provinceCustomerPriceEur"),
     provinceExtraPriceEur: updateForm.watch("provinceExtraPriceEur"),
@@ -1030,7 +1050,7 @@ export default function AdminDashboard() {
     workspaceAdminId: admin?.id,
     workspaceAdminEmail: admin?.email,
     notes: extractFreeformShipmentNotes(updateForm.watch("notes"), generatedUpdateNoteRef.current),
-  }), [updateShipmentType, updateShipmentRoute, updateProvinceWeight, updateProvinceEnabled, admin?.id, admin?.email, updateForm.watch("docType"), updateForm.watch("sheetCount"), updateForm.watch("pricingMode"), updateForm.watch("manualPriceEur"), updateForm.watch("manualPriceCurrency"), updateForm.watch("extraPriceEur"), updateForm.watch("extraDiscountEur"), updateForm.watch("requiresApostilleService"), updateForm.watch("requiresTranslationService"), updateForm.watch("serviceManualPriceEur"), updateForm.watch("serviceManualPriceSoles"), updateForm.watch("serviceManualPriceCurrency"), updateForm.watch("provinceCustomerPriceEur"), updateForm.watch("provinceExtraPriceEur"), updateForm.watch("provinceOperationalCostSoles"), updateForm.watch("provinceCarrier"), updateForm.watch("notes")]);
+  }), [updateShipmentType, updateShipmentRoute, updateProvinceWeight, updateProvinceEnabled, admin?.id, admin?.email, updateForm.watch("docType"), updateForm.watch("sheetCount"), updateForm.watch("pricingMode"), updateForm.watch("manualPriceEur"), updateForm.watch("manualPriceCurrency"), updateForm.watch("extraPriceEur"), updateForm.watch("extraDiscountEur"), updateForm.watch("requiresApostilleService"), updateForm.watch("requiresTranslationService"), updateForm.watch("serviceManualPriceEur"), updateForm.watch("serviceManualPriceSoles"), updateForm.watch("serviceManualPriceCurrency"), updateForm.watch("apostilleManualPrice"), updateForm.watch("apostilleManualCurrency"), updateForm.watch("translationManualPrice"), updateForm.watch("translationManualCurrency"), updateForm.watch("provinceCustomerPriceEur"), updateForm.watch("provinceExtraPriceEur"), updateForm.watch("provinceOperationalCostSoles"), updateForm.watch("provinceCarrier"), updateForm.watch("notes")]);
   const updateVisibleParcelTotal = updatePricingPreview.totalEur;
 
   useEffect(() => {
@@ -1070,6 +1090,10 @@ export default function AdminDashboard() {
       serviceManualPriceEur: shipment.serviceManualPriceEur || "",
       serviceManualPriceSoles: shipment.serviceManualPriceSoles || "",
       serviceManualPriceCurrency: shipment.serviceManualPriceCurrency || "EUR",
+      apostilleManualPrice: shipment.apostilleManualPrice ?? "",
+      apostilleManualCurrency: shipment.apostilleManualCurrency || "EUR",
+      translationManualPrice: shipment.translationManualPrice ?? "",
+      translationManualCurrency: shipment.translationManualCurrency || "EUR",
       paymentStatus: shipment.paymentStatus || "Falta cancelar",
       route: Boolean(shipment.isProvinceDelivery) && shipment.route === SHIPMENT_ROUTES.TORINO_LIMA ? SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE : shipment.route || SHIPMENT_ROUTES.LIMA_TORINO,
       originPoint: shipment.originPoint || "Lima",
@@ -1453,6 +1477,10 @@ export default function AdminDashboard() {
         serviceManualPriceEur: "",
         serviceManualPriceSoles: "",
         serviceManualPriceCurrency: "EUR",
+        apostilleManualPrice: "",
+        apostilleManualCurrency: "EUR",
+        translationManualPrice: "",
+        translationManualCurrency: "EUR",
         weightKg: 1,
         manualPriceEur: "",
         extraPriceEur: 0,
@@ -2637,12 +2665,16 @@ export default function AdminDashboard() {
                   </div>
                                      {selectedShipmentType === "documento" && (
                      <>
-                       <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border-2 border-[#0B2B5E] bg-blue-50 p-4 text-sm shadow-sm transition hover:bg-blue-100/70">
-                         <input type="checkbox" aria-label="Documentos para apostillar" {...createForm.register("requiresApostilleService")} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-[#0B2B5E] focus:ring-[#0B2B5E]" />
-                         <span><strong className="block text-base text-[#0B2B5E]">Documentos para apostillar</strong><span className="mt-1 block text-slate-700">Tarifa estándar: 40 EUR; el equivalente en soles se calcula con la cotización vigente del euro.</span></span>
-                       </label>
-                       <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm"><input type="checkbox" aria-label="Servicio de traducción" {...createForm.register("requiresTranslationService")} className="mt-0.5 h-5 w-5" /><span><strong className="block text-base text-[#0B2B5E]">Traducción</strong><span className="mt-1 block text-slate-700">Tarifa estándar: 50 EUR; el equivalente en soles se calcula con la cotización vigente del euro.</span></span></label>
-                       <div className="mt-3 grid gap-3 sm:grid-cols-2"><div className="sm:col-span-2"><label className="mb-2 block text-sm font-medium text-gray-700">Denominación del servicio</label><select aria-label="Moneda del precio de apostilla y traducción" {...createForm.register("serviceManualPriceCurrency")} className="h-10 w-full rounded-md border-2 border-slate-200 bg-white px-3 font-semibold text-[#0B2B5E]"><option value="EUR">EUR €</option><option value="USD">USD $</option><option value="PEN">PEN S/</option></select><p className="mt-1 text-xs text-slate-500">Por defecto: apostillado 40 EUR y traducción 50 EUR. Puedes indicar el importe manual en la denominación elegida.</p></div><div><label className="mb-2 block text-sm font-medium text-gray-700">Precio manual del servicio (EUR)</label><Input type="number" min="0" step="0.01" placeholder="Apostilla: 40" {...createForm.register("serviceManualPriceEur")} /></div><div><label className="mb-2 block text-sm font-medium text-gray-700">Precio manual del servicio (soles)</label><Input type="number" min="0" step="0.01" placeholder="Apostilla: 160 / Traducción: 200" {...createForm.register("serviceManualPriceSoles")} /></div></div>
+                       <div className="mt-4 grid gap-3 md:grid-cols-2">
+                         <div className="rounded-xl border-2 border-[#0B2B5E] bg-blue-50 p-4">
+                           <label className="flex cursor-pointer items-start gap-3 text-sm"><input type="checkbox" aria-label="Documentos para apostillar" {...createForm.register("requiresApostilleService")} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-[#0B2B5E] focus:ring-[#0B2B5E]" /><span><strong className="block text-base text-[#0B2B5E]">Apostillado</strong><span className="mt-1 block text-slate-700">Servicio estándar: 40 EUR. El precio manual es opcional.</span></span></label>
+                           {Boolean(createForm.watch("requiresApostilleService")) && <div className="mt-3 rounded-lg border border-blue-200 bg-white p-3"><Button type="button" variant="outline" className="w-full border-[#0B2B5E] text-[#0B2B5E]" onClick={() => createForm.setValue("apostilleManualPrice", createForm.getValues("apostilleManualPrice") || "", { shouldDirty: true })}>Precio manual opcional</Button><div className="mt-3 grid gap-2 sm:grid-cols-2"><select aria-label="Moneda del precio manual de apostillado" {...createForm.register("apostilleManualCurrency")} className="h-10 rounded-md border-2 border-slate-200 bg-white px-3 font-semibold text-[#0B2B5E]"><option value="EUR">EUR €</option><option value="USD">USD $</option><option value="PEN">PEN S/</option></select><Input type="number" min="0" step="0.01" placeholder="40.00" {...createForm.register("apostilleManualPrice")} /></div></div>}
+                         </div>
+                         <div className="rounded-xl border-2 border-amber-300 bg-amber-50 p-4">
+                           <label className="flex cursor-pointer items-start gap-3 text-sm"><input type="checkbox" aria-label="Servicio de traducción" {...createForm.register("requiresTranslationService")} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-amber-700 focus:ring-amber-600" /><span><strong className="block text-base text-[#0B2B5E]">Traducción</strong><span className="mt-1 block text-slate-700">Servicio estándar: 50 EUR. El precio manual es opcional.</span></span></label>
+                           {Boolean(createForm.watch("requiresTranslationService")) && <div className="mt-3 rounded-lg border border-amber-200 bg-white p-3"><Button type="button" variant="outline" className="w-full border-amber-500 text-amber-800" onClick={() => createForm.setValue("translationManualPrice", createForm.getValues("translationManualPrice") || "", { shouldDirty: true })}>Precio manual opcional</Button><div className="mt-3 grid gap-2 sm:grid-cols-2"><select aria-label="Moneda del precio manual de traducción" {...createForm.register("translationManualCurrency")} className="h-10 rounded-md border-2 border-slate-200 bg-white px-3 font-semibold text-[#0B2B5E]"><option value="EUR">EUR €</option><option value="USD">USD $</option><option value="PEN">PEN S/</option></select><Input type="number" min="0" step="0.01" placeholder="50.00" {...createForm.register("translationManualPrice")} /></div></div>}
+                         </div>
+                       </div>
                      </>
                    )}
                    <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50/60 p-4">
@@ -3414,15 +3446,10 @@ export default function AdminDashboard() {
                       </select>
                     </div>
                     {updateForm.watch("shipmentType") === "documento" && <div className="md:col-span-2 grid gap-3 sm:grid-cols-2">
-                      <label className="flex cursor-pointer items-start gap-3 rounded-xl border-2 border-[#0B2B5E] bg-blue-50 p-4 text-sm shadow-sm transition hover:bg-blue-100/70">
-                        <input type="checkbox" aria-label="Documentos para apostillar" {...updateForm.register("requiresApostilleService")} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-[#0B2B5E] focus:ring-[#0B2B5E]" />
-                        <span><strong className="block text-base text-[#0B2B5E]">Documentos para apostillar</strong><span className="mt-1 block text-slate-700">+40 EUR · soles calculados con la cotización vigente del euro · plazo referencial: 7 días hábiles.</span></span>
-                      </label>
-                      <label className="flex cursor-pointer items-start gap-3 rounded-xl border-2 border-amber-300 bg-amber-50 p-4 text-sm shadow-sm transition hover:bg-amber-100/70">
-                        <input type="checkbox" aria-label="Servicio de traducción" {...updateForm.register("requiresTranslationService")} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-amber-700 focus:ring-amber-600" />
-                        <span><strong className="block text-base text-[#0B2B5E]">Traducción</strong><span className="mt-1 block text-slate-700">+50 EUR · soles calculados con la cotización vigente del euro · plazo referencial: 7 días hábiles.</span></span>
-                      </label>
-                      {(Boolean(updateForm.watch("requiresApostilleService")) || Boolean(updateForm.watch("requiresTranslationService"))) && <div className="sm:col-span-2 grid gap-3 rounded-xl border border-slate-200 bg-white p-3 sm:grid-cols-2"><label className="sm:col-span-2 text-sm font-medium text-slate-700">Denominación del servicio<select aria-label="Moneda del precio de apostilla y traducción en actualización" {...updateForm.register("serviceManualPriceCurrency")} className="mt-1 h-10 w-full rounded-md border-2 border-slate-200 bg-white px-3 font-semibold text-[#0B2B5E]"><option value="EUR">EUR €</option><option value="USD">USD $</option><option value="PEN">PEN S/</option></select><span className="mt-1 block text-xs font-normal text-slate-500">Valores estándar: apostillado 40 EUR y traducción 50 EUR.</span></label><label className="text-sm font-medium text-slate-700">Precio manual del servicio (EUR)<Input type="number" min="0" step="0.01" placeholder="40.00" {...updateForm.register("serviceManualPriceEur")} className="mt-1" /></label><label className="text-sm font-medium text-slate-700">Precio manual del servicio (soles)<Input type="number" min="0" step="0.01" placeholder="160.00" {...updateForm.register("serviceManualPriceSoles")} className="mt-1" /></label></div>}
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="rounded-xl border-2 border-[#0B2B5E] bg-blue-50 p-4"><label className="flex cursor-pointer items-start gap-3 text-sm"><input type="checkbox" aria-label="Documentos para apostillar" {...updateForm.register("requiresApostilleService")} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-[#0B2B5E] focus:ring-[#0B2B5E]" /><span><strong className="block text-base text-[#0B2B5E]">Apostillado</strong><span className="mt-1 block text-slate-700">Servicio estándar: 40 EUR. El precio manual es opcional.</span></span></label>{Boolean(updateForm.watch("requiresApostilleService")) && <div className="mt-3 rounded-lg border border-blue-200 bg-white p-3"><Button type="button" variant="outline" className="w-full border-[#0B2B5E] text-[#0B2B5E]" onClick={() => updateForm.setValue("apostilleManualPrice", updateForm.getValues("apostilleManualPrice") || "", { shouldDirty: true })}>Precio manual opcional</Button><div className="mt-3 grid gap-2"><select aria-label="Moneda del precio manual de apostillado en actualización" {...updateForm.register("apostilleManualCurrency")} className="h-10 rounded-md border-2 border-slate-200 bg-white px-3 font-semibold text-[#0B2B5E]"><option value="EUR">EUR €</option><option value="USD">USD $</option><option value="PEN">PEN S/</option></select><Input type="number" min="0" step="0.01" placeholder="40.00" {...updateForm.register("apostilleManualPrice")} /></div></div>}</div>
+                        <div className="rounded-xl border-2 border-amber-300 bg-amber-50 p-4"><label className="flex cursor-pointer items-start gap-3 text-sm"><input type="checkbox" aria-label="Servicio de traducción" {...updateForm.register("requiresTranslationService")} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-amber-700 focus:ring-amber-600" /><span><strong className="block text-base text-[#0B2B5E]">Traducción</strong><span className="mt-1 block text-slate-700">Servicio estándar: 50 EUR. El precio manual es opcional.</span></span></label>{Boolean(updateForm.watch("requiresTranslationService")) && <div className="mt-3 rounded-lg border border-amber-200 bg-white p-3"><Button type="button" variant="outline" className="w-full border-amber-500 text-amber-800" onClick={() => updateForm.setValue("translationManualPrice", updateForm.getValues("translationManualPrice") || "", { shouldDirty: true })}>Precio manual opcional</Button><div className="mt-3 grid gap-2"><select aria-label="Moneda del precio manual de traducción en actualización" {...updateForm.register("translationManualCurrency")} className="h-10 rounded-md border-2 border-slate-200 bg-white px-3 font-semibold text-[#0B2B5E]"><option value="EUR">EUR €</option><option value="USD">USD $</option><option value="PEN">PEN S/</option></select><Input type="number" min="0" step="0.01" placeholder="50.00" {...updateForm.register("translationManualPrice")} /></div></div>}</div>
+                      </div>
                     </div>}
                   </>}
                   {updateForm.watch("shipmentType") === "documento" && updateForm.watch("route") === SHIPMENT_ROUTES.LIMA_TORINO && <div className="md:col-span-2"><LimaTorinoTransferPanel value={{ mode: updateForm.watch("limaTorinoTransferMode") || undefined, personName: updateForm.watch("deliveryPersonName") || "", personLastName: updateForm.watch("deliveryPersonLastName") || "", personDni: updateForm.watch("deliveryPersonDni") || "", personPhone: updateForm.watch("deliveryPersonPhone") || "", locationType: updateForm.watch("deliveryLocationType") || undefined, locationAddress: updateForm.watch("deliveryLocationAddress") || "", latitude: updateForm.watch("deliveryLocationLatitude") ?? null, longitude: updateForm.watch("deliveryLocationLongitude") ?? null }} onChange={(next) => { updateForm.setValue("limaTorinoTransferMode", next.mode, { shouldDirty: true, shouldValidate: true }); updateForm.setValue("deliveryPersonName", next.personName || "", { shouldDirty: true }); updateForm.setValue("deliveryPersonLastName", next.personLastName || "", { shouldDirty: true }); updateForm.setValue("deliveryPersonDni", next.personDni || "", { shouldDirty: true }); updateForm.setValue("deliveryPersonPhone", next.personPhone || "", { shouldDirty: true }); updateForm.setValue("deliveryLocationType", next.locationType, { shouldDirty: true }); updateForm.setValue("deliveryLocationAddress", next.locationAddress || "", { shouldDirty: true }); updateForm.setValue("deliveryLocationLatitude", next.latitude ?? null, { shouldDirty: true }); updateForm.setValue("deliveryLocationLongitude", next.longitude ?? null, { shouldDirty: true }); }} /></div>}

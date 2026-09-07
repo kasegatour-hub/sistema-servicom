@@ -24,6 +24,10 @@ export type AdminShipmentPricingInput = {
   serviceManualPriceEur?: string | number | null;
   serviceManualPriceSoles?: string | number | null;
   serviceManualPriceCurrency?: ManualPriceCurrency | null;
+  apostilleManualPrice?: string | number | null;
+  apostilleManualCurrency?: ManualPriceCurrency | null;
+  translationManualPrice?: string | number | null;
+  translationManualCurrency?: ManualPriceCurrency | null;
   isProvinceDelivery?: boolean;
   provinceCustomerPriceEur?: string | number | null;
   provinceExtraPriceEur?: string | number | null;
@@ -82,11 +86,20 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
   const servicesAllowed = shipmentType === "documento";
   const requiresApostilleService = Boolean(input.requiresApostilleService) && servicesAllowed;
   const requiresTranslationService = Boolean(input.requiresTranslationService) && servicesAllowed;
-  const apostillePriceEur = requiresApostilleService ? serviceManualPriceEur ?? 40 : 0;
-  const translationPriceEur = requiresTranslationService ? 50 : 0;
+  const parseServiceAmount = (value: string | number | null | undefined) => {
+    if (value === undefined || value === null || String(value).trim() === "") return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+  };
+  const apostilleManualPrice = parseServiceAmount(input.apostilleManualPrice) ?? (serviceManualPriceEur ?? serviceManualPriceSoles ?? null);
+  const translationManualPrice = parseServiceAmount(input.translationManualPrice);
+  const apostilleManualCurrency: ManualPriceCurrency = input.apostilleManualCurrency || serviceManualPriceCurrency;
+  const translationManualCurrency: ManualPriceCurrency = input.translationManualCurrency || serviceManualPriceCurrency;
+  const apostillePriceEur = requiresApostilleService ? (apostilleManualCurrency === "EUR" ? apostilleManualPrice ?? 40 : 40) : 0;
+  const translationPriceEur = requiresTranslationService ? (translationManualCurrency === "EUR" ? translationManualPrice ?? 50 : 50) : 0;
   const servicePriceEur = apostillePriceEur + translationPriceEur;
-  const apostillePriceSoles = requiresApostilleService ? serviceManualPriceSoles ?? 160 : 0;
-  const translationPriceSoles = requiresTranslationService ? 200 : 0;
+  const apostillePriceSoles = requiresApostilleService ? (apostilleManualCurrency === "PEN" ? apostilleManualPrice ?? 160 : 160) : 0;
+  const translationPriceSoles = requiresTranslationService ? (translationManualCurrency === "PEN" ? translationManualPrice ?? 200 : 200) : 0;
   const servicePriceSoles = apostillePriceSoles + translationPriceSoles;
   const provinceEnabled = Boolean(input.isProvinceDelivery) || isProvinceShipmentRoute(route);
   const rawProvinceCustomerPrice = input.provinceCustomerPriceEur === undefined || input.provinceCustomerPriceEur === null ? "" : String(input.provinceCustomerPriceEur).trim();
@@ -140,7 +153,7 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
     ? ` Envío a provincia (${provinceCarrier || "agencia seleccionada"}): +${provinceCustomerPriceEur.toFixed(2)} ${priceUnit}${usesAutomaticProvincePrice ? ` (${provinceTierLabel})` : ""}${provinceExtraPriceEur > 0 ? `; excedente sobre 10 kg (2,00 ${priceUnit}/kg): +${provinceExtraPriceEur.toFixed(2)} ${priceUnit}` : ""}.`
     : "";
   const extraDescription = extraPriceEur > 0 ? ` Importe extra: +${extraPriceEur.toFixed(2)} ${priceUnit}${extraDiscountEur > 0 ? `; descuento del extra: -${extraDiscountEur.toFixed(2)} ${priceUnit}; extra neto: +${netExtraPriceEur.toFixed(2)} ${priceUnit}` : ""}.` : "";
-  const serviceDescription = `${requiresApostilleService ? ` Servicio de apostillado: tarifa estándar 40 EUR; importe manual registrado en ${serviceManualPriceCurrency}${serviceManualPriceCurrency === "PEN" && serviceManualPriceSoles !== null ? `: ${serviceManualPriceSoles.toFixed(2)} PEN` : serviceManualPriceCurrency === "EUR" && serviceManualPriceEur !== null ? `: ${serviceManualPriceEur.toFixed(2)} EUR` : ""}.` : ""}${requiresTranslationService ? ` Servicio de traducción: tarifa estándar 50 EUR; importe manual registrado en ${serviceManualPriceCurrency}${serviceManualPriceCurrency === "PEN" && serviceManualPriceSoles !== null ? `: ${serviceManualPriceSoles.toFixed(2)} PEN` : serviceManualPriceCurrency === "EUR" && serviceManualPriceEur !== null ? `: ${serviceManualPriceEur.toFixed(2)} EUR` : ""}.` : ""}`;
+  const serviceDescription = `${requiresApostilleService ? " Servicio contratado: Apostillado." : ""}${requiresTranslationService ? " Servicio contratado: Traducción." : ""}`;
   const generatedNote = `${GENERATED_SHIPMENT_NOTE_PREFIX} ${tariffDescription}.${serviceDescription}${provinceDescription}${extraDescription}`.trim();
   return {
     shipmentType,
@@ -160,6 +173,10 @@ export function calculateAdminShipmentPricing(input: AdminShipmentPricingInput) 
     serviceManualPriceEur,
     serviceManualPriceSoles,
     serviceManualPriceCurrency,
+    apostilleManualPrice,
+    apostilleManualCurrency,
+    translationManualPrice,
+    translationManualCurrency,
     servicePriceEur,
     servicePriceSoles,
     isProvinceDelivery: provinceEnabled,
