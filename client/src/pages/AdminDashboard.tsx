@@ -1597,7 +1597,7 @@ export default function AdminDashboard() {
         shipmentType: printShipment.shipmentType,
       });
       const receiptDestinationAddress = branding.isKasega ? branding.destinationAddress : printShipment.destinationAddress;
-      const routePresentation = getRoutePresentation(printShipment.route, receiptDestinationAddress);
+      const routePresentation = getRoutePresentation(printShipment.route, receiptDestinationAddress, printShipment.originAddress, printShipment.originPoint, printShipment.destinationPoint);
       const paymentPrint = getPaymentPrintPresentation(printShipment.paymentStatus);
       const paymentIsPaid = paymentPrint.isPaid;
       const paymentIsPending = paymentPrint.isPending;
@@ -1684,7 +1684,7 @@ export default function AdminDashboard() {
 
           <div class="main-title">INFORMACIÓN DE ENVÍO DE ${printShipment.shipmentType === 'encomienda' ? 'ENCOMIENDA' : 'DOCUMENTO'} — ${routePresentation.route}</div>
 
-          ${buildAdminRouteSummaryHtml(printShipment.route, receiptDestinationAddress, branding.isKasega ? branding.address : null, branding.isKasega ? branding.phone : null)}
+          ${buildAdminRouteSummaryHtml(printShipment.route, receiptDestinationAddress, branding.isKasega ? branding.address : printShipment.originAddress, branding.isKasega ? branding.phone : null, printShipment.originPoint, printShipment.destinationPoint)}
 
           <div class="section">
             <div class="row"><div class="label">Orden:</div><div class="value">${printShipment.orderNumber}</div><div class="label" style="margin-left:20px">Cód. Envío:</div><div class="value">${printShipment.code}</div></div>
@@ -1742,6 +1742,9 @@ export default function AdminDashboard() {
             price: printShipment,
             paymentStatus: printShipment.paymentStatus,
             route: printShipment.route,
+            originAddress: printShipment.originAddress,
+            originPoint: printShipment.originPoint,
+            destinationPoint: printShipment.destinationPoint,
             limaTorinoEncomiendasEnabled,
             managementUrl,
             isProvinceDelivery: printShipment.isProvinceDelivery,

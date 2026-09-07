@@ -38,7 +38,7 @@ describe("administrative receipt ticket", () => {
     expect(html).toContain("PRECIO FINAL");
     expect(html).toContain("ESTADO DE PAGO:");
     expect(html).toContain(">Pagado</strong>");
-    expect(html).toContain("37.50 EUR");
+    expect(html).toContain("€ 37.50");
     expect(styles).toContain(".cut-ticket{break-inside:avoid;page-break-inside:avoid");
     expect(styles).toContain("min-height:200mm");
     expect(styles).toContain("width:46mm!important;height:46mm!important");

@@ -1,4 +1,5 @@
-import { SHIPMENT_ROUTES, isTorinoLimaRoute } from "@shared/shipmentRoutes";
+import { SHIPMENT_ROUTES } from "@shared/shipmentRoutes";
+import { SHIPMENT_ENDPOINTS, normalizeIndependentEndpoints } from "@shared/shipmentEndpoints";
 
 export const ROUTES = SHIPMENT_ROUTES;
 
@@ -20,23 +21,37 @@ const TORINO = {
   phone: "+39 351 278 7962 / +39 350 902 5271 / +39 389 766 3723",
 };
 
-export function getRoutePresentation(route?: string | null, destinationAddress?: string | null) {
-  const isTorinoToLima = isTorinoLimaRoute(route);
-  const origin = isTorinoToLima ? TORINO : LIMA;
-  const defaultDestination = isTorinoToLima ? LIMA : TORINO;
-  const destination = destinationAddress?.trim() ? { ...defaultDestination, officeLabel: "Agencia de destino seleccionada", address: destinationAddress.trim() } : defaultDestination;
+export function getRoutePresentation(route?: string | null, destinationAddress?: string | null, originAddress?: string | null, originPoint?: string | null, destinationPoint?: string | null) {
+  const endpoints = normalizeIndependentEndpoints({ route, originPoint: originPoint as any, destinationPoint: destinationPoint as any });
+  const displayDestinationPoint = route === ROUTES.TORINO_LIMA_PROVINCE && !destinationPoint ? SHIPMENT_ENDPOINTS.LIMA : endpoints.destinationPoint;
+  const originBase = endpoints.originPoint === SHIPMENT_ENDPOINTS.TORINO ? TORINO : LIMA;
+  const destinationBase = displayDestinationPoint === SHIPMENT_ENDPOINTS.TORINO ? TORINO : LIMA;
+  const origin = originAddress?.trim()
+    ? { ...originBase, officeLabel: "Origen seleccionado", address: originAddress.trim() }
+    : originBase;
+  const destination = destinationAddress?.trim()
+    ? { ...destinationBase, officeLabel: destinationPoint ? "Destino seleccionado" : "Agencia de destino seleccionada", address: destinationAddress.trim() }
+    : destinationBase;
+  const routeLabel = route === ROUTES.TORINO_LIMA_PROVINCE
+    ? ROUTES.TORINO_LIMA_PROVINCE
+    : route || `${endpoints.originPoint} - ${endpoints.destinationPoint}`;
   return {
-    route: route === ROUTES.TORINO_LIMA_PROVINCE ? ROUTES.TORINO_LIMA_PROVINCE : isTorinoToLima ? ROUTES.TORINO_LIMA : ROUTES.LIMA_TORINO,
+    route: routeLabel,
     origin,
     destination,
-    originLabel: origin.shortLabel,
-    destinationLabel: destination.shortLabel,
-    originPrintLabel: origin.printLabel,
-    destinationPrintLabel: destination.printLabel,
-    originCity: isTorinoToLima ? "Torino" : "Lima",
-    destinationCity: isTorinoToLima ? "Lima" : "Torino",
-    deliveryTitle: `CONTROL DE ENTREGA — ${destination.printLabel}`,
+    originLabel: originAddress?.trim() || (endpoints.originPoint === SHIPMENT_ENDPOINTS.PROVINCIA ? "Provincia (Perú)" : originBase.shortLabel),
+    destinationLabel: destinationAddress?.trim() || (displayDestinationPoint === SHIPMENT_ENDPOINTS.PROVINCIA ? "Provincia (Perú)" : destinationBase.shortLabel),
+    originPrintLabel: originAddress?.trim() || (endpoints.originPoint === SHIPMENT_ENDPOINTS.PROVINCIA ? "PROVINCIA (PERÚ)" : originBase.printLabel),
+    destinationPrintLabel: destinationAddress?.trim() || (displayDestinationPoint === SHIPMENT_ENDPOINTS.PROVINCIA ? "PROVINCIA (PERÚ)" : destinationBase.printLabel),
+    originCity: endpoints.originPoint === SHIPMENT_ENDPOINTS.TORINO ? "Torino" : endpoints.originPoint === SHIPMENT_ENDPOINTS.PROVINCIA ? "Provincia" : "Lima",
+    destinationCity: displayDestinationPoint === SHIPMENT_ENDPOINTS.TORINO ? "Torino" : displayDestinationPoint === SHIPMENT_ENDPOINTS.PROVINCIA ? "Provincia" : "Lima",
+    deliveryTitle: `CONTROL DE ENTREGA — ${destinationPrintLabel(destination, displayDestinationPoint)}`,
   };
+}
+
+function destinationPrintLabel(destination: typeof LIMA, endpoint: string) {
+  if (endpoint === SHIPMENT_ENDPOINTS.PROVINCIA) return "PROVINCIA (PERÚ)";
+  return destination.printLabel;
 }
 
 export function getDeclarationLegalText(route?: string | null) {

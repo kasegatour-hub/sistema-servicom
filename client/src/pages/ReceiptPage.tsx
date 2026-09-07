@@ -35,7 +35,7 @@ export default function ReceiptPage() {
   const [downloadFormat, setDownloadFormat] = useState<ReceiptDownloadFormat>("pdf");
   const paymentUi = shipment ? getPaymentStatusUi(shipment.paymentStatus) : getPaymentStatusUi(undefined);
   const priceUi = shipment ? getReceiptPricePresentation(shipment) : null;
-  const routePresentation = getRoutePresentation(shipment?.route, shipment?.destinationAddress);
+  const routePresentation = getRoutePresentation(shipment?.route, shipment?.destinationAddress, shipment?.originAddress, shipment?.originPoint, shipment?.destinationPoint);
   const canSignThisShipment = Boolean(query.signature && accountQuery.data?.id && shipment?.accountId === accountQuery.data.id && shipment.deliveryMode === "remoto" && shipment.signature?.status !== "signed");
 
   useEffect(() => {

@@ -27,8 +27,8 @@ export function buildAdminDeclarationHtml(data: {
   return `${currentStatusHtml}<p>Yo, <strong>${data.sender}</strong>, identificado(a) con documento de identidad N° <strong>${data.senderDni}</strong>, en pleno uso de mis facultades, declaro bajo juramento que el envío amparado bajo la Orden N° <strong>${data.order}</strong> (Token de seguridad: ${data.token}) contiene <strong>ÚNICA Y ESTRICTAMENTE DOCUMENTACIÓN LÍCITA</strong>.</p><p>${legal.guarantee}</p><p>${legal.authorities}</p><p>En consecuencia, eximo expresa, legal y totalmente de cualquier implicancia, investigación, responsabilidad operativa o financiera a la empresa <strong>${legalEntity}</strong>. Asimismo, autorizo de manera irrevocable la apertura, revisión física detallada y escaneo del presente envío por parte de la agencia o las autoridades competentes sin necesidad de mi presencia ni notificación previa.</p><p>${legal.originLine} ${data.today}. <strong>${legalEntity}</strong>.</p>`;
 }
 
-export function buildAdminRouteSummaryHtml(routeValue?: string | null, destinationAddress?: string | null, originAddress?: string | null, originPhone?: string | null) {
-  const routeBase = getRoutePresentation(routeValue, destinationAddress);
+export function buildAdminRouteSummaryHtml(routeValue?: string | null, destinationAddress?: string | null, originAddress?: string | null, originPhone?: string | null, originPoint?: string | null, destinationPoint?: string | null) {
+  const routeBase = getRoutePresentation(routeValue, destinationAddress, originAddress, originPoint, destinationPoint);
   const origin = originAddress?.trim()
     ? { ...routeBase.origin, officeLabel: originAddress.trim(), address: originAddress.trim(), phone: originPhone?.trim() || routeBase.origin.phone }
     : routeBase.origin;
@@ -52,6 +52,9 @@ export function buildAdminDeliveryTicketHtml(data: {
   paymentStatus?: string | null;
   route?: string;
   destinationAddress?: string | null;
+  originAddress?: string | null;
+  originPoint?: string | null;
+  destinationPoint?: string | null;
   limaTorinoEncomiendasEnabled?: boolean;
   managementUrl?: string;
   managementQrDataUrl?: string;
@@ -74,7 +77,7 @@ export function buildAdminDeliveryTicketHtml(data: {
   brandName?: string;
   brandRuc?: string;
 }) {
-  const route = getRoutePresentation(data.route, data.destinationAddress);
+  const route = getRoutePresentation(data.route, data.destinationAddress, data.originAddress, data.originPoint, data.destinationPoint);
   const ticketBrandName = data.brandName?.trim() || "Servicom Internacional";
   const ticketBrandLogoPath = data.brandLogoPath?.trim() || "/manus-storage/servicom_logo_final_e7ce35aa.png";
   const ticketBrandRuc = data.brandRuc?.trim() || "20615004708";

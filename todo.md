@@ -2168,3 +2168,10 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 ## Documentación arquitectónica en README
 - [x] Incorporar al README.md el resumen de frontend, backend, base de datos, API, autenticación, pruebas y entornos.
 - [x] Validar el README y sincronizar la documentación con GitHub.
+
+## Coherencia de ruta, moneda y comprobantes
+- [x] Verificar que el recibo y ticket usen exactamente el origen y destino seleccionados.
+- [x] Unificar la moneda mostrada entre registro, rastreo, recibo, ticket y declaración jurada.
+- [x] Mostrar el monto con el símbolo delante, por ejemplo `S/ 470`, `€ 470` o `$ 470`.
+- [x] Añadir regresiones para rutas PEN/EUR/USD y comprobar que no se invierta el formato.
+- [x] Ejecutar pruebas, TypeScript y build; desplegar la versión validada en producción.
