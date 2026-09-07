@@ -521,8 +521,6 @@ export default function AdminDashboard() {
   const [logisticsFilter, setLogisticsFilter] = useState("all");
   const [originFilter, setOriginFilter] = useState("all");
   const [destinationFilter, setDestinationFilter] = useState("all");
-  const [courierFilter, setCourierFilter] = useState("all");
-  const [sedeFilter, setSedeFilter] = useState("all");
   const [deletedSearchTerm, setDeletedSearchTerm] = useState("");
   const [deletedPaymentFilter, setDeletedPaymentFilter] = useState<"all" | "paid" | "unpaid">("all");
   const [deletedLogisticsFilter, setDeletedLogisticsFilter] = useState("all");
@@ -581,21 +579,24 @@ export default function AdminDashboard() {
   const routeShipments = useMemo(() => (shipments ?? []).filter(shipment => matchesOperationalRoute(shipment.route, operationalRoute)), [shipments, operationalRoute]);
   const independentFilterOptions = useMemo(() => {
     const rows = (shipments ?? []) as any[];
-    const endpoints = rows.map((shipment) => normalizeIndependentEndpoints({ route: shipment.route, originPoint: shipment.originPoint, destinationPoint: shipment.destinationPoint }));
-    const couriers = Array.from(new Set(rows.map((shipment) => String(shipment.provinceCarrier || "").trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"));
-    const sedes = Array.from(new Set([...FIXED_SHIPMENT_LOCATIONS.map((location) => location.address), ...rows.flatMap((shipment) => [shipment.originAddress, shipment.destinationAddress]).map((value) => String(value || "").trim()).filter(Boolean)])).sort((a, b) => a.localeCompare(b, "es"));
-    return { endpoints, couriers, sedes };
+    const values = rows.flatMap((shipment) => {
+      const endpoints = normalizeIndependentEndpoints({ route: shipment.route, originPoint: shipment.originPoint, destinationPoint: shipment.destinationPoint });
+      return [endpoints.originPoint, endpoints.destinationPoint, shipment.originAddress, shipment.destinationAddress];
+    }).map((value) => String(value || "").trim()).filter(Boolean);
+    return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b, "es"));
   }, [shipments]);
   const groupedShipments = useMemo(() => (shipments ?? []).filter((shipment: any) => {
     const isDocument = shipment.shipmentType !== "encomienda";
     const groupType = selectedGroupType === "documento" ? isDocument : !isDocument;
     const endpoints = normalizeIndependentEndpoints({ route: shipment.route, originPoint: shipment.originPoint, destinationPoint: shipment.destinationPoint });
-    const originMatches = originFilter === "all" || endpoints.originPoint === originFilter;
-    const destinationMatches = destinationFilter === "all" || endpoints.destinationPoint === destinationFilter;
-    const courierMatches = courierFilter === "all" || String(shipment.provinceCarrier || "") === courierFilter;
-    const sedeMatches = sedeFilter === "all" || shipment.originAddress === sedeFilter || shipment.destinationAddress === sedeFilter;
-    return groupType && originMatches && destinationMatches && courierMatches && sedeMatches;
-  }), [shipments, selectedGroupType, originFilter, destinationFilter, courierFilter, sedeFilter]);
+    const originQuery = originFilter === "all" ? "" : originFilter.trim().toLocaleLowerCase("es");
+    const destinationQuery = destinationFilter === "all" ? "" : destinationFilter.trim().toLocaleLowerCase("es");
+    const originText = [endpoints.originPoint, shipment.originAddress].map(value => String(value || "").toLocaleLowerCase("es")).join(" ");
+    const destinationText = [endpoints.destinationPoint, shipment.destinationAddress].map(value => String(value || "").toLocaleLowerCase("es")).join(" ");
+    const originMatches = !originQuery || originText.includes(originQuery);
+    const destinationMatches = !destinationQuery || destinationText.includes(destinationQuery);
+    return groupType && originMatches && destinationMatches;
+  }), [shipments, selectedGroupType, originFilter, destinationFilter]);
   const adminRevenue = useMemo(() => summarizeRevenue(routeShipments), [routeShipments]);
 
   const filteredDeletedShipments = useMemo(() => {
@@ -1979,7 +1980,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, shipmentGroup, sortOrder, paymentFilter, logisticsFilter, originFilter, destinationFilter, courierFilter, sedeFilter]);
+  }, [searchTerm, shipmentGroup, sortOrder, paymentFilter, logisticsFilter, originFilter, destinationFilter]);
 
   const pagination = paginateItems(sortedShipments, currentPage, pageSize);
   const totalPages = pagination.totalPages;
@@ -3029,14 +3030,13 @@ export default function AdminDashboard() {
                 </div>
                 {selectedGroupType && <div className="rounded-xl border border-slate-200 bg-slate-50 p-3" role="group" aria-label={`Rutas de ${selectedGroupType === 'documento' ? 'documentos' : 'encomiendas'}`}>
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                    <div><p className="text-sm font-semibold text-slate-700">Filtra por parámetros independientes</p><p className="text-xs text-slate-500">Puedes combinar origen, destino, courier y sede sin elegir una ruta técnica.</p></div>
-                    <Button type="button" variant="ghost" size="sm" onClick={() => { setOriginFilter("all"); setDestinationFilter("all"); setCourierFilter("all"); setSedeFilter("all"); }} className="text-[#0B2B5E]">Limpiar filtros</Button>
+                    <div><p className="text-sm font-semibold text-slate-700">Busca por origen y destino</p><p className="text-xs text-slate-500">Escribe una ciudad, provincia, país o dirección; la búsqueda combina los puntos independientes del envío.</p></div>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => { setOriginFilter("all"); setDestinationFilter("all"); }} className="text-[#0B2B5E]">Limpiar</Button>
                   </div>
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <label className="grid gap-1 text-xs font-semibold text-slate-600">Origen<select aria-label="Filtro de origen" value={originFilter} onChange={(event) => setOriginFilter(event.target.value)} className="h-10 rounded-md border border-slate-300 bg-white px-2 text-sm font-normal text-slate-800"><option value="all">Todos los orígenes</option><option value="Torino">Torino</option><option value="Lima">Lima</option><option value="Provincia (Perú)">Provincia (Perú)</option></select></label>
-                    <label className="grid gap-1 text-xs font-semibold text-slate-600">Destino<select aria-label="Filtro de destino" value={destinationFilter} onChange={(event) => setDestinationFilter(event.target.value)} className="h-10 rounded-md border border-slate-300 bg-white px-2 text-sm font-normal text-slate-800"><option value="all">Todos los destinos</option><option value="Torino">Torino</option><option value="Lima">Lima</option><option value="Provincia (Perú)">Provincia (Perú)</option></select></label>
-                    <label className="grid gap-1 text-xs font-semibold text-slate-600">Courier local<select aria-label="Filtro de courier local" value={courierFilter} onChange={(event) => setCourierFilter(event.target.value)} className="h-10 rounded-md border border-slate-300 bg-white px-2 text-sm font-normal text-slate-800"><option value="all">Todos los couriers</option>{independentFilterOptions.couriers.map((courier) => <option key={courier} value={courier}>{courier}</option>)}</select></label>
-                    <label className="grid gap-1 text-xs font-semibold text-slate-600">Sede u origen detallado<select aria-label="Filtro de sede" value={sedeFilter} onChange={(event) => setSedeFilter(event.target.value)} className="h-10 rounded-md border border-slate-300 bg-white px-2 text-sm font-normal text-slate-800"><option value="all">Todas las sedes</option>{independentFilterOptions.sedes.map((sede) => <option key={sede} value={sede}>{sede}</option>)}</select></label>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="grid gap-1 text-xs font-semibold text-slate-600">Origen<Input aria-label="Búsqueda difusa de origen" list="admin-independent-location-options" value={originFilter === "all" ? "" : originFilter} onChange={(event) => setOriginFilter(event.target.value)} placeholder="Buscar origen…" className="h-10 bg-white text-sm font-normal text-slate-800" /></label>
+                    <label className="grid gap-1 text-xs font-semibold text-slate-600">Destino<Input aria-label="Búsqueda difusa de destino" list="admin-independent-location-options" value={destinationFilter === "all" ? "" : destinationFilter} onChange={(event) => setDestinationFilter(event.target.value)} placeholder="Buscar destino…" className="h-10 bg-white text-sm font-normal text-slate-800" /></label>
+                    <datalist id="admin-independent-location-options">{independentFilterOptions.map((location) => <option key={location} value={location} />)}</datalist>
                   </div>
                 </div>}
               </div>

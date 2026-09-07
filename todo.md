@@ -2182,3 +2182,8 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Usar origen y destino exactos en recibo electrónico, ticket y declaración jurada.
 - [x] Hacer que apostillado y traducción respeten la denominación seleccionada y sus precios de 40 EUR y 50 EUR por defecto.
 - [x] Añadir regresiones, ejecutar pruebas y desplegar la corrección en producción.
+
+## Filtro administrativo solo por origen y destino
+- [x] Reemplazar los filtros de courier y sede por búsqueda difusa únicamente de origen y destino.
+- [x] Eliminar las X y controles visuales sobrantes del bloque de filtros.
+- [x] Validar que el filtrado por origen y destino conserve los registros correctos y publicar el cambio.
