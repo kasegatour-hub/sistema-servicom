@@ -9,12 +9,12 @@ describe("precios EUR/PEN por ruta", () => {
   it("usa soles para una ruta peruana histórica", () => {
     const shipment = { route: "Provincia - Lima" };
     expect(resolveShipmentPricingCurrency(shipment)).toBe("PEN");
-    expect(formatShipmentAmount(25, shipment)).toBe("25.00 S/");
+    expect(formatShipmentAmount(25, shipment)).toBe("S/ 25.00");
   });
 
   it("usa euros para una ruta internacional", () => {
     const shipment = { route: "Torino - Lima" };
     expect(resolveShipmentPricingCurrency(shipment)).toBe("EUR");
-    expect(formatShipmentAmount(25, shipment)).toBe("25.00 EUR");
+    expect(formatShipmentAmount(25, shipment)).toBe("€ 25.00");
   });
 });

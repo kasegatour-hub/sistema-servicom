@@ -241,8 +241,8 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
     await screen.findByRole("textbox", { name: "Buscar registros" });
     fireEvent.click(screen.getByRole("button", { name: /Documentos/ }));
-    fireEvent.change(screen.getByRole("combobox", { name: "Filtro de origen" }), { target: { value: "Torino" } });
-    fireEvent.change(screen.getByRole("combobox", { name: "Filtro de destino" }), { target: { value: "Lima" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "Búsqueda difusa de origen" }), { target: { value: "Torino" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "Búsqueda difusa de destino" }), { target: { value: "Lima" } });
 
     fireEvent.click(screen.getByRole("button", { name: "Ver datos completos" }));
     const detailsDialog = screen.getByRole("dialog", { name: "Datos completos" });
@@ -268,8 +268,8 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
     await screen.findByRole("textbox", { name: "Buscar registros" });
     fireEvent.click(screen.getByRole("button", { name: /Encomiendas/ }));
-    fireEvent.change(screen.getByRole("combobox", { name: "Filtro de origen" }), { target: { value: "Lima" } });
-    fireEvent.change(screen.getByRole("combobox", { name: "Filtro de destino" }), { target: { value: "Torino" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "Búsqueda difusa de origen" }), { target: { value: "Lima" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "Búsqueda difusa de destino" }), { target: { value: "Torino" } });
 
     const card = await screen.findByRole("article", { name: "Registro 0826-0019" });
     expect(within(card).getByText("Deys Juana Eguia Huaylinos")).toBeTruthy();
@@ -870,6 +870,7 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.change(documentLastNames[1], { target: { value: "Rossi" } });
     fireEvent.change(screen.getByLabelText("Documento de destinatario - número de identificación"), { target: { value: "71234567" } });
     fireEvent.change(document.getElementById("admin-recipient-phone") as HTMLInputElement, { target: { value: "945612378" } });
+    fireEvent.change(screen.getByRole("searchbox", { name: "Buscar documento" }), { target: { value: "nacimiento" } });
     fireEvent.click(screen.getByLabelText("Acta de nacimiento"));
     fireEvent.click(screen.getByRole("combobox", { name: "Estado de Pago" }));
     fireEvent.click(screen.getByRole("option", { name: "Pagado" }));
@@ -935,16 +936,18 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
     await waitFor(() => expect(screen.getByRole("button", { name: /Documentos/ })).toBeTruthy());
     fireEvent.click(screen.getByRole("button", { name: /Documentos/ }));
-    expect(screen.getByRole("combobox", { name: "Filtro de origen" })).toBeTruthy();
-    expect(screen.getByRole("combobox", { name: "Filtro de destino" })).toBeTruthy();
+    expect(screen.getByRole("combobox", { name: "Búsqueda difusa de origen" })).toBeTruthy();
+    expect(screen.getByRole("combobox", { name: "Búsqueda difusa de destino" })).toBeTruthy();
+    expect(screen.queryByRole("combobox", { name: "Filtro de courier local" })).toBeNull();
+    expect(screen.queryByRole("combobox", { name: "Filtro de sede" })).toBeNull();
     expect(screen.getByRole("heading", { name: "Documentos registrados" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /Encomiendas/ }));
-    fireEvent.change(screen.getByRole("combobox", { name: "Filtro de origen" }), { target: { value: "Torino" } });
-    fireEvent.change(screen.getByRole("combobox", { name: "Filtro de destino" }), { target: { value: "Provincia (Perú)" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "Búsqueda difusa de origen" }), { target: { value: "Torino" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "Búsqueda difusa de destino" }), { target: { value: "Provincia (Perú)" } });
     expect(screen.getByRole("heading", { name: "Encomiendas registradas" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /Documentos/ }));
-    fireEvent.change(screen.getByRole("combobox", { name: "Filtro de origen" }), { target: { value: "Lima" } });
-    fireEvent.change(screen.getByRole("combobox", { name: "Filtro de destino" }), { target: { value: "Torino" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "Búsqueda difusa de origen" }), { target: { value: "Lima" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "Búsqueda difusa de destino" }), { target: { value: "Torino" } });
     expect(screen.getByRole("heading", { name: "Documentos registrados" })).toBeTruthy();
   });
 
@@ -975,8 +978,8 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
     await screen.findByRole("textbox", { name: "Buscar registros" });
     fireEvent.click(screen.getByRole("button", { name: /Encomiendas/ }));
-    fireEvent.change(screen.getByRole("combobox", { name: "Filtro de origen" }), { target: { value: "Torino" } });
-    fireEvent.change(screen.getByRole("combobox", { name: "Filtro de destino" }), { target: { value: "Lima" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "Búsqueda difusa de origen" }), { target: { value: "Torino" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "Búsqueda difusa de destino" }), { target: { value: "Lima" } });
     const shipmentRow = screen.getByText("63526276").closest("tr");
     expect(shipmentRow).toBeTruthy();
     fireEvent.click(within(shipmentRow as HTMLElement).getByRole("button", { name: "Actualizar" }));
@@ -1070,9 +1073,8 @@ describe("AdminDashboard Nueva Encomienda", () => {
     fireEvent.change(screen.getByPlaceholderText("Contraseña"), { target: { value: "password123" } });
     fireEvent.click(screen.getByRole("button", { name: "Iniciar Sesión" }));
     await screen.findByRole("textbox", { name: "Buscar registros" });
-    fireEvent.change(screen.getByRole("combobox", { name: "Filtro de origen" }), { target: { value: "Provincia (Perú)" } });
-    fireEvent.change(screen.getByRole("combobox", { name: "Filtro de destino" }), { target: { value: "Lima" } });
-    fireEvent.change(screen.getByRole("combobox", { name: "Filtro de courier local" }), { target: { value: "shalom" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "Búsqueda difusa de origen" }), { target: { value: "Arequipa" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "Búsqueda difusa de destino" }), { target: { value: "Jr. de la Unión" } });
     const row = await screen.findByText("0926-0040");
     expect(row.closest("tr")).toBeTruthy();
     fireEvent.click(within(row.closest("tr") as HTMLElement).getByRole("button", { name: "Ver datos completos" }));

@@ -278,6 +278,11 @@ const createShipmentSchema = z.object({
   requiresTranslationService: z.boolean().default(false),
   serviceManualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
   serviceManualPriceSoles: z.union([z.string(), z.number()]).optional().nullable(),
+  serviceManualPriceCurrency: z.enum(["EUR", "USD", "PEN"]).default("EUR"),
+  apostilleManualPrice: z.union([z.string(), z.number()]).optional().nullable(),
+  apostilleManualCurrency: z.enum(["EUR", "USD", "PEN"]).default("EUR"),
+  translationManualPrice: z.union([z.string(), z.number()]).optional().nullable(),
+  translationManualCurrency: z.enum(["EUR", "USD", "PEN"]).default("EUR"),
   weightKg: z.number().min(0.1).default(1),
   manualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
   manualPriceCurrency: z.enum(["EUR", "USD", "PEN"]).default("EUR"),
@@ -285,6 +290,8 @@ const createShipmentSchema = z.object({
   extraDiscountEur: z.union([z.string(), z.number()]).default(0),
   paymentStatus: z.enum(["Pagado", "Falta cancelar"]).default("Falta cancelar"),
   route: z.string().default("Lima - Torino"),
+  originPoint: z.enum(["Lima", "Torino", "Provincia (Perú)"]).default("Lima"),
+  destinationPoint: z.enum(["Lima", "Torino", "Provincia (Perú)"]).default("Torino"),
   originAddress: z.string().optional(),
   destinationAddress: z.string().optional(),
   isProvinceDelivery: z.boolean().default(false),
@@ -345,8 +352,15 @@ const updateStatusSchema = z.object({
   requiresTranslationService: z.boolean().optional(),
   serviceManualPriceEur: z.union([z.string(), z.number()]).optional().nullable(),
   serviceManualPriceSoles: z.union([z.string(), z.number()]).optional().nullable(),
+  serviceManualPriceCurrency: z.enum(["EUR", "USD", "PEN"]).optional(),
+  apostilleManualPrice: z.union([z.string(), z.number()]).optional().nullable(),
+  apostilleManualCurrency: z.enum(["EUR", "USD", "PEN"]).optional(),
+  translationManualPrice: z.union([z.string(), z.number()]).optional().nullable(),
+  translationManualCurrency: z.enum(["EUR", "USD", "PEN"]).optional(),
   paymentStatus: z.enum(["Pagado", "Falta cancelar"]).optional(),
   route: z.string().optional(),
+  originPoint: z.enum(["Lima", "Torino", "Provincia (Perú)"]).optional(),
+  destinationPoint: z.enum(["Lima", "Torino", "Provincia (Perú)"]).optional(),
   originAddress: z.string().optional(),
   destinationAddress: z.string().optional(),
   weightKg: z.number().min(0.1).optional(),
@@ -515,8 +529,6 @@ export default function AdminDashboard() {
   const [logisticsFilter, setLogisticsFilter] = useState("all");
   const [originFilter, setOriginFilter] = useState("all");
   const [destinationFilter, setDestinationFilter] = useState("all");
-  const [courierFilter, setCourierFilter] = useState("all");
-  const [sedeFilter, setSedeFilter] = useState("all");
   const [deletedSearchTerm, setDeletedSearchTerm] = useState("");
   const [deletedPaymentFilter, setDeletedPaymentFilter] = useState<"all" | "paid" | "unpaid">("all");
   const [deletedLogisticsFilter, setDeletedLogisticsFilter] = useState("all");
@@ -575,21 +587,24 @@ export default function AdminDashboard() {
   const routeShipments = useMemo(() => (shipments ?? []).filter(shipment => matchesOperationalRoute(shipment.route, operationalRoute)), [shipments, operationalRoute]);
   const independentFilterOptions = useMemo(() => {
     const rows = (shipments ?? []) as any[];
-    const endpoints = rows.map((shipment) => normalizeIndependentEndpoints({ route: shipment.route, originPoint: shipment.originPoint, destinationPoint: shipment.destinationPoint }));
-    const couriers = Array.from(new Set(rows.map((shipment) => String(shipment.provinceCarrier || "").trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"));
-    const sedes = Array.from(new Set([...FIXED_SHIPMENT_LOCATIONS.map((location) => location.address), ...rows.flatMap((shipment) => [shipment.originAddress, shipment.destinationAddress]).map((value) => String(value || "").trim()).filter(Boolean)])).sort((a, b) => a.localeCompare(b, "es"));
-    return { endpoints, couriers, sedes };
+    const values = rows.flatMap((shipment) => {
+      const endpoints = normalizeIndependentEndpoints({ route: shipment.route, originPoint: shipment.originPoint, destinationPoint: shipment.destinationPoint });
+      return [endpoints.originPoint, endpoints.destinationPoint, shipment.originAddress, shipment.destinationAddress];
+    }).map((value) => String(value || "").trim()).filter(Boolean);
+    return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b, "es"));
   }, [shipments]);
   const groupedShipments = useMemo(() => (shipments ?? []).filter((shipment: any) => {
     const isDocument = shipment.shipmentType !== "encomienda";
     const groupType = selectedGroupType === "documento" ? isDocument : !isDocument;
     const endpoints = normalizeIndependentEndpoints({ route: shipment.route, originPoint: shipment.originPoint, destinationPoint: shipment.destinationPoint });
-    const originMatches = originFilter === "all" || endpoints.originPoint === originFilter;
-    const destinationMatches = destinationFilter === "all" || endpoints.destinationPoint === destinationFilter;
-    const courierMatches = courierFilter === "all" || String(shipment.provinceCarrier || "") === courierFilter;
-    const sedeMatches = sedeFilter === "all" || shipment.originAddress === sedeFilter || shipment.destinationAddress === sedeFilter;
-    return groupType && originMatches && destinationMatches && courierMatches && sedeMatches;
-  }), [shipments, selectedGroupType, originFilter, destinationFilter, courierFilter, sedeFilter]);
+    const originQuery = originFilter === "all" ? "" : originFilter.trim().toLocaleLowerCase("es");
+    const destinationQuery = destinationFilter === "all" ? "" : destinationFilter.trim().toLocaleLowerCase("es");
+    const originText = [endpoints.originPoint, shipment.originAddress].map(value => String(value || "").toLocaleLowerCase("es")).join(" ");
+    const destinationText = [endpoints.destinationPoint, shipment.destinationAddress].map(value => String(value || "").toLocaleLowerCase("es")).join(" ");
+    const originMatches = !originQuery || originText.includes(originQuery);
+    const destinationMatches = !destinationQuery || destinationText.includes(destinationQuery);
+    return groupType && originMatches && destinationMatches;
+  }), [shipments, selectedGroupType, originFilter, destinationFilter]);
   const adminRevenue = useMemo(() => summarizeRevenue(routeShipments), [routeShipments]);
 
   const filteredDeletedShipments = useMemo(() => {
@@ -753,12 +768,15 @@ export default function AdminDashboard() {
       requiresTranslationService: false,
       serviceManualPriceEur: '',
       serviceManualPriceSoles: '',
+      serviceManualPriceCurrency: 'EUR',
       weightKg: 1,
       manualPriceEur: '',
       extraPriceEur: 0,
       extraDiscountEur: 0,
       paymentStatus: 'Falta cancelar',
       route: 'Lima - Torino',
+      originPoint: 'Lima',
+      destinationPoint: 'Torino',
       isProvinceDelivery: false,
       provinceCustomerPriceEur: '',
       provinceOperationalCostSoles: '',
@@ -791,7 +809,7 @@ export default function AdminDashboard() {
 
   const resetCreateForm = () => {
     generatedCreateNoteRef.current = "";
-    createForm.reset({ status: "En agencia", senderName: "", senderLastName: "", senderDni: "", senderDocumentType: "dni_peru", senderPhone: "", recipientName: "", recipientLastName: "", recipientDni: "", recipientDocumentType: "dni_peru", recipientPhone: "", notes: "", shipmentType: "documento", documentCount: 1, docType: "apostillado", sheetCount: 1, requiresApostilleService: false, requiresTranslationService: false, serviceManualPriceEur: "", serviceManualPriceSoles: "", weightKg: 1, manualPriceEur: "", manualPriceCurrency: "EUR", extraPriceEur: 0, extraDiscountEur: 0, paymentStatus: "Falta cancelar", route: "Lima - Torino", originAddress: getDefaultShipmentAddresses("Lima - Torino", getAdminShipmentBrand(admin?.id, admin?.email)).originAddress, destinationAddress: getDefaultShipmentAddresses("Lima - Torino", getAdminShipmentBrand(admin?.id, admin?.email)).destinationAddress, isProvinceDelivery: false, provinceCustomerPriceEur: "", provinceExtraPriceEur: "", provinceOperationalCostSoles: "", provinceCarrier: "shalom", provinceSenderName: "", provinceSenderLastName: "", provinceSenderDni: "", provinceSenderPhone: "", couponCode: "", documentItems: [], contentChecklist: [], missingItems: [], deliveryMode: "agencia", limaTorinoTransferMode: undefined, deliveryPersonName: "", deliveryPersonLastName: "", deliveryPersonDni: "", deliveryPersonPhone: "", deliveryLocationType: "direccion", deliveryLocationAddress: "", deliveryLocationLatitude: null, deliveryLocationLongitude: null });
+    createForm.reset({ status: "En agencia", senderName: "", senderLastName: "", senderDni: "", senderDocumentType: "dni_peru", senderPhone: "", recipientName: "", recipientLastName: "", recipientDni: "", recipientDocumentType: "dni_peru", recipientPhone: "", notes: "", shipmentType: "documento", documentCount: 1, docType: "apostillado", sheetCount: 1, requiresApostilleService: false, requiresTranslationService: false, serviceManualPriceEur: "", serviceManualPriceSoles: "", serviceManualPriceCurrency: "EUR", apostilleManualPrice: "", apostilleManualCurrency: "EUR", translationManualPrice: "", translationManualCurrency: "EUR", weightKg: 1, manualPriceEur: "", manualPriceCurrency: "EUR", extraPriceEur: 0, extraDiscountEur: 0, paymentStatus: "Falta cancelar", route: "Lima - Torino", originAddress: getDefaultShipmentAddresses("Lima - Torino", getAdminShipmentBrand(admin?.id, admin?.email)).originAddress, destinationAddress: getDefaultShipmentAddresses("Lima - Torino", getAdminShipmentBrand(admin?.id, admin?.email)).destinationAddress, isProvinceDelivery: false, provinceCustomerPriceEur: "", provinceExtraPriceEur: "", provinceOperationalCostSoles: "", provinceCarrier: "shalom", provinceSenderName: "", provinceSenderLastName: "", provinceSenderDni: "", provinceSenderPhone: "", couponCode: "", documentItems: [], contentChecklist: [], missingItems: [], deliveryMode: "agencia", limaTorinoTransferMode: undefined, deliveryPersonName: "", deliveryPersonLastName: "", deliveryPersonDni: "", deliveryPersonPhone: "", deliveryLocationType: "direccion", deliveryLocationAddress: "", deliveryLocationLatitude: null, deliveryLocationLongitude: null });
     setSenderClientQuery("");
     setRecipientClientQuery("");
     setAdditionalDocumentItems([]);
@@ -844,6 +862,11 @@ export default function AdminDashboard() {
     requiresTranslationService: Boolean(createForm.watch("requiresTranslationService")),
     serviceManualPriceEur: createForm.watch("serviceManualPriceEur"),
     serviceManualPriceSoles: createForm.watch("serviceManualPriceSoles"),
+    serviceManualPriceCurrency: createForm.watch("serviceManualPriceCurrency"),
+    apostilleManualPrice: createForm.watch("apostilleManualPrice"),
+    apostilleManualCurrency: createForm.watch("apostilleManualCurrency"),
+    translationManualPrice: createForm.watch("translationManualPrice"),
+    translationManualCurrency: createForm.watch("translationManualCurrency"),
     isProvinceDelivery: watchedProvinceEnabled,
     provinceCustomerPriceEur: createForm.watch("provinceCustomerPriceEur"),
     provinceExtraPriceEur: createForm.watch("provinceExtraPriceEur"),
@@ -852,7 +875,7 @@ export default function AdminDashboard() {
     workspaceAdminId: admin?.id,
     workspaceAdminEmail: admin?.email,
     notes: extractFreeformShipmentNotes(createForm.watch("notes"), generatedCreateNoteRef.current),
-  }), [selectedShipmentType, selectedDocType, selectedRoute, watchedOriginAddress, watchedDestinationAddress, additionalDocumentItems, watchedWeightKg, watchedProvinceEnabled, watchedProvinceExtraPrice, admin?.id, admin?.email, createForm.watch("sheetCount"), createForm.watch("manualPriceEur"), createForm.watch("manualPriceCurrency"), createForm.watch("extraPriceEur"), createForm.watch("extraDiscountEur"), createForm.watch("requiresApostilleService"), createForm.watch("requiresTranslationService"), createForm.watch("serviceManualPriceEur"), createForm.watch("serviceManualPriceSoles"), createForm.watch("provinceCustomerPriceEur"), createForm.watch("provinceExtraPriceEur"), createForm.watch("provinceOperationalCostSoles"), createForm.watch("provinceCarrier"), createForm.watch("notes")]);
+  }), [selectedShipmentType, selectedDocType, selectedRoute, watchedOriginAddress, watchedDestinationAddress, additionalDocumentItems, watchedWeightKg, watchedProvinceEnabled, watchedProvinceExtraPrice, admin?.id, admin?.email, createForm.watch("sheetCount"), createForm.watch("manualPriceEur"), createForm.watch("manualPriceCurrency"), createForm.watch("extraPriceEur"), createForm.watch("extraDiscountEur"), createForm.watch("requiresApostilleService"), createForm.watch("requiresTranslationService"), createForm.watch("serviceManualPriceEur"), createForm.watch("serviceManualPriceSoles"), createForm.watch("serviceManualPriceCurrency"), createForm.watch("apostilleManualPrice"), createForm.watch("apostilleManualCurrency"), createForm.watch("translationManualPrice"), createForm.watch("translationManualCurrency"), createForm.watch("provinceCustomerPriceEur"), createForm.watch("provinceExtraPriceEur"), createForm.watch("provinceOperationalCostSoles"), createForm.watch("provinceCarrier"), createForm.watch("notes")]);
   useEffect(() => {
     const currentNotes = String(createForm.getValues("notes") ?? "");
     const freeformNotes = extractFreeformShipmentNotes(currentNotes, generatedCreateNoteRef.current);
@@ -956,6 +979,11 @@ export default function AdminDashboard() {
                    requiresTranslationService: false,
                    serviceManualPriceEur: '',
                    serviceManualPriceSoles: '',
+                   serviceManualPriceCurrency: 'EUR',
+                   apostilleManualPrice: '',
+                   apostilleManualCurrency: 'EUR',
+                   translationManualPrice: '',
+                   translationManualCurrency: 'EUR',
                    paymentStatus: 'Falta cancelar',
       route: 'Lima - Torino',
       originAddress: '',
@@ -1009,6 +1037,11 @@ export default function AdminDashboard() {
     requiresTranslationService: Boolean(updateForm.watch("requiresTranslationService")),
     serviceManualPriceEur: updateForm.watch("serviceManualPriceEur"),
     serviceManualPriceSoles: updateForm.watch("serviceManualPriceSoles"),
+    serviceManualPriceCurrency: updateForm.watch("serviceManualPriceCurrency"),
+    apostilleManualPrice: updateForm.watch("apostilleManualPrice"),
+    apostilleManualCurrency: updateForm.watch("apostilleManualCurrency"),
+    translationManualPrice: updateForm.watch("translationManualPrice"),
+    translationManualCurrency: updateForm.watch("translationManualCurrency"),
     isProvinceDelivery: updateProvinceEnabled,
     provinceCustomerPriceEur: updateForm.watch("provinceCustomerPriceEur"),
     provinceExtraPriceEur: updateForm.watch("provinceExtraPriceEur"),
@@ -1017,7 +1050,7 @@ export default function AdminDashboard() {
     workspaceAdminId: admin?.id,
     workspaceAdminEmail: admin?.email,
     notes: extractFreeformShipmentNotes(updateForm.watch("notes"), generatedUpdateNoteRef.current),
-  }), [updateShipmentType, updateShipmentRoute, updateProvinceWeight, updateProvinceEnabled, admin?.id, admin?.email, updateForm.watch("docType"), updateForm.watch("sheetCount"), updateForm.watch("pricingMode"), updateForm.watch("manualPriceEur"), updateForm.watch("manualPriceCurrency"), updateForm.watch("extraPriceEur"), updateForm.watch("extraDiscountEur"), updateForm.watch("requiresApostilleService"), updateForm.watch("requiresTranslationService"), updateForm.watch("serviceManualPriceEur"), updateForm.watch("serviceManualPriceSoles"), updateForm.watch("provinceCustomerPriceEur"), updateForm.watch("provinceExtraPriceEur"), updateForm.watch("provinceOperationalCostSoles"), updateForm.watch("provinceCarrier"), updateForm.watch("notes")]);
+  }), [updateShipmentType, updateShipmentRoute, updateProvinceWeight, updateProvinceEnabled, admin?.id, admin?.email, updateForm.watch("docType"), updateForm.watch("sheetCount"), updateForm.watch("pricingMode"), updateForm.watch("manualPriceEur"), updateForm.watch("manualPriceCurrency"), updateForm.watch("extraPriceEur"), updateForm.watch("extraDiscountEur"), updateForm.watch("requiresApostilleService"), updateForm.watch("requiresTranslationService"), updateForm.watch("serviceManualPriceEur"), updateForm.watch("serviceManualPriceSoles"), updateForm.watch("serviceManualPriceCurrency"), updateForm.watch("apostilleManualPrice"), updateForm.watch("apostilleManualCurrency"), updateForm.watch("translationManualPrice"), updateForm.watch("translationManualCurrency"), updateForm.watch("provinceCustomerPriceEur"), updateForm.watch("provinceExtraPriceEur"), updateForm.watch("provinceOperationalCostSoles"), updateForm.watch("provinceCarrier"), updateForm.watch("notes")]);
   const updateVisibleParcelTotal = updatePricingPreview.totalEur;
 
   useEffect(() => {
@@ -1056,8 +1089,15 @@ export default function AdminDashboard() {
       requiresTranslationService: shipment.requiresTranslationService === 1,
       serviceManualPriceEur: shipment.serviceManualPriceEur || "",
       serviceManualPriceSoles: shipment.serviceManualPriceSoles || "",
+      serviceManualPriceCurrency: shipment.serviceManualPriceCurrency || "EUR",
+      apostilleManualPrice: shipment.apostilleManualPrice ?? "",
+      apostilleManualCurrency: shipment.apostilleManualCurrency || "EUR",
+      translationManualPrice: shipment.translationManualPrice ?? "",
+      translationManualCurrency: shipment.translationManualCurrency || "EUR",
       paymentStatus: shipment.paymentStatus || "Falta cancelar",
       route: Boolean(shipment.isProvinceDelivery) && shipment.route === SHIPMENT_ROUTES.TORINO_LIMA ? SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE : shipment.route || SHIPMENT_ROUTES.LIMA_TORINO,
+      originPoint: shipment.originPoint || "Lima",
+      destinationPoint: shipment.destinationPoint || "Torino",
       originAddress: shipment.originAddress || "",
       destinationAddress: shipment.destinationAddress || "",
       weightKg: Number(shipment.weightKg || 1),
@@ -1433,6 +1473,14 @@ export default function AdminDashboard() {
         docType: "apostillado",
         sheetCount: 1,
         requiresApostilleService: false,
+        requiresTranslationService: false,
+        serviceManualPriceEur: "",
+        serviceManualPriceSoles: "",
+        serviceManualPriceCurrency: "EUR",
+        apostilleManualPrice: "",
+        apostilleManualCurrency: "EUR",
+        translationManualPrice: "",
+        translationManualCurrency: "EUR",
         weightKg: 1,
         manualPriceEur: "",
         extraPriceEur: 0,
@@ -1597,7 +1645,7 @@ export default function AdminDashboard() {
         shipmentType: printShipment.shipmentType,
       });
       const receiptDestinationAddress = branding.isKasega ? branding.destinationAddress : printShipment.destinationAddress;
-      const routePresentation = getRoutePresentation(printShipment.route, receiptDestinationAddress);
+      const routePresentation = getRoutePresentation(printShipment.route, receiptDestinationAddress, printShipment.originAddress, printShipment.originPoint, printShipment.destinationPoint);
       const paymentPrint = getPaymentPrintPresentation(printShipment.paymentStatus);
       const paymentIsPaid = paymentPrint.isPaid;
       const paymentIsPending = paymentPrint.isPending;
@@ -1684,7 +1732,7 @@ export default function AdminDashboard() {
 
           <div class="main-title">INFORMACIÓN DE ENVÍO DE ${printShipment.shipmentType === 'encomienda' ? 'ENCOMIENDA' : 'DOCUMENTO'} — ${routePresentation.route}</div>
 
-          ${buildAdminRouteSummaryHtml(printShipment.route, receiptDestinationAddress, branding.isKasega ? branding.address : null, branding.isKasega ? branding.phone : null)}
+          ${buildAdminRouteSummaryHtml(printShipment.route, receiptDestinationAddress, branding.isKasega ? branding.address : printShipment.originAddress, branding.isKasega ? branding.phone : null, printShipment.originPoint, printShipment.destinationPoint)}
 
           <div class="section">
             <div class="row"><div class="label">Orden:</div><div class="value">${printShipment.orderNumber}</div><div class="label" style="margin-left:20px">Cód. Envío:</div><div class="value">${printShipment.code}</div></div>
@@ -1742,6 +1790,9 @@ export default function AdminDashboard() {
             price: printShipment,
             paymentStatus: printShipment.paymentStatus,
             route: printShipment.route,
+            originAddress: printShipment.originAddress,
+            originPoint: printShipment.originPoint,
+            destinationPoint: printShipment.destinationPoint,
             limaTorinoEncomiendasEnabled,
             managementUrl,
             isProvinceDelivery: printShipment.isProvinceDelivery,
@@ -1957,7 +2008,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, shipmentGroup, sortOrder, paymentFilter, logisticsFilter, originFilter, destinationFilter, courierFilter, sedeFilter]);
+  }, [searchTerm, shipmentGroup, sortOrder, paymentFilter, logisticsFilter, originFilter, destinationFilter]);
 
   const pagination = paginateItems(sortedShipments, currentPage, pageSize);
   const totalPages = pagination.totalPages;
@@ -2189,7 +2240,7 @@ export default function AdminDashboard() {
 
       {/* Header */}
       <header className="bg-primary text-white shadow-md sticky top-0 z-40">
-        <div className="mx-auto flex w-[min(96vw,1560px)] flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-5">
+        <div className="flex w-full flex-col gap-4 px-3 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-5 lg:px-7">
           <div className="min-w-0">
             <h1 className="text-2xl font-bold leading-tight sm:text-3xl">Panel de Administración</h1>
             <p className="mt-1 max-w-xl text-sm leading-5 opacity-90">Servicom Internacional - Gestión de Encomiendas</p>
@@ -2237,7 +2288,7 @@ export default function AdminDashboard() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-8">
+      <main className="w-full max-w-none px-3 py-6 sm:px-5 lg:px-7 lg:py-8">
         {!showAdminProfile && <Card className="mb-6 border-0 p-4 shadow-sm" aria-label="Áreas de trabajo">
           <div className="flex flex-wrap items-center gap-2">
             {([
@@ -2499,6 +2550,8 @@ export default function AdminDashboard() {
                     <IndependentEndpointsFields route={selectedRoute} onRouteChange={(nextRoute, endpoints, locations) => {
                       const provinceRoute = endpoints.originPoint === "Provincia (Perú)" || endpoints.destinationPoint === "Provincia (Perú)";
                       createForm.setValue("route", nextRoute, { shouldValidate: true, shouldDirty: true });
+                      createForm.setValue("originPoint", endpoints.originPoint, { shouldValidate: true, shouldDirty: true });
+                      createForm.setValue("destinationPoint", endpoints.destinationPoint, { shouldValidate: true, shouldDirty: true });
                       createForm.setValue("isProvinceDelivery", provinceRoute, { shouldValidate: true, shouldDirty: true });
                       const defaults = getDefaultShipmentAddresses(nextRoute, getAdminShipmentBrand(admin?.id, admin?.email));
                       createForm.setValue("originAddress", locations?.origin.detail || defaults.originAddress, { shouldValidate: true, shouldDirty: true });
@@ -2612,12 +2665,16 @@ export default function AdminDashboard() {
                   </div>
                                      {selectedShipmentType === "documento" && (
                      <>
-                       <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border-2 border-[#0B2B5E] bg-blue-50 p-4 text-sm shadow-sm transition hover:bg-blue-100/70">
-                         <input type="checkbox" aria-label="Documentos para apostillar" {...createForm.register("requiresApostilleService")} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-[#0B2B5E] focus:ring-[#0B2B5E]" />
-                         <span><strong className="block text-base text-[#0B2B5E]">Documentos para apostillar</strong><span className="mt-1 block text-slate-700">Tarifa estándar: 40 EUR; el equivalente en soles se calcula con el BCRP + 0,15 por EUR.</span></span>
-                       </label>
-                       <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm"><input type="checkbox" aria-label="Servicio de traducción" {...createForm.register("requiresTranslationService")} className="mt-0.5 h-5 w-5" /><span><strong className="block text-base text-[#0B2B5E]">Traducción</strong><span className="mt-1 block text-slate-700">Tarifa estándar: 50 EUR; el equivalente en soles se calcula con el BCRP + 0,15 por EUR.</span></span></label>
-                       <div className="mt-3 grid gap-3 sm:grid-cols-2"><div><label className="mb-2 block text-sm font-medium text-gray-700">Precio manual del servicio (EUR)</label><Input type="number" min="0" step="0.01" placeholder="Apostilla: 40" {...createForm.register("serviceManualPriceEur")} /></div><div><label className="mb-2 block text-sm font-medium text-gray-700">Precio manual del servicio (soles)</label><Input type="number" min="0" step="0.01" placeholder="Apostilla: 160 / Traducción: 200" {...createForm.register("serviceManualPriceSoles")} /></div></div>
+                       <div className="mt-4 grid gap-3 md:grid-cols-2">
+                         <div className="rounded-xl border-2 border-[#0B2B5E] bg-blue-50 p-4">
+                           <label className="flex cursor-pointer items-start gap-3 text-sm"><input type="checkbox" aria-label="Documentos para apostillar" {...createForm.register("requiresApostilleService")} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-[#0B2B5E] focus:ring-[#0B2B5E]" /><span><strong className="block text-base text-[#0B2B5E]">Apostillado</strong><span className="mt-1 block text-slate-700">Servicio estándar: 40 EUR. El precio manual es opcional.</span></span></label>
+                           {Boolean(createForm.watch("requiresApostilleService")) && <div className="mt-3 rounded-lg border border-blue-200 bg-white p-3"><Button type="button" variant="outline" className="w-full border-[#0B2B5E] text-[#0B2B5E]" onClick={() => createForm.setValue("apostilleManualPrice", createForm.getValues("apostilleManualPrice") || "", { shouldDirty: true })}>Precio manual opcional</Button><div className="mt-3 grid gap-2 sm:grid-cols-2"><select aria-label="Moneda del precio manual de apostillado" {...createForm.register("apostilleManualCurrency")} className="h-10 rounded-md border-2 border-slate-200 bg-white px-3 font-semibold text-[#0B2B5E]"><option value="EUR">EUR €</option><option value="USD">USD $</option><option value="PEN">PEN S/</option></select><Input type="number" min="0" step="0.01" placeholder="40.00" {...createForm.register("apostilleManualPrice")} /></div></div>}
+                         </div>
+                         <div className="rounded-xl border-2 border-amber-300 bg-amber-50 p-4">
+                           <label className="flex cursor-pointer items-start gap-3 text-sm"><input type="checkbox" aria-label="Servicio de traducción" {...createForm.register("requiresTranslationService")} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-amber-700 focus:ring-amber-600" /><span><strong className="block text-base text-[#0B2B5E]">Traducción</strong><span className="mt-1 block text-slate-700">Servicio estándar: 50 EUR. El precio manual es opcional.</span></span></label>
+                           {Boolean(createForm.watch("requiresTranslationService")) && <div className="mt-3 rounded-lg border border-amber-200 bg-white p-3"><Button type="button" variant="outline" className="w-full border-amber-500 text-amber-800" onClick={() => createForm.setValue("translationManualPrice", createForm.getValues("translationManualPrice") || "", { shouldDirty: true })}>Precio manual opcional</Button><div className="mt-3 grid gap-2 sm:grid-cols-2"><select aria-label="Moneda del precio manual de traducción" {...createForm.register("translationManualCurrency")} className="h-10 rounded-md border-2 border-slate-200 bg-white px-3 font-semibold text-[#0B2B5E]"><option value="EUR">EUR €</option><option value="USD">USD $</option><option value="PEN">PEN S/</option></select><Input type="number" min="0" step="0.01" placeholder="50.00" {...createForm.register("translationManualPrice")} /></div></div>}
+                         </div>
+                       </div>
                      </>
                    )}
                    <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50/60 p-4">
@@ -3005,14 +3062,13 @@ export default function AdminDashboard() {
                 </div>
                 {selectedGroupType && <div className="rounded-xl border border-slate-200 bg-slate-50 p-3" role="group" aria-label={`Rutas de ${selectedGroupType === 'documento' ? 'documentos' : 'encomiendas'}`}>
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                    <div><p className="text-sm font-semibold text-slate-700">Filtra por parámetros independientes</p><p className="text-xs text-slate-500">Puedes combinar origen, destino, courier y sede sin elegir una ruta técnica.</p></div>
-                    <Button type="button" variant="ghost" size="sm" onClick={() => { setOriginFilter("all"); setDestinationFilter("all"); setCourierFilter("all"); setSedeFilter("all"); }} className="text-[#0B2B5E]">Limpiar filtros</Button>
+                    <div><p className="text-sm font-semibold text-slate-700">Busca por origen y destino</p><p className="text-xs text-slate-500">Escribe una ciudad, provincia, país o dirección; la búsqueda combina los puntos independientes del envío.</p></div>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => { setOriginFilter("all"); setDestinationFilter("all"); }} className="text-[#0B2B5E]">Limpiar</Button>
                   </div>
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <label className="grid gap-1 text-xs font-semibold text-slate-600">Origen<select aria-label="Filtro de origen" value={originFilter} onChange={(event) => setOriginFilter(event.target.value)} className="h-10 rounded-md border border-slate-300 bg-white px-2 text-sm font-normal text-slate-800"><option value="all">Todos los orígenes</option><option value="Torino">Torino</option><option value="Lima">Lima</option><option value="Provincia (Perú)">Provincia (Perú)</option></select></label>
-                    <label className="grid gap-1 text-xs font-semibold text-slate-600">Destino<select aria-label="Filtro de destino" value={destinationFilter} onChange={(event) => setDestinationFilter(event.target.value)} className="h-10 rounded-md border border-slate-300 bg-white px-2 text-sm font-normal text-slate-800"><option value="all">Todos los destinos</option><option value="Torino">Torino</option><option value="Lima">Lima</option><option value="Provincia (Perú)">Provincia (Perú)</option></select></label>
-                    <label className="grid gap-1 text-xs font-semibold text-slate-600">Courier local<select aria-label="Filtro de courier local" value={courierFilter} onChange={(event) => setCourierFilter(event.target.value)} className="h-10 rounded-md border border-slate-300 bg-white px-2 text-sm font-normal text-slate-800"><option value="all">Todos los couriers</option>{independentFilterOptions.couriers.map((courier) => <option key={courier} value={courier}>{courier}</option>)}</select></label>
-                    <label className="grid gap-1 text-xs font-semibold text-slate-600">Sede u origen detallado<select aria-label="Filtro de sede" value={sedeFilter} onChange={(event) => setSedeFilter(event.target.value)} className="h-10 rounded-md border border-slate-300 bg-white px-2 text-sm font-normal text-slate-800"><option value="all">Todas las sedes</option>{independentFilterOptions.sedes.map((sede) => <option key={sede} value={sede}>{sede}</option>)}</select></label>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="grid gap-1 text-xs font-semibold text-slate-600">Origen<Input aria-label="Búsqueda difusa de origen" list="admin-independent-location-options" value={originFilter === "all" ? "" : originFilter} onChange={(event) => setOriginFilter(event.target.value)} placeholder="Buscar origen…" className="h-10 bg-white text-sm font-normal text-slate-800" /></label>
+                    <label className="grid gap-1 text-xs font-semibold text-slate-600">Destino<Input aria-label="Búsqueda difusa de destino" list="admin-independent-location-options" value={destinationFilter === "all" ? "" : destinationFilter} onChange={(event) => setDestinationFilter(event.target.value)} placeholder="Buscar destino…" className="h-10 bg-white text-sm font-normal text-slate-800" /></label>
+                    <datalist id="admin-independent-location-options">{independentFilterOptions.map((location) => <option key={location} value={location} />)}</datalist>
                   </div>
                 </div>}
               </div>
@@ -3327,6 +3383,8 @@ export default function AdminDashboard() {
                     <IndependentEndpointsFields route={updateForm.watch("route")} onRouteChange={(nextRoute, endpoints, locations) => {
                       const provinceRoute = endpoints.originPoint === "Provincia (Perú)" || endpoints.destinationPoint === "Provincia (Perú)";
                       updateForm.setValue("route", nextRoute, { shouldValidate: true, shouldDirty: true });
+                      updateForm.setValue("originPoint", endpoints.originPoint, { shouldValidate: true, shouldDirty: true });
+                      updateForm.setValue("destinationPoint", endpoints.destinationPoint, { shouldValidate: true, shouldDirty: true });
                       updateForm.setValue("isProvinceDelivery", provinceRoute, { shouldValidate: true, shouldDirty: true });
                       const defaults = getDefaultShipmentAddresses(nextRoute, getAdminShipmentBrand(admin?.id, admin?.email));
                       updateForm.setValue("originAddress", locations?.origin.detail || defaults.originAddress, { shouldValidate: true, shouldDirty: true });
@@ -3388,15 +3446,10 @@ export default function AdminDashboard() {
                       </select>
                     </div>
                     {updateForm.watch("shipmentType") === "documento" && <div className="md:col-span-2 grid gap-3 sm:grid-cols-2">
-                      <label className="flex cursor-pointer items-start gap-3 rounded-xl border-2 border-[#0B2B5E] bg-blue-50 p-4 text-sm shadow-sm transition hover:bg-blue-100/70">
-                        <input type="checkbox" aria-label="Documentos para apostillar" {...updateForm.register("requiresApostilleService")} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-[#0B2B5E] focus:ring-[#0B2B5E]" />
-                        <span><strong className="block text-base text-[#0B2B5E]">Documentos para apostillar</strong><span className="mt-1 block text-slate-700">+40 EUR · soles calculados con BCRP + 0,15 por EUR · plazo referencial: 7 días hábiles.</span></span>
-                      </label>
-                      <label className="flex cursor-pointer items-start gap-3 rounded-xl border-2 border-amber-300 bg-amber-50 p-4 text-sm shadow-sm transition hover:bg-amber-100/70">
-                        <input type="checkbox" aria-label="Servicio de traducción" {...updateForm.register("requiresTranslationService")} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-amber-700 focus:ring-amber-600" />
-                        <span><strong className="block text-base text-[#0B2B5E]">Traducción</strong><span className="mt-1 block text-slate-700">+50 EUR · soles calculados con BCRP + 0,15 por EUR · plazo referencial: 7 días hábiles.</span></span>
-                      </label>
-                      {Boolean(updateForm.watch("requiresApostilleService")) && <div className="sm:col-span-2 grid gap-3 rounded-xl border border-slate-200 bg-white p-3 sm:grid-cols-2"><label className="text-sm font-medium text-slate-700">Precio manual de apostilla (EUR, opcional)<Input type="number" min="0" step="0.01" placeholder="40.00" {...updateForm.register("serviceManualPriceEur")} className="mt-1" /></label><label className="text-sm font-medium text-slate-700">Precio manual de apostilla (S/, opcional)<Input type="number" min="0" step="0.01" placeholder="160.00" {...updateForm.register("serviceManualPriceSoles")} className="mt-1" /></label></div>}
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="rounded-xl border-2 border-[#0B2B5E] bg-blue-50 p-4"><label className="flex cursor-pointer items-start gap-3 text-sm"><input type="checkbox" aria-label="Documentos para apostillar" {...updateForm.register("requiresApostilleService")} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-[#0B2B5E] focus:ring-[#0B2B5E]" /><span><strong className="block text-base text-[#0B2B5E]">Apostillado</strong><span className="mt-1 block text-slate-700">Servicio estándar: 40 EUR. El precio manual es opcional.</span></span></label>{Boolean(updateForm.watch("requiresApostilleService")) && <div className="mt-3 rounded-lg border border-blue-200 bg-white p-3"><Button type="button" variant="outline" className="w-full border-[#0B2B5E] text-[#0B2B5E]" onClick={() => updateForm.setValue("apostilleManualPrice", updateForm.getValues("apostilleManualPrice") || "", { shouldDirty: true })}>Precio manual opcional</Button><div className="mt-3 grid gap-2"><select aria-label="Moneda del precio manual de apostillado en actualización" {...updateForm.register("apostilleManualCurrency")} className="h-10 rounded-md border-2 border-slate-200 bg-white px-3 font-semibold text-[#0B2B5E]"><option value="EUR">EUR €</option><option value="USD">USD $</option><option value="PEN">PEN S/</option></select><Input type="number" min="0" step="0.01" placeholder="40.00" {...updateForm.register("apostilleManualPrice")} /></div></div>}</div>
+                        <div className="rounded-xl border-2 border-amber-300 bg-amber-50 p-4"><label className="flex cursor-pointer items-start gap-3 text-sm"><input type="checkbox" aria-label="Servicio de traducción" {...updateForm.register("requiresTranslationService")} className="mt-0.5 h-5 w-5 rounded border-slate-400 text-amber-700 focus:ring-amber-600" /><span><strong className="block text-base text-[#0B2B5E]">Traducción</strong><span className="mt-1 block text-slate-700">Servicio estándar: 50 EUR. El precio manual es opcional.</span></span></label>{Boolean(updateForm.watch("requiresTranslationService")) && <div className="mt-3 rounded-lg border border-amber-200 bg-white p-3"><Button type="button" variant="outline" className="w-full border-amber-500 text-amber-800" onClick={() => updateForm.setValue("translationManualPrice", updateForm.getValues("translationManualPrice") || "", { shouldDirty: true })}>Precio manual opcional</Button><div className="mt-3 grid gap-2"><select aria-label="Moneda del precio manual de traducción en actualización" {...updateForm.register("translationManualCurrency")} className="h-10 rounded-md border-2 border-slate-200 bg-white px-3 font-semibold text-[#0B2B5E]"><option value="EUR">EUR €</option><option value="USD">USD $</option><option value="PEN">PEN S/</option></select><Input type="number" min="0" step="0.01" placeholder="50.00" {...updateForm.register("translationManualPrice")} /></div></div>}</div>
+                      </div>
                     </div>}
                   </>}
                   {updateForm.watch("shipmentType") === "documento" && updateForm.watch("route") === SHIPMENT_ROUTES.LIMA_TORINO && <div className="md:col-span-2"><LimaTorinoTransferPanel value={{ mode: updateForm.watch("limaTorinoTransferMode") || undefined, personName: updateForm.watch("deliveryPersonName") || "", personLastName: updateForm.watch("deliveryPersonLastName") || "", personDni: updateForm.watch("deliveryPersonDni") || "", personPhone: updateForm.watch("deliveryPersonPhone") || "", locationType: updateForm.watch("deliveryLocationType") || undefined, locationAddress: updateForm.watch("deliveryLocationAddress") || "", latitude: updateForm.watch("deliveryLocationLatitude") ?? null, longitude: updateForm.watch("deliveryLocationLongitude") ?? null }} onChange={(next) => { updateForm.setValue("limaTorinoTransferMode", next.mode, { shouldDirty: true, shouldValidate: true }); updateForm.setValue("deliveryPersonName", next.personName || "", { shouldDirty: true }); updateForm.setValue("deliveryPersonLastName", next.personLastName || "", { shouldDirty: true }); updateForm.setValue("deliveryPersonDni", next.personDni || "", { shouldDirty: true }); updateForm.setValue("deliveryPersonPhone", next.personPhone || "", { shouldDirty: true }); updateForm.setValue("deliveryLocationType", next.locationType, { shouldDirty: true }); updateForm.setValue("deliveryLocationAddress", next.locationAddress || "", { shouldDirty: true }); updateForm.setValue("deliveryLocationLatitude", next.latitude ?? null, { shouldDirty: true }); updateForm.setValue("deliveryLocationLongitude", next.longitude ?? null, { shouldDirty: true }); }} /></div>}

@@ -27,5 +27,6 @@ export function formatShipmentAmount(amount: number | string | null | undefined,
   const numeric = Number(amount);
   if (!Number.isFinite(numeric)) return "No especificado";
   const currency = resolveShipmentAmountCurrency(shipment);
-  return `${numeric.toFixed(2)} ${currency === "PEN" ? "S/" : currency}`;
+  const symbol = currency === "PEN" ? "S/" : currency === "EUR" ? "€" : "$";
+  return `${symbol} ${numeric.toFixed(2)}`;
 }

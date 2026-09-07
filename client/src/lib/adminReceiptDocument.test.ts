@@ -67,8 +67,8 @@ describe("maqueta compartida del comprobante administrativo", () => {
       },
     });
 
-    expect(document.contentHtml).toContain("Servicio solicitado:</strong> Documentos para apostillar");
-    expect(document.contentHtml).toContain("SERVICIO:</div><div class=\"value\"><strong>Documentos para apostillar");
+    expect(document.contentHtml).toContain("Servicios contratados:</strong> Apostillado");
+    expect(document.contentHtml).toContain("SERVICIOS CONTRATADOS:</div><div class=\"value\"><strong>Apostillado");
   });
 
   it("usa la identidad Kasega en todo el recibo para una cuenta aislada equivalente", async () => {

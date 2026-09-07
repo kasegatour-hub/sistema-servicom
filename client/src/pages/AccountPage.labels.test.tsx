@@ -194,6 +194,7 @@ describe("AccountPage client labels", () => {
     expect(screen.getAllByLabelText("Punto de destino").some(element => element.tagName === "INPUT")).toBe(true);
     expect(screen.queryByRole("combobox", { name: "Ruta de envío" })).toBeNull();
     expect(screen.getByText(/Lista de documentos/)).toBeTruthy();
+    fireEvent.change(screen.getByRole("searchbox", { name: "Buscar documento" }), { target: { value: "nacimiento" } });
     expect(screen.getByLabelText("Acta de nacimiento")).toBeTruthy();
     expect(screen.queryByText("¿Cómo se trasladará el documento a Torino?")).toBeNull();
     expect(screen.queryByText("DHL recoge el documento")).toBeNull();

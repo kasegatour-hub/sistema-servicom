@@ -18,6 +18,7 @@ import { getPaymentStatusUi } from "@/lib/paymentStatus";
 import { getShipmentStatusUi } from "@/../../shared/shipmentStatus";
 import { formatPhoneNumber } from "@/lib/phoneFormatting";
 import { getRoutePresentation } from "@/lib/routeDetails";
+import { formatShipmentAmount } from "@shared/bcrpPricing";
 import { SHIPMENT_CODE_EXAMPLE, TRACKING_CODE_MAX_LENGTH, TRACKING_ORDER_MAX_INPUT_LENGTH, formatTrackingCodeInput, formatTrackingOrderInput, getTrackingCodeError, getTrackingOrderError } from "@/../../shared/shipmentIdentifiers";
 export { formatTrackingOrderInput, getTrackingCodeError, getTrackingOrderError } from "@/../../shared/shipmentIdentifiers";
 
@@ -88,7 +89,12 @@ interface ShipmentData {
   finalPriceEur?: string | number | null;
   basePriceEur?: string | number | null;
   manualPriceEur?: string | number | null;
+  manualPriceCurrency?: "EUR" | "USD" | "PEN" | string | null;
+  pricingCurrency?: "EUR" | "PEN" | string | null;
   route?: string | null;
+  originPoint?: string | null;
+  destinationPoint?: string | null;
+  originAddress?: string | null;
   destinationAddress?: string | null;
   requiresApostilleService?: number | boolean | null;
 }
@@ -171,8 +177,9 @@ export default function Home() {
   const [scannerOpen, setScannerOpen] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const trackedPriceEur = shipmentData ? getTrackedShipmentPriceEur(shipmentData) : null;
+  const trackedPriceLabel = shipmentData && trackedPriceEur !== null ? formatShipmentAmount(trackedPriceEur, shipmentData) : null;
   const [searchParams, setSearchParams] = useState<SearchFormData | null>(null);
-  const pickupRoute = shipmentData ? getRoutePresentation(shipmentData.route, shipmentData.destinationAddress) : null;
+  const pickupRoute = shipmentData ? getRoutePresentation(shipmentData.route, shipmentData.destinationAddress, shipmentData.originAddress, shipmentData.originPoint, shipmentData.destinationPoint) : null;
 
   // Load search params from URL on mount
   useEffect(() => {
@@ -405,7 +412,7 @@ export default function Home() {
                 </div>
                 {trackedPriceEur !== null && <div className="rounded-2xl border-2 border-blue-200 bg-blue-50 px-4 py-3 shadow-sm">
                   <p className="text-xs font-extrabold uppercase tracking-wide text-blue-700">{shipmentData.paymentStatus === "Pagado" ? "Precio pagado" : "Monto total"}</p>
-                  <p className="mt-1 text-3xl font-black tracking-tight text-blue-700 sm:text-4xl">{trackedPriceEur.toFixed(2)} <span className="text-lg font-extrabold">EUR</span></p>
+                  <p className="mt-1 text-3xl font-black tracking-tight text-blue-700 sm:text-4xl">{trackedPriceLabel}</p>
                 </div>}
               </div>
             </Card>

@@ -147,7 +147,7 @@ describe("receipt window helpers", () => {
     expect(ticket).toContain("1 documento apostillado");
     expect(ticket).toContain("&lt;contenido no ejecutable&gt;");
     expect(ticket).toContain("PRECIO FINAL");
-    expect(ticket).toContain("37.50 EUR");
+    expect(ticket).toContain("€ 37.50");
     expect(styles).toContain(".ticket{break-inside:avoid;page-break-inside:avoid");
   });
 

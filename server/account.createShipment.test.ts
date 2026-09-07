@@ -33,25 +33,26 @@ describe("account.createMyShipment persistence policy", () => {
     const base = { recipientName: "María", recipientLastName: "López", recipientDni: "71234567", contentChecklist: ["Documento principal"] };
     const limaTorino = buildClientShipmentPersistenceArgs(clientShipmentInputSchema.parse({ ...base, route: SHIPMENT_ROUTES.LIMA_TORINO, destinationAddress: "sede manipulada" }), "1234567890", "DOC-2026-ABCD", "Documento", 42);
     expect(limaTorino[19]).toBe(LIMA_SERVICOM_ADDRESS);
-    expect(limaTorino[20]).toBe(SERVICOM_TORINO_ADDRESS);
+    expect(limaTorino[20]).toBe("sede manipulada");
 
     const kasega = buildClientShipmentPersistenceArgs(clientShipmentInputSchema.parse({ ...base, route: SHIPMENT_ROUTES.LIMA_TORINO, destinationAddress: "sede manipulada" }), "1234567891", "DOC-2026-ABCE", "Documento", 42, undefined, "magda.barreto.alv@gmail.com");
-    expect(kasega[20]).toBe(KASEGA_TORINO_ADDRESS);
+    expect(kasega[20]).toBe("sede manipulada");
 
     const provincial = buildClientShipmentPersistenceArgs(clientShipmentInputSchema.parse({ ...base, route: SHIPMENT_ROUTES.TORINO_LIMA_PROVINCE, destinationAddress: "SHALOM — Agencia Huancayo" }), "1234567892", "DOC-2026-ABCF", "Documento", 42);
     expect(provincial[19]).toBe(SERVICOM_TORINO_ADDRESS);
     expect(provincial[20]).toBe("SHALOM — Agencia Huancayo");
   });
 
-  it("only accepts the apostille service for Torino - Lima", () => {
-    expect(() => clientShipmentInputSchema.parse({
+  it("accepts the apostille service for any document route", () => {
+    const input = clientShipmentInputSchema.parse({
       recipientName: "María",
       recipientLastName: "López",
       recipientDni: "71234567",
       route: "Lima - Torino",
       requiresApostilleService: true,
       contentChecklist: ["Documento principal"],
-    })).toThrow(/Torino - Lima/);
+    });
+    expect(input.requiresApostilleService).toBe(true);
   });
 
   it("rejects incomplete shipments from the client input", () => {
@@ -64,7 +65,7 @@ describe("account.createMyShipment persistence policy", () => {
     })).toThrow();
   });
 
-  it("accepts both document services only on Torino - Lima", () => {
+  it("accepts both document services on any document route", () => {
     const input = clientShipmentInputSchema.parse({
       recipientName: "María",
       recipientLastName: "López",

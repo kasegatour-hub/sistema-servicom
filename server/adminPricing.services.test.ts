@@ -22,3 +22,42 @@ describe("servicios de documentos Italia–Lima", () => {
     expect(pricing.servicePriceSoles).toBe(360);
   });
 });
+
+  it("conserva la denominación PEN para el importe manual del servicio", () => {
+    const pricing = calculateAdminShipmentPricing({ shipmentType: "documento", route: "Provincia (Perú) - Lima", requiresApostilleService: true, serviceManualPriceCurrency: "PEN", serviceManualPriceSoles: 160 });
+    expect(pricing.serviceManualPriceCurrency).toBe("PEN");
+    expect(pricing.notes).toContain("Servicio contratado: Apostillado.");
+    expect(pricing.notes).not.toContain("160.00 PEN");
+    expect(pricing.servicePriceEur).toBe(40);
+  });
+
+  it("conserva la denominación USD para el precio manual de traducción", () => {
+    const pricing = calculateAdminShipmentPricing({ shipmentType: "documento", route: "Lima - Torino", requiresTranslationService: true, serviceManualPriceCurrency: "USD", serviceManualPriceEur: 50 });
+    expect(pricing.serviceManualPriceCurrency).toBe("USD");
+    expect(pricing.notes).toContain("Servicio contratado: Traducción.");
+    expect(pricing.notes).not.toContain("USD");
+    expect(pricing.servicePriceEur).toBe(50);
+  });
+
+
+  it("suma documento, apostillado, traducción y provincia en PEN", () => {
+    const pricing = calculateAdminShipmentPricing({
+      shipmentType: "documento",
+      docType: "simple",
+      route: "Lima - Provincia",
+      manualPriceEur: 100,
+      manualPriceCurrency: "PEN",
+      requiresApostilleService: true,
+      apostilleManualPrice: 160,
+      apostilleManualCurrency: "PEN",
+      requiresTranslationService: true,
+      translationManualPrice: 200,
+      translationManualCurrency: "PEN",
+      isProvinceDelivery: true,
+      provinceCustomerPriceEur: 10,
+    });
+
+    expect(pricing.priceUnit).toBe("PEN");
+    expect(pricing.servicePriceInPriceUnit).toBe(360);
+    expect(pricing.totalEur).toBe(470);
+  });

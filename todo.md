@@ -2153,8 +2153,74 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Preparar la conexión y el respaldo del código mediante GitHub.
 - [x] Verificar variables de entorno, base de datos, pruebas y build en cada fase.
 - [x] Entregar al propietario los requisitos de autorización o datos que GitHub solicite.
+- [x] Activar la protección obligatoria de main cuando el plan de GitHub permita branch protection para repositorios privados.
 
 ## Integración autorizada con sistema-servicom
 - [x] Reemplazar la rama main remota con la versión local validada por autorización del propietario.
 - [x] Crear y publicar las ramas develop y testing desde la versión validada.
 - [x] Verificar el contenido, ramas y estado privado del repositorio GitHub.
+
+## Protección de main tras hacer público el repositorio
+- [x] Confirmar que sistema-servicom es público.
+- [x] Activar protección de main con pull request, revisión y workflow de calidad obligatorio.
+- [x] Verificar las reglas activas y cerrar la tarea de protección.
+
+## Documentación arquitectónica en README
+- [x] Incorporar al README.md el resumen de frontend, backend, base de datos, API, autenticación, pruebas y entornos.
+- [x] Validar el README y sincronizar la documentación con GitHub.
+
+## Coherencia de ruta, moneda y comprobantes
+- [x] Verificar que el recibo y ticket usen exactamente el origen y destino seleccionados.
+- [x] Unificar la moneda mostrada entre registro, rastreo, recibo, ticket y declaración jurada.
+- [x] Mostrar el monto con el símbolo delante, por ejemplo `S/ 470`, `€ 470` o `$ 470`.
+- [x] Añadir regresiones para rutas PEN/EUR/USD y comprobar que no se invierta el formato.
+- [x] Ejecutar pruebas, TypeScript y build; desplegar la versión validada en producción.
+
+## Corrección de ruta real y servicios multimoneda
+- [x] Mostrar en rastreo la etiqueta `Origen - Destino` usando exactamente los puntos seleccionados.
+- [x] Evitar que la sede de la cuenta, Corso Peschiera o Torino-Lima sobrescriban la ruta seleccionada.
+- [x] Usar origen y destino exactos en recibo electrónico, ticket y declaración jurada.
+- [x] Hacer que apostillado y traducción respeten la denominación seleccionada y sus precios de 40 EUR y 50 EUR por defecto.
+- [x] Añadir regresiones, ejecutar pruebas y desplegar la corrección en producción.
+
+## Filtro administrativo solo por origen y destino
+- [x] Reemplazar los filtros de courier y sede por búsqueda difusa únicamente de origen y destino.
+- [x] Eliminar las X y controles visuales sobrantes del bloque de filtros.
+- [x] Validar que el filtrado por origen y destino conserve los registros correctos y publicar el cambio.
+
+## Cotización visible y tres denominaciones
+- [x] Ocultar la comisión `+ S/ 0,15 por EUR` de la vista del cliente.
+- [x] Mostrar la cotización vigente del EUR usada para calcular el equivalente en PEN.
+- [x] Mostrar claramente EUR, USD y PEN con sus tipos de cambio o equivalencias disponibles.
+- [x] Añadir regresiones para evitar que la comisión interna vuelva a aparecer en la interfaz.
+- [x] Ejecutar pruebas, build y publicar el cambio.
+
+## Servicios documentales y búsquedas difusas
+- [x] Añadir botón independiente de precio manual opcional para apostillado y traducción.
+- [x] Permitir EUR, USD y PEN dentro del bloque manual de cada servicio.
+- [x] Eliminar los campos separados de precio manual del servicio en EUR y soles.
+- [x] Mostrar en recibos, tickets y declaraciones solo los servicios marcados, sin precios por defecto no contratados.
+- [x] Convertir servicios solicitados y lista de documentos en búsquedas difusas seleccionables.
+- [x] Añadir regresiones, validar, compilar y desplegar producción.
+
+## Panel administrativo a ancho completo
+- [x] Ajustar márgenes y contenedores para ocupar el ancho disponible de la pantalla.
+- [x] Adaptar tabla, acciones y cabecera sin dejar espacios laterales innecesarios.
+- [x] Validar escritorio y móvil, ejecutar pruebas y publicar el ajuste visual.
+
+## Corrección del total compuesto de documentos
+- [x] Sumar correctamente documento manual, apostillado, traducción y envío provincial.
+- [x] Persistir y mostrar el mismo total en rastreo, recibo, ticket y declaración jurada.
+- [x] Añadir regresión del caso S/ 100 + S/ 160 + S/ 200 + S/ 10 = S/ 470.
+- [x] Ejecutar suite, TypeScript, build y desplegar la corrección.
+
+## Sincronización final con GitHub
+- [ ] Confirmar que el commit de la corrección S/ 470 y su regresión están en sistema-servicom.
+- [ ] Publicar en GitHub cualquier cambio local que falte, respetando develop, testing y main.
+- [ ] Verificar ramas, workflow y estado limpio del repositorio remoto.
+
+## Flujo obligatorio permanente de promoción
+- [ ] Documentar que todo cambio nuevo comienza y se sube primero a develop.
+- [ ] Ejecutar pruebas y promover únicamente los cambios aprobados a testing.
+- [ ] Promover a main y producción solo después de que testing esté aprobado.
+- [ ] Evitar publicaciones directas desde desarrollo a producción y verificar la protección del flujo.

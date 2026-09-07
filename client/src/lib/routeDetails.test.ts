@@ -55,3 +55,18 @@ describe("route presentation", () => {
     expect(INSTITUTIONAL_DECLARATION_ENTITY).toBe("Servicom Internacional");
   });
 });
+
+  it("imprime los puntos independientes seleccionados sin sustituirlos por la sede predeterminada", () => {
+    const presentation = getRoutePresentation(
+      "Provincia - Lima",
+      "Jr. de la Unión 518, Lima",
+      "Terminal terrestre de Satipo, Satipo",
+      "Provincia (Perú)",
+      "Lima",
+    );
+
+    expect(presentation.originPrintLabel).toBe("Terminal terrestre de Satipo, Satipo");
+    expect(presentation.destinationPrintLabel).toBe("Jr. de la Unión 518, Lima");
+    expect(presentation.origin.address).toBe("Terminal terrestre de Satipo, Satipo");
+    expect(presentation.destination.address).toBe("Jr. de la Unión 518, Lima");
+  });
