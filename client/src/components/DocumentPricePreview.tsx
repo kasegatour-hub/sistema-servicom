@@ -38,7 +38,8 @@ export function DocumentPricePreview({ docType, sheetCount, additionalTotalEur =
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Precio estimado · actualización inmediata</p>
           <p data-testid="document-price-total" className="mt-1 text-2xl font-extrabold tabular-nums text-emerald-800">{displayTotal}</p>
-          {totalPen !== null && <p data-testid="document-price-total-pen" className="mt-1 text-lg font-bold tabular-nums text-[#0B2B5E]">{formatPenAmount(totalPen)} <span className="text-xs font-medium">(BCRP + S/ 0,15 por EUR)</span></p>}
+          <p data-testid="document-price-currencies" className="mt-1 text-xs font-semibold text-slate-600">Denominaciones disponibles: EUR (€) · USD ($) · PEN (S/)</p>
+          {totalPen !== null && <><p data-testid="document-price-total-pen" className="mt-1 text-lg font-bold tabular-nums text-[#0B2B5E]">{formatPenAmount(totalPen)}</p>{penPerEur ? <p data-testid="document-price-rate" className="mt-1 text-xs font-medium text-slate-600">Cotización vigente aplicada: 1 EUR = S/ {Number(penPerEur).toFixed(4)}</p> : null}</>}
           {hasManualPrice && activeCurrency !== "EUR" && <p data-testid="document-price-currency-note" className="mt-1 text-sm font-semibold text-[#0B2B5E]">Importe manual expresado en {activeCurrency === "PEN" ? "soles" : "dólares"}; no se convierte automáticamente.</p>}
         </div>
         <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-200">{price.sheetCount} de {price.maximumSheets} hojas</span>

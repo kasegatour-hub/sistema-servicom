@@ -2187,3 +2187,10 @@ Nota: el entorno de Cliente usa AccountPage; las opciones operativas de Admin/Re
 - [x] Reemplazar los filtros de courier y sede por búsqueda difusa únicamente de origen y destino.
 - [x] Eliminar las X y controles visuales sobrantes del bloque de filtros.
 - [x] Validar que el filtrado por origen y destino conserve los registros correctos y publicar el cambio.
+
+## Cotización visible y tres denominaciones
+- [x] Ocultar la comisión `+ S/ 0,15 por EUR` de la vista del cliente.
+- [x] Mostrar la cotización vigente del EUR usada para calcular el equivalente en PEN.
+- [x] Mostrar claramente EUR, USD y PEN con sus tipos de cambio o equivalencias disponibles.
+- [x] Añadir regresiones para evitar que la comisión interna vuelva a aparecer en la interfaz.
+- [x] Ejecutar pruebas, build y publicar el cambio.
